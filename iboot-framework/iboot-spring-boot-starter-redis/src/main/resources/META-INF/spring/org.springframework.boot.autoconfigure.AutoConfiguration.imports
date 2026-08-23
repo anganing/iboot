@@ -1,0 +1,2 @@
+com.iboot.pf.framework.redis.config.IbootRedisAutoConfiguration
+com.iboot.pf.framework.redis.config.IbootCacheAutoConfiguration

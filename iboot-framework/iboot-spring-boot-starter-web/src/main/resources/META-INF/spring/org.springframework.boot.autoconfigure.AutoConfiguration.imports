@@ -1,0 +1,7 @@
+com.iboot.pf.framework.apilog.config.IbootApiLogAutoConfiguration
+com.iboot.pf.framework.jackson.config.IbootJacksonAutoConfiguration
+com.iboot.pf.framework.swagger.config.IbootSwaggerAutoConfiguration
+com.iboot.pf.framework.web.config.IbootWebAutoConfiguration
+com.iboot.pf.framework.xss.config.IbootXssAutoConfiguration
+com.iboot.pf.framework.banner.config.IbootBannerAutoConfiguration
+com.iboot.pf.framework.encrypt.config.IbootApiEncryptAutoConfiguration

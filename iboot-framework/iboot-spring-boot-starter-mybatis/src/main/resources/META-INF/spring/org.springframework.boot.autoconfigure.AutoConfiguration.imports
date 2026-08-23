@@ -1,0 +1,3 @@
+com.iboot.pf.framework.datasource.config.IbootDataSourceAutoConfiguration
+com.iboot.pf.framework.mybatis.config.IbootMybatisAutoConfiguration
+com.iboot.pf.framework.translate.config.IbootTranslateAutoConfiguration

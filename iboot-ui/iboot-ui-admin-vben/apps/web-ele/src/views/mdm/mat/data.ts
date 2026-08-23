@@ -1,0 +1,363 @@
+import { markRaw } from 'vue';
+import { CodeInput } from '#/components/code-input';
+
+import type { VbenFormSchema } from '#/adapter/form';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { MdmMatApi } from '#/api/mdm/mat';
+
+import { getMatCatList } from '#/api/mdm/matcat';
+import { getUomPage } from '#/api/mdm/uom';
+import { handleTree } from '@vben/utils';
+
+import { MDM_BOOLEAN_OPTIONS, MDM_MAT_TYPE_OPTIONS, MDM_STATUS_OPTIONS } from '../constants';
+
+import { getRangePickerDefaultProps } from '#/utils';
+
+/** 新增/修改的表单 */
+export function useFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'id',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'catId',
+      label: '物料分类',
+      rules: 'required',
+      component: 'ApiTreeSelect',
+      componentProps: {
+        api: async () => handleTree(await getMatCatList({})),
+        childrenField: 'children',
+        filterable: true,
+        labelField: 'name',
+        placeholder: '请选择物料分类',
+        treeDefaultExpandAll: true,
+        valueField: 'id',
+      },
+    },
+    {
+      fieldName: 'code',
+      label: '编码',
+      component: markRaw(CodeInput),
+      componentProps: { ruleCode: 'MDM_MAT_CODE',
+        placeholder: '请输入编码',
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '名称',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入名称',
+      },
+    },
+    {
+      fieldName: 'spec',
+      label: '规格型号',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入规格型号',
+      },
+    },
+    {
+      fieldName: 'drawingNo',
+      label: '图号',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入图号',
+      },
+    },
+    {
+      fieldName: 'matType',
+      label: '物料类型',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: MDM_MAT_TYPE_OPTIONS,
+        placeholder: '请选择物料类型',
+      },
+    },
+    {
+      fieldName: 'baseUomId',
+      label: '基准计量单位',
+      rules: 'required',
+      component: 'ApiSelect',
+      componentProps: {
+        api: async () => (await getUomPage({ pageNo: 1, pageSize: 100 })).list,
+        filterable: true,
+        labelField: 'name',
+        placeholder: '请选择基准计量单位',
+        valueField: 'id',
+      },
+    },
+    {
+      fieldName: 'batchFlag',
+      label: '是否批次管控',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: MDM_BOOLEAN_OPTIONS,
+        buttonStyle: 'solid',
+        optionType: 'button',
+      },
+      defaultValue: false,
+    },
+    {
+      fieldName: 'snFlag',
+      label: '是否SN管控',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: MDM_BOOLEAN_OPTIONS,
+        buttonStyle: 'solid',
+        optionType: 'button',
+      },
+      defaultValue: false,
+    },
+    {
+      fieldName: 'shelfLifeDays',
+      label: '保质期（天）',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入保质期（天）',
+      },
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: MDM_STATUS_OPTIONS,
+        buttonStyle: 'solid',
+        optionType: 'button',
+      },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'remark',
+      label: '备注',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入备注',
+      },
+    },
+  ];
+}
+
+/** 列表的搜索表单 */
+export function useGridFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'catId',
+      label: '物料分类编号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入物料分类编号',
+      },
+    },
+    {
+      fieldName: 'code',
+      label: '编码',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入编码',
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '名称',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入名称',
+      },
+    },
+    {
+      fieldName: 'spec',
+      label: '规格型号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入规格型号',
+      },
+    },
+    {
+      fieldName: 'drawingNo',
+      label: '图号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入图号',
+      },
+    },
+    {
+      fieldName: 'matType',
+      label: '物料类型',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: MDM_MAT_TYPE_OPTIONS,
+        placeholder: '请选择物料类型',
+      },
+    },
+    {
+      fieldName: 'baseUomId',
+      label: '基准计量单位编号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入基准计量单位编号',
+      },
+    },
+    {
+      fieldName: 'batchFlag',
+      label: '是否批次管控',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: MDM_BOOLEAN_OPTIONS,
+        placeholder: '请选择是否批次管控',
+      },
+    },
+    {
+      fieldName: 'snFlag',
+      label: '是否SN管控',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: MDM_BOOLEAN_OPTIONS,
+        placeholder: '请选择是否SN管控',
+      },
+    },
+    {
+      fieldName: 'shelfLifeDays',
+      label: '保质期（天）',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入保质期（天）',
+      },
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: MDM_STATUS_OPTIONS,
+        placeholder: '请选择状态',
+      },
+    },
+    {
+      fieldName: 'remark',
+      label: '备注',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入备注',
+      },
+    },
+    {
+      fieldName: 'createTime',
+      label: '创建时间',
+      component: 'RangePicker',
+      componentProps: {
+        ...getRangePickerDefaultProps(),
+        clearable: true,
+      },
+    },
+  ];
+}
+
+/** 列表的字段 */
+export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] {
+  return [
+  { type: 'checkbox', width: 40 },
+    {
+      field: 'id',
+      title: '主键',
+      minWidth: 120,
+    },
+    {
+      field: 'catId',
+      title: '物料分类编号',
+      minWidth: 120,
+    },
+    {
+      field: 'code',
+      title: '编码',
+      minWidth: 120,
+    },
+    {
+      field: 'name',
+      title: '名称',
+      minWidth: 120,
+    },
+    {
+      field: 'spec',
+      title: '规格型号',
+      minWidth: 120,
+    },
+    {
+      field: 'drawingNo',
+      title: '图号',
+      minWidth: 120,
+    },
+    {
+      field: 'matType',
+      title: '物料类型',
+      minWidth: 120,
+    },
+    {
+      field: 'baseUomId',
+      title: '基准计量单位编号',
+      minWidth: 120,
+    },
+    {
+      field: 'batchFlag',
+      title: '是否批次管控',
+      minWidth: 120,
+    },
+    {
+      field: 'snFlag',
+      title: '是否SN管控',
+      minWidth: 120,
+    },
+    {
+      field: 'shelfLifeDays',
+      title: '保质期（天）',
+      minWidth: 120,
+    },
+    {
+      field: 'status',
+      title: '状态',
+      minWidth: 120,
+    },
+    {
+      field: 'remark',
+      title: '备注',
+      minWidth: 120,
+    },
+    {
+      field: 'createTime',
+      title: '创建时间',
+      minWidth: 120,
+      formatter: 'formatDateTime',
+    },
+    {
+      title: '操作',
+      width: 200,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
+  ];
+}
+

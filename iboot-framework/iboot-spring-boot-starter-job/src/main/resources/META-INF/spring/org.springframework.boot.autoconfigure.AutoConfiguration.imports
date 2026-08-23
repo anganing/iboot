@@ -1,0 +1,2 @@
+com.iboot.pf.framework.quartz.config.IbootQuartzAutoConfiguration
+com.iboot.pf.framework.quartz.config.IbootAsyncAutoConfiguration

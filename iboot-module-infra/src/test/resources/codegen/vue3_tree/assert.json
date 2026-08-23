@@ -1,0 +1,49 @@
+[ {
+  "contentPath" : "java/InfraCategoryListReqVO",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/controller/admin/demo/vo/InfraCategoryListReqVO.java"
+}, {
+  "contentPath" : "java/InfraCategoryRespVO",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/controller/admin/demo/vo/InfraCategoryRespVO.java"
+}, {
+  "contentPath" : "java/InfraCategorySaveReqVO",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/controller/admin/demo/vo/InfraCategorySaveReqVO.java"
+}, {
+  "contentPath" : "java/InfraCategoryController",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/controller/admin/demo/InfraCategoryController.java"
+}, {
+  "contentPath" : "java/InfraCategoryDO",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/dal/dataobject/demo/InfraCategoryDO.java"
+}, {
+  "contentPath" : "java/InfraCategoryMapper",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/dal/mysql/demo/InfraCategoryMapper.java"
+}, {
+  "contentPath" : "xml/InfraCategoryMapper",
+  "filePath" : "iboot-module-infra/src/main/resources/mapper/demo/InfraCategoryMapper.xml"
+}, {
+  "contentPath" : "java/InfraCategoryServiceImpl",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/service/demo/InfraCategoryServiceImpl.java"
+}, {
+  "contentPath" : "java/InfraCategoryService",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/service/demo/InfraCategoryService.java"
+}, {
+  "contentPath" : "java/InfraCategoryServiceImplTest",
+  "filePath" : "iboot-module-infra/src/test/java/com.iboot.pf/module/infra/service/demo/InfraCategoryServiceImplTest.java"
+}, {
+  "contentPath" : "java/ErrorCodeConstants_手动操作",
+  "filePath" : "iboot-module-infra/src/main/java/com.iboot.pf/module/infra/enums/ErrorCodeConstants_手动操作.java"
+}, {
+  "contentPath" : "sql/sql",
+  "filePath" : "sql/sql.sql"
+}, {
+  "contentPath" : "sql/h2",
+  "filePath" : "sql/h2.sql"
+}, {
+  "contentPath" : "vue/index",
+  "filePath" : "iboot-ui-admin-vue3/src/views/infra/demo/index.vue"
+}, {
+  "contentPath" : "vue/CategoryForm",
+  "filePath" : "iboot-ui-admin-vue3/src/views/infra/demo/CategoryForm.vue"
+}, {
+  "contentPath" : "ts/index",
+  "filePath" : "iboot-ui-admin-vue3/src/api/infra/demo/index.ts"
+} ]

@@ -1,0 +1,2 @@
+com.iboot.pf.framework.tracer.config.IbootTracerAutoConfiguration
+com.iboot.pf.framework.tracer.config.IbootMetricsAutoConfiguration

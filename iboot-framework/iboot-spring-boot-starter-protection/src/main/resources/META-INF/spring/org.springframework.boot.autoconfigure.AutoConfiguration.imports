@@ -1,0 +1,4 @@
+com.iboot.pf.framework.idempotent.config.IbootIdempotentConfiguration
+com.iboot.pf.framework.lock4j.config.IbootLock4jConfiguration
+com.iboot.pf.framework.ratelimiter.config.IbootRateLimiterConfiguration
+com.iboot.pf.framework.signature.config.IbootApiSignatureAutoConfiguration

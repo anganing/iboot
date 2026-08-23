@@ -1,0 +1,3 @@
+com.iboot.pf.framework.mq.redis.config.IbootRedisMQProducerAutoConfiguration
+com.iboot.pf.framework.mq.redis.config.IbootRedisMQConsumerAutoConfiguration
+com.iboot.pf.framework.mq.rabbitmq.config.IbootRabbitMQAutoConfiguration

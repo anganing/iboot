@@ -1,0 +1,2 @@
+Application Version: ${iboot.info.version}
+Spring Boot Version: ${spring-boot.version}
