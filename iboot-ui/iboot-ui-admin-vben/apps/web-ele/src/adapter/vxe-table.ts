@@ -373,6 +373,7 @@ export const useVbenVxeGrid = <T extends Record<string, any>>(
     formOptions: {
       ...options.formOptions,
       commonConfig: {
+        floatLabel: 'on',
         ...options.formOptions?.commonConfig,
       },
     },
