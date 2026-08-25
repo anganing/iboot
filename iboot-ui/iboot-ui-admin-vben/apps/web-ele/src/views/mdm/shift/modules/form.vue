@@ -10,6 +10,7 @@ import { ElMessage } from 'element-plus';
 import { useVbenForm } from '#/adapter/form';
 import { createShift, getShift, updateShift } from '#/api/mdm/shift';
 import { $t } from '#/locales';
+import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
 import { useFormSchema } from '../data';
 
@@ -21,15 +22,18 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['班次']);
 });
 
+const formLayout = getMdmFormLayout(1);
+
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: {
       class: 'w-full',
     },
-    formItemClass: 'col-span-2',
+    formItemClass: formLayout.formItemClass,
     labelClass: 'justify-start',
     labelWidth: 80,
   },
+  wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
   schema: useFormSchema(),
   showDefaultActions: false,
@@ -77,7 +81,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
 </template>

@@ -4,10 +4,10 @@ import type { MdmRouteApi } from '#/api/mdm/route';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage, ElTag } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -20,13 +20,14 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import RouteOpList from './modules/route-op-list.vue';
+import RouteConfig from './modules/route-config.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('routeOp')
-const selectRoute = ref<MdmRouteApi.Route>();
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+const [RouteConfigDrawer, routeConfigDrawerApi] = useVbenDrawer({
+  connectedComponent: RouteConfig,
   destroyOnClose: true,
 });
 
@@ -43,6 +44,11 @@ function handleCreate() {
 /** 编辑工艺路线 */
 function handleEdit(row: MdmRouteApi.Route) {
   formModalApi.setData(row).open();
+}
+
+/** 配置工艺路线 */
+function handleConfig(row: MdmRouteApi.Route) {
+  routeConfigDrawerApi.setData(row).open();
 }
 
 /** 删除工艺路线 */
@@ -75,7 +81,7 @@ async function handleDeleteBatch() {
   }
 }
 
-const checkedIds = ref<number[]>([]);
+const checkedIds = ref<MdmRouteApi.Id[]>([]);
 function handleRowCheckboxChange({
   records,
 }: {
@@ -97,7 +103,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -113,7 +119,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     rowConfig: {
       keyField: 'id',
       isHover: true,
-      isCurrent: true,
     },
     toolbarConfig: {
       refresh: true,
@@ -121,9 +126,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<MdmRouteApi.Route>,
   gridEvents: {
-    cellClick: ({ row }: { row: MdmRouteApi.Route}) => {
-      selectRoute.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -133,7 +135,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-   <div>
+    <RouteConfigDrawer />
     <Grid table-title="工艺路线列表">
       <template #toolbar-tools>
         <TableAction
@@ -163,9 +165,22 @@ const [Grid, gridApi] = useVbenVxeGrid({
           ]"
         />
       </template>
+      <template #status="{ row }">
+        <ElTag :type="row.status === 'PUBLISHED' ? 'success' : 'info'">
+          {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
+        </ElTag>
+      </template>
       <template #actions="{ row }">
         <TableAction
           :actions="[
+            {
+              label: '配置',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mdm:route:query'],
+              onClick: handleConfig.bind(null, row),
+            },
             {
               label: $t('common.edit'),
               type: 'primary',
@@ -189,12 +204,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="routeOp" label="工艺路线工序">
-            <RouteOpList :route-id="selectRoute?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

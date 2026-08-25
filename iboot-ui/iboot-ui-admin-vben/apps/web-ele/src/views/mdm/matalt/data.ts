@@ -2,8 +2,12 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmMatAltApi } from '#/api/mdm/matalt';
 
+import { markRaw } from 'vue';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { MAT_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -18,29 +22,33 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'altMatId',
-      label: '替代物料编号',
+      label: '替代物料',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入替代物料编号',
+        ...MAT_RELATION_PROPS,
+        dialogTitle: '选择替代物料',
+        placeholder: '请选择替代物料',
       },
     },
     {
       fieldName: 'priority',
       label: '优先级',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入优先级',
+        precision: 0,
       },
     },
     {
@@ -59,29 +67,30 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'matId',
-      label: '物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编号',
-      },
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'altMatId',
-      label: '替代物料编号',
-      component: 'Input',
+      label: '替代物料',
+      component: markRaw(RelationSelect),
       componentProps: {
-        clearable: true,
-        placeholder: '请输入替代物料编号',
+        ...MAT_RELATION_PROPS,
+        dialogTitle: '选择替代物料',
+        placeholder: '请选择替代物料',
       },
     },
     {
       fieldName: 'priority',
       label: '优先级',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入优先级',
+        precision: 0,
       },
     },
     {
@@ -108,7 +117,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmMatAltApi.MatAlt>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -148,4 +157,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatAltApi.MatAlt>['colu
     },
   ];
 }
-

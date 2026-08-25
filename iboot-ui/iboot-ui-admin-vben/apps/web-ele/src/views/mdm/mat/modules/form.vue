@@ -10,6 +10,7 @@ import { ElMessage } from 'element-plus';
 import { useVbenForm } from '#/adapter/form';
 import { createMat, getMat, updateMat } from '#/api/mdm/mat';
 import { $t } from '#/locales';
+import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
 import { useFormSchema } from '../data';
 
@@ -21,15 +22,18 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['物料主档']);
 });
 
+const formLayout = getMdmFormLayout(1, 'w-[820px]');
+
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: {
       class: 'w-full',
     },
-    formItemClass: 'col-span-1',
+    formItemClass: formLayout.formItemClass,
     labelClass: 'justify-start',
     labelWidth: 104,
   },
+  wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
   schema: useFormSchema(),
   showDefaultActions: false,
@@ -77,7 +81,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle" class="w-[820px]">
+  <Modal :title="getTitle" :class="formLayout.modalClass">
     <Form class="mx-4" />
   </Modal>
 </template>

@@ -1,17 +1,22 @@
-import { markRaw } from 'vue';
-import { CodeInput } from '#/components/code-input';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmMatApi } from '#/api/mdm/mat';
 
-import { getMatCatList } from '#/api/mdm/matcat';
-import { getUomPage } from '#/api/mdm/uom';
+import { markRaw } from 'vue';
+
 import { handleTree } from '@vben/utils';
 
-import { MDM_BOOLEAN_OPTIONS, MDM_MAT_TYPE_OPTIONS, MDM_STATUS_OPTIONS } from '../constants';
-
+import { getMatCatList } from '#/api/mdm/matcat';
+import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import {
+  MDM_BOOLEAN_OPTIONS,
+  MDM_MAT_TYPE_OPTIONS,
+  MDM_STATUS_OPTIONS,
+} from '../constants';
+import { MAT_CAT_RELATION_PROPS, UOM_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -43,9 +48,7 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_MAT_CODE',
-        placeholder: '请输入编码',
-      },
+      componentProps: { ruleCode: 'MDM_MAT_CODE', placeholder: '请输入编码' },
     },
     {
       fieldName: 'name',
@@ -86,14 +89,8 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'baseUomId',
       label: '基准计量单位',
       rules: 'required',
-      component: 'ApiSelect',
-      componentProps: {
-        api: async () => (await getUomPage({ pageNo: 1, pageSize: 100 })).list,
-        filterable: true,
-        labelField: 'name',
-        placeholder: '请选择基准计量单位',
-        valueField: 'id',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'batchFlag',
@@ -122,9 +119,13 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'shelfLifeDays',
       label: '保质期（天）',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入保质期（天）',
+        precision: 0,
       },
     },
     {
@@ -155,12 +156,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'catId',
-      label: '物料分类编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料分类编号',
-      },
+      label: '物料分类',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_CAT_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -210,12 +208,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'baseUomId',
-      label: '基准计量单位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入基准计量单位编号',
-      },
+      label: '基准计量单位',
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'batchFlag',
@@ -240,10 +235,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'shelfLifeDays',
       label: '保质期（天）',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入保质期（天）',
+        precision: 0,
       },
     },
     {
@@ -280,7 +278,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -360,4 +358,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
     },
   ];
 }
-

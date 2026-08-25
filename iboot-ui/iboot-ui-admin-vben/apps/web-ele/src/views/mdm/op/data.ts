@@ -1,13 +1,13 @@
-import { markRaw } from 'vue';
-import { CodeInput } from '#/components/code-input';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmOpApi } from '#/api/mdm/op';
 
-import { MDM_STATUS_OPTIONS } from '../constants';
+import { markRaw } from 'vue';
 
+import { CodeInput } from '#/components/code-input';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { MDM_STATUS_OPTIONS } from '../constants';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -41,9 +41,13 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'stdDuration',
       label: '标准时长（分钟）',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入标准时长（分钟）',
+        precision: 0,
       },
     },
     {
@@ -92,10 +96,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'stdDuration',
       label: '标准时长（分钟）',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入标准时长（分钟）',
+        precision: 0,
       },
     },
     {

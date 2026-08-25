@@ -1,29 +1,25 @@
 package com.iboot.pf.module.mdm.service.routeopmat;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.routeopmat.RouteOpMatDO;
-import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
-import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
-import com.iboot.pf.module.mdm.dal.mysql.routeopmat.RouteOpMatMapper;
-import com.iboot.pf.module.mdm.dal.mysql.routeop.RouteOpMapper;
-import com.iboot.pf.module.mdm.dal.mysql.route.RouteMapper;
+import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.RouteOpMatPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.RouteOpMatSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
+import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
+import com.iboot.pf.module.mdm.dal.dataobject.routeopmat.RouteOpMatDO;
 import com.iboot.pf.module.mdm.dal.mysql.mat.MatMapper;
+import com.iboot.pf.module.mdm.dal.mysql.route.RouteMapper;
+import com.iboot.pf.module.mdm.dal.mysql.route.RouteOpMapper;
+import com.iboot.pf.module.mdm.dal.mysql.routeopmat.RouteOpMatMapper;
 import com.iboot.pf.module.mdm.dal.mysql.uom.UomMapper;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 
 /**
@@ -47,6 +43,7 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
     private UomMapper uomMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createRouteOpMat(RouteOpMatSaveReqVO createReqVO) {
         validateReferences(createReqVO.getRouteOpId(), createReqVO.getMatId(), createReqVO.getUomId());
         // 插入
@@ -59,6 +56,7 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateRouteOpMat(RouteOpMatSaveReqVO updateReqVO) {
         RouteOpMatDO existing = validateRouteOpMatExists(updateReqVO.getId());
         updateReqVO.setRouteOpId(existing.getRouteOpId());
@@ -69,14 +67,16 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteRouteOpMat(Long id) {
         RouteOpMatDO routeOpMat = validateRouteOpMatExists(id);
-        validateRouteEditable(routeOpMat.getRouteOpId());
+        validateRouteEditable(validateRouteOpExists(routeOpMat.getRouteOpId()));
         // 删除
         routeOpMatMapper.deleteById(id);
     }
 
     @Override
+	@Transactional(rollbackFor = Exception.class)
 	public void deleteRouteOpMatListByIds(List<Long> ids) {
 	    for (Long id : ids) {
             deleteRouteOpMat(id);
@@ -93,11 +93,8 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
     }
 
     private void validateReferences(Long routeOpId, Long matId, Long uomId) {
-        RouteOpDO routeOp = routeOpMapper.selectById(routeOpId);
-        if (routeOp == null) {
-            throw exception(ROUTE_OP_NOT_EXISTS);
-        }
-        validateRouteEditable(routeOpId);
+        RouteOpDO routeOp = validateRouteOpExists(routeOpId);
+        validateRouteEditable(routeOp);
         if (matMapper.selectById(matId) == null) {
             throw exception(MAT_NOT_EXISTS);
         }
@@ -106,12 +103,16 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
         }
     }
 
-    private void validateRouteEditable(Long routeOpId) {
+    private RouteOpDO validateRouteOpExists(Long routeOpId) {
         RouteOpDO routeOp = routeOpMapper.selectById(routeOpId);
         if (routeOp == null) {
             throw exception(ROUTE_OP_NOT_EXISTS);
         }
-        RouteDO route = routeMapper.selectById(routeOp.getRouteId());
+        return routeOp;
+    }
+
+    private void validateRouteEditable(RouteOpDO routeOp) {
+        RouteDO route = routeMapper.selectOneForUpdate(RouteDO::getId, routeOp.getRouteId());
         if (route == null) {
             throw exception(ROUTE_NOT_EXISTS);
         }

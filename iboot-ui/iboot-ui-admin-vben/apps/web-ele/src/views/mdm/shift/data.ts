@@ -44,8 +44,8 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'DatePicker',
       componentProps: {
         showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
+        format: 'HH:mm:ss',
+        valueFormat: 'HH:mm:ss',
         class: '!w-full',
       },
     },
@@ -56,8 +56,8 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'DatePicker',
       componentProps: {
         showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
+        format: 'HH:mm:ss',
+        valueFormat: 'HH:mm:ss',
         class: '!w-full',
       },
     },

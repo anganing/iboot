@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
 
@@ -28,10 +29,12 @@ public class ShiftRespVO {
 
     @Schema(description = "开始时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("开始时间")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime startTime;
 
     @Schema(description = "结束时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("结束时间")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
@@ -46,4 +49,4 @@ public class ShiftRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

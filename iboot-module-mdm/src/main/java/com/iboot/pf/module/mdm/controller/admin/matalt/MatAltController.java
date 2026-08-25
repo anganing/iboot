@@ -40,14 +40,14 @@ public class MatAltController {
 
     @PostMapping("/create")
     @Operation(summary = "创建替代料")
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:create')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:create')")
     public CommonResult<Long> createMatAlt(@Valid @RequestBody MatAltSaveReqVO createReqVO) {
         return success(matAltService.createMatAlt(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新替代料")
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:update')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:update')")
     public CommonResult<Boolean> updateMatAlt(@Valid @RequestBody MatAltSaveReqVO updateReqVO) {
         matAltService.updateMatAlt(updateReqVO);
         return success(true);
@@ -56,7 +56,7 @@ public class MatAltController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除替代料")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:delete')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:delete')")
     public CommonResult<Boolean> deleteMatAlt(@RequestParam("id") Long id) {
         matAltService.deleteMatAlt(id);
         return success(true);
@@ -65,7 +65,7 @@ public class MatAltController {
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
     @Operation(summary = "批量删除替代料")
-                @PreAuthorize("@ss.hasPermission('mdm:mat-alt:delete')")
+                @PreAuthorize("@ss.hasPermission('mdm:matalt:delete')")
     public CommonResult<Boolean> deleteMatAltList(@RequestParam("ids") List<Long> ids) {
         matAltService.deleteMatAltListByIds(ids);
         return success(true);
@@ -74,7 +74,7 @@ public class MatAltController {
     @GetMapping("/get")
     @Operation(summary = "获得替代料")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:query')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:query')")
     public CommonResult<MatAltRespVO> getMatAlt(@RequestParam("id") Long id) {
         MatAltDO matAlt = matAltService.getMatAlt(id);
         return success(BeanUtils.toBean(matAlt, MatAltRespVO.class));
@@ -82,7 +82,7 @@ public class MatAltController {
 
     @GetMapping("/page")
     @Operation(summary = "获得替代料分页")
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:query')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:query')")
     public CommonResult<PageResult<MatAltRespVO>> getMatAltPage(@Valid MatAltPageReqVO pageReqVO) {
         PageResult<MatAltDO> pageResult = matAltService.getMatAltPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, MatAltRespVO.class));
@@ -90,7 +90,7 @@ public class MatAltController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出替代料 Excel")
-    @PreAuthorize("@ss.hasPermission('mdm:mat-alt:export')")
+    @PreAuthorize("@ss.hasPermission('mdm:matalt:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportMatAltExcel(@Valid MatAltPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
@@ -101,4 +101,4 @@ public class MatAltController {
                         BeanUtils.toBean(list, MatAltRespVO.class));
     }
 
-}
+}

@@ -22,6 +22,14 @@ public class RouteRespVO {
     @ExcelProperty("物料编号")
     private Long matId;
 
+    @Schema(description = "物料编码")
+    @ExcelProperty("物料编码")
+    private String matCode;
+
+    @Schema(description = "物料名称")
+    @ExcelProperty("物料名称")
+    private String matName;
+
     @Schema(description = "版本号", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("版本号")
     private String version;
@@ -46,4 +54,4 @@ public class RouteRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

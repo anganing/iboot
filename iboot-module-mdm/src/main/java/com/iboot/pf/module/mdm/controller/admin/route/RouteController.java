@@ -17,7 +17,6 @@ import java.io.IOException;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.CommonResult;
-import com.iboot.pf.framework.common.util.object.BeanUtils;
 import static com.iboot.pf.framework.common.pojo.CommonResult.success;
 
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
@@ -26,7 +25,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
 import com.iboot.pf.module.mdm.service.route.RouteService;
 
@@ -77,16 +75,22 @@ public class RouteController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:route:query')")
     public CommonResult<RouteRespVO> getRoute(@RequestParam("id") Long id) {
-        RouteDO route = routeService.getRoute(id);
-        return success(BeanUtils.toBean(route, RouteRespVO.class));
+        return success(routeService.getRoute(id));
+    }
+
+    @GetMapping("/detail")
+    @Operation(summary = "获得工艺路线编排详情")
+    @Parameter(name = "id", description = "编号", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:route:query')")
+    public CommonResult<RouteDetailRespVO> getRouteDetail(@RequestParam("id") Long id) {
+        return success(routeService.getRouteDetail(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得工艺路线分页")
     @PreAuthorize("@ss.hasPermission('mdm:route:query')")
     public CommonResult<PageResult<RouteRespVO>> getRoutePage(@Valid RoutePageReqVO pageReqVO) {
-        PageResult<RouteDO> pageResult = routeService.getRoutePage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, RouteRespVO.class));
+        return success(routeService.getRoutePage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -96,17 +100,16 @@ public class RouteController {
     public void exportRouteExcel(@Valid RoutePageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<RouteDO> list = routeService.getRoutePage(pageReqVO).getList();
+        List<RouteRespVO> list = routeService.getRoutePage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "工艺路线.xls", "数据", RouteRespVO.class,
-                        BeanUtils.toBean(list, RouteRespVO.class));
+        ExcelUtils.write(response, "工艺路线.xls", "数据", RouteRespVO.class, list);
     }
 
     // ==================== 子表（工艺路线工序） ====================
 
     @GetMapping("/route-op/page")
     @Operation(summary = "获得工艺路线工序分页")
-    @Parameter(name = "routeId", description = "工艺路线编号")
+    @Parameter(name = "routeId", description = "工艺路线编号", required = true)
     @PreAuthorize("@ss.hasPermission('mdm:route:query')")
     public CommonResult<PageResult<RouteOpDO>> getRouteOpPage(PageParam pageReqVO,
                                                                                         @RequestParam("routeId") Long routeId) {
@@ -116,15 +119,23 @@ public class RouteController {
     @PostMapping("/route-op/create")
     @Operation(summary = "创建工艺路线工序")
     @PreAuthorize("@ss.hasPermission('mdm:route:create')")
-    public CommonResult<Long> createRouteOp(@Valid @RequestBody RouteOpDO routeOp) {
+    public CommonResult<Long> createRouteOp(@Valid @RequestBody RouteOpSaveReqVO routeOp) {
         return success(routeService.createRouteOp(routeOp));
     }
 
     @PutMapping("/route-op/update")
     @Operation(summary = "更新工艺路线工序")
     @PreAuthorize("@ss.hasPermission('mdm:route:update')")
-    public CommonResult<Boolean> updateRouteOp(@Valid @RequestBody RouteOpDO routeOp) {
+    public CommonResult<Boolean> updateRouteOp(@Valid @RequestBody RouteOpSaveReqVO routeOp) {
         routeService.updateRouteOp(routeOp);
+        return success(true);
+    }
+
+    @PutMapping("/route-op/update-sort")
+    @Operation(summary = "更新工艺路线工序排序")
+    @PreAuthorize("@ss.hasPermission('mdm:route:update')")
+    public CommonResult<Boolean> updateRouteOpSort(@Valid @RequestBody RouteOpSortReqVO sortReqVO) {
+        routeService.updateRouteOpSort(sortReqVO);
         return success(true);
     }
 
@@ -154,4 +165,4 @@ public class RouteController {
 	    return success(routeService.getRouteOp(id));
 	}
 
-}
+}

@@ -1,11 +1,13 @@
 import { markRaw } from 'vue';
 import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmProjectTaskApi } from '#/api/mdm/projecttask';
 
 import { MDM_STATUS_OPTIONS } from '../constants';
+import { PROJECT_RELATION_PROPS } from '../relation-config';
 
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -22,18 +24,17 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'projectId',
-      label: '项目编号',
+      label: '项目',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PROJECT_RELATION_PROPS,
     },
     {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_PROJECT_TASK_CODE',
+      componentProps: {
+        ruleCode: 'MDM_PROJECT_TASK_CODE',
         placeholder: '请输入编码',
       },
     },
@@ -73,12 +74,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'projectId',
-      label: '项目编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目编号',
-      },
+      label: '项目',
+      component: markRaw(RelationSelect),
+      componentProps: PROJECT_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -132,7 +130,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmProjectTaskApi.ProjectTask>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -177,4 +175,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmProjectTaskApi.ProjectT
     },
   ];
 }
-

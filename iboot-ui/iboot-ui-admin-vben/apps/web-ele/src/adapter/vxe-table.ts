@@ -370,13 +370,15 @@ export const useVbenVxeGrid = <T extends Record<string, any>>(
 ) =>
   useGrid<T, ComponentType, ComponentPropsMap>({
     ...options,
-    formOptions: {
-      ...options.formOptions,
-      commonConfig: {
-        floatLabel: 'on',
-        ...options.formOptions?.commonConfig,
-      },
-    },
+    formOptions: options.formOptions
+      ? {
+          ...options.formOptions,
+          commonConfig: {
+            floatLabel: 'on',
+            ...options.formOptions.commonConfig,
+          },
+        }
+      : undefined,
   });
 
 export type * from '@vben/plugins/vxe-table';

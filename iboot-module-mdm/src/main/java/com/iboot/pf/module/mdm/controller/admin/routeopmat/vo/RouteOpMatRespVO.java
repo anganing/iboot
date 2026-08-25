@@ -25,6 +25,15 @@ public class RouteOpMatRespVO {
     @ExcelProperty("物料编号")
     private Long matId;
 
+    @Schema(description = "物料编码")
+    private String matCode;
+
+    @Schema(description = "物料名称")
+    private String matName;
+
+    @Schema(description = "规格型号")
+    private String matSpec;
+
     @Schema(description = "数量", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("数量")
     private BigDecimal qty;
@@ -32,6 +41,12 @@ public class RouteOpMatRespVO {
     @Schema(description = "计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "25404")
     @ExcelProperty("计量单位编号")
     private Long uomId;
+
+    @Schema(description = "计量单位编码")
+    private String uomCode;
+
+    @Schema(description = "计量单位名称")
+    private String uomName;
 
     @Schema(description = "备注", example = "你说的对")
     @ExcelProperty("备注")
@@ -41,4 +56,4 @@ public class RouteOpMatRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

@@ -27,8 +27,8 @@ public class NumberSerializer extends com.fasterxml.jackson.databind.ser.std.Num
 
     @Override
     public void serialize(Number value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        // 超出范围 序列化位字符串
-        if (value.longValue() > MIN_SAFE_INTEGER && value.longValue() < MAX_SAFE_INTEGER) {
+        // 超出 JavaScript 安全整数范围时序列化为字符串
+        if (value.longValue() >= MIN_SAFE_INTEGER && value.longValue() <= MAX_SAFE_INTEGER) {
             super.serialize(value, gen, serializers);
         } else {
             gen.writeString(value.toString());

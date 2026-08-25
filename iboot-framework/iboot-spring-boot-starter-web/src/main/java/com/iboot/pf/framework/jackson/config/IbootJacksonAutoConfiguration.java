@@ -20,10 +20,20 @@ import org.springframework.context.annotation.Bean;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 @AutoConfiguration(after = JacksonAutoConfiguration.class)
 @Slf4j
 public class IbootJacksonAutoConfiguration {
+
+    private static final LocalDateSerializer LOCAL_DATE_SERIALIZER =
+            new LocalDateSerializer(DateTimeFormatter.ISO_LOCAL_DATE);
+    private static final LocalDateDeserializer LOCAL_DATE_DESERIALIZER =
+            new LocalDateDeserializer(DateTimeFormatter.ISO_LOCAL_DATE);
+    private static final LocalTimeSerializer LOCAL_TIME_SERIALIZER =
+            new LocalTimeSerializer(DateTimeFormatter.ISO_LOCAL_TIME);
+    private static final LocalTimeDeserializer LOCAL_TIME_DESERIALIZER =
+            new LocalTimeDeserializer(DateTimeFormatter.ISO_LOCAL_TIME);
 
     /**
      * 从 Builder 源头定制（关键：使用 *ByType，避免 handledType 要求）
@@ -35,10 +45,10 @@ public class IbootJacksonAutoConfiguration {
                 .serializerByType(Long.class, NumberSerializer.INSTANCE)
                 .serializerByType(Long.TYPE, NumberSerializer.INSTANCE)
                 // LocalDate / LocalTime
-                .serializerByType(LocalDate.class, LocalDateSerializer.INSTANCE)
-                .deserializerByType(LocalDate.class, LocalDateDeserializer.INSTANCE)
-                .serializerByType(LocalTime.class, LocalTimeSerializer.INSTANCE)
-                .deserializerByType(LocalTime.class, LocalTimeDeserializer.INSTANCE)
+                .serializerByType(LocalDate.class, LOCAL_DATE_SERIALIZER)
+                .deserializerByType(LocalDate.class, LOCAL_DATE_DESERIALIZER)
+                .serializerByType(LocalTime.class, LOCAL_TIME_SERIALIZER)
+                .deserializerByType(LocalTime.class, LOCAL_TIME_DESERIALIZER)
                 // LocalDateTime < - > EpochMillis
                 .serializerByType(LocalDateTime.class, TimestampLocalDateTimeSerializer.INSTANCE)
                 .deserializerByType(LocalDateTime.class, TimestampLocalDateTimeDeserializer.INSTANCE);
@@ -54,10 +64,10 @@ public class IbootJacksonAutoConfiguration {
         m.addSerializer(Long.class, NumberSerializer.INSTANCE);
         m.addSerializer(Long.TYPE, NumberSerializer.INSTANCE);
         // LocalDate / LocalTime
-        m.addSerializer(LocalDate.class, LocalDateSerializer.INSTANCE);
-        m.addDeserializer(LocalDate.class, LocalDateDeserializer.INSTANCE);
-        m.addSerializer(LocalTime.class, LocalTimeSerializer.INSTANCE);
-        m.addDeserializer(LocalTime.class, LocalTimeDeserializer.INSTANCE);
+        m.addSerializer(LocalDate.class, LOCAL_DATE_SERIALIZER);
+        m.addDeserializer(LocalDate.class, LOCAL_DATE_DESERIALIZER);
+        m.addSerializer(LocalTime.class, LOCAL_TIME_SERIALIZER);
+        m.addDeserializer(LocalTime.class, LOCAL_TIME_DESERIALIZER);
         // LocalDateTime < - > EpochMillis
         m.addSerializer(LocalDateTime.class, TimestampLocalDateTimeSerializer.INSTANCE);
         m.addDeserializer(LocalDateTime.class, TimestampLocalDateTimeDeserializer.INSTANCE);

@@ -41,6 +41,7 @@ public interface ErrorCodeConstants {
     ErrorCode ROUTE_DATE_INVALID = new ErrorCode(1_062_017_004, "工艺路线失效日期不能早于生效日期");
     ErrorCode ROUTE_PUBLISHED_LOCKED = new ErrorCode(1_062_017_005, "已发布工艺路线不允许修改或删除");
     ErrorCode ROUTE_PUBLISH_WITHOUT_OP = new ErrorCode(1_062_017_006, "发布工艺路线前至少需要一道工序");
+    ErrorCode ROUTE_OP_SORT_INVALID = new ErrorCode(1_062_017_007, "工艺路线工序排序数据不完整或不属于当前路线");
     ErrorCode MAT_ALT_NOT_EXISTS = new ErrorCode(1_062_018_000, "替代料不存在");
     ErrorCode UOM_CONV_NOT_EXISTS = new ErrorCode(1_062_019_000, "单位换算不存在");
     ErrorCode UOM_CONV_SAME_UOM = new ErrorCode(1_062_019_001, "来源计量单位与目标计量单位不能相同");

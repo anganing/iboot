@@ -1,11 +1,13 @@
 import { markRaw } from 'vue';
 import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmMatCatApi } from '#/api/mdm/matcat';
 
 import { MDM_STATUS_OPTIONS } from '../constants';
+import { MAT_CAT_RELATION_PROPS } from '../relation-config';
 import { getMatCatList } from '#/api/mdm/matcat';
 import { handleTree } from '@vben/utils';
 
@@ -48,7 +50,8 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_MAT_CAT_CODE',
+      componentProps: {
+        ruleCode: 'MDM_MAT_CAT_CODE',
         placeholder: '请输入编码',
       },
     },
@@ -88,12 +91,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'parentId',
-      label: '父级编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入父级编号',
-      },
+      label: '上级物料分类',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_CAT_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -192,4 +192,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatCatApi.MatCat>['colu
     },
   ];
 }
-

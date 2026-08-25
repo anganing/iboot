@@ -5,7 +5,7 @@ import type { MdmBomApi } from '#/api/mdm/bom';
  import BomLineForm from './bom-line-form.vue'
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
-import { ref, computed, nextTick,watch } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -183,4 +183,4 @@ watch(
           />
         </template>
       </Grid>
-</template>
+</template>

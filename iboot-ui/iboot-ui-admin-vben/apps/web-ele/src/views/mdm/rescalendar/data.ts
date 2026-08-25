@@ -2,8 +2,12 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmResCalendarApi } from '#/api/mdm/rescalendar';
 
+import { markRaw } from 'vue';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { RES_RELATION_PROPS, SHIFT_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -18,12 +22,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'resId',
-      label: '资源编号',
+      label: '生产资源',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入资源编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
       fieldName: 'workDate',
@@ -31,28 +33,29 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
+        format: 'YYYY-MM-DD',
+        valueFormat: 'YYYY-MM-DD',
         class: '!w-full',
       },
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号',
+      label: '班次',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入班次编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: SHIFT_RELATION_PROPS,
     },
     {
       fieldName: 'availableMinutes',
       label: '可用产能分钟',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入可用产能分钟',
+        precision: 0,
       },
     },
     {
@@ -71,12 +74,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'resId',
-      label: '资源编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入资源编号',
-      },
+      label: '生产资源',
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
       fieldName: 'workDate',
@@ -89,20 +89,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入班次编号',
-      },
+      label: '班次',
+      component: markRaw(RelationSelect),
+      componentProps: SHIFT_RELATION_PROPS,
     },
     {
       fieldName: 'availableMinutes',
       label: '可用产能分钟',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入可用产能分钟',
+        precision: 0,
       },
     },
     {
@@ -129,7 +129,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmResCalendarApi.ResCalendar>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -174,4 +174,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmResCalendarApi.ResCalen
     },
   ];
 }
-

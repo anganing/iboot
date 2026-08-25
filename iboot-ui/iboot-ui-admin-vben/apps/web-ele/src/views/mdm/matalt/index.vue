@@ -133,21 +133,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
               label: $t('ui.actionTitle.create', ['替代料']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
-              auth: ['mdm:mat-alt:create'],
+              auth: ['mdm:matalt:create'],
               onClick: handleCreate,
             },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
-              auth: ['mdm:mat-alt:export'],
+              auth: ['mdm:matalt:export'],
               onClick: handleExport,
             },
             {
               label: $t('ui.actionTitle.deleteBatch'),
               type: 'danger',
               icon: ACTION_ICON.DELETE,
-              auth: ['mdm:mat-alt:delete'],
+              auth: ['mdm:matalt:delete'],
               disabled: isEmpty(checkedIds),
               onClick: handleDeleteBatch,
             },
@@ -162,7 +162,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
-              auth: ['mdm:mat-alt:update'],
+              auth: ['mdm:matalt:update'],
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -170,7 +170,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               type: 'danger',
               link: true,
               icon: ACTION_ICON.DELETE,
-              auth: ['mdm:mat-alt:delete'],
+              auth: ['mdm:matalt:delete'],
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.id]),
                 confirm: handleDelete.bind(null, row),
@@ -181,4 +181,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

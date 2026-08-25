@@ -3,7 +3,6 @@ package com.iboot.pf.module.mdm.service.route;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
@@ -50,7 +49,9 @@ public interface RouteService {
      * @param id 编号
      * @return 工艺路线
      */
-    RouteDO getRoute(Long id);
+    RouteRespVO getRoute(Long id);
+
+    RouteDetailRespVO getRouteDetail(Long id);
 
     /**
      * 获得工艺路线分页
@@ -58,7 +59,7 @@ public interface RouteService {
      * @param pageReqVO 分页查询
      * @return 工艺路线分页
      */
-    PageResult<RouteDO> getRoutePage(RoutePageReqVO pageReqVO);
+    PageResult<RouteRespVO> getRoutePage(RoutePageReqVO pageReqVO);
 
     // ==================== 子表（工艺路线工序） ====================
 
@@ -77,14 +78,16 @@ public interface RouteService {
      * @param routeOp 创建信息
      * @return 编号
      */
-    Long createRouteOp(@Valid RouteOpDO routeOp);
+    Long createRouteOp(@Valid RouteOpSaveReqVO routeOp);
 
     /**
      * 更新工艺路线工序
      *
      * @param routeOp 更新信息
      */
-    void updateRouteOp(@Valid RouteOpDO routeOp);
+    void updateRouteOp(@Valid RouteOpSaveReqVO routeOp);
+
+    void updateRouteOpSort(@Valid RouteOpSortReqVO sortReqVO);
 
     /**
      * 删除工艺路线工序
@@ -108,4 +111,4 @@ public interface RouteService {
 	 */
     RouteOpDO getRouteOp(Long id);
 
-}
+}

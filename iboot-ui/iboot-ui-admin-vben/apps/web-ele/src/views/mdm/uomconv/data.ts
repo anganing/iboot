@@ -2,8 +2,12 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmUomConvApi } from '#/api/mdm/uomconv';
 
+import { markRaw } from 'vue';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { MAT_RELATION_PROPS, UOM_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -18,38 +22,44 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'fromUomId',
-      label: '来源计量单位编号',
+      label: '来源计量单位',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入来源计量单位编号',
+        ...UOM_RELATION_PROPS,
+        dialogTitle: '选择来源计量单位',
+        placeholder: '请选择来源计量单位',
       },
     },
     {
       fieldName: 'toUomId',
-      label: '目标计量单位编号',
+      label: '目标计量单位',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入目标计量单位编号',
+        ...UOM_RELATION_PROPS,
+        dialogTitle: '选择目标计量单位',
+        placeholder: '请选择目标计量单位',
       },
     },
     {
       fieldName: 'ratio',
       label: '换算比例',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入换算比例',
+        step: 0.01,
       },
     },
     {
@@ -68,38 +78,40 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'matId',
-      label: '物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编号',
-      },
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'fromUomId',
-      label: '来源计量单位编号',
-      component: 'Input',
+      label: '来源计量单位',
+      component: markRaw(RelationSelect),
       componentProps: {
-        clearable: true,
-        placeholder: '请输入来源计量单位编号',
+        ...UOM_RELATION_PROPS,
+        dialogTitle: '选择来源计量单位',
+        placeholder: '请选择来源计量单位',
       },
     },
     {
       fieldName: 'toUomId',
-      label: '目标计量单位编号',
-      component: 'Input',
+      label: '目标计量单位',
+      component: markRaw(RelationSelect),
       componentProps: {
-        clearable: true,
-        placeholder: '请输入目标计量单位编号',
+        ...UOM_RELATION_PROPS,
+        dialogTitle: '选择目标计量单位',
+        placeholder: '请选择目标计量单位',
       },
     },
     {
       fieldName: 'ratio',
       label: '换算比例',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
         placeholder: '请输入换算比例',
+        step: 0.01,
       },
     },
     {
@@ -126,7 +138,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmUomConvApi.UomConv>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -171,4 +183,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmUomConvApi.UomConv>['co
     },
   ];
 }
-

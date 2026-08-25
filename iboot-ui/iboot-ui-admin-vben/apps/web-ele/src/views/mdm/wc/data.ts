@@ -1,11 +1,13 @@
 import { markRaw } from 'vue';
 import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmWcApi } from '#/api/mdm/wc';
 
 import { MDM_STATUS_OPTIONS } from '../constants';
+import { WORKSHOP_RELATION_PROPS } from '../relation-config';
 
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -22,20 +24,16 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号',
+      label: '车间',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入车间编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_WC_CODE',
-        placeholder: '请输入编码',
-      },
+      componentProps: { ruleCode: 'MDM_WC_CODE', placeholder: '请输入编码' },
     },
     {
       fieldName: 'name',
@@ -73,12 +71,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'workshopId',
-      label: '车间编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入车间编号',
-      },
+      label: '车间',
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -132,7 +127,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmWcApi.Wc>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -177,4 +172,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmWcApi.Wc>['columns'] {
     },
   ];
 }
-

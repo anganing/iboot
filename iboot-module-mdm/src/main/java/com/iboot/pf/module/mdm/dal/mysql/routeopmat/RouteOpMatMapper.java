@@ -8,6 +8,7 @@ import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.module.mdm.dal.dataobject.routeopmat.RouteOpMatDO;
 import org.apache.ibatis.annotations.Mapper;
 import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 /**
  * 工序用料 Mapper
@@ -30,6 +31,16 @@ public interface RouteOpMatMapper extends BaseMapperX<RouteOpMatDO> {
 
     default int deleteByRouteOpIds(List<Long> routeOpIds) {
         return deleteBatch(RouteOpMatDO::getRouteOpId, routeOpIds);
+    }
+
+    default List<RouteOpMatDO> selectListByRouteOpIds(List<Long> routeOpIds) {
+        if (routeOpIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapper<RouteOpMatDO>()
+                .in(RouteOpMatDO::getRouteOpId, routeOpIds)
+                .orderByAsc(RouteOpMatDO::getRouteOpId)
+                .orderByAsc(RouteOpMatDO::getId));
     }
 
 }

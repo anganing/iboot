@@ -1,11 +1,13 @@
 import { markRaw } from 'vue';
 import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmResApi } from '#/api/mdm/res';
 
 import { MDM_RES_TYPE_OPTIONS, MDM_STATUS_OPTIONS } from '../constants';
+import { WC_RELATION_PROPS } from '../relation-config';
 
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -22,12 +24,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'wcId',
-      label: '工作中心编号',
+      label: '工作中心',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工作中心编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WC_RELATION_PROPS,
     },
     {
       fieldName: 'resType',
@@ -43,9 +43,7 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_RES_CODE',
-        placeholder: '请输入编码',
-      },
+      componentProps: { ruleCode: 'MDM_RES_CODE', placeholder: '请输入编码' },
     },
     {
       fieldName: 'name',
@@ -83,12 +81,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'wcId',
-      label: '工作中心编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工作中心编号',
-      },
+      label: '工作中心',
+      component: markRaw(RelationSelect),
+      componentProps: WC_RELATION_PROPS,
     },
     {
       fieldName: 'resType',
@@ -152,7 +147,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '主键',
@@ -202,4 +197,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] 
     },
   ];
 }
-
