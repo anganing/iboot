@@ -2,11 +2,14 @@ package ${basePackage}.module.${table.moduleName}.dal.mysql.${table.businessName
 
 import java.util.*;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import ${PageResultClassName};
 import ${QueryWrapperClassName};
 import ${BaseMapperClassName};
+import ${basePackage}.framework.mybatis.core.util.MyBatisUtils;
 import ${basePackage}.module.${table.moduleName}.dal.dataobject.${table.businessName}.${table.className}DO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import ${basePackage}.module.${table.moduleName}.controller.${sceneEnum.basePackage}.${table.businessName}.vo.*;
 
 ## 字段模板
@@ -51,12 +54,15 @@ public interface ${table.className}Mapper extends BaseMapperX<${table.className}
 
 ## 特殊：树表专属逻辑（树不需要分页接口）
 #if ( $table.templateType != 2 )
-    default PageResult<${table.className}DO> selectPage(${sceneEnum.prefixClass}${table.className}PageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<${table.className}DO>()
-			#listCondition()
-                .orderByDesc(${table.className}DO::getId));## 大多数情况下，id 倒序
-
+    default PageResult<${sceneEnum.prefixClass}${table.className}RespVO> selectPage(${sceneEnum.prefixClass}${table.className}PageReqVO reqVO) {
+        IPage<${sceneEnum.prefixClass}${table.className}RespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
+
+    ${sceneEnum.prefixClass}${table.className}RespVO selectJoinById(@Param("id") Long id);
+
+    IPage<${sceneEnum.prefixClass}${table.className}RespVO> selectJoinPage(IPage<${sceneEnum.prefixClass}${table.className}RespVO> page, @Param("req") ${sceneEnum.prefixClass}${table.className}PageReqVO reqVO);
 #else
     default List<${table.className}DO> selectList(${sceneEnum.prefixClass}${table.className}ListReqVO reqVO) {
         return selectList(new LambdaQueryWrapperX<${table.className}DO>()

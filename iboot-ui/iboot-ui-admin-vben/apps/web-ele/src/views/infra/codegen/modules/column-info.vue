@@ -106,6 +106,16 @@ const filteredDictTypeOptions = computed(() => {
       <ElInput v-model="row.javaField" />
     </template>
 
+    <!-- 关联表名 -->
+    <template #joinTableName="{ row }">
+      <ElInput v-model="row.joinTableName" placeholder="如：mdm_mat" />
+    </template>
+
+    <!-- 关联表显示字段 -->
+    <template #joinDisplayFields="{ row }">
+      <ElInput v-model="row.joinDisplayFields" placeholder="如：code,name" />
+    </template>
+
     <!-- 插入 -->
     <template #createOperation="{ row }">
       <ElCheckbox v-model="row.createOperation" />

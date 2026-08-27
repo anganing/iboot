@@ -50,7 +50,7 @@ export function useFormSchema(): VbenFormSchema[] {
 #foreach($column in $columns)
 #if ($column.createOperation || $column.updateOperation)
 #if (!$column.primaryKey && ($table.templateType != 2 || ($table.templateType == 2 && $column.id != $treeParentColumn.id)))## 树表中已经添加了父ID字段，这里排除
-  #set ($dictType = $column.dictType)
+  #set ($dictType = "$!column.dictType")
   #set ($javaType = $column.javaType)
   #set ($javaField = $column.javaField)
   #set ($comment = $column.columnComment)
@@ -157,7 +157,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
 #foreach($column in $columns)
 #if ($column.listOperation)
-  #set ($dictType = $column.dictType)
+  #set ($dictType = "$!column.dictType")
   #set ($javaType = $column.javaType)
   #set ($javaField = $column.javaField)
   #set ($comment = $column.columnComment)
@@ -207,12 +207,13 @@ export function useGridColumns(): VxeTableGridOptions<${apiName}.${simpleClassNa
 #if ($table.templateType != 2 && $deleteBatchEnable)
   { type: 'checkbox', width: 40 },
 #end
+  { type: 'seq', title: '序号', width: 60 },
 #if ($table.templateType == 12) ## 内嵌情况
       { type: 'expand', width: 80, slots: { content: 'expand_content' } },
 #end
 #foreach($column in $columns)
-#if ($column.listOperationResult)
-  #set ($dictType = $column.dictType)
+#if ($column.listOperationResult && !$column.primaryKey && !$joinColumnFieldNames.contains($column.javaField))
+  #set ($dictType = "$!column.dictType")
   #set ($javaField = $column.javaField)
   #set ($comment = $column.columnComment)
     {
@@ -230,6 +231,16 @@ export function useGridColumns(): VxeTableGridOptions<${apiName}.${simpleClassNa
   #if (${table.templateType} == 2 && $column.id == $treeNameColumn.id)## 树表特有:标记树节点列
       treeNode: true,
   #end
+    },
+#end
+#end
+## 外键关联展示列
+#foreach($jc in $joinColumns)
+#foreach($df in $jc.displayFields)
+    {
+      field: '${df.voField}',
+      title: '${df.label}',
+      minWidth: 120,
     },
 #end
 #end
@@ -267,7 +278,7 @@ export function use${subSimpleClassName}FormSchema(): VbenFormSchema[] {
         #foreach($column in $subColumns)
             #if ($column.createOperation || $column.updateOperation)
                 #if (!$column.primaryKey && ($table.templateType != 2 || ($table.templateType == 2 && $column.id != $treeParentColumn.id)))## 树表中已经添加了父ID字段，这里排除
-                    #set ($dictType = $column.dictType)
+                    #set ($dictType = "$!column.dictType")
                     #set ($javaType = $column.javaType)
                     #set ($javaField = $column.javaField)
                     #set ($comment = $column.columnComment)
@@ -362,7 +373,7 @@ export function use${subSimpleClassName}GridFormSchema(): VbenFormSchema[] {
     return [
         #foreach($column in $subColumns)
             #if ($column.listOperation)
-                #set ($dictType = $column.dictType)
+                #set ($dictType = "$!column.dictType")
                 #set ($javaType = $column.javaType)
                 #set ($javaField = $column.javaField)
                 #set ($comment = $column.columnComment)
@@ -414,7 +425,7 @@ export function use${subSimpleClassName}GridColumns(): VxeTableGridOptions<${api
         #end
         #foreach($column in $subColumns)
             #if ($column.listOperationResult)
-                #set ($dictType = $column.dictType)
+                #set ($dictType = "$!column.dictType")
                 #set ($javaField = $column.javaField)
                 #set ($comment = $column.columnComment)
                 {
@@ -449,7 +460,7 @@ export function use${subSimpleClassName}GridColumns(): VxeTableGridOptions<${api
             #foreach($column in $subColumns)
                 #if ($column.createOperation || $column.updateOperation)
                     #if (!$column.primaryKey && $column.listOperationResult && $column.id != $subJoinColumn.id) ## 特殊：忽略主子表的 join 字段，不用填写
-                        #set ($dictType = $column.dictType)
+                        #set ($dictType = "$!column.dictType")
                         #set ($javaField = $column.javaField)
                         #set ($comment = $column.columnComment)
                         #if ($javaType == "Integer" || $javaType == "Long" || $javaType == "Byte" || $javaType == "Short")
@@ -503,7 +514,7 @@ export function use${subSimpleClassName}GridColumns(): VxeTableGridOptions<${api
             #foreach($column in $subColumns)
                 #if ($column.createOperation || $column.updateOperation)
                     #if (!$column.primaryKey && ($table.templateType != 2 || ($table.templateType == 2 && $column.id != $treeParentColumn.id)))## 树表中已经添加了父ID字段，这里排除
-                        #set ($dictType = $column.dictType)
+                        #set ($dictType = "$!column.dictType")
                         #set ($javaType = $column.javaType)
                         #set ($javaField = $column.javaField)
                         #set ($comment = $column.columnComment)
@@ -600,7 +611,7 @@ export function use${subSimpleClassName}GridColumns(): VxeTableGridOptions<${api
         return [
             #foreach($column in $subColumns)
                 #if ($column.listOperationResult)
-                    #set ($dictType = $column.dictType)
+                    #set ($dictType = "$!column.dictType")
                     #set ($javaField = $column.javaField)
                     #set ($comment = $column.columnComment)
                     {

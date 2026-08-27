@@ -4,6 +4,8 @@ import type { MdmMatApi } from '#/api/mdm/mat';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
 import { handleTree } from '@vben/utils';
 
 import { getMatCatList } from '#/api/mdm/matcat';
@@ -14,7 +16,6 @@ import { getRangePickerDefaultProps } from '#/utils';
 import {
   MDM_BOOLEAN_OPTIONS,
   MDM_MAT_TYPE_OPTIONS,
-  MDM_STATUS_OPTIONS,
 } from '../constants';
 import { MAT_CAT_RELATION_PROPS, UOM_RELATION_PROPS } from '../relation-config';
 
@@ -134,7 +135,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -250,7 +251,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -333,6 +334,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
       field: 'status',
       title: '状态',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     {
       field: 'remark',

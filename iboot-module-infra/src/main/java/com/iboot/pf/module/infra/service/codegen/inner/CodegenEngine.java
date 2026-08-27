@@ -45,6 +45,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static cn.hutool.core.map.MapUtil.getStr;
 import static cn.hutool.core.text.CharSequenceUtil.*;
@@ -547,6 +548,12 @@ public class CodegenEngine {
         // permission 前缀
         bindingMap.put("permissionPrefix", table.getModuleName() + ":" + simpleClassNameStrikeCase);
 
+        // 特殊：外键关联专属逻辑
+        List<Map<String, Object>> joinColumns = buildJoinColumns(columns);
+        bindingMap.put("joinColumns", joinColumns);
+        bindingMap.put("joinColumnFieldNames", joinColumns.stream()
+                .map(joinColumn -> joinColumn.get("javaField")).collect(Collectors.toList()));
+
         // 特殊：树表专属逻辑
         if (CodegenTemplateTypeEnum.isTree(table.getTemplateType())) {
             CodegenColumnDO treeParentColumn = CollUtil.findOne(columns,
@@ -827,6 +834,83 @@ public class CodegenEngine {
     private static boolean isImportTemplate(String path) {
         return path.contains("importExcelVO") || path.contains("importRespVO")
                 || path.contains("views/import.vue");
+    }
+
+    private List<Map<String, Object>> buildJoinColumns(List<CodegenColumnDO> columns) {
+        List<Map<String, Object>> joinColumns = new ArrayList<>();
+        Map<String, Integer> aliasCounters = new HashMap<>();
+        Set<String> usedVoFields = columns.stream()
+                .filter(CodegenColumnDO::getListOperationResult)
+                .map(CodegenColumnDO::getJavaField)
+                .collect(Collectors.toSet());
+        for (CodegenColumnDO column : columns) {
+            if (Boolean.TRUE.equals(column.getPrimaryKey()) || StrUtil.isBlank(column.getJoinTableName())
+                    || StrUtil.isBlank(column.getJoinDisplayFields())) {
+                continue;
+            }
+            List<Map<String, String>> displayFields = buildJoinDisplayFields(column, usedVoFields);
+            if (displayFields.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> joinColumn = new HashMap<>();
+            joinColumn.put("columnName", column.getColumnName());
+            joinColumn.put("javaField", column.getJavaField());
+            joinColumn.put("joinTable", column.getJoinTableName());
+            joinColumn.put("alias", buildJoinTableAlias(column.getJoinTableName(), aliasCounters));
+            joinColumn.put("displayFields", displayFields);
+            joinColumns.add(joinColumn);
+        }
+        return joinColumns;
+    }
+
+    private String buildJoinTableAlias(String joinTableName, Map<String, Integer> aliasCounters) {
+        int index = joinTableName.indexOf('_');
+        String alias = index > 0 && index < joinTableName.length() - 1
+                ? joinTableName.substring(index + 1) : joinTableName;
+        Integer counter = aliasCounters.merge(alias, 1, Integer::sum);
+        return counter > 1 ? alias + counter : alias;
+    }
+
+    private List<Map<String, String>> buildJoinDisplayFields(CodegenColumnDO column, Set<String> usedVoFields) {
+        String prefix = column.getJavaField().endsWith("Id")
+                ? column.getJavaField().substring(0, column.getJavaField().length() - 2)
+                : column.getJavaField();
+        List<Map<String, String>> displayFields = new ArrayList<>();
+        for (String field : StrUtil.splitTrim(column.getJoinDisplayFields(), ',')) {
+            String voField = prefix + upperFirst(field);
+            if (!usedVoFields.add(voField)) {
+                continue;
+            }
+            Map<String, String> displayField = new HashMap<>();
+            displayField.put("column", field);
+            displayField.put("voField", voField);
+            displayField.put("alias", toUnderlineCase(voField));
+            displayField.put("label", buildJoinDisplayLabel(column.getColumnComment(), field));
+            displayFields.add(displayField);
+        }
+        return displayFields;
+    }
+
+    private String buildJoinDisplayLabel(String comment, String displayField) {
+        String base = StrUtil.nullToEmpty(comment);
+        for (String suffix : new String[]{"编号", "ID", "Id", "id"}) {
+            if (base.endsWith(suffix)) {
+                base = base.substring(0, base.length() - suffix.length());
+                break;
+            }
+        }
+        String labelSuffix;
+        switch (displayField) {
+            case "name":
+                labelSuffix = "名称";
+                break;
+            case "code":
+                labelSuffix = "编码";
+                break;
+            default:
+                labelSuffix = displayField;
+        }
+        return base + labelSuffix;
     }
 
 }

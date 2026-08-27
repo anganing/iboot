@@ -1,15 +1,18 @@
-import { markRaw } from 'vue';
-import { CodeInput } from '#/components/code-input';
-import { RelationSelect } from '#/components/relation-select';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmResApi } from '#/api/mdm/res';
 
-import { MDM_RES_TYPE_OPTIONS, MDM_STATUS_OPTIONS } from '../constants';
-import { WC_RELATION_PROPS } from '../relation-config';
+import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
+import { CodeInput } from '#/components/code-input';
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { MDM_RES_TYPE_OPTIONS } from '../constants';
+import { WC_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -60,7 +63,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -119,7 +122,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -170,6 +173,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] 
       field: 'status',
       title: '状态',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     {
       field: 'remark',

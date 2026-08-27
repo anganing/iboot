@@ -50,4 +50,14 @@ public class ${sceneEnum.prefixClass}${table.className}RespVO {
 
 #end
 #end
+
+## 外键关联展示字段
+#foreach($jc in $joinColumns)
+#foreach($df in $jc.displayFields)
+    @Schema(description = "${df.label}")
+    @ExcelProperty("${df.label}")
+    private String ${df.voField};
+
+#end
+#end
 }

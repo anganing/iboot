@@ -19,6 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.CUSTOMER;
 
 /**
  * 客户 Service 实现类
@@ -39,7 +40,7 @@ public class CustomerServiceImpl implements CustomerService {
         // 插入
         CustomerDO customer = BeanUtils.toBean(createReqVO, CustomerDO.class);
         customer.setId(null);
-        customer.setCode(mdmCodeService.resolveCode(customer.getCode(), "MDM_CUSTOMER_CODE"));
+        customer.setCode(mdmCodeService.resolveCode(customer.getCode(), CUSTOMER));
         customerMapper.insert(customer);
 
         // 返回

@@ -19,6 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.OP;
 
 /**
  * 标准工序 Service 实现类
@@ -39,7 +40,7 @@ public class OpServiceImpl implements OpService {
         // 插入
         OpDO op = BeanUtils.toBean(createReqVO, OpDO.class);
         op.setId(null);
-        op.setCode(mdmCodeService.resolveCode(op.getCode(), "MDM_OP_CODE"));
+        op.setCode(mdmCodeService.resolveCode(op.getCode(), OP));
         opMapper.insert(op);
 
         // 返回

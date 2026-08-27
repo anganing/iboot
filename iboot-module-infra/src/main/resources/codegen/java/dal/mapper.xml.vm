@@ -2,11 +2,65 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="${basePackage}.module.${table.moduleName}.dal.mysql.${table.businessName}.${table.className}Mapper">
 
-    <!--
-        一般情况下，尽可能使用 Mapper 进行 CRUD 增删改查即可。
-        无法满足的场景，例如说多表关联查询，才使用 XML 编写 SQL。
-        代码生成器暂时只生成 Mapper XML 文件本身，更多推荐 MybatisX 快速开发插件来生成查询。
-        文档可见：https://www.iocoder.cn/MyBatis/x-plugins/
-     -->
+    <sql id="selectColumns">
+        t.*
+#foreach($jc in $joinColumns)
+#foreach($df in $jc.displayFields)
+        , ${jc.alias}.${df.column} AS ${df.alias}
+#end
+#end
+    </sql>
+
+    <sql id="joinTables">
+        FROM ${table.tableName} t
+#foreach($jc in $joinColumns)
+        LEFT JOIN ${jc.joinTable} ${jc.alias} ON ${jc.alias}.id = t.${jc.columnName} AND ${jc.alias}.deleted = 0
+#end
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+#foreach($column in $columns)
+#if ($column.listOperation && !$column.primaryKey && !$joinColumnFieldNames.contains($column.javaField))
+#set ($javaField = $column.javaField)
+  #if ($column.javaType.endsWith("[]"))
+            <if test="req.${javaField} != null and req.${javaField}.length == 2">
+                AND t.${column.columnName} BETWEEN #{req.${javaField}[0]} AND #{req.${javaField}[1]}
+            </if>
+  #elseif ($column.javaType == "String")
+    #if ($column.listOperationCondition == "LIKE")
+            <if test="req.${javaField} != null and req.${javaField} != ''">
+                AND t.${column.columnName} LIKE CONCAT('%', #{req.${javaField}}, '%')
+            </if>
+    #else
+            <if test="req.${javaField} != null and req.${javaField} != ''">
+                AND t.${column.columnName} = #{req.${javaField}}
+            </if>
+    #end
+  #else
+            <if test="req.${javaField} != null">
+                AND t.${column.columnName} = #{req.${javaField}}
+            </if>
+  #end
+#end
+#end
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="${basePackage}.module.${table.moduleName}.controller.${sceneEnum.basePackage}.${table.businessName}.vo.${table.className}RespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="${basePackage}.module.${table.moduleName}.controller.${sceneEnum.basePackage}.${table.businessName}.vo.${table.className}RespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
 
 </mapper>

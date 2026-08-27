@@ -77,4 +77,10 @@ public class CodegenColumnSaveReqVO {
     @NotNull(message = "显示类型不能为空")
     private String htmlType;
 
+    @Schema(description = "关联表名", example = "mdm_mat")
+    private String joinTableName;
+
+    @Schema(description = "关联显示字段，逗号分隔", example = "code,name")
+    private String joinDisplayFields;
+
 }

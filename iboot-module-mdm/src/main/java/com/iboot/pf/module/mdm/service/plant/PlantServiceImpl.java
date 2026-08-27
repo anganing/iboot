@@ -20,6 +20,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.PLANT;
 
 /**
  * 工厂 Service 实现类
@@ -43,7 +44,7 @@ public class PlantServiceImpl implements PlantService {
         // 插入
         PlantDO plant = BeanUtils.toBean(createReqVO, PlantDO.class);
         plant.setId(null);
-        plant.setCode(mdmCodeService.resolveCode(plant.getCode(), "MDM_PLANT_CODE"));
+        plant.setCode(mdmCodeService.resolveCode(plant.getCode(), PLANT));
         plantMapper.insert(plant);
 
         // 返回

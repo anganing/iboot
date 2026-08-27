@@ -1,12 +1,13 @@
-import { markRaw } from 'vue';
-import { CodeInput } from '#/components/code-input';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmShiftApi } from '#/api/mdm/shift';
 
-import { MDM_STATUS_OPTIONS } from '../constants';
+import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
+import { CodeInput } from '#/components/code-input';
 import { getRangePickerDefaultProps } from '#/utils';
 
 /** 新增/修改的表单 */
@@ -65,7 +66,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -126,7 +127,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: MDM_STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -180,6 +181,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmShiftApi.Shift>['column
       field: 'status',
       title: '状态',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     {
       field: 'remark',

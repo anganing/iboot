@@ -20,6 +20,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.WC;
 
 /**
  * 工作中心 Service 实现类
@@ -43,7 +44,7 @@ public class WcServiceImpl implements WcService {
         // 插入
         WcDO wc = BeanUtils.toBean(createReqVO, WcDO.class);
         wc.setId(null);
-        wc.setCode(mdmCodeService.resolveCode(wc.getCode(), "MDM_WC_CODE"));
+        wc.setCode(mdmCodeService.resolveCode(wc.getCode(), WC));
         wcMapper.insert(wc);
 
         // 返回

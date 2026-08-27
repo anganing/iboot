@@ -16,6 +16,7 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - 当前 UI 后台二次开发项目：`iboot-ui/iboot-ui-admin-vben` 的 `iboot-ui/iboot-ui-admin-vben/apps/web-ele`。
 - 数据库连接一律使用 dbx  MPC操作，连接名称为 `芋道-dev`，数据库为 `ruoyi-vue-pro-20260817`。
 - 新增后台 CRUD 功能前，先阅读并遵循 [`dev-docs/通用CRUD开发流程.md`](dev-docs/通用CRUD开发流程.md)，其中定义了 DBX  MCP数据库操作、后端分层、web-ele 页面结构、菜单权限和验证流程。
+- 新增后台 CRUD 模块时优先使用 infra 代码生成器生成代码；生成前在“字段管理”里人工维护外键列的“关联表名”和“显示字段”，由生成器产出 XML JOIN 查询和列表序号/关联展示列。
 - 查询关联数据时优先在 Mapper 层使用 SQL `JOIN` 一次查询并返回可读字段；不允许默认先查主表再在应用层查询外键数据拼接。只有数据源不同、确实无法 JOIN，或关联数据已有专用聚合接口时才允许应用层组装，并必须在代码评审中说明原因。
 
 ## 项目结构与模块组织

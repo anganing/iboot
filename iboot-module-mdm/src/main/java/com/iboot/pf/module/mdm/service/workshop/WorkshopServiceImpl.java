@@ -18,6 +18,7 @@ import com.iboot.pf.module.mdm.dal.mysql.plant.PlantMapper;
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.WORKSHOP;
 
 /**
  * 车间 Service 实现类
@@ -41,7 +42,7 @@ public class WorkshopServiceImpl implements WorkshopService {
         // 插入
         WorkshopDO workshop = BeanUtils.toBean(createReqVO, WorkshopDO.class);
         workshop.setId(null);
-        workshop.setCode(mdmCodeService.resolveCode(workshop.getCode(), "MDM_WORKSHOP_CODE"));
+        workshop.setCode(mdmCodeService.resolveCode(workshop.getCode(), WORKSHOP));
         workshopMapper.insert(workshop);
 
         // 返回

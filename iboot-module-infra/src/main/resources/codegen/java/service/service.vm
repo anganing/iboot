@@ -65,7 +65,7 @@ public interface ${table.className}Service {
      * @param id 编号
      * @return ${table.classComment}
      */
-    ${table.className}DO get${simpleClassName}(${primaryColumn.javaType} id);
+    ${sceneEnum.prefixClass}${table.className}RespVO get${simpleClassName}(${primaryColumn.javaType} id);
 
 ## 特殊：树表专属逻辑（树不需要分页接口）
 #if ( $table.templateType != 2 )
@@ -75,7 +75,7 @@ public interface ${table.className}Service {
      * @param pageReqVO 分页查询
      * @return ${table.classComment}分页
      */
-    PageResult<${table.className}DO> get${simpleClassName}Page(${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO);
+    PageResult<${sceneEnum.prefixClass}${table.className}RespVO> get${simpleClassName}Page(${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO);
 #else
     /**
      * 获得${table.classComment}列表

@@ -17,6 +17,7 @@ import java.util.List;
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.WC_NOT_EXISTS;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.RES;
 
 /**
  * 生产资源 Service 实现类
@@ -40,7 +41,7 @@ public class ResServiceImpl implements ResService {
         // 插入
         ResDO res = BeanUtils.toBean(createReqVO, ResDO.class);
         res.setId(null);
-        res.setCode(mdmCodeService.resolveCode(res.getCode(), "MDM_RES_CODE"));
+        res.setCode(mdmCodeService.resolveCode(res.getCode(), RES));
         resMapper.insert(res);
 
         // 返回

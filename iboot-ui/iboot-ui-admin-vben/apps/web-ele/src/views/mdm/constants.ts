@@ -1,8 +1,3 @@
-export const MDM_STATUS_OPTIONS = [
-  { label: '启用', value: 0 },
-  { label: '停用', value: 1 },
-];
-
 export const MDM_BOOLEAN_OPTIONS = [
   { label: '是', value: true },
   { label: '否', value: false },

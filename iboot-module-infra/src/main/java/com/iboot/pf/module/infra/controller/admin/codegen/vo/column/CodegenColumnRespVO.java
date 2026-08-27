@@ -63,6 +63,12 @@ public class CodegenColumnRespVO {
     @Schema(description = "显示类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "input")
     private String htmlType;
 
+    @Schema(description = "关联表名", example = "mdm_mat")
+    private String joinTableName;
+
+    @Schema(description = "关联显示字段，逗号分隔", example = "code,name")
+    private String joinDisplayFields;
+
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
 

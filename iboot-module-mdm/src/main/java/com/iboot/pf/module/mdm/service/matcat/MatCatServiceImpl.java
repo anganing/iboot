@@ -19,6 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.MAT_CAT;
 
 /**
  * 物料分类 Service 实现类
@@ -44,7 +45,7 @@ public class MatCatServiceImpl implements MatCatService {
         // 插入
         MatCatDO matCat = BeanUtils.toBean(createReqVO, MatCatDO.class);
         matCat.setId(null);
-        matCat.setCode(mdmCodeService.resolveCode(matCat.getCode(), "MDM_MAT_CAT_CODE"));
+        matCat.setCode(mdmCodeService.resolveCode(matCat.getCode(), MAT_CAT));
         matCatMapper.insert(matCat);
 
         // 返回

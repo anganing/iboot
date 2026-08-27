@@ -21,7 +21,9 @@ import java.io.IOException;
 import ${PageParamClassName};
 import ${PageResultClassName};
 import ${CommonResultClassName};
+#if ($table.templateType == 2 && $voType == 10)
 import ${BeanUtils};
+#end
 import static ${CommonResultClassName}.success;
 
 import ${ExcelUtilsClassName};
@@ -30,7 +32,9 @@ import ${ApiAccessLogClassName};
 import static ${OperateTypeEnumClassName}.*;
 
 import ${basePackage}.module.${table.moduleName}.controller.${sceneEnum.basePackage}.${table.businessName}.vo.*;
+#if ($table.templateType == 2)
 import ${basePackage}.module.${table.moduleName}.dal.dataobject.${table.businessName}.${table.className}DO;
+#end
 ## 特殊：主子表专属逻辑
 #foreach ($subTable in $subTables)
 import ${basePackage}.module.${subTable.moduleName}.dal.dataobject.${subTable.businessName}.${subTable.className}DO;
@@ -97,12 +101,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<${respVOClass}> get${simpleClassName}(@RequestParam("id") ${primaryColumn.javaType} id) {
-        ${table.className}DO ${classNameVar} = ${classNameVar}Service.get${simpleClassName}(id);
-#if ($voType == 10)
-        return success(BeanUtils.toBean(${classNameVar}, ${respVOClass}.class));
-#else
-        return success(${classNameVar});
-#end
+        return success(${classNameVar}Service.get${simpleClassName}(id));
     }
 
 #if ( $table.templateType != 2 )
@@ -112,12 +111,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<PageResult<${respVOClass}>> get${simpleClassName}Page(@Valid ${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO) {
-        PageResult<${table.className}DO> pageResult = ${classNameVar}Service.get${simpleClassName}Page(pageReqVO);
-#if ($voType == 10)
-        return success(BeanUtils.toBean(pageResult, ${respVOClass}.class));
-#else
-        return success(pageResult);
-#end
+        return success(${classNameVar}Service.get${simpleClassName}Page(pageReqVO));
     }
 
 ## 特殊：树表专属逻辑（树不需要分页接口）
@@ -147,10 +141,10 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     public void export${simpleClassName}Excel(@Valid ${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<${table.className}DO> list = ${classNameVar}Service.get${simpleClassName}Page(pageReqVO).getList();
+        List<${respVOClass}> list = ${classNameVar}Service.get${simpleClassName}Page(pageReqVO).getList();
         // 导出 Excel
         ExcelUtils.write(response, "${table.classComment}.xls", "数据", ${respVOClass}.class,
-                        BeanUtils.toBean(list, ${respVOClass}.class));
+                        list);
     }
 ## 特殊：树表专属逻辑（树不需要分页接口）
 #else

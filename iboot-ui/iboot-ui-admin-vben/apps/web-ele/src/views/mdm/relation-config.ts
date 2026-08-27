@@ -1,10 +1,15 @@
-import { MDM_RES_TYPE_OPTIONS, MDM_STATUS_OPTIONS } from './constants';
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
+import { MDM_RES_TYPE_OPTIONS } from './constants';
 
 const STATUS_QUERY_FIELD = {
   field: 'status',
   label: '状态',
-  options: MDM_STATUS_OPTIONS,
   type: 'select' as const,
+  get options() {
+    return getDictOptions(DICT_TYPE.COMMON_STATUS, 'number');
+  },
 };
 
 export const INV_ORG_RELATION_PROPS = {

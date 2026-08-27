@@ -20,6 +20,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.PROJECT_TASK;
 
 /**
  * 项目任务 Service 实现类
@@ -43,7 +44,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         // 插入
         ProjectTaskDO projectTask = BeanUtils.toBean(createReqVO, ProjectTaskDO.class);
         projectTask.setId(null);
-        projectTask.setCode(mdmCodeService.resolveCode(projectTask.getCode(), "MDM_PROJECT_TASK_CODE"));
+        projectTask.setCode(mdmCodeService.resolveCode(projectTask.getCode(), PROJECT_TASK));
         projectTaskMapper.insert(projectTask);
 
         // 返回

@@ -1,14 +1,13 @@
-import { markRaw } from 'vue';
-import { CodeInput } from '#/components/code-input';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmInvOrgApi } from '#/api/mdm/invorg';
 
-const STATUS_OPTIONS = [
-  { label: '启用', value: 0 },
-  { label: '停用', value: 1 },
-];
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
+import { CodeInput } from '#/components/code-input';
 
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -40,7 +39,7 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'RadioGroup',
       defaultValue: 0,
       componentProps: {
-        options: STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -74,7 +73,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -90,8 +89,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmInvOrgApi.InvOrg>['colu
       field: 'status',
       title: '状态',
       minWidth: 100,
-      formatter: ({ cellValue }: { cellValue: number }) =>
-        STATUS_OPTIONS.find((item) => item.value === cellValue)?.label ?? '',
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     { field: 'remark', title: '备注', minWidth: 180 },
     {

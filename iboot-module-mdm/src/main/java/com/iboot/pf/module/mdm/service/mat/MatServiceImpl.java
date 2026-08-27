@@ -21,6 +21,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.MAT;
 
 /**
  * 物料主档 Service 实现类
@@ -46,7 +47,7 @@ public class MatServiceImpl implements MatService {
         // 插入
         MatDO mat = BeanUtils.toBean(createReqVO, MatDO.class);
         mat.setId(null);
-        mat.setCode(mdmCodeService.resolveCode(mat.getCode(), "MDM_MAT_CODE"));
+        mat.setCode(mdmCodeService.resolveCode(mat.getCode(), MAT));
         matMapper.insert(mat);
 
         // 返回

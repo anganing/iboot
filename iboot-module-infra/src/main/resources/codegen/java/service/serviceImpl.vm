@@ -291,14 +291,14 @@ public class ${table.className}ServiceImpl implements ${table.className}Service 
 
 #end
     @Override
-    public ${table.className}DO get${simpleClassName}(${primaryColumn.javaType} id) {
-        return ${classNameVar}Mapper.selectById(id);
+    public ${sceneEnum.prefixClass}${table.className}RespVO get${simpleClassName}(${primaryColumn.javaType} id) {
+        return ${classNameVar}Mapper.selectJoinById(id);
     }
 
 ## 特殊：树表专属逻辑（树不需要分页接口）
 #if ( $table.templateType != 2 )
     @Override
-    public PageResult<${table.className}DO> get${simpleClassName}Page(${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO) {
+    public PageResult<${sceneEnum.prefixClass}${table.className}RespVO> get${simpleClassName}Page(${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO) {
         return ${classNameVar}Mapper.selectPage(pageReqVO);
     }
 #else

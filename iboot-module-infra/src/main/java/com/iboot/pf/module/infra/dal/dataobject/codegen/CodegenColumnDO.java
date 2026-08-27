@@ -131,4 +131,19 @@ public class CodegenColumnDO extends BaseDO {
      */
     private String htmlType;
 
+    // ========== 外键关联字段 ==========
+
+    /**
+     * 关联表名
+     *
+     * 当前字段为外键时，人工配置其关联的数据表名，例如 mdm_mat
+     */
+    private String joinTableName;
+    /**
+     * 关联显示字段
+     *
+     * 逗号分隔的关联表物理列名，例如 code,name；生成 JOIN 查询时输出为关联编码与名称
+     */
+    private String joinDisplayFields;
+
 }

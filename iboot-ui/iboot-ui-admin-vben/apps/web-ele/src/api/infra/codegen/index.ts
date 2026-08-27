@@ -56,6 +56,8 @@ export namespace InfraCodegenApi {
     listOperationCondition: string;
     listOperationResult: number;
     htmlType: string;
+    joinTableName: string;
+    joinDisplayFields: string;
   }
 
   /** 数据库表定义 */

@@ -19,6 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.SHIFT;
 
 /**
  * 班次 Service 实现类
@@ -39,7 +40,7 @@ public class ShiftServiceImpl implements ShiftService {
         // 插入
         ShiftDO shift = BeanUtils.toBean(createReqVO, ShiftDO.class);
         shift.setId(null);
-        shift.setCode(mdmCodeService.resolveCode(shift.getCode(), "MDM_SHIFT_CODE"));
+        shift.setCode(mdmCodeService.resolveCode(shift.getCode(), SHIFT));
         shiftMapper.insert(shift);
 
         // 返回

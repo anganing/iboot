@@ -1,10 +1,8 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 
-const STATUS_OPTIONS = [
-  { label: '启用', value: 0 },
-  { label: '停用', value: 1 },
-];
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
 
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -31,7 +29,9 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'status',
       label: '状态',
       component: 'RadioGroup',
-      componentProps: { options: STATUS_OPTIONS },
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
+      },
       defaultValue: 0,
       rules: 'required',
     },
@@ -64,7 +64,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: STATUS_OPTIONS,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -80,7 +80,10 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       field: 'status',
       title: '状态',
       minWidth: 80,
-      formatter: ({ cellValue }) => STATUS_OPTIONS[cellValue]?.label ?? '',
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     { field: 'remark', title: '备注', minWidth: 180 },
     {

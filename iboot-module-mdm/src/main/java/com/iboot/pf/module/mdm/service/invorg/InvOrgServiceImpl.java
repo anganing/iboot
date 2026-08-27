@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.INV_ORG_NOT_EXISTS;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.INV_ORG;
 
 @Service
 @Validated
@@ -26,7 +27,7 @@ public class InvOrgServiceImpl implements InvOrgService {
     public Long createInvOrg(InvOrgSaveReqVO createReqVO) {
         InvOrgDO invOrg = BeanUtils.toBean(createReqVO, InvOrgDO.class);
         invOrg.setId(null);
-        invOrg.setCode(mdmCodeService.resolveCode(invOrg.getCode(), "MDM_INV_ORG_CODE"));
+        invOrg.setCode(mdmCodeService.resolveCode(invOrg.getCode(), INV_ORG));
         invOrgMapper.insert(invOrg);
         return invOrg.getId();
     }

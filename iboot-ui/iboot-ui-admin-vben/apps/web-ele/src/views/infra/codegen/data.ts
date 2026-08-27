@@ -471,6 +471,18 @@ export function useCodegenColumnTableColumns(): VxeTableGridOptions['columns'] {
       slots: { default: 'javaField' },
     },
     {
+      field: 'joinTableName',
+      title: '关联表名',
+      minWidth: 120,
+      slots: { default: 'joinTableName' },
+    },
+    {
+      field: 'joinDisplayFields',
+      title: '显示字段',
+      minWidth: 120,
+      slots: { default: 'joinDisplayFields' },
+    },
+    {
       field: 'createOperation',
       title: '插入',
       width: 40,

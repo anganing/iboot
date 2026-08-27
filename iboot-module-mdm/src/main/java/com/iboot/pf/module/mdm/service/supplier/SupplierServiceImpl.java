@@ -19,6 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.SUPPLIER;
 
 /**
  * 供应商 Service 实现类
@@ -39,7 +40,7 @@ public class SupplierServiceImpl implements SupplierService {
         // 插入
         SupplierDO supplier = BeanUtils.toBean(createReqVO, SupplierDO.class);
         supplier.setId(null);
-        supplier.setCode(mdmCodeService.resolveCode(supplier.getCode(), "MDM_SUPPLIER_CODE"));
+        supplier.setCode(mdmCodeService.resolveCode(supplier.getCode(), SUPPLIER));
         supplierMapper.insert(supplier);
 
         // 返回
