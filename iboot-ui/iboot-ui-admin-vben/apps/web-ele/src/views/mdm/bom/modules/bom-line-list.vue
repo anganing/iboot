@@ -2,20 +2,23 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmBomApi } from '#/api/mdm/bom';
 
-import BomLineForm from './bom-line-form.vue';
-import { useVbenModal } from '@vben/common-ui';
-import { ElMessage, ElLoading } from 'element-plus';
-import { ref, nextTick, watch } from 'vue';
-import { $t } from '#/locales';
-import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { nextTick, ref, watch } from 'vue';
 
+import { useVbenModal } from '@vben/common-ui';
+import { isEmpty } from '@vben/utils';
+
+import { ElLoading, ElMessage } from 'element-plus';
+
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   deleteBomLine,
   deleteBomLineList,
   getBomLinePage,
 } from '#/api/mdm/bom';
-import { useBomLineGridFormSchema, useBomLineGridColumns } from '../data';
-import { isEmpty } from '@vben/utils';
+import { $t } from '#/locales';
+
+import { useBomLineGridColumns, useBomLineGridFormSchema } from '../data';
+import BomLineForm from './bom-line-form.vue';
 
 const props = defineProps<{
   bomId?: number; // BOM编号（主表的关联字段）

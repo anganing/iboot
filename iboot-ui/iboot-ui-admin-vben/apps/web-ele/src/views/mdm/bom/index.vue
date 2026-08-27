@@ -7,15 +7,15 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage, ElTabPane, ElTabs } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteBom, deleteBomList, exportBom, getBomPage } from '#/api/mdm/bom';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
 import BomLineList from './modules/bom-line-list.vue';
+import Form from './modules/form.vue';
 
 /** 子表的列表 */
 const subTabsName = ref('bomLine');

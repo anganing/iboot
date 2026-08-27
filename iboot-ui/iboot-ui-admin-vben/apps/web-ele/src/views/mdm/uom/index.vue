@@ -3,7 +3,9 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmUomApi } from '#/api/mdm/uom';
 
 import { Page, useVbenModal } from '@vben/common-ui';
+
 import { ElLoading, ElMessage } from 'element-plus';
+
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteUom, getUomPage } from '#/api/mdm/uom';
 import { $t } from '#/locales';
@@ -62,8 +64,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="refresh" />
     <Grid table-title="计量单位列表">
-      <template #toolbar-tools
-        ><TableAction
+      <template #toolbar-tools>
+<TableAction
           :actions="[
             {
               label: '新建计量单位',
@@ -73,9 +75,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: create,
             },
           ]"
-      /></template>
-      <template #actions="{ row }"
-        ><TableAction
+      />
+</template>
+      <template #actions="{ row }">
+<TableAction
           :actions="[
             {
               label: $t('common.edit'),
@@ -97,7 +100,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
               },
             },
           ]"
-      /></template>
+      />
+</template>
     </Grid>
   </Page>
 </template>

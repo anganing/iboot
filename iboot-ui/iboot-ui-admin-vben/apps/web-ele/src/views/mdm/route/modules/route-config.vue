@@ -41,7 +41,7 @@ const drawerTitle = computed(() => {
       .join(' · ') || '工艺路线配置'
   );
 });
-const isDraft = computed(() => detail.value?.status === 'DRAFT');
+const isEditable = computed(() => detail.value?.status !== 0);
 const operations = computed(() => detail.value?.operations ?? []);
 const selectedOperation = computed(() =>
   operations.value.find((item) => isSameId(item.id, selectedOpId.value)),
@@ -363,7 +363,7 @@ async function handleDeleteMaterialBatch() {
                 type: 'primary',
                 icon: ACTION_ICON.ADD,
                 auth: ['mdm:route:create'],
-                disabled: !isDraft,
+                disabled: !isEditable,
                 onClick: handleCreateOperation,
               },
               {
@@ -371,7 +371,7 @@ async function handleDeleteMaterialBatch() {
                 type: 'danger',
                 icon: ACTION_ICON.DELETE,
                 auth: ['mdm:route:delete'],
-                disabled: !isDraft || isEmpty(checkedOperationIds),
+                disabled: !isEditable || isEmpty(checkedOperationIds),
                 onClick: handleDeleteOperationBatch,
               },
             ]"
@@ -397,7 +397,7 @@ async function handleDeleteMaterialBatch() {
                 link: true,
                 icon: 'lucide:arrow-up',
                 auth: ['mdm:route:update'],
-                disabled: !isDraft || getOperationIndex(row) === 0,
+                disabled: !isEditable || getOperationIndex(row) === 0,
                 onClick: handleMoveOperation.bind(null, row, -1),
               },
               {
@@ -407,7 +407,8 @@ async function handleDeleteMaterialBatch() {
                 icon: 'lucide:arrow-down',
                 auth: ['mdm:route:update'],
                 disabled:
-                  !isDraft || getOperationIndex(row) === operations.length - 1,
+                  !isEditable ||
+                  getOperationIndex(row) === operations.length - 1,
                 onClick: handleMoveOperation.bind(null, row, 1),
               },
               {
@@ -416,7 +417,7 @@ async function handleDeleteMaterialBatch() {
                 link: true,
                 icon: ACTION_ICON.EDIT,
                 auth: ['mdm:route:update'],
-                disabled: !isDraft,
+                disabled: !isEditable,
                 onClick: handleEditOperation.bind(null, row),
               },
               {
@@ -425,7 +426,7 @@ async function handleDeleteMaterialBatch() {
                 link: true,
                 icon: ACTION_ICON.DELETE,
                 auth: ['mdm:route:delete'],
-                disabled: !isDraft,
+                disabled: !isEditable,
                 popConfirm: {
                   title: `确定删除工序“${row.opCode ?? row.seq}”${(row.materialCount ?? 0) > 0 ? `，并级联删除 ${row.materialCount} 条用料` : ''}吗？`,
                   confirm: handleDeleteOperation.bind(null, row),
@@ -447,7 +448,7 @@ async function handleDeleteMaterialBatch() {
                     type: 'primary',
                     icon: ACTION_ICON.ADD,
                     auth: ['mdm:route-op-mat:create'],
-                    disabled: !isDraft || !selectedOperation,
+                    disabled: !isEditable || !selectedOperation,
                     onClick: handleCreateMaterial,
                   },
                   {
@@ -455,7 +456,7 @@ async function handleDeleteMaterialBatch() {
                     type: 'danger',
                     icon: ACTION_ICON.DELETE,
                     auth: ['mdm:route-op-mat:delete'],
-                    disabled: !isDraft || isEmpty(checkedMaterialIds),
+                    disabled: !isEditable || isEmpty(checkedMaterialIds),
                     onClick: handleDeleteMaterialBatch,
                   },
                 ]"
@@ -474,7 +475,7 @@ async function handleDeleteMaterialBatch() {
                     link: true,
                     icon: ACTION_ICON.EDIT,
                     auth: ['mdm:route-op-mat:update'],
-                    disabled: !isDraft,
+                    disabled: !isEditable,
                     onClick: handleEditMaterial.bind(null, row),
                   },
                   {
@@ -483,7 +484,7 @@ async function handleDeleteMaterialBatch() {
                     link: true,
                     icon: ACTION_ICON.DELETE,
                     auth: ['mdm:route-op-mat:delete'],
-                    disabled: !isDraft,
+                    disabled: !isEditable,
                     popConfirm: {
                       title: `确定删除用料“${row.matCode ?? row.matName ?? row.id}”吗？`,
                       confirm: handleDeleteMaterial.bind(null, row),

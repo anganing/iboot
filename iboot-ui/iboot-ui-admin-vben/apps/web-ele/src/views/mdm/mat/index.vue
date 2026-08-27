@@ -80,7 +80,7 @@ async function handleExport() {
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     commonConfig: {
-      floatLabel: 'in',
+      floatLabel: 'on',
     },
     schema: useGridFormSchema(),
   },

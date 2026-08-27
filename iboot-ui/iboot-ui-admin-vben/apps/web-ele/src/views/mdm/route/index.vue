@@ -7,7 +7,7 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTag } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -163,11 +163,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
             },
           ]"
         />
-      </template>
-      <template #status="{ row }">
-        <ElTag :type="row.status === 'PUBLISHED' ? 'success' : 'info'">
-          {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
-        </ElTag>
       </template>
       <template #actions="{ row }">
         <TableAction

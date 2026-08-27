@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.service.routeopmat;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.RouteOpMatPageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.RouteOpMatSaveReqVO;
@@ -116,8 +117,8 @@ public class RouteOpMatServiceImpl implements RouteOpMatService {
         if (route == null) {
             throw exception(ROUTE_NOT_EXISTS);
         }
-        if ("PUBLISHED".equals(route.getStatus())) {
-            throw exception(ROUTE_PUBLISHED_LOCKED);
+        if (CommonStatusEnum.isEnable(route.getStatus())) {
+            throw exception(ROUTE_ENABLED_LOCKED);
         }
     }
 

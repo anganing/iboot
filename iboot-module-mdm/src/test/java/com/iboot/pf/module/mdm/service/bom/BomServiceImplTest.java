@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.bom;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.controller.admin.bom.vo.BomSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.bom.BomDO;
@@ -17,8 +18,8 @@ import jakarta.annotation.Resource;
 import java.time.LocalDate;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.BOM_PUBLISH_WITHOUT_LINE;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.BOM_PUBLISHED_LOCKED;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.BOM_ENABLE_WITHOUT_LINE;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.BOM_ENABLED_LOCKED;
 
 @Import(BomServiceImpl.class)
 class BomServiceImplTest extends BaseDbUnitTest {
@@ -35,24 +36,24 @@ class BomServiceImplTest extends BaseDbUnitTest {
     private UomMapper uomMapper;
 
     @Test
-    void testPublishBom_withoutLine() {
+    void testEnableBom_withoutLine() {
         BomDO bom = createDraftBom();
-        BomSaveReqVO reqVO = buildBomReqVO(bom, "PUBLISHED");
+        BomSaveReqVO reqVO = buildBomReqVO(bom, CommonStatusEnum.ENABLE.getStatus());
 
-        assertServiceException(() -> bomService.updateBom(reqVO), BOM_PUBLISH_WITHOUT_LINE);
+        assertServiceException(() -> bomService.updateBom(reqVO), BOM_ENABLE_WITHOUT_LINE);
     }
 
     @Test
-    void testPublishedBom_cannotUpdateOrDelete() {
+    void testEnabledBom_cannotUpdateOrDelete() {
         BomDO bom = createDraftBom();
-        BomSaveReqVO publishReqVO = buildBomReqVO(bom, "DRAFT");
+        BomSaveReqVO publishReqVO = buildBomReqVO(bom, CommonStatusEnum.DISABLE.getStatus());
         bomService.createBomLine(com.iboot.pf.module.mdm.dal.dataobject.bomline.BomLineDO.builder()
                 .bomId(bom.getId()).lineNo(10).matId(bom.getMatId()).uomId(1L)
                 .qty(java.math.BigDecimal.ONE).build());
-        publishReqVO.setStatus("PUBLISHED");
+        publishReqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
         bomService.updateBom(publishReqVO);
 
-        assertServiceException(() -> bomService.deleteBom(bom.getId()), BOM_PUBLISHED_LOCKED);
+        assertServiceException(() -> bomService.deleteBom(bom.getId()), BOM_ENABLED_LOCKED);
     }
 
     private BomDO createDraftBom() {
@@ -60,11 +61,11 @@ class BomServiceImplTest extends BaseDbUnitTest {
         uomMapper.insert(new UomDO().setId(1L).setCode("EA").setName("件").setStatus(0));
         matMapper.insert(MatDO.builder().id(1L).catId(1L).code("MAT-001").name("物料")
                 .baseUomId(1L).status(0).build());
-        Long id = bomService.createBom(buildBomReqVO(null, "DRAFT"));
+        Long id = bomService.createBom(buildBomReqVO(null, CommonStatusEnum.DISABLE.getStatus()));
         return bomMapper.selectById(id);
     }
 
-    private BomSaveReqVO buildBomReqVO(BomDO bom, String status) {
+    private BomSaveReqVO buildBomReqVO(BomDO bom, Integer status) {
         BomSaveReqVO reqVO = new BomSaveReqVO();
         if (bom != null) {
             reqVO.setId(bom.getId());

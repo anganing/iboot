@@ -22,7 +22,7 @@ public class BomPageReqVO extends PageParam {
     private String version;
 
     @Schema(description = "状态", example = "2")
-    private String status;
+    private Integer status;
 
     @Schema(description = "生效日期")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

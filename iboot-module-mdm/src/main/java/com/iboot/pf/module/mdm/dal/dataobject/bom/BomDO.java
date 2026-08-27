@@ -39,7 +39,7 @@ public class BomDO extends BaseDO {
     /**
      * 状态
      */
-    private String status;
+    private Integer status;
     /**
      * 生效日期
      */
@@ -54,4 +54,4 @@ public class BomDO extends BaseDO {
     private String remark;
 
 
-}
+}

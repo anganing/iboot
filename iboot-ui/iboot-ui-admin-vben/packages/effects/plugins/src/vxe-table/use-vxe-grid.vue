@@ -144,11 +144,12 @@ const [Form, formApi] = useTableForm({
       class: 'w-full',
     },
   },
+  collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
     content: computed(() => $t('common.search')),
   },
-  wrapperClass: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+  wrapperClass: 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6',
 });
 
 const showTableTitle = computed(() => {

@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.util.*;
 import jakarta.validation.constraints.*;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
 
 @Schema(description = "管理后台 - 工艺路线新增/修改 Request VO")
@@ -23,9 +25,10 @@ public class RouteSaveReqVO {
     @NotEmpty(message = "版本号不能为空")
     private String version;
 
-    @Schema(description = "状态：DRAFT-草稿，PUBLISHED-已发布", requiredMode = Schema.RequiredMode.REQUIRED, example = "DRAFT")
-    @Pattern(regexp = "DRAFT|PUBLISHED", message = "状态只能为 DRAFT 或 PUBLISHED")
-    private String status;
+    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @NotNull(message = "状态不能为空")
+    @InEnum(CommonStatusEnum.class)
+    private Integer status;
 
     @Schema(description = "生效日期", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "生效日期不能为空")

@@ -47,7 +47,7 @@ export namespace MdmRouteApi {
     matCode?: string; // 物料编码
     matName?: string; // 物料名称
     version?: string; // 版本号
-    status?: string; // 状态
+    status?: number; // 状态
     effectiveDate?: string | Dayjs; // 生效日期
     expiryDate: string | Dayjs; // 失效日期
     remark: string; // 备注

@@ -4,6 +4,9 @@ import type { MdmRouteApi } from '#/api/mdm/route';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -13,11 +16,6 @@ import {
   OP_RELATION_PROPS,
   WC_RELATION_PROPS,
 } from '../relation-config';
-
-const versionStatusOptions = [
-  { label: '草稿', value: 'DRAFT' },
-  { label: '已发布', value: 'PUBLISHED' },
-];
 
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -49,7 +47,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: versionStatusOptions,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -104,7 +102,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: versionStatusOptions,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -139,7 +137,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmRouteApi.Route>['column
       field: 'status',
       title: '状态',
       width: 100,
-      slots: { default: 'status' },
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     { field: 'effectiveDate', title: '生效日期', minWidth: 120 },
     { field: 'expiryDate', title: '失效日期', minWidth: 120 },

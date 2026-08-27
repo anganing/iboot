@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.route;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.RouteDetailRespVO;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.RouteOpSaveReqVO;
@@ -28,7 +29,7 @@ import java.util.List;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.ROUTE_OP_SORT_INVALID;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.ROUTE_PUBLISHED_LOCKED;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.ROUTE_ENABLED_LOCKED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -118,21 +119,21 @@ class RouteServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testPublishedRoute_rejectsArrangementWrites() {
+    void testEnabledRoute_rejectsArrangementWrites() {
         Long routeId = createRoute("V1");
         Long routeOpId = routeService.createRouteOp(buildRouteOpReqVO(routeId));
         RouteSaveReqVO publishReqVO = buildRouteReqVO("V1");
         publishReqVO.setId(routeId);
-        publishReqVO.setStatus("PUBLISHED");
+        publishReqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
         routeService.updateRoute(publishReqVO);
 
         assertServiceException(
                 () -> routeService.createRouteOp(buildRouteOpReqVO(routeId)),
-                ROUTE_PUBLISHED_LOCKED);
+                ROUTE_ENABLED_LOCKED);
         assertServiceException(
                 () -> routeService.updateRouteOpSort(buildSortReqVO(routeId, List.of(routeOpId))),
-                ROUTE_PUBLISHED_LOCKED);
-        assertServiceException(() -> routeService.deleteRouteOp(routeOpId), ROUTE_PUBLISHED_LOCKED);
+                ROUTE_ENABLED_LOCKED);
+        assertServiceException(() -> routeService.deleteRouteOp(routeOpId), ROUTE_ENABLED_LOCKED);
     }
 
     @Test
@@ -188,7 +189,7 @@ class RouteServiceImplTest extends BaseDbUnitTest {
         RouteSaveReqVO reqVO = new RouteSaveReqVO();
         reqVO.setMatId(1L);
         reqVO.setVersion(version);
-        reqVO.setStatus("DRAFT");
+        reqVO.setStatus(CommonStatusEnum.DISABLE.getStatus());
         reqVO.setEffectiveDate(LocalDate.of(2026, 8, 23));
         return reqVO;
     }

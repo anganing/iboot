@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
 import com.iboot.pf.module.mdm.controller.admin.bom.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.bom.BomDO;
@@ -60,8 +61,8 @@ public class BomServiceImpl implements BomService {
         BomDO bom = validateBomExists(updateReqVO.getId());
         validateBomEditable(bom);
         validateBomFields(updateReqVO);
-        if ("PUBLISHED".equals(updateReqVO.getStatus()) && bomLineMapper.selectCountByBomId(bom.getId()) == 0) {
-            throw exception(BOM_PUBLISH_WITHOUT_LINE);
+        if (CommonStatusEnum.isEnable(updateReqVO.getStatus()) && bomLineMapper.selectCountByBomId(bom.getId()) == 0) {
+            throw exception(BOM_ENABLE_WITHOUT_LINE);
         }
         // 更新
         BomDO updateObj = BeanUtils.toBean(updateReqVO, BomDO.class);
@@ -101,7 +102,7 @@ public class BomServiceImpl implements BomService {
         if (matMapper.selectById(reqVO.getMatId()) == null) {
             throw exception(MAT_NOT_EXISTS);
         }
-        if (!Set.of("DRAFT", "PUBLISHED").contains(reqVO.getStatus())) {
+        if (!CommonStatusEnum.isEnable(reqVO.getStatus()) && !CommonStatusEnum.isDisable(reqVO.getStatus())) {
             throw exception(BOM_STATUS_INVALID);
         }
         if (reqVO.getExpiryDate() != null && reqVO.getExpiryDate().isBefore(reqVO.getEffectiveDate())) {
@@ -110,8 +111,8 @@ public class BomServiceImpl implements BomService {
     }
 
     private void validateBomEditable(BomDO bom) {
-        if ("PUBLISHED".equals(bom.getStatus())) {
-            throw exception(BOM_PUBLISHED_LOCKED);
+        if (CommonStatusEnum.isEnable(bom.getStatus())) {
+            throw exception(BOM_ENABLED_LOCKED);
         }
     }
 

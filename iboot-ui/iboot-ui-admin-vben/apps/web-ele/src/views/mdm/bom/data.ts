@@ -4,15 +4,13 @@ import type { MdmBomApi } from '#/api/mdm/bom';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
 import { MAT_RELATION_PROPS, UOM_RELATION_PROPS } from '../relation-config';
-
-const versionStatusOptions = [
-  { label: '草稿', value: 'DRAFT' },
-  { label: '已发布', value: 'PUBLISHED' },
-];
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -47,7 +45,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: versionStatusOptions,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -108,7 +106,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: versionStatusOptions,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
       },
     },
@@ -167,6 +165,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmBomApi.Bom>['columns'] 
       field: 'status',
       title: '状态',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
     {
       field: 'effectiveDate',

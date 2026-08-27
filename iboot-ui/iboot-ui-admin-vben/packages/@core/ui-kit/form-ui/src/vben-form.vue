@@ -18,7 +18,7 @@ import { provideFormProps, useFormInitial } from './use-form-context';
 interface Props extends VbenFormProps {}
 const props = withDefaults(defineProps<Props>(), {
   actionWrapperClass: '',
-  collapsed: false,
+  collapsed: true,
   collapsedRows: 1,
   commonConfig: () => ({}),
   handleReset: undefined,

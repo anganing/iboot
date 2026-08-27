@@ -8,7 +8,7 @@ import { useVbenModal } from '@vben/common-ui';
 import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
-import { getBomLine, createBomLine, updateBomLine } from '#/api/mdm/bom';
+import { createBomLine, getBomLine, updateBomLine } from '#/api/mdm/bom';
 import { $t } from '#/locales';
 import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

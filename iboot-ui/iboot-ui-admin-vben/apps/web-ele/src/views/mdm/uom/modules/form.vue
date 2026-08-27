@@ -4,6 +4,7 @@ import type { MdmUomApi } from '#/api/mdm/uom';
 import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
+
 import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
@@ -69,7 +70,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="title" :class="formLayout.modalClass"
-    ><Form class="mx-4"
-  /></Modal>
+  <Modal :title="title" :class="formLayout.modalClass">
+<Form class="mx-4" />
+</Modal>
 </template>

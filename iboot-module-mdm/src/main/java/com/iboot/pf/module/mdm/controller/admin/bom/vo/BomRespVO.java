@@ -36,7 +36,7 @@ public class BomRespVO {
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
     @ExcelProperty("状态")
-    private String status;
+    private Integer status;
 
     @Schema(description = "生效日期", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("生效日期")

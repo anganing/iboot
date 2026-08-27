@@ -2,6 +2,7 @@ package com.iboot.pf.module.mdm.service.route;
 
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
@@ -60,9 +61,9 @@ public class RouteServiceImpl implements RouteService {
         RouteDO route = validateRouteExistsForUpdate(updateReqVO.getId());
         validateRouteEditable(route);
         validateRouteFields(updateReqVO);
-        if ("PUBLISHED".equals(updateReqVO.getStatus())
+        if (CommonStatusEnum.isEnable(updateReqVO.getStatus())
                 && routeOpMapper.selectCountByRouteId(route.getId()) == 0) {
-            throw exception(ROUTE_PUBLISH_WITHOUT_OP);
+            throw exception(ROUTE_ENABLE_WITHOUT_OP);
         }
         routeMapper.updateById(BeanUtils.toBean(updateReqVO, RouteDO.class));
     }
@@ -214,7 +215,7 @@ public class RouteServiceImpl implements RouteService {
         if (matMapper.selectById(reqVO.getMatId()) == null) {
             throw exception(MAT_NOT_EXISTS);
         }
-        if (!Set.of("DRAFT", "PUBLISHED").contains(reqVO.getStatus())) {
+        if (!CommonStatusEnum.isEnable(reqVO.getStatus()) && !CommonStatusEnum.isDisable(reqVO.getStatus())) {
             throw exception(ROUTE_STATUS_INVALID);
         }
         if (reqVO.getExpiryDate() != null
@@ -224,8 +225,8 @@ public class RouteServiceImpl implements RouteService {
     }
 
     private void validateRouteEditable(RouteDO route) {
-        if ("PUBLISHED".equals(route.getStatus())) {
-            throw exception(ROUTE_PUBLISHED_LOCKED);
+        if (CommonStatusEnum.isEnable(route.getStatus())) {
+            throw exception(ROUTE_ENABLED_LOCKED);
         }
     }
 
