@@ -45,14 +45,10 @@ export function deleteCustomer(id: number) {
 
 /** 批量删除客户 */
 export function deleteCustomerList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/customer/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/customer/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出客户 */
 export function exportCustomer(params: any) {
   return requestClient.download('/mdm/customer/export-excel', { params });
 }
-
-

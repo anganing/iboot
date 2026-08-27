@@ -145,16 +145,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmPlantApi.Plant>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'invOrgId',
-      title: '库存组织编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'invOrgCode', title: '库存组织编码', minWidth: 140 },
+    { field: 'invOrgName', title: '库存组织名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',

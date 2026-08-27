@@ -20,6 +20,14 @@ public class ResRespVO {
     @ExcelProperty("工作中心编号")
     private Long wcId;
 
+    @Schema(description = "工作中心编码")
+    @ExcelProperty("工作中心编码")
+    private String wcCode;
+
+    @Schema(description = "工作中心名称")
+    @ExcelProperty("工作中心名称")
+    private String wcName;
+
     @Schema(description = "资源类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("资源类型")
     private String resType;
@@ -44,4 +52,4 @@ public class ResRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

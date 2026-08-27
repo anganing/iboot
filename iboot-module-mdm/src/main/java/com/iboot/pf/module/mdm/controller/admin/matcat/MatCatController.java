@@ -68,16 +68,14 @@ public class MatCatController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:mat-cat:query')")
     public CommonResult<MatCatRespVO> getMatCat(@RequestParam("id") Long id) {
-        MatCatDO matCat = matCatService.getMatCat(id);
-        return success(BeanUtils.toBean(matCat, MatCatRespVO.class));
+        return success(matCatService.getMatCat(id));
     }
 
     @GetMapping("/list")
     @Operation(summary = "获得物料分类列表")
     @PreAuthorize("@ss.hasPermission('mdm:mat-cat:query')")
     public CommonResult<List<MatCatRespVO>> getMatCatList(@Valid MatCatListReqVO listReqVO) {
-        List<MatCatDO> list = matCatService.getMatCatList(listReqVO);
-        return success(BeanUtils.toBean(list, MatCatRespVO.class));
+        return success(matCatService.getMatCatList(listReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -86,10 +84,9 @@ public class MatCatController {
     @ApiAccessLog(operateType = EXPORT)
     public void exportMatCatExcel(@Valid MatCatListReqVO listReqVO,
               HttpServletResponse response) throws IOException {
-        List<MatCatDO> list = matCatService.getMatCatList(listReqVO);
+        List<MatCatRespVO> list = matCatService.getMatCatList(listReqVO);
         // 导出 Excel
-        ExcelUtils.write(response, "物料分类.xls", "数据", MatCatRespVO.class,
-                        BeanUtils.toBean(list, MatCatRespVO.class));
+        ExcelUtils.write(response, "物料分类.xls", "数据", MatCatRespVO.class, list);
     }
 
-}
+}

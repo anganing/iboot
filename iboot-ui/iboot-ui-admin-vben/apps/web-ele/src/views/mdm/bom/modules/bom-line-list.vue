@@ -2,38 +2,42 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmBomApi } from '#/api/mdm/bom';
 
- import BomLineForm from './bom-line-form.vue'
+import BomLineForm from './bom-line-form.vue';
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
 import { ref, nextTick, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
- import { deleteBomLine, deleteBomLineList, getBomLinePage } from '#/api/mdm/bom';
+import {
+  deleteBomLine,
+  deleteBomLineList,
+  getBomLinePage,
+} from '#/api/mdm/bom';
 import { useBomLineGridFormSchema, useBomLineGridColumns } from '../data';
 import { isEmpty } from '@vben/utils';
 
 const props = defineProps<{
-  bomId?: number // BOM编号（主表的关联字段）
-}>()
+  bomId?: number; // BOM编号（主表的关联字段）
+}>();
 
- const [FormModal, formModalApi] = useVbenModal({
+const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: BomLineForm,
   destroyOnClose: true,
 });
 
 /** 刷新表格 */
 async function handleRefresh() {
-   await gridApi.query();
+  await gridApi.query();
 }
 
 /** 创建物料清单明细 */
 function handleCreate() {
-  if (!props.bomId){
-    ElMessage.warning("请先选择一个物料清单!")
-    return
+  if (!props.bomId) {
+    ElMessage.warning('请先选择一个物料清单!');
+    return;
   }
-  formModalApi.setData({bomId: props.bomId}).open();
+  formModalApi.setData({ bomId: props.bomId }).open();
 }
 
 /** 编辑物料清单明细 */
@@ -70,7 +74,7 @@ async function handleDeleteBatch() {
   }
 }
 
-const checkedIds = ref<number[]>([])
+const checkedIds = ref<number[]>([]);
 function handleRowCheckboxChange({
   records,
 }: {
@@ -84,12 +88,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useBomLineGridFormSchema(),
   },
   gridOptions: {
-  columns: useBomLineGridColumns(),
+    columns: useBomLineGridColumns(),
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          if (!props.bomId){
-              return []
+          if (!props.bomId) {
+            return [];
           }
           return await getBomLinePage({
             pageNo: page.currentPage,
@@ -100,23 +104,23 @@ const [Grid, gridApi] = useVbenVxeGrid({
         },
       },
     },
-  pagerConfig: {
-    enabled: true,
-  },
-  toolbarConfig: {
-    refresh: true,
-    search: true,
-  },
-  height: '600px',
-  rowConfig: {
-    keyField: 'id',
-    isHover: true,
-  },
+    pagerConfig: {
+      enabled: true,
+    },
+    toolbarConfig: {
+      refresh: true,
+      search: true,
+    },
+    height: '600px',
+    rowConfig: {
+      keyField: 'id',
+      isHover: true,
+    },
   } as VxeTableGridOptions<MdmBomApi.BomLine>,
-  gridEvents:{
+  gridEvents: {
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
-  }
+  },
 });
 
 /** 监听主表的关联字段的变化，加载对应的子表数据 */
@@ -127,60 +131,60 @@ watch(
       return;
     }
     await nextTick();
-    await handleRefresh()
+    await handleRefresh();
   },
   { immediate: true },
 );
 </script>
 
 <template>
-       <FormModal @success="handleRefresh" />
-      <Grid table-title="物料清单明细列表">
-        <template #toolbar-tools>
-          <TableAction
-            :actions="[
-              {
-                label: $t('ui.actionTitle.create', ['物料清单']),
-                type: 'primary',
-                icon: ACTION_ICON.ADD,
-                auth: ['mdm:bom:create'],
-                onClick: handleCreate,
-              },
-              {
-                label: $t('ui.actionTitle.deleteBatch'),
-                type: 'danger',
-                icon: ACTION_ICON.DELETE,
-                disabled: isEmpty(checkedIds),
-                auth: ['mdm:bom:delete'],
-                onClick: handleDeleteBatch,
-              },
-            ]"
-          />
-        </template>
-        <template #actions="{ row }">
-          <TableAction
-            :actions="[
-              {
-                label: $t('common.edit'),
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.EDIT,
-                auth: ['mdm:bom:update'],
-                onClick: handleEdit.bind(null, row),
-              },
-              {
-                label: $t('common.delete'),
-                type: 'danger',
-                link: true,
-                icon: ACTION_ICON.DELETE,
-                auth: ['mdm:bom:delete'],
-                popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                  confirm: handleDelete.bind(null, row),
-                },
-              },
-            ]"
-          />
-        </template>
-      </Grid>
+  <FormModal @success="handleRefresh" />
+  <Grid table-title="物料清单明细列表">
+    <template #toolbar-tools>
+      <TableAction
+        :actions="[
+          {
+            label: $t('ui.actionTitle.create', ['物料清单']),
+            type: 'primary',
+            icon: ACTION_ICON.ADD,
+            auth: ['mdm:bom:create'],
+            onClick: handleCreate,
+          },
+          {
+            label: $t('ui.actionTitle.deleteBatch'),
+            type: 'danger',
+            icon: ACTION_ICON.DELETE,
+            disabled: isEmpty(checkedIds),
+            auth: ['mdm:bom:delete'],
+            onClick: handleDeleteBatch,
+          },
+        ]"
+      />
+    </template>
+    <template #actions="{ row }">
+      <TableAction
+        :actions="[
+          {
+            label: $t('common.edit'),
+            type: 'primary',
+            link: true,
+            icon: ACTION_ICON.EDIT,
+            auth: ['mdm:bom:update'],
+            onClick: handleEdit.bind(null, row),
+          },
+          {
+            label: $t('common.delete'),
+            type: 'danger',
+            link: true,
+            icon: ACTION_ICON.DELETE,
+            auth: ['mdm:bom:delete'],
+            popConfirm: {
+              title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+              confirm: handleDelete.bind(null, row),
+            },
+          },
+        ]"
+      />
+    </template>
+  </Grid>
 </template>

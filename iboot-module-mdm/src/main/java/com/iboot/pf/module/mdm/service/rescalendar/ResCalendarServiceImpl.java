@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.rescalendar.ResCalendarDO;
+import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -91,12 +92,12 @@ public class ResCalendarServiceImpl implements ResCalendarService {
     }
 
     @Override
-    public ResCalendarDO getResCalendar(Long id) {
-        return resCalendarMapper.selectById(id);
+    public ResCalendarRespVO getResCalendar(Long id) {
+        return resCalendarMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<ResCalendarDO> getResCalendarPage(ResCalendarPageReqVO pageReqVO) {
+    public PageResult<ResCalendarRespVO> getResCalendarPage(ResCalendarPageReqVO pageReqVO) {
         return resCalendarMapper.selectPage(pageReqVO);
     }
 

@@ -21,7 +21,7 @@ export const overridesPreferences = defineOverridesPreferences({
   copyright: {
     companyName: import.meta.env.VITE_APP_TITLE,
     companySiteLink: 'https://github.com/anganing',
-    date:  `2025-${new Date().getFullYear()}`,
+    date: `2025-${new Date().getFullYear()}`,
     icp: '粤ICP备26081851号',
     icpLink: 'https://github.com/anganing',
   },

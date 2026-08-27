@@ -50,7 +50,7 @@ public interface BomService {
      * @param id 编号
      * @return 物料清单
      */
-    BomDO getBom(Long id);
+    BomRespVO getBom(Long id);
 
     /**
      * 获得物料清单分页
@@ -58,7 +58,7 @@ public interface BomService {
      * @param pageReqVO 分页查询
      * @return 物料清单分页
      */
-    PageResult<BomDO> getBomPage(BomPageReqVO pageReqVO);
+    PageResult<BomRespVO> getBomPage(BomPageReqVO pageReqVO);
 
     // ==================== 子表（物料清单明细） ====================
 
@@ -69,7 +69,7 @@ public interface BomService {
      * @param bomId BOM编号
      * @return 物料清单明细分页
      */
-    PageResult<BomLineDO> getBomLinePage(PageParam pageReqVO, Long bomId);
+    PageResult<BomLineRespVO> getBomLinePage(PageParam pageReqVO, Long bomId);
 
     /**
      * 创建物料清单明细
@@ -106,6 +106,6 @@ public interface BomService {
 	 * @param id 编号
      * @return 物料清单明细
 	 */
-    BomLineDO getBomLine(Long id);
+    BomLineRespVO getBomLine(Long id);
 
-}
+}

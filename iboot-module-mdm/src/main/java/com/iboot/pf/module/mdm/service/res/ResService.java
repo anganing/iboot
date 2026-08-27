@@ -49,7 +49,7 @@ public interface ResService {
      * @param id 编号
      * @return 生产资源
      */
-    ResDO getRes(Long id);
+    ResRespVO getRes(Long id);
 
     /**
      * 获得生产资源分页
@@ -57,6 +57,6 @@ public interface ResService {
      * @param pageReqVO 分页查询
      * @return 生产资源分页
      */
-    PageResult<ResDO> getResPage(ResPageReqVO pageReqVO);
+    PageResult<ResRespVO> getResPage(ResPageReqVO pageReqVO);
 
-}
+}

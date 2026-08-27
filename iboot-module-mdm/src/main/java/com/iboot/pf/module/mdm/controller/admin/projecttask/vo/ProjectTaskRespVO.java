@@ -20,6 +20,14 @@ public class ProjectTaskRespVO {
     @ExcelProperty("项目编号")
     private Long projectId;
 
+    @Schema(description = "项目编码")
+    @ExcelProperty("项目编码")
+    private String projectCode;
+
+    @Schema(description = "项目名称")
+    @ExcelProperty("项目名称")
+    private String projectName;
+
     @Schema(description = "编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("编码")
     private String code;
@@ -40,4 +48,4 @@ public class ProjectTaskRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

@@ -20,6 +20,14 @@ public class WcRespVO {
     @ExcelProperty("车间编号")
     private Long workshopId;
 
+    @Schema(description = "车间编码")
+    @ExcelProperty("车间编码")
+    private String workshopCode;
+
+    @Schema(description = "车间名称")
+    @ExcelProperty("车间名称")
+    private String workshopName;
+
     @Schema(description = "编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("编码")
     private String code;
@@ -40,4 +48,4 @@ public class WcRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

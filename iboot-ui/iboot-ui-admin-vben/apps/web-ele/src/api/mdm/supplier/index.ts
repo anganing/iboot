@@ -45,14 +45,10 @@ export function deleteSupplier(id: number) {
 
 /** 批量删除供应商 */
 export function deleteSupplierList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/supplier/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/supplier/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出供应商 */
 export function exportSupplier(params: any) {
   return requestClient.download('/mdm/supplier/export-excel', { params });
 }
-
-

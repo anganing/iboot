@@ -21,7 +21,10 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_INV_ORG_CODE', placeholder: '请输入编码' },
+      componentProps: {
+        ruleCode: 'MDM_INV_ORG_CODE',
+        placeholder: '请输入编码',
+      },
     },
     {
       fieldName: 'name',
@@ -36,7 +39,11 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       defaultValue: 0,
-      componentProps: { options: STATUS_OPTIONS, buttonStyle: 'solid', optionType: 'button' },
+      componentProps: {
+        options: STATUS_OPTIONS,
+        buttonStyle: 'solid',
+        optionType: 'button',
+      },
     },
     {
       fieldName: 'remark',
@@ -49,21 +56,55 @@ export function useFormSchema(): VbenFormSchema[] {
 
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
-    { fieldName: 'code', label: '编码', component: 'Input',
-      componentProps: { clearable: true, placeholder: '请输入编码' } },
-    { fieldName: 'name', label: '名称', component: 'Input', componentProps: { clearable: true, placeholder: '请输入名称' } },
-    { fieldName: 'status', label: '状态', component: 'Select', componentProps: { clearable: true, options: STATUS_OPTIONS, placeholder: '请选择状态' } },
+    {
+      fieldName: 'code',
+      label: '编码',
+      component: 'Input',
+      componentProps: { clearable: true, placeholder: '请输入编码' },
+    },
+    {
+      fieldName: 'name',
+      label: '名称',
+      component: 'Input',
+      componentProps: { clearable: true, placeholder: '请输入名称' },
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: STATUS_OPTIONS,
+        placeholder: '请选择状态',
+      },
+    },
   ];
 }
 
 export function useGridColumns(): VxeTableGridOptions<MdmInvOrgApi.InvOrg>['columns'] {
   return [
-    { field: 'id', title: '编号', minWidth: 120 },
+    { type: 'seq', title: '序号', width: 60 },
     { field: 'code', title: '编码', minWidth: 140 },
     { field: 'name', title: '名称', minWidth: 180 },
-    { field: 'status', title: '状态', minWidth: 100, formatter: ({ cellValue }: { cellValue: number }) => STATUS_OPTIONS.find((item) => item.value === cellValue)?.label ?? '' },
+    {
+      field: 'status',
+      title: '状态',
+      minWidth: 100,
+      formatter: ({ cellValue }: { cellValue: number }) =>
+        STATUS_OPTIONS.find((item) => item.value === cellValue)?.label ?? '',
+    },
     { field: 'remark', title: '备注', minWidth: 180 },
-    { field: 'createTime', title: '创建时间', minWidth: 180, formatter: 'formatDateTime' },
-    { title: '操作', width: 160, fixed: 'right', slots: { default: 'actions' } },
+    {
+      field: 'createTime',
+      title: '创建时间',
+      minWidth: 180,
+      formatter: 'formatDateTime',
+    },
+    {
+      title: '操作',
+      width: 160,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
   ];
 }

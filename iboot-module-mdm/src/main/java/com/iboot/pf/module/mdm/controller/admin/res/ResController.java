@@ -76,16 +76,14 @@ public class ResController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:res:query')")
     public CommonResult<ResRespVO> getRes(@RequestParam("id") Long id) {
-        ResDO res = resService.getRes(id);
-        return success(BeanUtils.toBean(res, ResRespVO.class));
+        return success(resService.getRes(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得生产资源分页")
     @PreAuthorize("@ss.hasPermission('mdm:res:query')")
     public CommonResult<PageResult<ResRespVO>> getResPage(@Valid ResPageReqVO pageReqVO) {
-        PageResult<ResDO> pageResult = resService.getResPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, ResRespVO.class));
+        return success(resService.getResPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class ResController {
     public void exportResExcel(@Valid ResPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<ResDO> list = resService.getResPage(pageReqVO).getList();
+        List<ResRespVO> list = resService.getResPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "生产资源.xls", "数据", ResRespVO.class,
-                        BeanUtils.toBean(list, ResRespVO.class));
+        ExcelUtils.write(response, "生产资源.xls", "数据", ResRespVO.class, list);
     }
 
-}
+}

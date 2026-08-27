@@ -76,16 +76,14 @@ public class WcController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:wc:query')")
     public CommonResult<WcRespVO> getWc(@RequestParam("id") Long id) {
-        WcDO wc = wcService.getWc(id);
-        return success(BeanUtils.toBean(wc, WcRespVO.class));
+        return success(wcService.getWc(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得工作中心分页")
     @PreAuthorize("@ss.hasPermission('mdm:wc:query')")
     public CommonResult<PageResult<WcRespVO>> getWcPage(@Valid WcPageReqVO pageReqVO) {
-        PageResult<WcDO> pageResult = wcService.getWcPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, WcRespVO.class));
+        return success(wcService.getWcPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class WcController {
     public void exportWcExcel(@Valid WcPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<WcDO> list = wcService.getWcPage(pageReqVO).getList();
+        List<WcRespVO> list = wcService.getWcPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "工作中心.xls", "数据", WcRespVO.class,
-                        BeanUtils.toBean(list, WcRespVO.class));
+        ExcelUtils.write(response, "工作中心.xls", "数据", WcRespVO.class, list);
     }
 
-}
+}

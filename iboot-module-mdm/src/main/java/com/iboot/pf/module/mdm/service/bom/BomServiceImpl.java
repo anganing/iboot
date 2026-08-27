@@ -116,19 +116,19 @@ public class BomServiceImpl implements BomService {
     }
 
     @Override
-    public BomDO getBom(Long id) {
-        return bomMapper.selectById(id);
+    public BomRespVO getBom(Long id) {
+        return bomMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<BomDO> getBomPage(BomPageReqVO pageReqVO) {
+    public PageResult<BomRespVO> getBomPage(BomPageReqVO pageReqVO) {
         return bomMapper.selectPage(pageReqVO);
     }
 
     // ==================== 子表（物料清单明细） ====================
 
     @Override
-    public PageResult<BomLineDO> getBomLinePage(PageParam pageReqVO, Long bomId) {
+    public PageResult<BomLineRespVO> getBomLinePage(PageParam pageReqVO, Long bomId) {
         return bomLineMapper.selectPage(pageReqVO, bomId);
     }
 
@@ -170,8 +170,8 @@ public class BomServiceImpl implements BomService {
 	}
 
     @Override
-    public BomLineDO getBomLine(Long id) {
-        return bomLineMapper.selectById(id);
+    public BomLineRespVO getBomLine(Long id) {
+        return bomLineMapper.selectJoinById(id);
     }
 
     private BomLineDO validateBomLineExists(Long id) {

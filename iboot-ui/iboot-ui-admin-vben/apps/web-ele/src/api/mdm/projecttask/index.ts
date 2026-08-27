@@ -7,6 +7,8 @@ export namespace MdmProjectTaskApi {
   export interface ProjectTask {
     id: number; // 主键
     projectId?: number; // 项目编号
+    projectCode?: string; // 项目编码
+    projectName?: string; // 项目名称
     code?: string; // 编码
     name?: string; // 名称
     status?: number; // 状态
@@ -55,5 +57,3 @@ export function deleteProjectTaskList(ids: number[]) {
 export function exportProjectTask(params: any) {
   return requestClient.download('/mdm/project-task/export-excel', { params });
 }
-
-

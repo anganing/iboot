@@ -7,6 +7,8 @@ export namespace MdmWorkshopApi {
   export interface Workshop {
     id: number; // 主键
     plantId?: number; // 工厂编号
+    plantCode?: string; // 工厂编码
+    plantName?: string; // 工厂名称
     code?: string; // 编码
     name?: string; // 名称
     status?: number; // 状态
@@ -46,14 +48,10 @@ export function deleteWorkshop(id: number) {
 
 /** 批量删除车间 */
 export function deleteWorkshopList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/workshop/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/workshop/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出车间 */
 export function exportWorkshop(params: any) {
   return requestClient.download('/mdm/workshop/export-excel', { params });
 }
-
-

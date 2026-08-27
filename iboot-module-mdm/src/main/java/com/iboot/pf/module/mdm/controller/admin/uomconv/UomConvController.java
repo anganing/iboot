@@ -76,16 +76,14 @@ public class UomConvController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:uom-conv:query')")
     public CommonResult<UomConvRespVO> getUomConv(@RequestParam("id") Long id) {
-        UomConvDO uomConv = uomConvService.getUomConv(id);
-        return success(BeanUtils.toBean(uomConv, UomConvRespVO.class));
+        return success(uomConvService.getUomConv(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得单位换算分页")
     @PreAuthorize("@ss.hasPermission('mdm:uom-conv:query')")
     public CommonResult<PageResult<UomConvRespVO>> getUomConvPage(@Valid UomConvPageReqVO pageReqVO) {
-        PageResult<UomConvDO> pageResult = uomConvService.getUomConvPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, UomConvRespVO.class));
+        return success(uomConvService.getUomConvPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class UomConvController {
     public void exportUomConvExcel(@Valid UomConvPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<UomConvDO> list = uomConvService.getUomConvPage(pageReqVO).getList();
+        List<UomConvRespVO> list = uomConvService.getUomConvPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "单位换算.xls", "数据", UomConvRespVO.class,
-                        BeanUtils.toBean(list, UomConvRespVO.class));
+        ExcelUtils.write(response, "单位换算.xls", "数据", UomConvRespVO.class, list);
     }
 
-}
+}

@@ -49,7 +49,7 @@ public interface ProjectTaskService {
      * @param id 编号
      * @return 项目任务
      */
-    ProjectTaskDO getProjectTask(Long id);
+    ProjectTaskRespVO getProjectTask(Long id);
 
     /**
      * 获得项目任务分页
@@ -57,6 +57,6 @@ public interface ProjectTaskService {
      * @param pageReqVO 分页查询
      * @return 项目任务分页
      */
-    PageResult<ProjectTaskDO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO);
+    PageResult<ProjectTaskRespVO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO);
 
-}
+}

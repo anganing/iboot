@@ -16,17 +16,12 @@ export namespace MdmOpApi {
 
 /** 查询标准工序分页 */
 export function getOpPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmOpApi.Op>>(
-    '/mdm/op/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmOpApi.Op>>('/mdm/op/page', { params });
 }
 
 /** 查询标准工序详情 */
 export function getOp(id: number) {
-  return requestClient.get<MdmOpApi.Op>(
-    `/mdm/op/get?id=${id}`,
-  );
+  return requestClient.get<MdmOpApi.Op>(`/mdm/op/get?id=${id}`);
 }
 
 /** 新增标准工序 */
@@ -46,14 +41,10 @@ export function deleteOp(id: number) {
 
 /** 批量删除标准工序 */
 export function deleteOpList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/op/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/op/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出标准工序 */
 export function exportOp(params: any) {
   return requestClient.download('/mdm/op/export-excel', { params });
 }
-
-

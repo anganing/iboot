@@ -88,12 +88,12 @@ public class PlantServiceImpl implements PlantService {
     }
 
     @Override
-    public PlantDO getPlant(Long id) {
-        return plantMapper.selectById(id);
+    public PlantRespVO getPlant(Long id) {
+        return plantMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<PlantDO> getPlantPage(PlantPageReqVO pageReqVO) {
+    public PageResult<PlantRespVO> getPlantPage(PlantPageReqVO pageReqVO) {
         return plantMapper.selectPage(pageReqVO);
     }
 

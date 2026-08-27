@@ -88,12 +88,12 @@ public class WcServiceImpl implements WcService {
     }
 
     @Override
-    public WcDO getWc(Long id) {
-        return wcMapper.selectById(id);
+    public WcRespVO getWc(Long id) {
+        return wcMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<WcDO> getWcPage(WcPageReqVO pageReqVO) {
+    public PageResult<WcRespVO> getWcPage(WcPageReqVO pageReqVO) {
         return wcMapper.selectPage(pageReqVO);
     }
 

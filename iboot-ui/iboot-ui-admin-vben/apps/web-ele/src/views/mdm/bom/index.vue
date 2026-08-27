@@ -10,20 +10,15 @@ import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteBom,
-  deleteBomList,
-  exportBom,
-  getBomPage,
-} from '#/api/mdm/bom';
+import { deleteBom, deleteBomList, exportBom, getBomPage } from '#/api/mdm/bom';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import BomLineList from './modules/bom-line-list.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('bomLine')
+/** 子表的列表 */
+const subTabsName = ref('bomLine');
 const selectBom = ref<MdmBomApi.Bom>();
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
@@ -76,11 +71,7 @@ async function handleDeleteBatch() {
 }
 
 const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MdmBomApi.Bom[];
-}) {
+function handleRowCheckboxChange({ records }: { records: MdmBomApi.Bom[] }) {
   checkedIds.value = records.map((item) => item.id!);
 }
 
@@ -89,7 +80,6 @@ async function handleExport() {
   const data = await exportBom(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '物料清单.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -121,7 +111,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<MdmBomApi.Bom>,
   gridEvents: {
-    cellClick: ({ row }: { row: MdmBomApi.Bom}) => {
+    cellClick: ({ row }: { row: MdmBomApi.Bom }) => {
       selectBom.value = row;
     },
     checkboxAll: handleRowCheckboxChange,
@@ -133,68 +123,68 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-   <div>
-    <Grid table-title="物料清单列表">
-      <template #toolbar-tools>
-        <TableAction
-          :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['物料清单']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['mdm:bom:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: $t('ui.actionTitle.export'),
-              type: 'primary',
-              icon: ACTION_ICON.DOWNLOAD,
-              auth: ['mdm:bom:export'],
-              onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mdm:bom:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
-          ]"
-        />
-      </template>
-      <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mdm:bom:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mdm:bom:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
+    <div>
+      <Grid table-title="物料清单列表">
+        <template #toolbar-tools>
+          <TableAction
+            :actions="[
+              {
+                label: $t('ui.actionTitle.create', ['物料清单']),
+                type: 'primary',
+                icon: ACTION_ICON.ADD,
+                auth: ['mdm:bom:create'],
+                onClick: handleCreate,
               },
-            },
-          ]"
-        />
-      </template>
-    </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="bomLine" label="物料清单明细">
-            <BomLineList :bom-id="selectBom?.id" />
-          </ElTabPane>
-    </ElTabs>
+              {
+                label: $t('ui.actionTitle.export'),
+                type: 'primary',
+                icon: ACTION_ICON.DOWNLOAD,
+                auth: ['mdm:bom:export'],
+                onClick: handleExport,
+              },
+              {
+                label: $t('ui.actionTitle.deleteBatch'),
+                type: 'danger',
+                icon: ACTION_ICON.DELETE,
+                auth: ['mdm:bom:delete'],
+                disabled: isEmpty(checkedIds),
+                onClick: handleDeleteBatch,
+              },
+            ]"
+          />
+        </template>
+        <template #actions="{ row }">
+          <TableAction
+            :actions="[
+              {
+                label: $t('common.edit'),
+                type: 'primary',
+                link: true,
+                icon: ACTION_ICON.EDIT,
+                auth: ['mdm:bom:update'],
+                onClick: handleEdit.bind(null, row),
+              },
+              {
+                label: $t('common.delete'),
+                type: 'danger',
+                link: true,
+                icon: ACTION_ICON.DELETE,
+                auth: ['mdm:bom:delete'],
+                popConfirm: {
+                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                  confirm: handleDelete.bind(null, row),
+                },
+              },
+            ]"
+          />
+        </template>
+      </Grid>
+      <!-- 子表的表单 -->
+      <ElTabs v-model="subTabsName" class="mt-2">
+        <ElTabPane name="bomLine" label="物料清单明细">
+          <BomLineList :bom-id="selectBom?.id" />
+        </ElTabPane>
+      </ElTabs>
     </div>
   </Page>
-</template>
+</template>

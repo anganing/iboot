@@ -50,7 +50,7 @@ public interface UomConvService {
      * @param id 编号
      * @return 单位换算
      */
-    UomConvDO getUomConv(Long id);
+    UomConvRespVO getUomConv(Long id);
 
     /**
      * 获得单位换算分页
@@ -58,6 +58,6 @@ public interface UomConvService {
      * @param pageReqVO 分页查询
      * @return 单位换算分页
      */
-    PageResult<UomConvDO> getUomConvPage(UomConvPageReqVO pageReqVO);
+    PageResult<UomConvRespVO> getUomConvPage(UomConvPageReqVO pageReqVO);
 
 }

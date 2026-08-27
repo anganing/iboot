@@ -49,7 +49,7 @@ public interface MatService {
      * @param id 编号
      * @return 物料主档
      */
-    MatDO getMat(Long id);
+    MatRespVO getMat(Long id);
 
     /**
      * 获得物料主档分页
@@ -57,6 +57,6 @@ public interface MatService {
      * @param pageReqVO 分页查询
      * @return 物料主档分页
      */
-    PageResult<MatDO> getMatPage(MatPageReqVO pageReqVO);
+    PageResult<MatRespVO> getMatPage(MatPageReqVO pageReqVO);
 
-}
+}

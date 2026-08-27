@@ -6,22 +6,26 @@ import { requestClient } from '#/api/request';
 export namespace MdmBomApi {
   /** 物料清单明细信息 */
   export interface BomLine {
-            id: number; // 主键
-            bomId?: number; // BOM编号
-            lineNo?: number; // 行号
-            matId?: number; // 物料编号
-            matCode?: string; // 物料编码快照
-            matName?: string; // 物料名称快照
-            qty?: number; // 数量
-            uomId?: number; // 计量单位编号
-            altGroup: string; // 替代组
-            remark: string; // 备注
+    id: number; // 主键
+    bomId?: number; // BOM编号
+    lineNo?: number; // 行号
+    matId?: number; // 物料编号
+    matCode?: string; // 物料编码快照
+    matName?: string; // 物料名称快照
+    qty?: number; // 数量
+    uomId?: number; // 计量单位编号
+    uomCode?: string; // 计量单位编码
+    uomName?: string; // 计量单位名称
+    altGroup: string; // 替代组
+    remark: string; // 备注
   }
 
   /** 物料清单信息 */
   export interface Bom {
     id: number; // 主键
     matId?: number; // 物料编号
+    matCode?: string; // 物料编码
+    matName?: string; // 物料名称
     version?: string; // 版本号
     status?: string; // 状态
     effectiveDate?: string | Dayjs; // 生效日期
@@ -32,17 +36,14 @@ export namespace MdmBomApi {
 
 /** 查询物料清单分页 */
 export function getBomPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmBomApi.Bom>>(
-    '/mdm/bom/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmBomApi.Bom>>('/mdm/bom/page', {
+    params,
+  });
 }
 
 /** 查询物料清单详情 */
 export function getBom(id: number) {
-  return requestClient.get<MdmBomApi.Bom>(
-    `/mdm/bom/get?id=${id}`,
-  );
+  return requestClient.get<MdmBomApi.Bom>(`/mdm/bom/get?id=${id}`);
 }
 
 /** 新增物料清单 */
@@ -62,16 +63,13 @@ export function deleteBom(id: number) {
 
 /** 批量删除物料清单 */
 export function deleteBomList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/bom/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/bom/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出物料清单 */
 export function exportBom(params: any) {
   return requestClient.download('/mdm/bom/export-excel', { params });
 }
-
 
 // ==================== 子表（物料清单明细） ====================
 
@@ -106,8 +104,5 @@ export function deleteBomLineList(ids: number[]) {
 
 /** 获得物料清单明细 */
 export function getBomLine(id: number) {
-  return requestClient.get<MdmBomApi.BomLine>(
-    `/mdm/bom/bom-line/get?id=${id}`,
-  );
+  return requestClient.get<MdmBomApi.BomLine>(`/mdm/bom/bom-line/get?id=${id}`);
 }
-

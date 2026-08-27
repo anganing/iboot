@@ -23,9 +23,7 @@ export function getProjectPage(params: PageParam) {
 
 /** 查询项目详情 */
 export function getProject(id: number) {
-  return requestClient.get<MdmProjectApi.Project>(
-    `/mdm/project/get?id=${id}`,
-  );
+  return requestClient.get<MdmProjectApi.Project>(`/mdm/project/get?id=${id}`);
 }
 
 /** 新增项目 */
@@ -45,14 +43,10 @@ export function deleteProject(id: number) {
 
 /** 批量删除项目 */
 export function deleteProjectList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/project/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/project/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出项目 */
 export function exportProject(params: any) {
   return requestClient.download('/mdm/project/export-excel', { params });
 }
-
-

@@ -16,6 +16,7 @@ import com.iboot.pf.module.mdm.dal.mysql.workshop.WorkshopMapper;
 import com.iboot.pf.module.mdm.dal.mysql.plant.PlantMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 
 /**
@@ -85,12 +86,12 @@ public class WorkshopServiceImpl implements WorkshopService {
     }
 
     @Override
-    public WorkshopDO getWorkshop(Long id) {
-        return workshopMapper.selectById(id);
+    public WorkshopRespVO getWorkshop(Long id) {
+        return workshopMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<WorkshopDO> getWorkshopPage(WorkshopPageReqVO pageReqVO) {
+    public PageResult<WorkshopRespVO> getWorkshopPage(WorkshopPageReqVO pageReqVO) {
         return workshopMapper.selectPage(pageReqVO);
     }
 

@@ -7,7 +7,11 @@ export namespace MdmMatAltApi {
   export interface MatAlt {
     id: number; // 主键
     matId?: number; // 物料编号
+    matCode?: string; // 物料编码
+    matName?: string; // 物料名称
     altMatId?: number; // 替代物料编号
+    altMatCode?: string; // 替代物料编码
+    altMatName?: string; // 替代物料名称
     priority?: number; // 优先级
     remark: string; // 备注
   }
@@ -23,9 +27,7 @@ export function getMatAltPage(params: PageParam) {
 
 /** 查询替代料详情 */
 export function getMatAlt(id: number) {
-  return requestClient.get<MdmMatAltApi.MatAlt>(
-    `/mdm/mat-alt/get?id=${id}`,
-  );
+  return requestClient.get<MdmMatAltApi.MatAlt>(`/mdm/mat-alt/get?id=${id}`);
 }
 
 /** 新增替代料 */
@@ -45,14 +47,10 @@ export function deleteMatAlt(id: number) {
 
 /** 批量删除替代料 */
 export function deleteMatAltList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/mat-alt/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/mat-alt/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出替代料 */
 export function exportMatAlt(params: any) {
   return requestClient.download('/mdm/mat-alt/export-excel', { params });
 }
-
-

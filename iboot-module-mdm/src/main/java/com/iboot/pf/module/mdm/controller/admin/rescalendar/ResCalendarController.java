@@ -76,16 +76,14 @@ public class ResCalendarController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:res-calendar:query')")
     public CommonResult<ResCalendarRespVO> getResCalendar(@RequestParam("id") Long id) {
-        ResCalendarDO resCalendar = resCalendarService.getResCalendar(id);
-        return success(BeanUtils.toBean(resCalendar, ResCalendarRespVO.class));
+        return success(resCalendarService.getResCalendar(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得资源日历分页")
     @PreAuthorize("@ss.hasPermission('mdm:res-calendar:query')")
     public CommonResult<PageResult<ResCalendarRespVO>> getResCalendarPage(@Valid ResCalendarPageReqVO pageReqVO) {
-        PageResult<ResCalendarDO> pageResult = resCalendarService.getResCalendarPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, ResCalendarRespVO.class));
+        return success(resCalendarService.getResCalendarPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class ResCalendarController {
     public void exportResCalendarExcel(@Valid ResCalendarPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<ResCalendarDO> list = resCalendarService.getResCalendarPage(pageReqVO).getList();
+        List<ResCalendarRespVO> list = resCalendarService.getResCalendarPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "资源日历.xls", "数据", ResCalendarRespVO.class,
-                        BeanUtils.toBean(list, ResCalendarRespVO.class));
+        ExcelUtils.write(response, "资源日历.xls", "数据", ResCalendarRespVO.class, list);
     }
 
-}
+}

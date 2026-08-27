@@ -88,12 +88,12 @@ public class MatAltServiceImpl implements MatAltService {
     }
 
     @Override
-    public MatAltDO getMatAlt(Long id) {
-        return matAltMapper.selectById(id);
+    public MatAltRespVO getMatAlt(Long id) {
+        return matAltMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<MatAltDO> getMatAltPage(MatAltPageReqVO pageReqVO) {
+    public PageResult<MatAltRespVO> getMatAltPage(MatAltPageReqVO pageReqVO) {
         return matAltMapper.selectPage(pageReqVO);
     }
 

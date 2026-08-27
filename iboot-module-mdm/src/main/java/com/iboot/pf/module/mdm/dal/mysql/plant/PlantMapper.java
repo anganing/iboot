@@ -2,11 +2,13 @@ package com.iboot.pf.module.mdm.dal.mysql.plant;
 
 import java.util.*;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.mdm.dal.dataobject.plant.PlantDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.mdm.controller.admin.plant.vo.*;
 
 /**
@@ -17,16 +19,14 @@ import com.iboot.pf.module.mdm.controller.admin.plant.vo.*;
 @Mapper
 public interface PlantMapper extends BaseMapperX<PlantDO> {
 
-    default PageResult<PlantDO> selectPage(PlantPageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<PlantDO>()
-                .eqIfPresent(PlantDO::getInvOrgId, reqVO.getInvOrgId())
-                .eqIfPresent(PlantDO::getCode, reqVO.getCode())
-                .likeIfPresent(PlantDO::getName, reqVO.getName())
-                .eqIfPresent(PlantDO::getAddress, reqVO.getAddress())
-                .eqIfPresent(PlantDO::getStatus, reqVO.getStatus())
-                .eqIfPresent(PlantDO::getRemark, reqVO.getRemark())
-                .betweenIfPresent(PlantDO::getCreateTime, reqVO.getCreateTime())
-                .orderByDesc(PlantDO::getId));
+    default PageResult<PlantRespVO> selectPage(PlantPageReqVO reqVO) {
+        IPage<PlantRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
+
+    PlantRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<PlantRespVO> selectJoinPage(IPage<PlantRespVO> page, @Param("req") PlantPageReqVO reqVO);
 
 }

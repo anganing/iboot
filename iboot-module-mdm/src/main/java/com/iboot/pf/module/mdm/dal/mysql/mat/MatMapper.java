@@ -2,11 +2,13 @@ package com.iboot.pf.module.mdm.dal.mysql.mat;
 
 import java.util.*;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.mdm.controller.admin.mat.vo.*;
 
 /**
@@ -17,22 +19,14 @@ import com.iboot.pf.module.mdm.controller.admin.mat.vo.*;
 @Mapper
 public interface MatMapper extends BaseMapperX<MatDO> {
 
-    default PageResult<MatDO> selectPage(MatPageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<MatDO>()
-                .eqIfPresent(MatDO::getCatId, reqVO.getCatId())
-                .eqIfPresent(MatDO::getCode, reqVO.getCode())
-                .likeIfPresent(MatDO::getName, reqVO.getName())
-                .eqIfPresent(MatDO::getSpec, reqVO.getSpec())
-                .eqIfPresent(MatDO::getDrawingNo, reqVO.getDrawingNo())
-                .eqIfPresent(MatDO::getMatType, reqVO.getMatType())
-                .eqIfPresent(MatDO::getBaseUomId, reqVO.getBaseUomId())
-                .eqIfPresent(MatDO::getBatchFlag, reqVO.getBatchFlag())
-                .eqIfPresent(MatDO::getSnFlag, reqVO.getSnFlag())
-                .eqIfPresent(MatDO::getShelfLifeDays, reqVO.getShelfLifeDays())
-                .eqIfPresent(MatDO::getStatus, reqVO.getStatus())
-                .eqIfPresent(MatDO::getRemark, reqVO.getRemark())
-                .betweenIfPresent(MatDO::getCreateTime, reqVO.getCreateTime())
-                .orderByDesc(MatDO::getId));
+    default PageResult<MatRespVO> selectPage(MatPageReqVO reqVO) {
+        IPage<MatRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
+
+    MatRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<MatRespVO> selectJoinPage(IPage<MatRespVO> page, @Param("req") MatPageReqVO reqVO);
 
 }

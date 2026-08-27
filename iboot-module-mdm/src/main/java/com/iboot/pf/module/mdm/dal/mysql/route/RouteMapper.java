@@ -2,11 +2,13 @@ package com.iboot.pf.module.mdm.dal.mysql.route;
 
 import java.util.*;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
 
 /**
@@ -17,16 +19,16 @@ import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
 @Mapper
 public interface RouteMapper extends BaseMapperX<RouteDO> {
 
-    default PageResult<RouteDO> selectPage(RoutePageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<RouteDO>()
-                .eqIfPresent(RouteDO::getMatId, reqVO.getMatId())
-                .eqIfPresent(RouteDO::getVersion, reqVO.getVersion())
-                .eqIfPresent(RouteDO::getStatus, reqVO.getStatus())
-                .betweenIfPresent(RouteDO::getEffectiveDate, reqVO.getEffectiveDate())
-                .betweenIfPresent(RouteDO::getExpiryDate, reqVO.getExpiryDate())
-                .eqIfPresent(RouteDO::getRemark, reqVO.getRemark())
-                .betweenIfPresent(RouteDO::getCreateTime, reqVO.getCreateTime())
-                .orderByDesc(RouteDO::getId));
+    default PageResult<RouteRespVO> selectPage(RoutePageReqVO reqVO) {
+        IPage<RouteRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
+
+    RouteRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<RouteRespVO> selectJoinPage(IPage<RouteRespVO> page, @Param("req") RoutePageReqVO reqVO);
+
+    RouteDetailRespVO selectDetailById(@Param("id") Long id);
 
 }

@@ -7,6 +7,8 @@ export namespace MdmPlantApi {
   export interface Plant {
     id: number; // 主键
     invOrgId?: number; // 库存组织编号
+    invOrgCode?: string; // 库存组织编码
+    invOrgName?: string; // 库存组织名称
     code?: string; // 编码
     name?: string; // 名称
     address: string; // 地址
@@ -17,17 +19,14 @@ export namespace MdmPlantApi {
 
 /** 查询工厂分页 */
 export function getPlantPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmPlantApi.Plant>>(
-    '/mdm/plant/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmPlantApi.Plant>>('/mdm/plant/page', {
+    params,
+  });
 }
 
 /** 查询工厂详情 */
 export function getPlant(id: number) {
-  return requestClient.get<MdmPlantApi.Plant>(
-    `/mdm/plant/get?id=${id}`,
-  );
+  return requestClient.get<MdmPlantApi.Plant>(`/mdm/plant/get?id=${id}`);
 }
 
 /** 新增工厂 */
@@ -47,14 +46,10 @@ export function deletePlant(id: number) {
 
 /** 批量删除工厂 */
 export function deletePlantList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/plant/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/plant/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出工厂 */
 export function exportPlant(params: any) {
   return requestClient.download('/mdm/plant/export-excel', { params });
 }
-
-

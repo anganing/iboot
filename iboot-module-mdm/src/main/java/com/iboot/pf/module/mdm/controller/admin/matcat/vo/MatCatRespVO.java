@@ -20,6 +20,14 @@ public class MatCatRespVO {
     @ExcelProperty("父级编号")
     private Long parentId;
 
+    @Schema(description = "父级分类编码")
+    @ExcelProperty("父级分类编码")
+    private String parentCode;
+
+    @Schema(description = "父级分类名称")
+    @ExcelProperty("父级分类名称")
+    private String parentName;
+
     @Schema(description = "编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("编码")
     private String code;
@@ -40,4 +48,4 @@ public class MatCatRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

@@ -76,16 +76,14 @@ public class PlantController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:plant:query')")
     public CommonResult<PlantRespVO> getPlant(@RequestParam("id") Long id) {
-        PlantDO plant = plantService.getPlant(id);
-        return success(BeanUtils.toBean(plant, PlantRespVO.class));
+        return success(plantService.getPlant(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得工厂分页")
     @PreAuthorize("@ss.hasPermission('mdm:plant:query')")
     public CommonResult<PageResult<PlantRespVO>> getPlantPage(@Valid PlantPageReqVO pageReqVO) {
-        PageResult<PlantDO> pageResult = plantService.getPlantPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, PlantRespVO.class));
+        return success(plantService.getPlantPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class PlantController {
     public void exportPlantExcel(@Valid PlantPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<PlantDO> list = plantService.getPlantPage(pageReqVO).getList();
+        List<PlantRespVO> list = plantService.getPlantPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "工厂.xls", "数据", PlantRespVO.class,
-                        BeanUtils.toBean(list, PlantRespVO.class));
+        ExcelUtils.write(response, "工厂.xls", "数据", PlantRespVO.class, list);
     }
 
-}
+}

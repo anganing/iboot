@@ -49,7 +49,7 @@ public interface WcService {
      * @param id 编号
      * @return 工作中心
      */
-    WcDO getWc(Long id);
+    WcRespVO getWc(Long id);
 
     /**
      * 获得工作中心分页
@@ -57,6 +57,6 @@ public interface WcService {
      * @param pageReqVO 分页查询
      * @return 工作中心分页
      */
-    PageResult<WcDO> getWcPage(WcPageReqVO pageReqVO);
+    PageResult<WcRespVO> getWcPage(WcPageReqVO pageReqVO);
 
-}
+}

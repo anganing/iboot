@@ -2,11 +2,144 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.iboot.pf.module.mdm.dal.mysql.route.RouteMapper">
 
-    <!--
-        一般情况下，尽可能使用 Mapper 进行 CRUD 增删改查即可。
-        无法满足的场景，例如说多表关联查询，才使用 XML 编写 SQL。
-        代码生成器暂时只生成 Mapper XML 文件本身，更多推荐 MybatisX 快速开发插件来生成查询。
-        文档可见：https://www.iocoder.cn/MyBatis/x-plugins/
-     -->
+    <sql id="selectColumns">
+        rt.*,
+        m.code AS mat_code,
+        m.name AS mat_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_route rt
+        LEFT JOIN mdm_mat m ON m.id = rt.mat_id AND m.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            rt.deleted = 0
+            <if test="req.matId != null">AND rt.mat_id = #{req.matId}</if>
+            <if test="req.version != null and req.version != ''">AND rt.version = #{req.version}</if>
+            <if test="req.status != null and req.status != ''">AND rt.status = #{req.status}</if>
+            <if test="req.effectiveDate != null and req.effectiveDate.length == 2">
+                AND rt.effective_date BETWEEN #{req.effectiveDate[0]} AND #{req.effectiveDate[1]}
+            </if>
+            <if test="req.expiryDate != null and req.expiryDate.length == 2">
+                AND rt.expiry_date BETWEEN #{req.expiryDate[0]} AND #{req.expiryDate[1]}
+            </if>
+            <if test="req.remark != null and req.remark != ''">AND rt.remark = #{req.remark}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND rt.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY rt.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE rt.deleted = 0 AND rt.id = #{id}
+    </select>
+
+    <resultMap id="RouteDetailResultMap" type="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteDetailRespVO">
+        <id property="id" column="rt_id"/>
+        <result property="matId" column="rt_mat_id"/>
+        <result property="version" column="rt_version"/>
+        <result property="status" column="rt_status"/>
+        <result property="effectiveDate" column="rt_effective_date"/>
+        <result property="expiryDate" column="rt_expiry_date"/>
+        <result property="remark" column="rt_remark"/>
+        <result property="createTime" column="rt_create_time"/>
+        <result property="matCode" column="mat_code"/>
+        <result property="matName" column="mat_name"/>
+        <collection property="operations" ofType="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteOpRespVO">
+            <id property="id" column="ro_id"/>
+            <result property="routeId" column="ro_route_id"/>
+            <result property="seq" column="ro_seq"/>
+            <result property="opId" column="ro_op_id"/>
+            <result property="opCode" column="op_code"/>
+            <result property="opName" column="op_name"/>
+            <result property="wcId" column="ro_wc_id"/>
+            <result property="wcCode" column="wc_code"/>
+            <result property="wcName" column="wc_name"/>
+            <result property="parallelGroup" column="ro_parallel_group"/>
+            <result property="keyFlag" column="ro_key_flag"/>
+            <result property="faiFlag" column="ro_fai_flag"/>
+            <result property="remark" column="ro_remark"/>
+            <result property="createTime" column="ro_create_time"/>
+            <result property="materialCount" column="ro_material_count"/>
+            <collection property="materials" ofType="com.iboot.pf.module.mdm.controller.admin.routeopmat.vo.RouteOpMatRespVO">
+                <id property="id" column="rom_id"/>
+                <result property="routeOpId" column="rom_route_op_id"/>
+                <result property="matId" column="rom_mat_id"/>
+                <result property="matCode" column="rom_mat_code"/>
+                <result property="matName" column="rom_mat_name"/>
+                <result property="matSpec" column="rom_mat_spec"/>
+                <result property="qty" column="rom_qty"/>
+                <result property="uomId" column="rom_uom_id"/>
+                <result property="uomCode" column="rom_uom_code"/>
+                <result property="uomName" column="rom_uom_name"/>
+                <result property="remark" column="rom_remark"/>
+                <result property="createTime" column="rom_create_time"/>
+            </collection>
+        </collection>
+    </resultMap>
+
+    <select id="selectDetailById" resultMap="RouteDetailResultMap">
+        SELECT
+        rt.id AS rt_id,
+        rt.mat_id AS rt_mat_id,
+        rt.version AS rt_version,
+        rt.status AS rt_status,
+        rt.effective_date AS rt_effective_date,
+        rt.expiry_date AS rt_expiry_date,
+        rt.remark AS rt_remark,
+        rt.create_time AS rt_create_time,
+        m.code AS mat_code,
+        m.name AS mat_name,
+        ro.id AS ro_id,
+        ro.route_id AS ro_route_id,
+        ro.seq AS ro_seq,
+        ro.op_id AS ro_op_id,
+        ro.wc_id AS ro_wc_id,
+        ro.parallel_group AS ro_parallel_group,
+        ro.key_flag AS ro_key_flag,
+        ro.fai_flag AS ro_fai_flag,
+        ro.remark AS ro_remark,
+        ro.create_time AS ro_create_time,
+        COUNT(rom.id) OVER (PARTITION BY ro.id) AS ro_material_count,
+        o.code AS op_code,
+        o.name AS op_name,
+        w.code AS wc_code,
+        w.name AS wc_name,
+        rom.id AS rom_id,
+        rom.route_op_id AS rom_route_op_id,
+        rom.mat_id AS rom_mat_id,
+        rom.qty AS rom_qty,
+        rom.uom_id AS rom_uom_id,
+        rom.remark AS rom_remark,
+        rom.create_time AS rom_create_time,
+        mm.code AS rom_mat_code,
+        mm.name AS rom_mat_name,
+        mm.spec AS rom_mat_spec,
+        u.code AS rom_uom_code,
+        u.name AS rom_uom_name
+        FROM mdm_route rt
+        LEFT JOIN mdm_mat m ON m.id = rt.mat_id AND m.deleted = 0
+        LEFT JOIN mdm_route_op ro ON ro.route_id = rt.id AND ro.deleted = 0
+        LEFT JOIN mdm_op o ON o.id = ro.op_id AND o.deleted = 0
+        LEFT JOIN mdm_wc w ON w.id = ro.wc_id AND w.deleted = 0
+        LEFT JOIN mdm_route_op_mat rom ON rom.route_op_id = ro.id AND rom.deleted = 0
+        LEFT JOIN mdm_mat mm ON mm.id = rom.mat_id AND mm.deleted = 0
+        LEFT JOIN mdm_uom u ON u.id = rom.uom_id AND u.deleted = 0
+        WHERE rt.deleted = 0 AND rt.id = #{id}
+        ORDER BY ro.seq ASC, rom.id ASC
+    </select>
 
 </mapper>

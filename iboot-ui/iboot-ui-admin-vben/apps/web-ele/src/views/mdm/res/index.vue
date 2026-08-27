@@ -10,12 +10,7 @@ import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteRes,
-  deleteResList,
-  exportRes,
-  getResPage,
-} from '#/api/mdm/res';
+import { deleteRes, deleteResList, exportRes, getResPage } from '#/api/mdm/res';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -72,11 +67,7 @@ async function handleDeleteBatch() {
 }
 
 const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MdmResApi.Res[];
-}) {
+function handleRowCheckboxChange({ records }: { records: MdmResApi.Res[] }) {
   checkedIds.value = records.map((item) => item.id!);
 }
 
@@ -85,7 +76,6 @@ async function handleExport() {
   const data = await exportRes(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '生产资源.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -181,4 +171,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

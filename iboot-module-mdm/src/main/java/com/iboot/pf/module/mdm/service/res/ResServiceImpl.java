@@ -1,25 +1,22 @@
 package com.iboot.pf.module.mdm.service.res;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.res.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.res.vo.ResPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.res.vo.ResRespVO;
+import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.module.mdm.dal.mysql.res.ResMapper;
 import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_NOT_EXISTS;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.WC_NOT_EXISTS;
 
 /**
  * 生产资源 Service 实现类
@@ -88,12 +85,12 @@ public class ResServiceImpl implements ResService {
     }
 
     @Override
-    public ResDO getRes(Long id) {
-        return resMapper.selectById(id);
+    public ResRespVO getRes(Long id) {
+        return resMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<ResDO> getResPage(ResPageReqVO pageReqVO) {
+    public PageResult<ResRespVO> getResPage(ResPageReqVO pageReqVO) {
         return resMapper.selectPage(pageReqVO);
     }
 

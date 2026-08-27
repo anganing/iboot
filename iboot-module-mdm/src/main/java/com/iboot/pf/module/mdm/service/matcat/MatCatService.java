@@ -43,7 +43,7 @@ public interface MatCatService {
      * @param id 编号
      * @return 物料分类
      */
-    MatCatDO getMatCat(Long id);
+    MatCatRespVO getMatCat(Long id);
 
     /**
      * 获得物料分类列表
@@ -51,6 +51,6 @@ public interface MatCatService {
      * @param listReqVO 查询条件
      * @return 物料分类列表
      */
-    List<MatCatDO> getMatCatList(MatCatListReqVO listReqVO);
+    List<MatCatRespVO> getMatCatList(MatCatListReqVO listReqVO);
 
-}
+}

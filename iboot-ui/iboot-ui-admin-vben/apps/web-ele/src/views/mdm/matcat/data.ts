@@ -147,16 +147,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmMatCatApi.MatCat>['columns'] {
   return [
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'parentId',
-      title: '父级编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'parentCode', title: '父级分类编码', minWidth: 140 },
+    { field: 'parentName', title: '父级分类名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',

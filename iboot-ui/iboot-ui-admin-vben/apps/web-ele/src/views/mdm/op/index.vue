@@ -10,12 +10,7 @@ import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteOp,
-  deleteOpList,
-  exportOp,
-  getOpPage,
-} from '#/api/mdm/op';
+import { deleteOp, deleteOpList, exportOp, getOpPage } from '#/api/mdm/op';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -72,11 +67,7 @@ async function handleDeleteBatch() {
 }
 
 const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MdmOpApi.Op[];
-}) {
+function handleRowCheckboxChange({ records }: { records: MdmOpApi.Op[] }) {
   checkedIds.value = records.map((item) => item.id!);
 }
 
@@ -85,7 +76,6 @@ async function handleExport() {
   const data = await exportOp(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '标准工序.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -181,4 +171,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

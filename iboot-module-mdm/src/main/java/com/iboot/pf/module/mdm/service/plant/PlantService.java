@@ -49,7 +49,7 @@ public interface PlantService {
      * @param id 编号
      * @return 工厂
      */
-    PlantDO getPlant(Long id);
+    PlantRespVO getPlant(Long id);
 
     /**
      * 获得工厂分页
@@ -57,6 +57,6 @@ public interface PlantService {
      * @param pageReqVO 分页查询
      * @return 工厂分页
      */
-    PageResult<PlantDO> getPlantPage(PlantPageReqVO pageReqVO);
+    PageResult<PlantRespVO> getPlantPage(PlantPageReqVO pageReqVO);
 
-}
+}

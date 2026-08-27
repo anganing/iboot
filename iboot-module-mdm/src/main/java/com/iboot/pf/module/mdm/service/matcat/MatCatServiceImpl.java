@@ -133,13 +133,13 @@ public class MatCatServiceImpl implements MatCatService {
     }
 
     @Override
-    public MatCatDO getMatCat(Long id) {
-        return matCatMapper.selectById(id);
+    public MatCatRespVO getMatCat(Long id) {
+        return matCatMapper.selectJoinById(id);
     }
 
     @Override
-    public List<MatCatDO> getMatCatList(MatCatListReqVO listReqVO) {
+    public List<MatCatRespVO> getMatCatList(MatCatListReqVO listReqVO) {
         return matCatMapper.selectList(listReqVO);
     }
 
-}
+}

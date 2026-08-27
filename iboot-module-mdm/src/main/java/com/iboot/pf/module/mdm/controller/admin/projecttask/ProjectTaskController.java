@@ -76,16 +76,14 @@ public class ProjectTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:project-task:query')")
     public CommonResult<ProjectTaskRespVO> getProjectTask(@RequestParam("id") Long id) {
-        ProjectTaskDO projectTask = projectTaskService.getProjectTask(id);
-        return success(BeanUtils.toBean(projectTask, ProjectTaskRespVO.class));
+        return success(projectTaskService.getProjectTask(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得项目任务分页")
     @PreAuthorize("@ss.hasPermission('mdm:project-task:query')")
     public CommonResult<PageResult<ProjectTaskRespVO>> getProjectTaskPage(@Valid ProjectTaskPageReqVO pageReqVO) {
-        PageResult<ProjectTaskDO> pageResult = projectTaskService.getProjectTaskPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, ProjectTaskRespVO.class));
+        return success(projectTaskService.getProjectTaskPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class ProjectTaskController {
     public void exportProjectTaskExcel(@Valid ProjectTaskPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<ProjectTaskDO> list = projectTaskService.getProjectTaskPage(pageReqVO).getList();
+        List<ProjectTaskRespVO> list = projectTaskService.getProjectTaskPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "项目任务.xls", "数据", ProjectTaskRespVO.class,
-                        BeanUtils.toBean(list, ProjectTaskRespVO.class));
+        ExcelUtils.write(response, "项目任务.xls", "数据", ProjectTaskRespVO.class, list);
     }
 
-}
+}

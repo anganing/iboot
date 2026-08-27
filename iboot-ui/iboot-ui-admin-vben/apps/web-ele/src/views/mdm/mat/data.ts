@@ -279,16 +279,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'catId',
-      title: '物料分类编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'catCode', title: '分类编码', minWidth: 140 },
+    { field: 'catName', title: '分类名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -315,9 +308,11 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
       minWidth: 120,
     },
     {
-      field: 'baseUomId',
-      title: '基准计量单位编号',
-      minWidth: 120,
+      field: 'baseUomCode',
+      title: '基准计量单位',
+      minWidth: 160,
+      formatter: ({ row }) =>
+        [row.baseUomCode, row.baseUomName].filter(Boolean).join(' / '),
     },
     {
       field: 'batchFlag',

@@ -33,6 +33,8 @@ async function handleGenerate() {
       :placeholder="placeholder"
       @update:model-value="emit('update:modelValue', $event)"
     />
-    <ElButton :disabled="disabled" title="获取编码" @click="handleGenerate">获取</ElButton>
+    <ElButton :disabled="disabled" title="获取编码" @click="handleGenerate"
+      >获取</ElButton
+    >
   </div>
 </template>

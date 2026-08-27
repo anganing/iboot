@@ -2,11 +2,44 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.iboot.pf.module.mdm.dal.mysql.workshop.WorkshopMapper">
 
-    <!--
-        一般情况下，尽可能使用 Mapper 进行 CRUD 增删改查即可。
-        无法满足的场景，例如说多表关联查询，才使用 XML 编写 SQL。
-        代码生成器暂时只生成 Mapper XML 文件本身，更多推荐 MybatisX 快速开发插件来生成查询。
-        文档可见：https://www.iocoder.cn/MyBatis/x-plugins/
-     -->
+    <sql id="selectColumns">
+        ws.*,
+        p.code AS plant_code,
+        p.name AS plant_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_workshop ws
+        LEFT JOIN mdm_plant p ON p.id = ws.plant_id AND p.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            ws.deleted = 0
+            <if test="req.plantId != null">AND ws.plant_id = #{req.plantId}</if>
+            <if test="req.code != null and req.code != ''">AND ws.code = #{req.code}</if>
+            <if test="req.name != null and req.name != ''">AND ws.name LIKE CONCAT('%', #{req.name}, '%')</if>
+            <if test="req.status != null">AND ws.status = #{req.status}</if>
+            <if test="req.remark != null and req.remark != ''">AND ws.remark = #{req.remark}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND ws.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.workshop.vo.WorkshopRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY ws.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.workshop.vo.WorkshopRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE ws.deleted = 0 AND ws.id = #{id}
+    </select>
 
 </mapper>

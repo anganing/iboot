@@ -7,6 +7,8 @@ export namespace MdmResApi {
   export interface Res {
     id: number; // 主键
     wcId?: number; // 工作中心编号
+    wcCode?: string; // 工作中心编码
+    wcName?: string; // 工作中心名称
     resType?: string; // 资源类型
     code?: string; // 编码
     name?: string; // 名称
@@ -17,17 +19,14 @@ export namespace MdmResApi {
 
 /** 查询生产资源分页 */
 export function getResPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmResApi.Res>>(
-    '/mdm/res/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmResApi.Res>>('/mdm/res/page', {
+    params,
+  });
 }
 
 /** 查询生产资源详情 */
 export function getRes(id: number) {
-  return requestClient.get<MdmResApi.Res>(
-    `/mdm/res/get?id=${id}`,
-  );
+  return requestClient.get<MdmResApi.Res>(`/mdm/res/get?id=${id}`);
 }
 
 /** 新增生产资源 */
@@ -47,14 +46,10 @@ export function deleteRes(id: number) {
 
 /** 批量删除生产资源 */
 export function deleteResList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/res/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/res/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出生产资源 */
 export function exportRes(params: any) {
   return requestClient.download('/mdm/res/export-excel', { params });
 }
-
-

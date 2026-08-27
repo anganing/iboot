@@ -77,16 +77,14 @@ public class BomController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:bom:query')")
     public CommonResult<BomRespVO> getBom(@RequestParam("id") Long id) {
-        BomDO bom = bomService.getBom(id);
-        return success(BeanUtils.toBean(bom, BomRespVO.class));
+        return success(bomService.getBom(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得物料清单分页")
     @PreAuthorize("@ss.hasPermission('mdm:bom:query')")
     public CommonResult<PageResult<BomRespVO>> getBomPage(@Valid BomPageReqVO pageReqVO) {
-        PageResult<BomDO> pageResult = bomService.getBomPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, BomRespVO.class));
+        return success(bomService.getBomPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -96,10 +94,9 @@ public class BomController {
     public void exportBomExcel(@Valid BomPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<BomDO> list = bomService.getBomPage(pageReqVO).getList();
+        List<BomRespVO> list = bomService.getBomPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "物料清单.xls", "数据", BomRespVO.class,
-                        BeanUtils.toBean(list, BomRespVO.class));
+        ExcelUtils.write(response, "物料清单.xls", "数据", BomRespVO.class, list);
     }
 
     // ==================== 子表（物料清单明细） ====================
@@ -108,7 +105,7 @@ public class BomController {
     @Operation(summary = "获得物料清单明细分页")
     @Parameter(name = "bomId", description = "BOM编号")
     @PreAuthorize("@ss.hasPermission('mdm:bom:query')")
-    public CommonResult<PageResult<BomLineDO>> getBomLinePage(PageParam pageReqVO,
+    public CommonResult<PageResult<BomLineRespVO>> getBomLinePage(PageParam pageReqVO,
                                                                                         @RequestParam("bomId") Long bomId) {
         return success(bomService.getBomLinePage(pageReqVO, bomId));
     }
@@ -150,8 +147,8 @@ public class BomController {
 	@Operation(summary = "获得物料清单明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('mdm:bom:query')")
-	public CommonResult<BomLineDO> getBomLine(@RequestParam("id") Long id) {
+    public CommonResult<BomLineRespVO> getBomLine(@RequestParam("id") Long id) {
 	    return success(bomService.getBomLine(id));
 	}
 
-}
+}

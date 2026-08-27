@@ -17,17 +17,14 @@ export namespace MdmShiftApi {
 
 /** 查询班次分页 */
 export function getShiftPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmShiftApi.Shift>>(
-    '/mdm/shift/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmShiftApi.Shift>>('/mdm/shift/page', {
+    params,
+  });
 }
 
 /** 查询班次详情 */
 export function getShift(id: number) {
-  return requestClient.get<MdmShiftApi.Shift>(
-    `/mdm/shift/get?id=${id}`,
-  );
+  return requestClient.get<MdmShiftApi.Shift>(`/mdm/shift/get?id=${id}`);
 }
 
 /** 新增班次 */
@@ -47,14 +44,10 @@ export function deleteShift(id: number) {
 
 /** 批量删除班次 */
 export function deleteShiftList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/shift/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/shift/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出班次 */
 export function exportShift(params: any) {
   return requestClient.download('/mdm/shift/export-excel', { params });
 }
-
-

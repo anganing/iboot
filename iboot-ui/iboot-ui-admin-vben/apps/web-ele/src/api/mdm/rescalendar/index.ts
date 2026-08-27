@@ -8,8 +8,12 @@ export namespace MdmResCalendarApi {
   export interface ResCalendar {
     id: number; // 主键
     resId?: number; // 资源编号
+    resCode?: string; // 资源编码
+    resName?: string; // 资源名称
     workDate?: string | Dayjs; // 工作日期
     shiftId?: number; // 班次编号
+    shiftCode?: string; // 班次编码
+    shiftName?: string; // 班次名称
     availableMinutes?: number; // 可用产能分钟
     remark: string; // 备注
   }
@@ -56,5 +60,3 @@ export function deleteResCalendarList(ids: number[]) {
 export function exportResCalendar(params: any) {
   return requestClient.download('/mdm/res-calendar/export-excel', { params });
 }
-
-

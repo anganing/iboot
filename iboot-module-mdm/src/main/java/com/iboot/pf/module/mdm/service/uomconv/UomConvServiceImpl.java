@@ -3,8 +3,11 @@ package com.iboot.pf.module.mdm.service.uomconv;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.uomconv.vo.UomConvPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.uomconv.vo.UomConvRespVO;
 import com.iboot.pf.module.mdm.controller.admin.uomconv.vo.UomConvSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.uomconv.UomConvDO;
+import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
+import com.iboot.pf.module.mdm.dal.dataobject.uom.UomDO;
 import com.iboot.pf.module.mdm.dal.mysql.mat.MatMapper;
 import com.iboot.pf.module.mdm.dal.mysql.uom.UomMapper;
 import com.iboot.pf.module.mdm.dal.mysql.uomconv.UomConvMapper;
@@ -12,7 +15,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
+import java.util.*;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
@@ -89,12 +92,12 @@ public class UomConvServiceImpl implements UomConvService {
     }
 
     @Override
-    public UomConvDO getUomConv(Long id) {
-        return uomConvMapper.selectById(id);
+    public UomConvRespVO getUomConv(Long id) {
+        return uomConvMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<UomConvDO> getUomConvPage(UomConvPageReqVO pageReqVO) {
+    public PageResult<UomConvRespVO> getUomConvPage(UomConvPageReqVO pageReqVO) {
         return uomConvMapper.selectPage(pageReqVO);
     }
 

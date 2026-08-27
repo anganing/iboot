@@ -7,6 +7,8 @@ export namespace MdmWcApi {
   export interface Wc {
     id: number; // 主键
     workshopId?: number; // 车间编号
+    workshopCode?: string; // 车间编码
+    workshopName?: string; // 车间名称
     code?: string; // 编码
     name?: string; // 名称
     status?: number; // 状态
@@ -16,17 +18,12 @@ export namespace MdmWcApi {
 
 /** 查询工作中心分页 */
 export function getWcPage(params: PageParam) {
-  return requestClient.get<PageResult<MdmWcApi.Wc>>(
-    '/mdm/wc/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmWcApi.Wc>>('/mdm/wc/page', { params });
 }
 
 /** 查询工作中心详情 */
 export function getWc(id: number) {
-  return requestClient.get<MdmWcApi.Wc>(
-    `/mdm/wc/get?id=${id}`,
-  );
+  return requestClient.get<MdmWcApi.Wc>(`/mdm/wc/get?id=${id}`);
 }
 
 /** 新增工作中心 */
@@ -46,14 +43,10 @@ export function deleteWc(id: number) {
 
 /** 批量删除工作中心 */
 export function deleteWcList(ids: number[]) {
-  return requestClient.delete(
-    `/mdm/wc/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/wc/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出工作中心 */
 export function exportWc(params: any) {
   return requestClient.download('/mdm/wc/export-excel', { params });
 }
-
-

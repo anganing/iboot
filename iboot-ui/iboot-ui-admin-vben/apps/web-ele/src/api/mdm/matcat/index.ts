@@ -1,4 +1,3 @@
-
 import { requestClient } from '#/api/request';
 
 export namespace MdmMatCatApi {
@@ -6,27 +5,26 @@ export namespace MdmMatCatApi {
   export interface MatCat {
     id: number; // 主键
     parentId?: number; // 父级编号
+    parentCode?: string; // 父级分类编码
+    parentName?: string; // 父级分类名称
     code?: string; // 编码
     name?: string; // 名称
     status?: number; // 状态
     remark?: string; // 备注
-  children?: MatCat[];
+    children?: MatCat[];
   }
 }
 
 /** 查询物料分类列表 */
 export function getMatCatList(params: any) {
-  return requestClient.get<MdmMatCatApi.MatCat[]>(
-    '/mdm/mat-cat/list',
-    { params },
-  );
+  return requestClient.get<MdmMatCatApi.MatCat[]>('/mdm/mat-cat/list', {
+    params,
+  });
 }
 
 /** 查询物料分类详情 */
 export function getMatCat(id: number) {
-  return requestClient.get<MdmMatCatApi.MatCat>(
-    `/mdm/mat-cat/get?id=${id}`,
-  );
+  return requestClient.get<MdmMatCatApi.MatCat>(`/mdm/mat-cat/get?id=${id}`);
 }
 
 /** 新增物料分类 */
@@ -48,5 +46,3 @@ export function deleteMatCat(id: number) {
 export function exportMatCat(params: any) {
   return requestClient.download('/mdm/mat-cat/export-excel', { params });
 }
-
-

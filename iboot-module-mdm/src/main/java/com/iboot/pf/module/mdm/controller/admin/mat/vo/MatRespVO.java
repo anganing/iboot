@@ -20,6 +20,14 @@ public class MatRespVO {
     @ExcelProperty("物料分类编号")
     private Long catId;
 
+    @Schema(description = "物料分类编码")
+    @ExcelProperty("物料分类编码")
+    private String catCode;
+
+    @Schema(description = "物料分类名称")
+    @ExcelProperty("物料分类名称")
+    private String catName;
+
     @Schema(description = "编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("编码")
     private String code;
@@ -43,6 +51,14 @@ public class MatRespVO {
     @Schema(description = "基准计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "35")
     @ExcelProperty("基准计量单位编号")
     private Long baseUomId;
+
+    @Schema(description = "基准计量单位编码")
+    @ExcelProperty("基准计量单位编码")
+    private String baseUomCode;
+
+    @Schema(description = "基准计量单位名称")
+    @ExcelProperty("基准计量单位名称")
+    private String baseUomName;
 
     @Schema(description = "是否批次管控", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("是否批次管控")
@@ -68,4 +84,4 @@ public class MatRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

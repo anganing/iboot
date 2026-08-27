@@ -20,6 +20,14 @@ public class PlantRespVO {
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
+    @Schema(description = "库存组织编码")
+    @ExcelProperty("库存组织编码")
+    private String invOrgCode;
+
+    @Schema(description = "库存组织名称")
+    @ExcelProperty("库存组织名称")
+    private String invOrgName;
+
     @Schema(description = "编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("编码")
     private String code;
@@ -44,4 +52,4 @@ public class PlantRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

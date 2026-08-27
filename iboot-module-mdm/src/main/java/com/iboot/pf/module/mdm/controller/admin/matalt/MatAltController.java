@@ -76,16 +76,14 @@ public class MatAltController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:matalt:query')")
     public CommonResult<MatAltRespVO> getMatAlt(@RequestParam("id") Long id) {
-        MatAltDO matAlt = matAltService.getMatAlt(id);
-        return success(BeanUtils.toBean(matAlt, MatAltRespVO.class));
+        return success(matAltService.getMatAlt(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得替代料分页")
     @PreAuthorize("@ss.hasPermission('mdm:matalt:query')")
     public CommonResult<PageResult<MatAltRespVO>> getMatAltPage(@Valid MatAltPageReqVO pageReqVO) {
-        PageResult<MatAltDO> pageResult = matAltService.getMatAltPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, MatAltRespVO.class));
+        return success(matAltService.getMatAltPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class MatAltController {
     public void exportMatAltExcel(@Valid MatAltPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<MatAltDO> list = matAltService.getMatAltPage(pageReqVO).getList();
+        List<MatAltRespVO> list = matAltService.getMatAltPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "替代料.xls", "数据", MatAltRespVO.class,
-                        BeanUtils.toBean(list, MatAltRespVO.class));
+        ExcelUtils.write(response, "替代料.xls", "数据", MatAltRespVO.class, list);
     }
 
 }

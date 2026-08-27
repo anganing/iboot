@@ -76,16 +76,14 @@ public class WorkshopController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:workshop:query')")
     public CommonResult<WorkshopRespVO> getWorkshop(@RequestParam("id") Long id) {
-        WorkshopDO workshop = workshopService.getWorkshop(id);
-        return success(BeanUtils.toBean(workshop, WorkshopRespVO.class));
+        return success(workshopService.getWorkshop(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得车间分页")
     @PreAuthorize("@ss.hasPermission('mdm:workshop:query')")
     public CommonResult<PageResult<WorkshopRespVO>> getWorkshopPage(@Valid WorkshopPageReqVO pageReqVO) {
-        PageResult<WorkshopDO> pageResult = workshopService.getWorkshopPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, WorkshopRespVO.class));
+        return success(workshopService.getWorkshopPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class WorkshopController {
     public void exportWorkshopExcel(@Valid WorkshopPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<WorkshopDO> list = workshopService.getWorkshopPage(pageReqVO).getList();
+        List<WorkshopRespVO> list = workshopService.getWorkshopPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "车间.xls", "数据", WorkshopRespVO.class,
-                        BeanUtils.toBean(list, WorkshopRespVO.class));
+        ExcelUtils.write(response, "车间.xls", "数据", WorkshopRespVO.class, list);
     }
 
-}
+}

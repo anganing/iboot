@@ -49,7 +49,7 @@ public interface MatAltService {
      * @param id 编号
      * @return 替代料
      */
-    MatAltDO getMatAlt(Long id);
+    MatAltRespVO getMatAlt(Long id);
 
     /**
      * 获得替代料分页
@@ -57,6 +57,6 @@ public interface MatAltService {
      * @param pageReqVO 分页查询
      * @return 替代料分页
      */
-    PageResult<MatAltDO> getMatAltPage(MatAltPageReqVO pageReqVO);
+    PageResult<MatAltRespVO> getMatAltPage(MatAltPageReqVO pageReqVO);
 
-}
+}

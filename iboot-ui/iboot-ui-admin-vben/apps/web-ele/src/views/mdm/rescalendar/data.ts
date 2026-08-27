@@ -130,26 +130,16 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmResCalendarApi.ResCalendar>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'resId',
-      title: '资源编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'resCode', title: '资源编码', minWidth: 140 },
+    { field: 'resName', title: '资源名称', minWidth: 160 },
     {
       field: 'workDate',
       title: '工作日期',
       minWidth: 120,
     },
-    {
-      field: 'shiftId',
-      title: '班次编号',
-      minWidth: 120,
-    },
+    { field: 'shiftCode', title: '班次编码', minWidth: 140 },
+    { field: 'shiftName', title: '班次名称', minWidth: 160 },
     {
       field: 'availableMinutes',
       title: '可用产能分钟',

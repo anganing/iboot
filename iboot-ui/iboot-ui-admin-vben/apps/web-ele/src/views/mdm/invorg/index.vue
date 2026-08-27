@@ -30,7 +30,9 @@ function edit(row: MdmInvOrgApi.InvOrg) {
 }
 
 async function remove(row: MdmInvOrgApi.InvOrg) {
-  const loading = ElLoading.service({ text: $t('ui.actionMessage.deleting', [row.name]) });
+  const loading = ElLoading.service({
+    text: $t('ui.actionMessage.deleting', [row.name]),
+  });
   try {
     await deleteInvOrg(row.id!);
     ElMessage.success($t('ui.actionMessage.deleteSuccess'));
@@ -48,11 +50,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues) => getInvOrgPage({
-          pageNo: page.currentPage,
-          pageSize: page.pageSize,
-          ...formValues,
-        }),
+        query: async ({ page }, formValues) =>
+          getInvOrgPage({
+            pageNo: page.currentPage,
+            pageSize: page.pageSize,
+            ...formValues,
+          }),
       },
     },
     rowConfig: { keyField: 'id', isHover: true },
@@ -66,13 +69,42 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="refresh" />
     <Grid table-title="库存组织列表">
       <template #toolbar-tools>
-        <TableAction :actions="[{ label: '新建库存组织', type: 'primary', icon: ACTION_ICON.ADD, auth: ['mdm:inv-org:create'], onClick: create }]" />
+        <TableAction
+          :actions="[
+            {
+              label: '新建库存组织',
+              type: 'primary',
+              icon: ACTION_ICON.ADD,
+              auth: ['mdm:inv-org:create'],
+              onClick: create,
+            },
+          ]"
+        />
       </template>
       <template #actions="{ row }">
-        <TableAction :actions="[
-          { label: $t('common.edit'), type: 'primary', link: true, icon: ACTION_ICON.EDIT, auth: ['mdm:inv-org:update'], onClick: edit.bind(null, row) },
-          { label: $t('common.delete'), type: 'danger', link: true, icon: ACTION_ICON.DELETE, auth: ['mdm:inv-org:delete'], popConfirm: { title: $t('ui.actionMessage.deleteConfirm', [row.name]), confirm: remove.bind(null, row) } },
-        ]" />
+        <TableAction
+          :actions="[
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mdm:inv-org:update'],
+              onClick: edit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['mdm:inv-org:delete'],
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.name]),
+                confirm: remove.bind(null, row),
+              },
+            },
+          ]"
+        />
       </template>
     </Grid>
   </Page>

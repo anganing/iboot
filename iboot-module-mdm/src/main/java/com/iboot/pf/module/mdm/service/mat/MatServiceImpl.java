@@ -94,12 +94,12 @@ public class MatServiceImpl implements MatService {
     }
 
     @Override
-    public MatDO getMat(Long id) {
-        return matMapper.selectById(id);
+    public MatRespVO getMat(Long id) {
+        return matMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<MatDO> getMatPage(MatPageReqVO pageReqVO) {
+    public PageResult<MatRespVO> getMatPage(MatPageReqVO pageReqVO) {
         return matMapper.selectPage(pageReqVO);
     }
 

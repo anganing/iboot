@@ -10,12 +10,7 @@ import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteWc,
-  deleteWcList,
-  exportWc,
-  getWcPage,
-} from '#/api/mdm/wc';
+import { deleteWc, deleteWcList, exportWc, getWcPage } from '#/api/mdm/wc';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -72,11 +67,7 @@ async function handleDeleteBatch() {
 }
 
 const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MdmWcApi.Wc[];
-}) {
+function handleRowCheckboxChange({ records }: { records: MdmWcApi.Wc[] }) {
   checkedIds.value = records.map((item) => item.id!);
 }
 
@@ -85,7 +76,6 @@ async function handleExport() {
   const data = await exportWc(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '工作中心.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -181,4 +171,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

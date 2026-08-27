@@ -60,17 +60,14 @@ export namespace MdmRouteApi {
 
 /** 查询工艺路线分页 */
 export function getRoutePage(params: PageParam) {
-  return requestClient.get<PageResult<MdmRouteApi.Route>>(
-    '/mdm/route/page',
-    { params },
-  );
+  return requestClient.get<PageResult<MdmRouteApi.Route>>('/mdm/route/page', {
+    params,
+  });
 }
 
 /** 查询工艺路线详情 */
 export function getRoute(id: MdmRouteApi.Id) {
-  return requestClient.get<MdmRouteApi.Route>(
-    `/mdm/route/get?id=${id}`,
-  );
+  return requestClient.get<MdmRouteApi.Route>(`/mdm/route/get?id=${id}`);
 }
 
 /** 查询工艺路线编排详情 */
@@ -97,16 +94,13 @@ export function deleteRoute(id: MdmRouteApi.Id) {
 
 /** 批量删除工艺路线 */
 export function deleteRouteList(ids: MdmRouteApi.Id[]) {
-  return requestClient.delete(
-    `/mdm/route/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/mdm/route/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出工艺路线 */
 export function exportRoute(params: any) {
   return requestClient.download('/mdm/route/export-excel', { params });
 }
-
 
 // ==================== 子表（工艺路线工序） ====================
 
@@ -156,4 +150,3 @@ export function getRouteOp(id: MdmRouteApi.Id) {
     `/mdm/route/route-op/get?id=${id}`,
   );
 }
-

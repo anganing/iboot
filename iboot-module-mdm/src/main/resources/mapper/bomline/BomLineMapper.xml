@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.bomline.BomLineMapper">
+
+    <sql id="selectColumns">
+        l.*,
+        u.code AS uom_code,
+        u.name AS uom_name
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.bom.vo.BomLineRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        FROM mdm_bom_line l
+        LEFT JOIN mdm_uom u ON u.id = l.uom_id AND u.deleted = 0
+        WHERE l.deleted = 0 AND l.bom_id = #{bomId}
+        ORDER BY l.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.bom.vo.BomLineRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        FROM mdm_bom_line l
+        LEFT JOIN mdm_uom u ON u.id = l.uom_id AND u.deleted = 0
+        WHERE l.deleted = 0 AND l.id = #{id}
+    </select>
+
+</mapper>

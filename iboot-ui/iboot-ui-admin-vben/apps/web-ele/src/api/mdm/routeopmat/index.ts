@@ -62,5 +62,3 @@ export function deleteRouteOpMatList(ids: MdmRouteOpMatApi.Id[]) {
 export function exportRouteOpMat(params: any) {
   return requestClient.download('/mdm/route-op-mat/export-excel', { params });
 }
-
-

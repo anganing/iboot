@@ -76,16 +76,14 @@ public class MatController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('mdm:mat:query')")
     public CommonResult<MatRespVO> getMat(@RequestParam("id") Long id) {
-        MatDO mat = matService.getMat(id);
-        return success(BeanUtils.toBean(mat, MatRespVO.class));
+        return success(matService.getMat(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得物料主档分页")
     @PreAuthorize("@ss.hasPermission('mdm:mat:query')")
     public CommonResult<PageResult<MatRespVO>> getMatPage(@Valid MatPageReqVO pageReqVO) {
-        PageResult<MatDO> pageResult = matService.getMatPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, MatRespVO.class));
+        return success(matService.getMatPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
@@ -95,10 +93,9 @@ public class MatController {
     public void exportMatExcel(@Valid MatPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<MatDO> list = matService.getMatPage(pageReqVO).getList();
+        List<MatRespVO> list = matService.getMatPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "物料主档.xls", "数据", MatRespVO.class,
-                        BeanUtils.toBean(list, MatRespVO.class));
+        ExcelUtils.write(response, "物料主档.xls", "数据", MatRespVO.class, list);
     }
 
-}
+}

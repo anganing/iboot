@@ -49,7 +49,7 @@ public interface WorkshopService {
      * @param id 编号
      * @return 车间
      */
-    WorkshopDO getWorkshop(Long id);
+    WorkshopRespVO getWorkshop(Long id);
 
     /**
      * 获得车间分页
@@ -57,6 +57,6 @@ public interface WorkshopService {
      * @param pageReqVO 分页查询
      * @return 车间分页
      */
-    PageResult<WorkshopDO> getWorkshopPage(WorkshopPageReqVO pageReqVO);
+    PageResult<WorkshopRespVO> getWorkshopPage(WorkshopPageReqVO pageReqVO);
 
-}
+}

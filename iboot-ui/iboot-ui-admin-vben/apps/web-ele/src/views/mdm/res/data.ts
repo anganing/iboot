@@ -148,16 +148,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'wcId',
-      title: '工作中心编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'wcCode', title: '工作中心编码', minWidth: 140 },
+    { field: 'wcName', title: '工作中心名称', minWidth: 160 },
     {
       field: 'resType',
       title: '资源类型',

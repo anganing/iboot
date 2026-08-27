@@ -88,12 +88,12 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     }
 
     @Override
-    public ProjectTaskDO getProjectTask(Long id) {
-        return projectTaskMapper.selectById(id);
+    public ProjectTaskRespVO getProjectTask(Long id) {
+        return projectTaskMapper.selectJoinById(id);
     }
 
     @Override
-    public PageResult<ProjectTaskDO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO) {
+    public PageResult<ProjectTaskRespVO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO) {
         return projectTaskMapper.selectPage(pageReqVO);
     }
 

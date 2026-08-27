@@ -17,10 +17,7 @@ import {
   getRouteDetail,
   updateRouteOpSort,
 } from '#/api/mdm/route';
-import {
-  deleteRouteOpMat,
-  deleteRouteOpMatList,
-} from '#/api/mdm/routeopmat';
+import { deleteRouteOpMat, deleteRouteOpMatList } from '#/api/mdm/routeopmat';
 
 import RouteOpForm from './route-op-form.vue';
 import RouteOpMatForm from './route-op-mat-form.vue';
@@ -104,41 +101,40 @@ const materialColumns: VxeTableGridOptions<MdmRouteApi.RouteOpMaterial>['columns
     },
   ];
 
-const [OperationGrid, operationGridApi] =
-  useVbenVxeGrid<MdmRouteApi.RouteOp>({
-    gridOptions: {
-      columns: operationColumns,
-      height: '280px',
-      keepSource: true,
-      pagerConfig: { enabled: false },
-      proxyConfig: {
-        ajax: {
-          query: async () => ({
-            list: operations.value,
-            total: operations.value.length,
-          }),
-        },
+const [OperationGrid, operationGridApi] = useVbenVxeGrid<MdmRouteApi.RouteOp>({
+  gridOptions: {
+    columns: operationColumns,
+    height: '280px',
+    keepSource: true,
+    pagerConfig: { enabled: false },
+    proxyConfig: {
+      ajax: {
+        query: async () => ({
+          list: operations.value,
+          total: operations.value.length,
+        }),
       },
-      rowConfig: {
-        keyField: 'id',
-        isCurrent: true,
-        isHover: true,
-      },
-      toolbarConfig: {
-        custom: true,
-        refresh: true,
-        search: false,
-        zoom: true,
-      },
-    } as VxeTableGridOptions<MdmRouteApi.RouteOp>,
-    gridEvents: {
-      cellClick: ({ row }: { row: MdmRouteApi.RouteOp }) => {
-        handleSelectOperation(row);
-      },
-      checkboxAll: handleOperationCheckboxChange,
-      checkboxChange: handleOperationCheckboxChange,
     },
-  });
+    rowConfig: {
+      keyField: 'id',
+      isCurrent: true,
+      isHover: true,
+    },
+    toolbarConfig: {
+      custom: true,
+      refresh: true,
+      search: false,
+      zoom: true,
+    },
+  } as VxeTableGridOptions<MdmRouteApi.RouteOp>,
+  gridEvents: {
+    cellClick: ({ row }: { row: MdmRouteApi.RouteOp }) => {
+      handleSelectOperation(row);
+    },
+    checkboxAll: handleOperationCheckboxChange,
+    checkboxChange: handleOperationCheckboxChange,
+  },
+});
 
 const [MaterialGrid, materialGridApi] =
   useVbenVxeGrid<MdmRouteApi.RouteOpMaterial>({
@@ -202,16 +198,12 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 function isSameId(left?: MdmRouteApi.Id, right?: MdmRouteApi.Id) {
   return (
-    left !== undefined &&
-    right !== undefined &&
-    String(left) === String(right)
+    left !== undefined && right !== undefined && String(left) === String(right)
   );
 }
 
 function getOperationIndex(operation: MdmRouteApi.RouteOp) {
-  return operations.value.findIndex((item) =>
-    isSameId(item.id, operation.id),
-  );
+  return operations.value.findIndex((item) => isSameId(item.id, operation.id));
 }
 
 async function syncGridData() {
@@ -292,9 +284,8 @@ async function handleDeleteOperationBatch() {
       checkedOperationIds.value.some((id) => isSameId(id, operation.id)),
     )
     .reduce((total, operation) => total + (operation.materialCount ?? 0), 0);
-  const materialTip = materialCount > 0
-    ? `，并级联删除 ${materialCount} 条用料`
-    : '';
+  const materialTip =
+    materialCount > 0 ? `，并级联删除 ${materialCount} 条用料` : '';
   await confirm(`确定批量删除选中的工序${materialTip}吗？`);
   await deleteRouteOpList(checkedOperationIds.value);
   ElMessage.success('工序已批量删除');
@@ -392,12 +383,8 @@ async function handleDeleteMaterialBatch() {
         </template>
         <template #flags="{ row }">
           <div class="flex items-center justify-center gap-1">
-            <ElTag v-if="row.keyFlag" size="small" type="danger">
-              关键
-            </ElTag>
-            <ElTag v-if="row.faiFlag" size="small" type="warning">
-              首检
-            </ElTag>
+            <ElTag v-if="row.keyFlag" size="small" type="danger"> 关键 </ElTag>
+            <ElTag v-if="row.faiFlag" size="small" type="warning"> 首检 </ElTag>
             <span v-if="!row.keyFlag && !row.faiFlag">-</span>
           </div>
         </template>
@@ -420,8 +407,7 @@ async function handleDeleteMaterialBatch() {
                 icon: 'lucide:arrow-down',
                 auth: ['mdm:route:update'],
                 disabled:
-                  !isDraft ||
-                  getOperationIndex(row) === operations.length - 1,
+                  !isDraft || getOperationIndex(row) === operations.length - 1,
                 onClick: handleMoveOperation.bind(null, row, 1),
               },
               {

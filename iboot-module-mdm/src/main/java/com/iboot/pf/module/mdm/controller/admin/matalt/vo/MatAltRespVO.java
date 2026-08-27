@@ -20,9 +20,25 @@ public class MatAltRespVO {
     @ExcelProperty("物料编号")
     private Long matId;
 
+    @Schema(description = "物料编码")
+    @ExcelProperty("物料编码")
+    private String matCode;
+
+    @Schema(description = "物料名称")
+    @ExcelProperty("物料名称")
+    private String matName;
+
     @Schema(description = "替代物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "26792")
     @ExcelProperty("替代物料编号")
     private Long altMatId;
+
+    @Schema(description = "替代物料编码")
+    @ExcelProperty("替代物料编码")
+    private String altMatCode;
+
+    @Schema(description = "替代物料名称")
+    @ExcelProperty("替代物料名称")
+    private String altMatName;
 
     @Schema(description = "优先级", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("优先级")
@@ -36,4 +52,4 @@ public class MatAltRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

@@ -10,11 +10,7 @@ import { downloadFileFromBlobPart } from '@vben/utils';
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteMatCat,
-  exportMatCat,
-  getMatCatList,
-} from '#/api/mdm/matcat';
+import { deleteMatCat, exportMatCat, getMatCatList } from '#/api/mdm/matcat';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -66,13 +62,11 @@ async function handleDelete(row: MdmMatCatApi.MatCat) {
   }
 }
 
-
 /** 导出表格 */
 async function handleExport() {
   const data = await exportMatCat(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '物料分类.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -174,4 +168,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

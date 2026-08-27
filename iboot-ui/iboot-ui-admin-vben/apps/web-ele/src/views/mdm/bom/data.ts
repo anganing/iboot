@@ -155,16 +155,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmBomApi.Bom>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
     {
       field: 'version',
       title: '版本号',
@@ -378,24 +371,10 @@ export function useBomLineGridFormSchema(): VbenFormSchema[] {
 export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'bomId',
-      title: 'BOM编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
     {
       field: 'lineNo',
       title: '行号',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
       minWidth: 120,
     },
     {
@@ -414,9 +393,11 @@ export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>[
       minWidth: 120,
     },
     {
-      field: 'uomId',
-      title: '计量单位编号',
-      minWidth: 120,
+      field: 'uomCode',
+      title: '计量单位',
+      minWidth: 140,
+      formatter: ({ row }) =>
+        [row.uomCode, row.uomName].filter(Boolean).join(' / '),
     },
     {
       field: 'altGroup',

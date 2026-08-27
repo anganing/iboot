@@ -118,21 +118,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmMatAltApi.MatAlt>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'altMatId',
-      title: '替代物料编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'altMatCode', title: '替代物料编码', minWidth: 140 },
+    { field: 'altMatName', title: '替代物料名称', minWidth: 160 },
     {
       field: 'priority',
       title: '优先级',

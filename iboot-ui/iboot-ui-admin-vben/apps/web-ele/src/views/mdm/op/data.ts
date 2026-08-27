@@ -24,9 +24,7 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'code',
       label: '编码',
       component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_OP_CODE',
-        placeholder: '请输入编码',
-      },
+      componentProps: { ruleCode: 'MDM_OP_CODE', placeholder: '请输入编码' },
     },
     {
       fieldName: 'name',
@@ -139,12 +137,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
     {
       field: 'code',
       title: '编码',
@@ -184,4 +178,3 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
     },
   ];
 }
-

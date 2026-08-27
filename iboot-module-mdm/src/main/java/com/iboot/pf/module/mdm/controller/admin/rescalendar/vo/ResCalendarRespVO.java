@@ -22,6 +22,14 @@ public class ResCalendarRespVO {
     @ExcelProperty("资源编号")
     private Long resId;
 
+    @Schema(description = "资源编码")
+    @ExcelProperty("资源编码")
+    private String resCode;
+
+    @Schema(description = "资源名称")
+    @ExcelProperty("资源名称")
+    private String resName;
+
     @Schema(description = "工作日期", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("工作日期")
     private LocalDate workDate;
@@ -29,6 +37,14 @@ public class ResCalendarRespVO {
     @Schema(description = "班次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "24842")
     @ExcelProperty("班次编号")
     private Long shiftId;
+
+    @Schema(description = "班次编码")
+    @ExcelProperty("班次编码")
+    private String shiftCode;
+
+    @Schema(description = "班次名称")
+    @ExcelProperty("班次名称")
+    private String shiftName;
 
     @Schema(description = "可用产能分钟", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("可用产能分钟")
@@ -42,4 +58,4 @@ public class ResCalendarRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
-}
+}

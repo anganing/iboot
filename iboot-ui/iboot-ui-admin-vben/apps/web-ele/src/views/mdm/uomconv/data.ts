@@ -139,26 +139,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmUomConvApi.UomConv>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    {
-      field: 'id',
-      title: '主键',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'fromUomId',
-      title: '来源计量单位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'toUomId',
-      title: '目标计量单位编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'fromUomCode', title: '来源单位编码', minWidth: 140 },
+    { field: 'fromUomName', title: '来源单位名称', minWidth: 160 },
+    { field: 'toUomCode', title: '目标单位编码', minWidth: 140 },
+    { field: 'toUomName', title: '目标单位名称', minWidth: 160 },
     {
       field: 'ratio',
       title: '换算比例',

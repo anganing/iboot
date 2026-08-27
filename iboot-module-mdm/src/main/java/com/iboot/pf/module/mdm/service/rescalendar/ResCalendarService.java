@@ -49,7 +49,7 @@ public interface ResCalendarService {
      * @param id 编号
      * @return 资源日历
      */
-    ResCalendarDO getResCalendar(Long id);
+    ResCalendarRespVO getResCalendar(Long id);
 
     /**
      * 获得资源日历分页
@@ -57,6 +57,6 @@ public interface ResCalendarService {
      * @param pageReqVO 分页查询
      * @return 资源日历分页
      */
-    PageResult<ResCalendarDO> getResCalendarPage(ResCalendarPageReqVO pageReqVO);
+    PageResult<ResCalendarRespVO> getResCalendarPage(ResCalendarPageReqVO pageReqVO);
 
-}
+}
