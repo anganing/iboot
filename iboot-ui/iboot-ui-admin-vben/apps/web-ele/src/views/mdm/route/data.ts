@@ -130,6 +130,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmRouteApi.Route>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
     { field: 'matCode', title: '物料编码', minWidth: 150 },
     { field: 'matName', title: '物料名称', minWidth: 180 },
     { field: 'version', title: '版本号', minWidth: 100 },
