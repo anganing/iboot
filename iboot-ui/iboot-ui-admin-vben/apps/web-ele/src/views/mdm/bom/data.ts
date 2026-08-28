@@ -305,20 +305,20 @@ export function useBomLineGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'matName',
-      label: '物料名称快照',
+      label: '物料名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料名称快照',
+        placeholder: '请输入物料名称',
       },
     },
     {
@@ -381,12 +381,12 @@ export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>[
     },
     {
       field: 'matCode',
-      title: '物料编码快照',
+      title: '物料编码',
       minWidth: 120,
     },
     {
       field: 'matName',
-      title: '物料名称快照',
+      title: '物料名称',
       minWidth: 120,
     },
     {
