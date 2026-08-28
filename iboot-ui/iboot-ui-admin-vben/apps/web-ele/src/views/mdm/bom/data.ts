@@ -264,14 +264,6 @@ export function useBomLineFormSchema(): VbenFormSchema[] {
       componentProps: UOM_RELATION_PROPS,
     },
     {
-      fieldName: 'altGroup',
-      label: '替代组',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入替代组',
-      },
-    },
-    {
       fieldName: 'remark',
       label: '备注',
       component: 'Input',
@@ -340,15 +332,6 @@ export function useBomLineGridFormSchema(): VbenFormSchema[] {
       componentProps: UOM_RELATION_PROPS,
     },
     {
-      fieldName: 'altGroup',
-      label: '替代组',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入替代组',
-      },
-    },
-    {
       fieldName: 'remark',
       label: '备注',
       component: 'Input',
@@ -400,11 +383,6 @@ export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>[
       minWidth: 140,
       formatter: ({ row }) =>
         [row.uomCode, row.uomName].filter(Boolean).join(' / '),
-    },
-    {
-      field: 'altGroup',
-      title: '替代组',
-      minWidth: 120,
     },
     {
       field: 'remark',

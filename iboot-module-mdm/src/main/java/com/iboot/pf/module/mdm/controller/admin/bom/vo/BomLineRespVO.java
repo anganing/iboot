@@ -53,10 +53,6 @@ public class BomLineRespVO {
     @ExcelProperty("计量单位名称")
     private String uomName;
 
-    @Schema(description = "替代组")
-    @ExcelProperty("替代组")
-    private String altGroup;
-
     @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;

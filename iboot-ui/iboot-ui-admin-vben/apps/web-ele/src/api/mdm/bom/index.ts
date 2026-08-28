@@ -16,7 +16,6 @@ export namespace MdmBomApi {
     uomId?: number; // 计量单位编号
     uomCode?: string; // 计量单位编码
     uomName?: string; // 计量单位名称
-    altGroup: string; // 替代组
     remark: string; // 备注
   }
 

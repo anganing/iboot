@@ -56,10 +56,6 @@ public class BomLineDO extends BaseDO {
      */
     private Long uomId;
     /**
-     * 替代组
-     */
-    private String altGroup;
-    /**
      * 备注
      */
     private String remark;
