@@ -1,25 +1,23 @@
 package com.iboot.pf.module.mdm.service.projecttask;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.projecttask.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.projecttask.ProjectTaskDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
-import com.iboot.pf.module.mdm.dal.mysql.projecttask.ProjectTaskMapper;
+import com.iboot.pf.module.mdm.controller.admin.projecttask.vo.ProjectTaskPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.projecttask.vo.ProjectTaskRespVO;
+import com.iboot.pf.module.mdm.controller.admin.projecttask.vo.ProjectTaskSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.projecttask.ProjectTaskDO;
 import com.iboot.pf.module.mdm.dal.mysql.project.ProjectMapper;
+import com.iboot.pf.module.mdm.dal.mysql.projecttask.ProjectTaskMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.PROJECT_TASK_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.PROJECT_TASK;
 
 /**
@@ -34,7 +32,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     @Resource
     private ProjectTaskMapper projectTaskMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
     @Resource
     private ProjectMapper projectMapper;
 

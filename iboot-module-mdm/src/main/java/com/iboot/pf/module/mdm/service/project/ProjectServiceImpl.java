@@ -1,24 +1,20 @@
 package com.iboot.pf.module.mdm.service.project;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.project.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.project.ProjectDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.project.vo.ProjectPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.project.vo.ProjectSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.project.ProjectDO;
 import com.iboot.pf.module.mdm.dal.mysql.project.ProjectMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.PROJECT;
 
 /**
@@ -33,7 +29,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Resource
     private ProjectMapper projectMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
 
     @Override
     public Long createProject(ProjectSaveReqVO createReqVO) {
@@ -87,4 +83,4 @@ public class ProjectServiceImpl implements ProjectService {
         return projectMapper.selectPage(pageReqVO);
     }
 
-}
+}

@@ -8,6 +8,7 @@ import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.module.mdm.dal.mysql.res.ResMapper;
 import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -31,7 +32,7 @@ public class ResServiceImpl implements ResService {
     @Resource
     private ResMapper resMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
     @Resource
     private WcMapper wcMapper;
 

@@ -1,24 +1,20 @@
 package com.iboot.pf.module.mdm.service.op;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.op.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.op.OpDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.op.vo.OpPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.op.vo.OpSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.op.OpDO;
 import com.iboot.pf.module.mdm.dal.mysql.op.OpMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.OP_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.OP;
 
 /**
@@ -33,7 +29,7 @@ public class OpServiceImpl implements OpService {
     @Resource
     private OpMapper opMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
 
     @Override
     public Long createOp(OpSaveReqVO createReqVO) {
@@ -87,4 +83,4 @@ public class OpServiceImpl implements OpService {
         return opMapper.selectPage(pageReqVO);
     }
 
-}
+}

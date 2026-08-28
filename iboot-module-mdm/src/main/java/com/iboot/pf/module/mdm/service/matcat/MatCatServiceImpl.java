@@ -1,23 +1,20 @@
 package com.iboot.pf.module.mdm.service.matcat;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.matcat.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.matcat.MatCatDO;
-import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.matcat.vo.MatCatListReqVO;
+import com.iboot.pf.module.mdm.controller.admin.matcat.vo.MatCatRespVO;
+import com.iboot.pf.module.mdm.controller.admin.matcat.vo.MatCatSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.matcat.MatCatDO;
 import com.iboot.pf.module.mdm.dal.mysql.matcat.MatCatMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
+import java.util.Objects;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.MAT_CAT;
 
@@ -33,7 +30,7 @@ public class MatCatServiceImpl implements MatCatService {
     @Resource
     private MatCatMapper matCatMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
 
     @Override
     public Long createMatCat(MatCatSaveReqVO createReqVO) {

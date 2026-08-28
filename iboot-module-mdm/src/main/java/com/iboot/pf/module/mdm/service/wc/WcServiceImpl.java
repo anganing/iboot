@@ -1,25 +1,23 @@
 package com.iboot.pf.module.mdm.service.wc;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.wc.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.wc.WcDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.wc.vo.WcPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.wc.vo.WcRespVO;
+import com.iboot.pf.module.mdm.controller.admin.wc.vo.WcSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.wc.WcDO;
 import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
 import com.iboot.pf.module.mdm.dal.mysql.workshop.WorkshopMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
-import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.WC_NOT_EXISTS;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.WORKSHOP_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.WC;
 
 /**
@@ -34,7 +32,7 @@ public class WcServiceImpl implements WcService {
     @Resource
     private WcMapper wcMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
     @Resource
     private WorkshopMapper workshopMapper;
 

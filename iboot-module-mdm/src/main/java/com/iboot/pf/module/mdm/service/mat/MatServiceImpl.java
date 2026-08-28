@@ -1,25 +1,22 @@
 package com.iboot.pf.module.mdm.service.mat;
 
-import cn.hutool.core.collection.CollUtil;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import com.iboot.pf.module.mdm.controller.admin.mat.vo.*;
-import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
-
+import com.iboot.pf.module.mdm.controller.admin.mat.vo.MatPageReqVO;
+import com.iboot.pf.module.mdm.controller.admin.mat.vo.MatRespVO;
+import com.iboot.pf.module.mdm.controller.admin.mat.vo.MatSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
 import com.iboot.pf.module.mdm.dal.mysql.mat.MatMapper;
 import com.iboot.pf.module.mdm.dal.mysql.matcat.MatCatMapper;
 import com.iboot.pf.module.mdm.dal.mysql.uom.UomMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
-import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.MAT;
 
@@ -35,7 +32,7 @@ public class MatServiceImpl implements MatService {
     @Resource
     private MatMapper matMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
     @Resource
     private MatCatMapper matCatMapper;
     @Resource

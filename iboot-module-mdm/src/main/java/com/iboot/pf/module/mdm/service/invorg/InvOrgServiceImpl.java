@@ -6,6 +6,7 @@ import com.iboot.pf.module.mdm.controller.admin.invorg.vo.InvOrgPageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.invorg.vo.InvOrgSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.invorg.InvOrgDO;
 import com.iboot.pf.module.mdm.dal.mysql.invorg.InvOrgMapper;
+import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -21,7 +22,7 @@ public class InvOrgServiceImpl implements InvOrgService {
     @Resource
     private InvOrgMapper invOrgMapper;
     @Resource
-    private com.iboot.pf.module.mdm.service.coderule.MdmCodeService mdmCodeService;
+    private MdmCodeService mdmCodeService;
 
     @Override
     public Long createInvOrg(InvOrgSaveReqVO createReqVO) {
