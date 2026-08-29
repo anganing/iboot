@@ -75,8 +75,15 @@ async function handleDelete(row: MdmRouteApi.Route) {
   }
 }
 
-/** 批量删除工艺路线 */
+/** 批量删除工艺路线（启用中的路线后端会拒绝删除，提前拦截给出明确提示） */
 async function handleDeleteBatch() {
+  const lockedRows = checkedRows.value.filter((row) => row.status === 0);
+  if (lockedRows.length > 0) {
+    ElMessage.warning(
+      `勾选中包含 ${lockedRows.length} 条已启用的工艺路线，启用中的版本不可删除，请先取消勾选`,
+    );
+    return;
+  }
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deletingBatch'),
@@ -92,12 +99,14 @@ async function handleDeleteBatch() {
 }
 
 const checkedIds = ref<MdmRouteApi.Id[]>([]);
+const checkedRows = ref<MdmRouteApi.Route[]>([]);
 function handleRowCheckboxChange({
   records,
 }: {
   records: MdmRouteApi.Route[];
 }) {
   checkedIds.value = records.map((item) => item.id!);
+  checkedRows.value = records;
 }
 
 /** 导出表格 */
@@ -145,7 +154,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <RouteCopyModal @success="handleRefresh" />
-    <RouteConfigDrawer />
+    <RouteConfigDrawer @success="handleRefresh" />
     <Grid table-title="工艺路线列表">
       <template #toolbar-tools>
         <TableAction
@@ -192,6 +201,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mdm:route:update'],
+              disabled: row.status === 0,
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -207,6 +217,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:route:delete'],
+              disabled: row.status === 0,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.id]),
                 confirm: handleDelete.bind(null, row),

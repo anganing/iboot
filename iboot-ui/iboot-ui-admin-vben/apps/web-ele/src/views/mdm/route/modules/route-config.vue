@@ -16,6 +16,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { isEmpty } from '@vben/utils';
 
 import {
+  ElAlert,
   ElDescriptions,
   ElDescriptionsItem,
   ElEmpty,
@@ -45,6 +46,7 @@ import {
   getRouteOpToolPage,
 } from '#/api/mdm/tool';
 
+import RouteCopyForm from './route-copy-form.vue';
 import RouteOpEsopForm from './route-op-esop-form.vue';
 import RouteOpEsopPreview from './route-op-esop-preview.vue';
 import RouteOpForm from './route-op-form.vue';
@@ -237,6 +239,26 @@ const [RouteOpToolFormModal, routeOpToolFormModalApi] = useVbenModal({
   connectedComponent: RouteOpToolForm,
   destroyOnClose: true,
 });
+const [RouteCopyModal, routeCopyModalApi] = useVbenModal({
+  connectedComponent: RouteCopyForm,
+  destroyOnClose: true,
+});
+
+const emit = defineEmits(['success']);
+
+function handleCopyNewVersion() {
+  const source = routeSummary.value ?? detail.value;
+  if (!source) {
+    return;
+  }
+  routeCopyModalApi.setData(source).open();
+}
+
+function handleCopySuccess() {
+  ElMessage.success('新版本已生成，可在列表中查看');
+  emit('success');
+  drawerApi.close();
+}
 
 const [RouteOpEsopGrid, routeOpEsopGridApi] = useVbenVxeGrid<
   import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop
@@ -653,6 +675,7 @@ async function handleDeleteToolBatch() {
     <RouteOpEsopFormModal @success="routeOpEsopGridApi.query()" />
     <RouteOpEsopPreviewModal />
     <RouteOpToolFormModal @success="routeOpToolGridApi.query()" />
+    <RouteCopyModal @success="handleCopySuccess" />
 
     <div v-loading="loading" class="h-full min-h-0">
       <ColPage
@@ -747,6 +770,26 @@ async function handleDeleteToolBatch() {
         </template>
 
         <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+          <ElAlert
+            v-if="!isEditable"
+            class="mb-3 shrink-0"
+            type="warning"
+            :closable="false"
+            show-icon
+          >
+            <template #title>
+              该工艺路线已启用锁定，操作按钮不可用；如需调整请
+              <ElLink
+                type="primary"
+                :underline="false"
+                class="mx-1 align-baseline"
+                @click="handleCopyNewVersion"
+              >
+                复制新版本
+              </ElLink>
+              后在新版本上编辑
+            </template>
+          </ElAlert>
           <ElDescriptions
             v-if="selectedOperation"
             :column="4"
