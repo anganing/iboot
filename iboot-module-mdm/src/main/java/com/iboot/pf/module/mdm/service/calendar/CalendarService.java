@@ -80,6 +80,20 @@ public interface CalendarService {
     void deleteCalendarRule(Long id);
 
     /**
+     * 批量删除日历规则
+     *
+     * @param ids 编号列表
+     */
+    void deleteCalendarRuleListByIds(List<Long> ids);
+
+    /**
+     * 获得日历规则
+     *
+     * @param id 编号
+     * @return 日历规则
+     */
+    CalendarRuleRespVO getCalendarRule(Long id);
+    /**
      * 获得日历规则分页
      *
      * @param pageParam 分页参数
@@ -112,6 +126,20 @@ public interface CalendarService {
      */
     void deleteCalendarException(Long id);
 
+    /**
+     * 批量删除日历例外
+     *
+     * @param ids 编号列表
+     */
+    void deleteCalendarExceptionListByIds(List<Long> ids);
+
+    /**
+     * 获得日历例外
+     *
+     * @param id 编号
+     * @return 日历例外
+     */
+    CalendarExceptionRespVO getCalendarException(Long id);
     /**
      * 获得日历例外分页
      *

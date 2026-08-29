@@ -5,11 +5,9 @@
     <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.skill.vo.MemberSkillRespVO">
         SELECT
         ms.*,
-        u.nickname AS user_name,
         sk.code AS skill_code,
         sk.name AS skill_name
         FROM mdm_member_skill ms
-        LEFT JOIN system_users u ON u.id = ms.user_id AND u.deleted = 0
         LEFT JOIN mdm_skill sk ON sk.id = ms.skill_id AND sk.deleted = 0
         WHERE ms.deleted = 0
         <if test="userId != null">AND ms.user_id = #{userId}</if>
@@ -20,11 +18,9 @@
     <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.skill.vo.MemberSkillRespVO">
         SELECT
         ms.*,
-        u.nickname AS user_name,
         sk.code AS skill_code,
         sk.name AS skill_name
         FROM mdm_member_skill ms
-        LEFT JOIN system_users u ON u.id = ms.user_id AND u.deleted = 0
         LEFT JOIN mdm_skill sk ON sk.id = ms.skill_id AND sk.deleted = 0
         WHERE ms.deleted = 0 AND ms.id = #{id}
     </select>

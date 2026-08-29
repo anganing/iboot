@@ -13,14 +13,19 @@ import com.iboot.pf.module.mdm.dal.mysql.team.TeamMemberMapper;
 import com.iboot.pf.module.mdm.dal.mysql.workshop.WorkshopMapper;
 import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
 import com.iboot.pf.module.system.api.user.AdminUserApi;
+import com.iboot.pf.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
+import static com.iboot.pf.framework.common.util.collection.MapUtils.findAndThen;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.TEAM;
 
@@ -104,12 +109,39 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public TeamRespVO getTeam(Long id) {
-        return teamMapper.selectJoinById(id);
+        TeamRespVO team = teamMapper.selectJoinById(id);
+        if (team != null) {
+            fillLeaderUserName(Collections.singletonList(team));
+        }
+        return team;
     }
 
     @Override
     public PageResult<TeamRespVO> getTeamPage(TeamPageReqVO pageReqVO) {
-        return teamMapper.selectJoinPage(pageReqVO);
+        PageResult<TeamRespVO> pageResult = teamMapper.selectJoinPage(pageReqVO);
+        fillLeaderUserName(pageResult.getList());
+        return pageResult;
+    }
+
+    /**
+     * 批量补全班组长姓名。system_users 属 system 模块，禁止跨模块 JOIN，
+     * 统一走 AdminUserApi 门面按 id 批量查询，保证将来微服务拆分时无需改动。
+     */
+    private void fillLeaderUserName(List<TeamRespVO> list) {
+        Map<Long, AdminUserRespDTO> userMap = adminUserApi.getUserMap(
+                convertSet(list, TeamRespVO::getLeaderUserId));
+        list.forEach(vo -> findAndThen(userMap, vo.getLeaderUserId(),
+                user -> vo.setLeaderUserName(user.getNickname())));
+    }
+
+    /**
+     * 批量补全班组成员姓名，约束同 {@link #fillLeaderUserName(List)}
+     */
+    private void fillMemberUserName(List<TeamMemberRespVO> list) {
+        Map<Long, AdminUserRespDTO> userMap = adminUserApi.getUserMap(
+                convertSet(list, TeamMemberRespVO::getUserId));
+        list.forEach(vo -> findAndThen(userMap, vo.getUserId(),
+                user -> vo.setUserName(user.getNickname())));
     }
 
     // ==================== 班组成员 ====================
@@ -126,11 +158,31 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
+    public void updateTeamMember(TeamMemberSaveReqVO updateReqVO) {
+        validateTeamMemberExists(updateReqVO.getId());
+        validateTeamExists(updateReqVO.getTeamId());
+        adminUserApi.validateUser(updateReqVO.getUserId());
+        validateMemberUnique(updateReqVO.getTeamId(), updateReqVO.getUserId(), updateReqVO.getId());
+        teamMemberMapper.updateById(BeanUtils.toBean(updateReqVO, TeamMemberDO.class));
+    }
+
+    @Override
     public void deleteTeamMember(Long id) {
+        validateTeamMemberExists(id);
+        teamMemberMapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteTeamMemberListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteTeamMember(id);
+        }
+    }
+
+    private void validateTeamMemberExists(Long id) {
         if (teamMemberMapper.selectById(id) == null) {
             throw exception(TEAM_MEMBER_NOT_EXISTS);
         }
-        teamMemberMapper.deleteById(id);
     }
 
     private void validateMemberUnique(Long teamId, Long userId, Long excludeId) {
@@ -141,8 +193,19 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
+    public TeamMemberRespVO getTeamMember(Long id) {
+        TeamMemberRespVO member = teamMemberMapper.selectJoinById(id);
+        if (member != null) {
+            fillMemberUserName(Collections.singletonList(member));
+        }
+        return member;
+    }
+
+    @Override
     public PageResult<TeamMemberRespVO> getTeamMemberPage(PageParam pageParam, Long teamId) {
-        return teamMemberMapper.selectJoinPage(pageParam, teamId);
+        PageResult<TeamMemberRespVO> pageResult = teamMemberMapper.selectJoinPage(pageParam, teamId);
+        fillMemberUserName(pageResult.getList());
+        return pageResult;
     }
 
     @Override

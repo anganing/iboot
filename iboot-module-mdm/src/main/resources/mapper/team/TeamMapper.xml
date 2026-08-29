@@ -7,7 +7,6 @@
         w.code AS workshop_code,
         w.name AS workshop_name,
         s.name AS shift_name,
-        u.nickname AS leader_user_name,
         (SELECT COUNT(*) FROM mdm_team_member tm WHERE tm.team_id = t.id AND tm.deleted = 0) AS member_count
     </sql>
 
@@ -15,7 +14,6 @@
         FROM mdm_team t
         LEFT JOIN mdm_workshop w ON w.id = t.workshop_id AND w.deleted = 0
         LEFT JOIN mdm_shift s ON s.id = t.shift_id AND s.deleted = 0
-        LEFT JOIN system_users u ON u.id = t.leader_user_id AND u.deleted = 0
     </sql>
 
     <sql id="whereConditions">

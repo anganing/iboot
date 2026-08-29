@@ -102,6 +102,14 @@ public class TeamController {
         return success(teamService.createTeamMember(createReqVO));
     }
 
+    @PutMapping("/member/update")
+    @Operation(summary = "更新班组成员")
+    @PreAuthorize("@ss.hasPermission('mdm:team:update')")
+    public CommonResult<Boolean> updateTeamMember(@Valid @RequestBody TeamMemberSaveReqVO updateReqVO) {
+        teamService.updateTeamMember(updateReqVO);
+        return success(true);
+    }
+
     @DeleteMapping("/member/delete")
     @Operation(summary = "删除班组成员")
     @Parameter(name = "id", description = "编号", required = true)
@@ -109,6 +117,23 @@ public class TeamController {
     public CommonResult<Boolean> deleteTeamMember(@RequestParam("id") Long id) {
         teamService.deleteTeamMember(id);
         return success(true);
+    }
+
+    @DeleteMapping("/member/delete-list")
+    @Operation(summary = "批量删除班组成员")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:team:update')")
+    public CommonResult<Boolean> deleteTeamMemberList(@RequestParam("ids") List<Long> ids) {
+        teamService.deleteTeamMemberListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/member/get")
+    @Operation(summary = "获得班组成员")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:team:query')")
+    public CommonResult<TeamMemberRespVO> getTeamMember(@RequestParam("id") Long id) {
+        return success(teamService.getTeamMember(id));
     }
 
     @GetMapping("/member/page")

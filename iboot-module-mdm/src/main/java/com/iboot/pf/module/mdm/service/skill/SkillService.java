@@ -88,6 +88,21 @@ public interface SkillService {
     void deleteOpSkillReq(Long id);
 
     /**
+     * 批量删除工序技能要求
+     *
+     * @param ids 编号列表
+     */
+    void deleteOpSkillReqListByIds(List<Long> ids);
+
+    /**
+     * 获得工序技能要求
+     *
+     * @param id 编号
+     * @return 工序技能要求
+     */
+    OpSkillReqRespVO getOpSkillReq(Long id);
+
+    /**
      * 获得工序技能要求分页
      *
      * @param pageParam 分页参数
@@ -127,6 +142,21 @@ public interface SkillService {
      * @param id 编号
      */
     void deleteMemberSkill(Long id);
+
+    /**
+     * 批量删除人员技能
+     *
+     * @param ids 编号列表
+     */
+    void deleteMemberSkillListByIds(List<Long> ids);
+
+    /**
+     * 获得人员技能
+     *
+     * @param id 编号
+     * @return 人员技能
+     */
+    MemberSkillRespVO getMemberSkill(Long id);
 
     /**
      * 获得人员技能分页

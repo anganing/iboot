@@ -4,20 +4,16 @@
 
     <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.team.vo.TeamMemberRespVO">
         SELECT
-        tm.*,
-        u.nickname AS user_name
+        tm.*
         FROM mdm_team_member tm
-        LEFT JOIN system_users u ON u.id = tm.user_id AND u.deleted = 0
         WHERE tm.deleted = 0 AND tm.team_id = #{teamId}
         ORDER BY tm.id ASC
     </select>
 
     <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.team.vo.TeamMemberRespVO">
         SELECT
-        tm.*,
-        u.nickname AS user_name
+        tm.*
         FROM mdm_team_member tm
-        LEFT JOIN system_users u ON u.id = tm.user_id AND u.deleted = 0
         WHERE tm.deleted = 0 AND tm.id = #{id}
     </select>
 

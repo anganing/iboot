@@ -119,6 +119,23 @@ public class SkillController {
         return success(true);
     }
 
+    @DeleteMapping("/op-req/delete-list")
+    @Operation(summary = "批量删除工序技能要求")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:skill:update')")
+    public CommonResult<Boolean> deleteOpSkillReqList(@RequestParam("ids") List<Long> ids) {
+        skillService.deleteOpSkillReqListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/op-req/get")
+    @Operation(summary = "获得工序技能要求")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:skill:query')")
+    public CommonResult<OpSkillReqRespVO> getOpSkillReq(@RequestParam("id") Long id) {
+        return success(skillService.getOpSkillReq(id));
+    }
+
     @GetMapping("/op-req/page")
     @Operation(summary = "获得工序技能要求分页")
     @PreAuthorize("@ss.hasPermission('mdm:skill:query')")
@@ -151,6 +168,23 @@ public class SkillController {
     public CommonResult<Boolean> deleteMemberSkill(@RequestParam("id") Long id) {
         skillService.deleteMemberSkill(id);
         return success(true);
+    }
+
+    @DeleteMapping("/member/delete-list")
+    @Operation(summary = "批量删除人员技能")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:skill:update')")
+    public CommonResult<Boolean> deleteMemberSkillList(@RequestParam("ids") List<Long> ids) {
+        skillService.deleteMemberSkillListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/member/get")
+    @Operation(summary = "获得人员技能")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:skill:query')")
+    public CommonResult<MemberSkillRespVO> getMemberSkill(@RequestParam("id") Long id) {
+        return success(skillService.getMemberSkill(id));
     }
 
     @GetMapping("/member/page")

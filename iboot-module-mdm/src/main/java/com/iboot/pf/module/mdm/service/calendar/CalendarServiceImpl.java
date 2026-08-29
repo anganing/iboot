@@ -145,6 +145,18 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
+    public void deleteCalendarRuleListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteCalendarRule(id);
+        }
+    }
+
+    @Override
+    public CalendarRuleRespVO getCalendarRule(Long id) {
+        return calendarRuleMapper.selectJoinById(id);
+    }
+
+    @Override
     public PageResult<CalendarRuleRespVO> getCalendarRulePage(PageParam pageParam, Long calendarId) {
         return calendarRuleMapper.selectJoinPage(pageParam, calendarId);
     }
@@ -192,6 +204,18 @@ public class CalendarServiceImpl implements CalendarService {
     public void deleteCalendarException(Long id) {
         validateExceptionExists(id);
         calendarExceptionMapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteCalendarExceptionListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteCalendarException(id);
+        }
+    }
+
+    @Override
+    public CalendarExceptionRespVO getCalendarException(Long id) {
+        return calendarExceptionMapper.selectJoinById(id);
     }
 
     @Override

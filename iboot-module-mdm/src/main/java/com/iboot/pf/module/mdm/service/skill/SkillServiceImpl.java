@@ -14,14 +14,19 @@ import com.iboot.pf.module.mdm.dal.mysql.skill.OpSkillReqMapper;
 import com.iboot.pf.module.mdm.dal.mysql.skill.SkillMapper;
 import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
 import com.iboot.pf.module.system.api.user.AdminUserApi;
+import com.iboot.pf.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
+import static com.iboot.pf.framework.common.util.collection.MapUtils.findAndThen;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.SKILL;
 
@@ -116,9 +121,7 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void updateOpSkillReq(OpSkillReqSaveReqVO updateReqVO) {
-        if (opSkillReqMapper.selectById(updateReqVO.getId()) == null) {
-            throw exception(OP_SKILL_REQ_NOT_EXISTS);
-        }
+        validateOpSkillReqExists(updateReqVO.getId());
         validateOpExists(updateReqVO.getOpId());
         validateSkillExists(updateReqVO.getSkillId());
         validateOpSkillReqUnique(updateReqVO.getOpId(), updateReqVO.getSkillId(), updateReqVO.getId());
@@ -128,10 +131,26 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void deleteOpSkillReq(Long id) {
+        validateOpSkillReqExists(id);
+        opSkillReqMapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteOpSkillReqListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteOpSkillReq(id);
+        }
+    }
+
+    @Override
+    public OpSkillReqRespVO getOpSkillReq(Long id) {
+        return opSkillReqMapper.selectJoinById(id);
+    }
+
+    private void validateOpSkillReqExists(Long id) {
         if (opSkillReqMapper.selectById(id) == null) {
             throw exception(OP_SKILL_REQ_NOT_EXISTS);
         }
-        opSkillReqMapper.deleteById(id);
     }
 
     private void validateOpSkillReqUnique(Long opId, Long skillId, Long excludeId) {
@@ -174,9 +193,7 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void updateMemberSkill(MemberSkillSaveReqVO updateReqVO) {
-        if (memberSkillMapper.selectById(updateReqVO.getId()) == null) {
-            throw exception(MEMBER_SKILL_NOT_EXISTS);
-        }
+        validateMemberSkillExists(updateReqVO.getId());
         adminUserApi.validateUser(updateReqVO.getUserId());
         validateSkillExists(updateReqVO.getSkillId());
         validateMemberSkillDate(updateReqVO.getEffectiveDate(), updateReqVO.getExpiryDate());
@@ -187,10 +204,41 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void deleteMemberSkill(Long id) {
+        validateMemberSkillExists(id);
+        memberSkillMapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteMemberSkillListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteMemberSkill(id);
+        }
+    }
+
+    @Override
+    public MemberSkillRespVO getMemberSkill(Long id) {
+        MemberSkillRespVO memberSkill = memberSkillMapper.selectJoinById(id);
+        if (memberSkill != null) {
+            fillMemberUserName(Collections.singletonList(memberSkill));
+        }
+        return memberSkill;
+    }
+
+    /**
+     * 批量补全员技能的用户姓名。system_users 属 system 模块，禁止跨模块 JOIN，
+     * 统一走 AdminUserApi 门面按 id 批量查询，保证将来微服务拆分时无需改动。
+     */
+    private void fillMemberUserName(List<MemberSkillRespVO> list) {
+        Map<Long, AdminUserRespDTO> userMap = adminUserApi.getUserMap(
+                convertSet(list, MemberSkillRespVO::getUserId));
+        list.forEach(vo -> findAndThen(userMap, vo.getUserId(),
+                user -> vo.setUserName(user.getNickname())));
+    }
+
+    private void validateMemberSkillExists(Long id) {
         if (memberSkillMapper.selectById(id) == null) {
             throw exception(MEMBER_SKILL_NOT_EXISTS);
         }
-        memberSkillMapper.deleteById(id);
     }
 
     private void validateMemberSkillDate(LocalDate effectiveDate, LocalDate expiryDate) {
@@ -208,7 +256,9 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public PageResult<MemberSkillRespVO> getMemberSkillPage(PageParam pageParam, Long userId, Long skillId) {
-        return memberSkillMapper.selectJoinPage(pageParam, userId, skillId);
+        PageResult<MemberSkillRespVO> pageResult = memberSkillMapper.selectJoinPage(pageParam, userId, skillId);
+        fillMemberUserName(pageResult.getList());
+        return pageResult;
     }
 
     @Override

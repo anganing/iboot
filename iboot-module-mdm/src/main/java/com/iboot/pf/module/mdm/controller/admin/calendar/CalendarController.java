@@ -121,6 +121,23 @@ public class CalendarController {
         return success(true);
     }
 
+    @DeleteMapping("/rule/delete-list")
+    @Operation(summary = "批量删除日历规则")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:calendar:update')")
+    public CommonResult<Boolean> deleteCalendarRuleList(@RequestParam("ids") List<Long> ids) {
+        calendarService.deleteCalendarRuleListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/rule/get")
+    @Operation(summary = "获得日历规则")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:calendar:query')")
+    public CommonResult<CalendarRuleRespVO> getCalendarRule(@RequestParam("id") Long id) {
+        return success(calendarService.getCalendarRule(id));
+    }
+
     @GetMapping("/rule/page")
     @Operation(summary = "获得日历规则分页")
     @PreAuthorize("@ss.hasPermission('mdm:calendar:query')")
@@ -153,6 +170,23 @@ public class CalendarController {
     public CommonResult<Boolean> deleteCalendarException(@RequestParam("id") Long id) {
         calendarService.deleteCalendarException(id);
         return success(true);
+    }
+
+    @DeleteMapping("/exception/delete-list")
+    @Operation(summary = "批量删除日历例外")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:calendar:update')")
+    public CommonResult<Boolean> deleteCalendarExceptionList(@RequestParam("ids") List<Long> ids) {
+        calendarService.deleteCalendarExceptionListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/exception/get")
+    @Operation(summary = "获得日历例外")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:calendar:query')")
+    public CommonResult<CalendarExceptionRespVO> getCalendarException(@RequestParam("id") Long id) {
+        return success(calendarService.getCalendarException(id));
     }
 
     @GetMapping("/exception/page")

@@ -81,6 +81,27 @@ public interface TeamService {
     void deleteTeamMember(Long id);
 
     /**
+     * 更新班组成员
+     *
+     * @param updateReqVO 更新信息
+     */
+    void updateTeamMember(@Valid TeamMemberSaveReqVO updateReqVO);
+
+    /**
+     * 批量删除班组成员
+     *
+     * @param ids 编号列表
+     */
+    void deleteTeamMemberListByIds(List<Long> ids);
+
+    /**
+     * 获得班组成员
+     *
+     * @param id 编号
+     * @return 班组成员
+     */
+    TeamMemberRespVO getTeamMember(Long id);
+    /**
      * 获得班组成员分页
      *
      * @param pageParam 分页参数
