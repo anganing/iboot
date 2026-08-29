@@ -7,6 +7,7 @@ import com.iboot.pf.module.mdm.controller.admin.res.vo.ResRespVO;
 import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.module.mdm.dal.mysql.res.ResMapper;
+import com.iboot.pf.module.mdm.dal.mysql.rescapability.ResCapabilityMapper;
 import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
 import com.iboot.pf.module.mdm.service.coderule.MdmCodeService;
 import jakarta.annotation.Resource;
@@ -16,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_DELETE_REFERENCED;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.WC_NOT_EXISTS;
 import static com.iboot.pf.module.mdm.enums.MdmCodeRuleConstants.RES;
@@ -31,6 +33,8 @@ public class ResServiceImpl implements ResService {
 
     @Resource
     private ResMapper resMapper;
+    @Resource
+    private ResCapabilityMapper resCapabilityMapper;
     @Resource
     private MdmCodeService mdmCodeService;
     @Resource
@@ -63,16 +67,20 @@ public class ResServiceImpl implements ResService {
     public void deleteRes(Long id) {
         // 校验存在
         validateResExists(id);
+        // 校验引用：已配置能力数据的资源不允许删除
+        if (!resCapabilityMapper.selectListByResId(id).isEmpty()) {
+            throw exception(RES_DELETE_REFERENCED);
+        }
         // 删除
         resMapper.deleteById(id);
     }
 
     @Override
-        public void deleteResListByIds(List<Long> ids) {
-        // 删除
-        resMapper.deleteByIds(ids);
+    public void deleteResListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteRes(id);
         }
-
+    }
 
     private void validateResExists(Long id) {
         if (resMapper.selectById(id) == null) {

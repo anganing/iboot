@@ -5,8 +5,13 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.route.vo.*;
+import com.iboot.pf.module.mdm.dal.dataobject.esop.RouteOpEsopDO;
+import com.iboot.pf.module.mdm.dal.dataobject.esop.RouteOpEsopFileDO;
 import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
+import com.iboot.pf.module.mdm.dal.dataobject.routeopmat.RouteOpMatDO;
+import com.iboot.pf.module.mdm.dal.mysql.esop.RouteOpEsopFileMapper;
+import com.iboot.pf.module.mdm.dal.mysql.esop.RouteOpEsopMapper;
 import com.iboot.pf.module.mdm.dal.mysql.mat.MatMapper;
 import com.iboot.pf.module.mdm.dal.mysql.op.OpMapper;
 import com.iboot.pf.module.mdm.dal.mysql.route.RouteMapper;
@@ -18,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -39,6 +45,10 @@ public class RouteServiceImpl implements RouteService {
     private RouteOpMapper routeOpMapper;
     @Resource
     private RouteOpMatMapper routeOpMatMapper;
+    @Resource
+    private RouteOpEsopMapper routeOpEsopMapper;
+    @Resource
+    private RouteOpEsopFileMapper routeOpEsopFileMapper;
     @Resource
     private MatMapper matMapper;
     @Resource
@@ -171,6 +181,7 @@ public class RouteServiceImpl implements RouteService {
         RouteDO route = validateRouteExistsForUpdate(routeOp.getRouteId());
         validateRouteEditable(route);
         routeOpMatMapper.deleteByRouteOpIds(List.of(id));
+        deleteEsopByRouteOpIds(List.of(id));
         routeOpMapper.deleteById(id);
     }
 
@@ -185,6 +196,77 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public RouteOpDO getRouteOp(Long id) {
         return routeOpMapper.selectById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long copyRoute(RouteCopyReqVO copyReqVO) {
+        RouteDO source = validateRouteExistsForUpdate(copyReqVO.getId());
+        if (routeMapper.selectByMatIdAndVersion(source.getMatId(), copyReqVO.getVersion()) != null) {
+            throw exception(ROUTE_VERSION_DUPLICATE);
+        }
+
+        // 复制路线头：新版本为停用状态，待编辑完成后再启用
+        RouteDO newRoute = new RouteDO();
+        newRoute.setMatId(source.getMatId());
+        newRoute.setVersion(copyReqVO.getVersion());
+        newRoute.setStatus(CommonStatusEnum.DISABLE.getStatus());
+        newRoute.setEffectiveDate(copyReqVO.getEffectiveDate() != null
+                ? copyReqVO.getEffectiveDate() : LocalDate.now());
+        newRoute.setRemark(source.getRemark());
+        routeMapper.insert(newRoute);
+
+        // 复制工序并建立新旧工序映射
+        List<RouteOpDO> sourceOps = routeOpMapper.selectListByRouteId(source.getId());
+        Map<Long, Long> routeOpIdMapping = new HashMap<>();
+        for (RouteOpDO sourceOp : sourceOps) {
+            RouteOpDO newOp = BeanUtils.toBean(sourceOp, RouteOpDO.class);
+            newOp.setId(null);
+            newOp.setRouteId(newRoute.getId());
+            routeOpMapper.insert(newOp);
+            routeOpIdMapping.put(sourceOp.getId(), newOp.getId());
+        }
+
+        // 复制工序用料
+        if (!sourceOps.isEmpty()) {
+            List<Long> sourceOpIds = convertList(sourceOps, RouteOpDO::getId);
+            List<RouteOpMatDO> sourceMats = routeOpMatMapper.selectListByRouteOpIds(sourceOpIds);
+            if (!sourceMats.isEmpty()) {
+                List<RouteOpMatDO> newMats = sourceMats.stream().map(mat -> {
+                    RouteOpMatDO newMat = BeanUtils.toBean(mat, RouteOpMatDO.class);
+                    newMat.setId(null);
+                    newMat.setRouteOpId(routeOpIdMapping.get(mat.getRouteOpId()));
+                    return newMat;
+                }).toList();
+                routeOpMatMapper.insertBatch(newMats);
+            }
+
+            // 复制 ESOP 作业步骤：route_op_id 重指向新版本工序，改版无需重新挂载文档
+            List<RouteOpEsopDO> sourceEsops = routeOpEsopMapper.selectListByRouteOpIds(sourceOpIds);
+            if (!sourceEsops.isEmpty()) {
+                Map<Long, Long> esopIdMapping = new HashMap<>();
+                for (RouteOpEsopDO sourceEsop : sourceEsops) {
+                    RouteOpEsopDO newEsop = BeanUtils.toBean(sourceEsop, RouteOpEsopDO.class);
+                    newEsop.setId(null);
+                    newEsop.setRouteOpId(routeOpIdMapping.get(sourceEsop.getRouteOpId()));
+                    routeOpEsopMapper.insert(newEsop);
+                    esopIdMapping.put(sourceEsop.getId(), newEsop.getId());
+                }
+                // 复制作业步骤附件：esop_id 重指向新建的作业步骤
+                List<RouteOpEsopFileDO> sourceFiles =
+                        routeOpEsopFileMapper.selectListByEsopIds(new ArrayList<>(esopIdMapping.keySet()));
+                if (!sourceFiles.isEmpty()) {
+                    List<RouteOpEsopFileDO> newFiles = sourceFiles.stream().map(file -> {
+                        RouteOpEsopFileDO newFile = BeanUtils.toBean(file, RouteOpEsopFileDO.class);
+                        newFile.setId(null);
+                        newFile.setEsopId(esopIdMapping.get(file.getEsopId()));
+                        return newFile;
+                    }).toList();
+                    routeOpEsopFileMapper.insertBatch(newFiles);
+                }
+            }
+        }
+        return newRoute.getId();
     }
 
     private RouteDO validateRouteExists(Long id) {
@@ -244,8 +326,21 @@ public class RouteServiceImpl implements RouteService {
                 routeOpMapper.selectListByRouteId(routeId), RouteOpDO::getId);
         if (!routeOpIds.isEmpty()) {
             routeOpMatMapper.deleteByRouteOpIds(routeOpIds);
+            deleteEsopByRouteOpIds(routeOpIds);
         }
         routeOpMapper.deleteByRouteId(routeId);
+    }
+
+    /**
+     * 工序删除时级联清理作业步骤及其附件，避免残留孤儿数据。
+     */
+    private void deleteEsopByRouteOpIds(List<Long> routeOpIds) {
+        List<Long> esopIds = convertList(
+                routeOpEsopMapper.selectListByRouteOpIds(routeOpIds), RouteOpEsopDO::getId);
+        if (!esopIds.isEmpty()) {
+            routeOpEsopFileMapper.deleteByEsopIds(esopIds);
+        }
+        routeOpEsopMapper.deleteByRouteOpIds(routeOpIds);
     }
 
 }

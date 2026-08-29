@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.dal.dataobject.routeop;
 
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.*;
 import java.time.LocalDateTime;
 import java.time.LocalDateTime;
@@ -42,6 +43,22 @@ public class RouteOpDO extends BaseDO {
      * 工作中心编号
      */
     private Long wcId;
+    /**
+     * 覆盖准备工时（分钟），为空继承标准工序
+     */
+    private Integer overrideSetupMinutes;
+    /**
+     * 覆盖单件加工工时（分钟），为空继承标准工序
+     */
+    private BigDecimal overrideStdMinutesPerUnit;
+    /**
+     * 覆盖排队等待时间（分钟），为空继承标准工序
+     */
+    private Integer overrideQueueMinutes;
+    /**
+     * 覆盖转移时间（分钟），为空继承标准工序
+     */
+    private Integer overrideMoveMinutes;
     /**
      * 并行组
      */

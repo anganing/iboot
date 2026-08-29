@@ -72,6 +72,71 @@ public class MatRespVO {
     @ExcelProperty("保质期（天）")
     private Integer shelfLifeDays;
 
+    @Schema(description = "净重")
+    @ExcelProperty("净重")
+    private java.math.BigDecimal netWeight;
+
+    @Schema(description = "毛重")
+    @ExcelProperty("毛重")
+    private java.math.BigDecimal grossWeight;
+
+    @Schema(description = "重量单位编号")
+    private Long weightUomId;
+
+    @Schema(description = "长（毫米）")
+    @ExcelProperty("长（毫米）")
+    private java.math.BigDecimal length;
+
+    @Schema(description = "宽（毫米）")
+    @ExcelProperty("宽（毫米）")
+    private java.math.BigDecimal width;
+
+    @Schema(description = "高（毫米）")
+    @ExcelProperty("高（毫米）")
+    private java.math.BigDecimal height;
+
+    @Schema(description = "体积（立方毫米）")
+    @ExcelProperty("体积（立方毫米）")
+    private java.math.BigDecimal volume;
+
+    @Schema(description = "计划策略：MTO-按单，MTS-备库")
+    @ExcelProperty("计划策略")
+    private String planStrategy;
+
+    @Schema(description = "生产/采购提前期（天）")
+    @ExcelProperty("提前期（天）")
+    private Integer leadTimeDays;
+
+    @Schema(description = "安全库存")
+    @ExcelProperty("安全库存")
+    private java.math.BigDecimal safetyStock;
+
+    @Schema(description = "最小订货量")
+    @ExcelProperty("最小订货量")
+    private java.math.BigDecimal minOrderQty;
+
+    @Schema(description = "订货倍数")
+    @ExcelProperty("订货倍数")
+    private java.math.BigDecimal orderMultiple;
+
+    @Schema(description = "默认仓库编号")
+    private Long defaultWhId;
+
+    @Schema(description = "默认库位编号")
+    private Long defaultLocId;
+
+    @Schema(description = "标准包装量")
+    @ExcelProperty("标准包装量")
+    private java.math.BigDecimal packQty;
+
+    @Schema(description = "ABC分类")
+    @ExcelProperty("ABC分类")
+    private String abcClass;
+
+    @Schema(description = "换型分组")
+    @ExcelProperty("换型分组")
+    private String changeoverGroup;
+
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
     @ExcelProperty("状态")
     private Integer status;

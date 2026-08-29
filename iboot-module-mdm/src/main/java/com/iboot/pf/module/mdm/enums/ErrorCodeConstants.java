@@ -42,10 +42,73 @@ public interface ErrorCodeConstants {
     ErrorCode ROUTE_ENABLED_LOCKED = new ErrorCode(1_062_017_005, "已启用的工艺路线不允许修改或删除");
     ErrorCode ROUTE_ENABLE_WITHOUT_OP = new ErrorCode(1_062_017_006, "启用工艺路线前至少需要一道工序");
     ErrorCode ROUTE_OP_SORT_INVALID = new ErrorCode(1_062_017_007, "工艺路线工序排序数据不完整或不属于当前路线");
+    ErrorCode ROUTE_VERSION_DUPLICATE = new ErrorCode(1_062_017_008, "该物料下已存在相同版本的工艺路线");
     ErrorCode MAT_ALT_NOT_EXISTS = new ErrorCode(1_062_018_000, "替代料不存在");
+    ErrorCode MAT_SAFETY_STOCK_REQUIRED = new ErrorCode(1_062_018_002, "备库生产（MTS）的物料必须填写安全库存");
     ErrorCode UOM_CONV_NOT_EXISTS = new ErrorCode(1_062_019_000, "单位换算不存在");
     ErrorCode UOM_CONV_SAME_UOM = new ErrorCode(1_062_019_001, "来源计量单位与目标计量单位不能相同");
     ErrorCode MAT_ALT_SAME_MAT = new ErrorCode(1_062_018_001, "物料不能将自身设置为替代料");
+
+    // ========== 工时模型 ==========
+    ErrorCode OP_TIME_MODEL_INVALID = new ErrorCode(1_062_015_001, "按件累加工时必须填写单件加工工时");
+    ErrorCode OP_DELETE_REFERENCED = new ErrorCode(1_062_015_002, "工序已被工艺路线引用，不能删除");
+
+    // ========== 资源能力 ==========
+    ErrorCode RES_CAPABILITY_NOT_EXISTS = new ErrorCode(1_062_020_000, "资源能力不存在");
+    ErrorCode RES_CAPABILITY_DUPLICATE = new ErrorCode(1_062_020_001, "同一资源与工序的能力记录已存在");
+
+    // ========== 日历模板 ==========
+    ErrorCode CALENDAR_NOT_EXISTS = new ErrorCode(1_062_021_000, "日历不存在");
+    ErrorCode CALENDAR_CODE_DUPLICATE = new ErrorCode(1_062_021_001, "日历编码重复");
+    ErrorCode CALENDAR_RULE_NOT_EXISTS = new ErrorCode(1_062_021_002, "日历规则不存在");
+    ErrorCode CALENDAR_RULE_DUPLICATE = new ErrorCode(1_062_021_003, "同一日历下该星期与班次的规则已存在");
+    ErrorCode CALENDAR_EXCEPTION_NOT_EXISTS = new ErrorCode(1_062_021_004, "日历例外不存在");
+    ErrorCode CALENDAR_EXCEPTION_DUPLICATE = new ErrorCode(1_062_021_005, "同一日历下该日期与班次的例外已存在");
+    ErrorCode CALENDAR_GENERATE_DATE_INVALID = new ErrorCode(1_062_021_006, "生成日期区间不合法");
+    ErrorCode CALENDAR_EXCEPTION_SHIFT_REQUIRED = new ErrorCode(1_062_021_007, "加班与计划保养例外必须指定班次");
+    ErrorCode CALENDAR_EXCEPTION_MINUTES_REQUIRED = new ErrorCode(1_062_021_008, "加班与计划保养例外必须填写可用分钟数");
+    ErrorCode RES_DELETE_REFERENCED = new ErrorCode(1_062_021_009, "资源已配置能力数据，不能删除");
+
+    // ========== ESOP ==========
+    ErrorCode ROUTE_OP_ESOP_NOT_EXISTS = new ErrorCode(1_062_022_000, "ESOP 指导书不存在");
+    ErrorCode ROUTE_OP_ESOP_CONTENT_REQUIRED = new ErrorCode(1_062_022_001, "作业要点、工艺参数、附件至少填写一项");
+    ErrorCode ROUTE_OP_ESOP_SEQ_DUPLICATE = new ErrorCode(1_062_022_002, "同一工序下的作业步骤顺序重复");
+
+    // ========== 缺陷代码 ==========
+    ErrorCode DEFECT_CODE_NOT_EXISTS = new ErrorCode(1_062_023_000, "缺陷代码不存在");
+    ErrorCode DEFECT_CODE_DUPLICATE = new ErrorCode(1_062_023_001, "缺陷编码重复");
+    ErrorCode DEFECT_CODE_PARENT_INVALID = new ErrorCode(1_062_023_002, "缺陷分类父级不存在或不能设置为自身");
+    ErrorCode DEFECT_CODE_PARENT_IS_CHILD = new ErrorCode(1_062_023_003, "不能将缺陷代码设置为自身的下级");
+    ErrorCode DEFECT_CODE_HAS_CHILDREN = new ErrorCode(1_062_023_004, "缺陷代码存在下级，不能删除");
+    ErrorCode DEFECT_CODE_OP_NOT_EXISTS = new ErrorCode(1_062_023_005, "缺陷代码适用工序不存在");
+    ErrorCode DEFECT_CODE_MAT_CAT_NOT_EXISTS = new ErrorCode(1_062_023_006, "缺陷代码适用物料分类不存在");
+
+    // ========== 班组与技能 ==========
+    ErrorCode TEAM_NOT_EXISTS = new ErrorCode(1_062_024_000, "班组不存在");
+    ErrorCode TEAM_CODE_DUPLICATE = new ErrorCode(1_062_024_001, "班组编码重复");
+    ErrorCode TEAM_MEMBER_NOT_EXISTS = new ErrorCode(1_062_024_002, "班组成员不存在");
+    ErrorCode TEAM_MEMBER_DUPLICATE = new ErrorCode(1_062_024_003, "该成员已加入班组");
+    ErrorCode TEAM_MEMBER_USER_NOT_EXISTS = new ErrorCode(1_062_024_004, "班组成员用户不存在");
+    ErrorCode SKILL_NOT_EXISTS = new ErrorCode(1_062_025_000, "技能不存在");
+    ErrorCode SKILL_CODE_DUPLICATE = new ErrorCode(1_062_025_001, "技能编码重复");
+    ErrorCode OP_SKILL_REQ_NOT_EXISTS = new ErrorCode(1_062_025_002, "工序技能要求不存在");
+    ErrorCode OP_SKILL_REQ_DUPLICATE = new ErrorCode(1_062_025_003, "同一工序的该技能要求已存在");
+    ErrorCode MEMBER_SKILL_NOT_EXISTS = new ErrorCode(1_062_025_004, "人员技能不存在");
+    ErrorCode MEMBER_SKILL_DUPLICATE = new ErrorCode(1_062_025_005, "该人员的该技能记录已存在");
+    ErrorCode MEMBER_SKILL_DATE_INVALID = new ErrorCode(1_062_025_006, "人员技能失效日期不能早于生效日期");
+    ErrorCode SKILL_DELETE_REFERENCED = new ErrorCode(1_062_025_007, "技能已被工序技能要求引用，不能删除");
+
+    // ========== 工装模具刀具 ==========
+    ErrorCode TOOL_NOT_EXISTS = new ErrorCode(1_062_026_000, "工装不存在");
+    ErrorCode TOOL_CODE_DUPLICATE = new ErrorCode(1_062_026_001, "工装编码重复");
+    ErrorCode ROUTE_OP_TOOL_NOT_EXISTS = new ErrorCode(1_062_026_002, "工序工装不存在");
+    ErrorCode ROUTE_OP_TOOL_DUPLICATE = new ErrorCode(1_062_026_003, "同一工序的该工装记录已存在");
+    ErrorCode TOOL_DELETE_REFERENCED = new ErrorCode(1_062_026_004, "工装已被工序引用，不能删除");
+
+    // ========== 换型矩阵 ==========
+    ErrorCode RES_CHANGEOVER_NOT_EXISTS = new ErrorCode(1_062_027_000, "换型矩阵不存在");
+    ErrorCode RES_CHANGEOVER_DUPLICATE = new ErrorCode(1_062_027_001, "同一资源下该换型分组组合已存在");
+    ErrorCode RES_CHANGEOVER_SAME_GROUP = new ErrorCode(1_062_027_002, "换出与换入分组相同时无需配置换型");
 
     // 保持与生成代码一致；后续服务重构时统一为 MAT_CATEGORY_* 命名。
     ErrorCode MAT_CAT_NOT_EXISTS = new ErrorCode(1_062_003_000, "物料分类不存在");

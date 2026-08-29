@@ -78,6 +78,13 @@ public class RouteController {
         return success(routeService.getRoute(id));
     }
 
+    @PostMapping("/copy")
+    @Operation(summary = "复制工艺路线为新版本")
+    @PreAuthorize("@ss.hasPermission('mdm:route:create')")
+    public CommonResult<Long> copyRoute(@Valid @RequestBody RouteCopyReqVO copyReqVO) {
+        return success(routeService.copyRoute(copyReqVO));
+    }
+
     @GetMapping("/detail")
     @Operation(summary = "获得工艺路线编排详情")
     @Parameter(name = "id", description = "编号", required = true)

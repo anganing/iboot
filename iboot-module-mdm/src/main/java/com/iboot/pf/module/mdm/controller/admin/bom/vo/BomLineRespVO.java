@@ -41,6 +41,28 @@ public class BomLineRespVO {
     @ExcelProperty("数量")
     private BigDecimal qty;
 
+    @Schema(description = "损耗率")
+    @ExcelProperty("损耗率")
+    private BigDecimal scrapRate;
+
+    @Schema(description = "供料方式：PICK-领料，BACKFLUSH-倒冲，PHANTOM-虚拟件，DIRECT-直送线边")
+    @ExcelProperty("供料方式")
+    private String issueMethod;
+
+    @Schema(description = "用料绑定工序顺序号")
+    @ExcelProperty("工序顺序号")
+    private Integer routeOpSeq;
+
+    @Schema(description = "位号/装配位置")
+    @ExcelProperty("位号")
+    private String positionNo;
+
+    @Schema(description = "行级生效日期")
+    private java.time.LocalDate effectiveDate;
+
+    @Schema(description = "行级失效日期")
+    private java.time.LocalDate expiryDate;
+
     @Schema(description = "计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("计量单位编号")
     private Long uomId;

@@ -40,6 +40,27 @@ public class ResRespVO {
     @ExcelProperty("名称")
     private String name;
 
+    @Schema(description = "效率系数")
+    @ExcelProperty("效率系数")
+    private java.math.BigDecimal efficiency;
+
+    @Schema(description = "可同时承载任务数")
+    @ExcelProperty("可同时承载任务数")
+    private Integer parallelCapacity;
+
+    @Schema(description = "资源组，同组可互替排程")
+    @ExcelProperty("资源组")
+    private String resGroup;
+
+    @Schema(description = "默认日历模板编号")
+    private Long calendarId;
+
+    @Schema(description = "工厂编号（冗余）")
+    private Long plantId;
+
+    @Schema(description = "车间编号（冗余）")
+    private Long workshopId;
+
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
     @ExcelProperty("状态")
     private Integer status;

@@ -40,6 +40,18 @@ public class RouteOpMatDO extends BaseDO {
      */
     private BigDecimal qty;
     /**
+     * 损耗率
+     */
+    private BigDecimal scrapRate;
+    /**
+     * 供料方式：PICK-领料，BACKFLUSH-倒冲，PHANTOM-虚拟件，DIRECT-直送线边
+     */
+    private String issueMethod;
+    /**
+     * 是否必须开工前发料
+     */
+    private Boolean mustIssueBeforeStart;
+    /**
      * 计量单位编号
      */
     private Long uomId;

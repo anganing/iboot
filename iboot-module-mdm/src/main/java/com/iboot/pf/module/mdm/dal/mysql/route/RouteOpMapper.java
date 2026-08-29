@@ -46,6 +46,10 @@ public interface RouteOpMapper extends BaseMapperX<RouteOpDO> {
         return selectCount(RouteOpDO::getRouteId, routeId);
     }
 
+    default long selectCountByOpId(Long opId) {
+        return selectCount(RouteOpDO::getOpId, opId);
+    }
+
 	default int deleteByRouteIds(List<Long> routeIds) {
 	    return deleteBatch(RouteOpDO::getRouteId, routeIds);
 	}

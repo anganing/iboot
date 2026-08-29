@@ -31,4 +31,13 @@ public interface RouteMapper extends BaseMapperX<RouteDO> {
 
     RouteDetailRespVO selectDetailById(@Param("id") Long id);
 
+    /**
+     * 查询物料下指定版本的路线，供版本复制时校验新版本号唯一。
+     */
+    default RouteDO selectByMatIdAndVersion(Long matId, String version) {
+        return selectOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<RouteDO>()
+                .eq(RouteDO::getMatId, matId)
+                .eq(RouteDO::getVersion, version));
+    }
+
 }

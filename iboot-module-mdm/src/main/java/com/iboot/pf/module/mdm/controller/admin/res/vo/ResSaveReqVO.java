@@ -2,6 +2,7 @@ package com.iboot.pf.module.mdm.controller.admin.res.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.*;
 import jakarta.validation.constraints.*;
 
@@ -26,6 +27,28 @@ public class ResSaveReqVO {
     @Schema(description = "名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "王五")
     @NotEmpty(message = "名称不能为空")
     private String name;
+
+    @Schema(description = "效率系数")
+    @DecimalMin(value = "0.0001", message = "效率系数必须大于 0")
+    @DecimalMax(value = "10", message = "效率系数不能大于 10")
+    private BigDecimal efficiency;
+
+    @Schema(description = "可同时承载任务数")
+    @Min(value = 1, message = "可同时承载任务数必须大于 0")
+    private Integer parallelCapacity;
+
+    @Schema(description = "资源组，同组可互替排程")
+    @Size(max = 64, message = "资源组长度不能超过 64")
+    private String resGroup;
+
+    @Schema(description = "默认日历模板编号")
+    private Long calendarId;
+
+    @Schema(description = "工厂编号（冗余）")
+    private Long plantId;
+
+    @Schema(description = "车间编号（冗余）")
+    private Long workshopId;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
     @NotNull(message = "状态不能为空")

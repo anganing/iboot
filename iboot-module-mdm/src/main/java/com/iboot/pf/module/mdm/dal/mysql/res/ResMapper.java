@@ -3,6 +3,7 @@ package com.iboot.pf.module.mdm.dal.mysql.res;
 import java.util.*;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
@@ -23,6 +24,10 @@ public interface ResMapper extends BaseMapperX<ResDO> {
         IPage<ResRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
         selectJoinPage(mpPage, reqVO);
         return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
+    }
+
+    default long selectCountByIds(List<Long> ids) {
+        return selectCount(new LambdaQueryWrapper<ResDO>().in(ResDO::getId, ids));
     }
 
     ResRespVO selectJoinById(@Param("id") Long id);

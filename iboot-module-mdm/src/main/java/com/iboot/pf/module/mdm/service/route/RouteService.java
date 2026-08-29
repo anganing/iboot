@@ -61,6 +61,15 @@ public interface RouteService {
      */
     PageResult<RouteRespVO> getRoutePage(RoutePageReqVO pageReqVO);
 
+    /**
+     * 复制工艺路线为新版本：连同工序、工序用料与 ESOP 指导书一并复制，
+     * 新版本为停用状态，工序编号正确重指向新版本工序。
+     *
+     * @param copyReqVO 复制请求
+     * @return 新版本路线编号
+     */
+    Long copyRoute(@Valid RouteCopyReqVO copyReqVO);
+
     // ==================== 子表（工艺路线工序） ====================
 
     /**

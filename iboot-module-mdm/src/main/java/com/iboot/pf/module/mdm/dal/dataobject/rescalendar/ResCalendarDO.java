@@ -41,9 +41,17 @@ public class ResCalendarDO extends BaseDO {
      */
     private Long shiftId;
     /**
+     * 生成来源日历模板编号，0-人工录入
+     */
+    private Long sourceCalendarId;
+    /**
      * 可用产能分钟
      */
     private Integer availableMinutes;
+    /**
+     * 是否模板生成
+     */
+    private Boolean generatedFlag;
     /**
      * 备注
      */

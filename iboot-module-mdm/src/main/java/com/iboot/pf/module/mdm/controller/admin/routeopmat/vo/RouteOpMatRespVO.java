@@ -38,6 +38,18 @@ public class RouteOpMatRespVO {
     @ExcelProperty("数量")
     private BigDecimal qty;
 
+    @Schema(description = "损耗率")
+    @ExcelProperty("损耗率")
+    private BigDecimal scrapRate;
+
+    @Schema(description = "供料方式：PICK-领料，BACKFLUSH-倒冲，PHANTOM-虚拟件，DIRECT-直送线边")
+    @ExcelProperty("供料方式")
+    private String issueMethod;
+
+    @Schema(description = "是否必须开工前发料")
+    @ExcelProperty("是否必须开工前发料")
+    private Boolean mustIssueBeforeStart;
+
     @Schema(description = "计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "25404")
     @ExcelProperty("计量单位编号")
     private Long uomId;

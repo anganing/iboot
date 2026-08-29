@@ -29,4 +29,14 @@ public interface MdmCodeRuleConstants {
 
     String OP = "MDM_OP_CODE";
 
+    String CALENDAR = "MDM_CALENDAR_CODE";
+
+    String DEFECT_CODE = "MDM_DEFECT_CODE";
+
+    String TEAM = "MDM_TEAM_CODE";
+
+    String SKILL = "MDM_SKILL_CODE";
+
+    String TOOL = "MDM_TOOL_CODE";
+
 }

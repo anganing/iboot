@@ -26,6 +26,18 @@ public class RouteOpMatSaveReqVO {
     @Positive(message = "数量必须大于 0")
     private BigDecimal qty;
 
+    @Schema(description = "损耗率，0-1 之间")
+    @DecimalMin(value = "0", message = "损耗率不能小于 0")
+    @DecimalMax(value = "1", message = "损耗率不能大于 1")
+    private BigDecimal scrapRate;
+
+    @Schema(description = "供料方式：PICK-领料，BACKFLUSH-倒冲，PHANTOM-虚拟件，DIRECT-直送线边")
+    @Pattern(regexp = "PICK|BACKFLUSH|PHANTOM|DIRECT", message = "供料方式不合法")
+    private String issueMethod;
+
+    @Schema(description = "是否必须开工前发料")
+    private Boolean mustIssueBeforeStart;
+
     @Schema(description = "计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "25404")
     @NotNull(message = "计量单位编号不能为空")
     private Long uomId;

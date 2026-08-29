@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.dal.dataobject.mat;
 
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.*;
 import java.time.LocalDateTime;
 import java.time.LocalDateTime;
@@ -66,6 +67,74 @@ public class MatDO extends BaseDO {
      * 保质期（天）
      */
     private Integer shelfLifeDays;
+    /**
+     * 净重
+     */
+    private BigDecimal netWeight;
+    /**
+     * 毛重
+     */
+    private BigDecimal grossWeight;
+    /**
+     * 重量单位编号
+     */
+    private Long weightUomId;
+    /**
+     * 长（毫米）
+     */
+    private BigDecimal length;
+    /**
+     * 宽（毫米）
+     */
+    private BigDecimal width;
+    /**
+     * 高（毫米）
+     */
+    private BigDecimal height;
+    /**
+     * 体积（立方毫米）
+     */
+    private BigDecimal volume;
+    /**
+     * 计划策略：MTO-按单，MTS-备库
+     */
+    private String planStrategy;
+    /**
+     * 生产/采购提前期（天）
+     */
+    private Integer leadTimeDays;
+    /**
+     * 安全库存
+     */
+    private BigDecimal safetyStock;
+    /**
+     * 最小订货量
+     */
+    private BigDecimal minOrderQty;
+    /**
+     * 订货倍数
+     */
+    private BigDecimal orderMultiple;
+    /**
+     * 默认仓库编号
+     */
+    private Long defaultWhId;
+    /**
+     * 默认库位编号
+     */
+    private Long defaultLocId;
+    /**
+     * 标准包装量
+     */
+    private BigDecimal packQty;
+    /**
+     * ABC分类
+     */
+    private String abcClass;
+    /**
+     * 换型分组
+     */
+    private String changeoverGroup;
     /**
      * 状态
      */

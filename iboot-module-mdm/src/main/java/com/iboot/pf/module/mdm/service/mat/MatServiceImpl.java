@@ -41,6 +41,7 @@ public class MatServiceImpl implements MatService {
     @Override
     public Long createMat(MatSaveReqVO createReqVO) {
         validateReferences(createReqVO.getCatId(), createReqVO.getBaseUomId());
+        validatePlanStrategy(createReqVO);
         // 插入
         MatDO mat = BeanUtils.toBean(createReqVO, MatDO.class);
         mat.setId(null);
@@ -56,9 +57,19 @@ public class MatServiceImpl implements MatService {
         // 校验存在
         validateMatExists(updateReqVO.getId());
         validateReferences(updateReqVO.getCatId(), updateReqVO.getBaseUomId());
+        validatePlanStrategy(updateReqVO);
         // 更新
         MatDO updateObj = BeanUtils.toBean(updateReqVO, MatDO.class);
         matMapper.updateById(updateObj);
+    }
+
+    /**
+     * 备库生产（MTS）必须配置安全库存，否则 APS 缺料分析无基准。
+     */
+    private void validatePlanStrategy(MatSaveReqVO reqVO) {
+        if ("MTS".equals(reqVO.getPlanStrategy()) && reqVO.getSafetyStock() == null) {
+            throw exception(MAT_SAFETY_STOCK_REQUIRED);
+        }
     }
 
     @Override
