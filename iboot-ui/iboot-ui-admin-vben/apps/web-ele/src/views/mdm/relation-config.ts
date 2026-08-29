@@ -220,3 +220,77 @@ export const SHIFT_RELATION_PROPS = {
   ],
   valueField: 'id',
 };
+
+export const USER_RELATION_PROPS = {
+  columns: [
+    { field: 'username', label: '用户账号', minWidth: 140 },
+    { field: 'nickname', label: '用户昵称', minWidth: 140 },
+    { field: 'mobile', label: '手机号', minWidth: 140 },
+  ],
+  detailUri: '/system/user/get?id={id}',
+  dialogTitle: '选择用户',
+  displayFields: ['nickname'],
+  pageUri: '/system/user/page',
+  placeholder: '请选择用户',
+  queryFields: [
+    { field: 'username', label: '用户账号' },
+    { field: 'nickname', label: '用户昵称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
+export const TOOL_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '工装编码', minWidth: 140 },
+    { field: 'name', label: '工装名称', minWidth: 160 },
+    { field: 'toolType', label: '工装类型', minWidth: 120 },
+  ],
+  detailUri: '/mdm/tool/get?id={id}',
+  dialogTitle: '选择工装',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/tool/page',
+  placeholder: '请选择工装',
+  queryFields: [
+    { field: 'code', label: '工装编码' },
+    { field: 'name', label: '工装名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
+export const CALENDAR_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '日历编码', minWidth: 140 },
+    { field: 'name', label: '日历名称', minWidth: 160 },
+  ],
+  detailUri: '/mdm/calendar/get?id={id}',
+  dialogTitle: '选择日历模板',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/calendar/page',
+  placeholder: '请选择日历模板',
+  queryFields: [
+    { field: 'code', label: '日历编码' },
+    { field: 'name', label: '日历名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
+export const SKILL_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '技能编码', minWidth: 140 },
+    { field: 'name', label: '技能名称', minWidth: 160 },
+  ],
+  detailUri: '/mdm/skill/get?id={id}',
+  dialogTitle: '选择技能',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/skill/page',
+  placeholder: '请选择技能',
+  queryFields: [
+    { field: 'code', label: '技能编码' },
+    { field: 'name', label: '技能名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};

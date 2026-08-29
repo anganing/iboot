@@ -9,7 +9,6 @@ import { getDictOptions } from '@vben/hooks';
 import { handleTree } from '@vben/utils';
 
 import { getMatCatList } from '#/api/mdm/matcat';
-import { CodeInput } from '#/components/code-input';
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -51,10 +50,10 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
+      component: 'Input',
       componentProps: {
-        ruleCode: 'MDM_MAT_CAT_CODE',
-        placeholder: '请输入编码',
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
       },
     },
     {

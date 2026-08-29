@@ -264,6 +264,72 @@ export function useBomLineFormSchema(): VbenFormSchema[] {
       componentProps: UOM_RELATION_PROPS,
     },
     {
+      fieldName: 'scrapRate',
+      label: '损耗率',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        max: 1,
+        min: 0,
+        placeholder: '小数形式，如 0.05 表示 5%',
+        precision: 4,
+      },
+    },
+    {
+      fieldName: 'issueMethod',
+      label: '发料方式',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions('mdm_issue_method', 'string'),
+        placeholder: '请选择发料方式',
+      },
+    },
+    {
+      fieldName: 'routeOpSeq',
+      label: '投料工序序号',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        placeholder: '对应工艺路线的工序序号',
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'positionNo',
+      label: '位置号',
+      component: 'Input',
+      componentProps: {
+        maxLength: 64,
+        placeholder: '请输入装配位置号',
+      },
+    },
+    {
+      fieldName: 'effectiveDate',
+      label: '生效日期',
+      component: 'DatePicker',
+      componentProps: {
+        class: '!w-full',
+        placeholder: '请选择生效日期',
+        type: 'date',
+        valueFormat: 'YYYY-MM-DD',
+      },
+    },
+    {
+      fieldName: 'expiryDate',
+      label: '失效日期',
+      component: 'DatePicker',
+      componentProps: {
+        class: '!w-full',
+        placeholder: '请选择失效日期',
+        type: 'date',
+        valueFormat: 'YYYY-MM-DD',
+      },
+    },
+    {
       fieldName: 'remark',
       label: '备注',
       component: 'Input',
@@ -383,6 +449,40 @@ export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>[
       minWidth: 140,
       formatter: ({ row }) =>
         [row.uomCode, row.uomName].filter(Boolean).join(' / '),
+    },
+    {
+      field: 'scrapRate',
+      title: '损耗率',
+      minWidth: 100,
+    },
+    {
+      field: 'issueMethod',
+      title: '发料方式',
+      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: 'mdm_issue_method' },
+      },
+    },
+    {
+      field: 'routeOpSeq',
+      title: '投料工序序号',
+      minWidth: 120,
+    },
+    {
+      field: 'positionNo',
+      title: '位置号',
+      minWidth: 120,
+    },
+    {
+      field: 'effectiveDate',
+      title: '生效日期',
+      minWidth: 120,
+    },
+    {
+      field: 'expiryDate',
+      title: '失效日期',
+      minWidth: 120,
     },
     {
       field: 'remark',

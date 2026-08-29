@@ -1,8 +1,3 @@
-export const MDM_BOOLEAN_OPTIONS = [
-  { label: '是', value: true },
-  { label: '否', value: false },
-];
-
 export const MDM_MAT_TYPE_OPTIONS = [
   { label: '原料', value: 'RAW' },
   { label: '半成品', value: 'SEMI_FINISHED' },

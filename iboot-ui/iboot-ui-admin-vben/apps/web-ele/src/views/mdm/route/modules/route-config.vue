@@ -6,9 +6,10 @@ import type { MdmRouteOpMatApi } from '#/api/mdm/routeopmat';
 import { computed, nextTick, ref } from 'vue';
 
 import { confirm, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { DICT_TYPE } from '@vben/constants';
 import { isEmpty } from '@vben/utils';
 
-import { ElMessage, ElTabPane, ElTabs, ElTag } from 'element-plus';
+import { ElLink, ElMessage, ElTabPane, ElTabs, ElTag } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -17,10 +18,19 @@ import {
   getRouteDetail,
   updateRouteOpSort,
 } from '#/api/mdm/route';
+import {
+  deleteRouteOpEsop,
+  deleteRouteOpEsopList,
+  getRouteOpEsop,
+  getRouteOpEsopPage,
+} from '#/api/mdm/routeopesop';
 import { deleteRouteOpMat, deleteRouteOpMatList } from '#/api/mdm/routeopmat';
 
+import RouteOpEsopForm from './route-op-esop-form.vue';
+import RouteOpEsopPreview from './route-op-esop-preview.vue';
 import RouteOpForm from './route-op-form.vue';
 import RouteOpMatForm from './route-op-mat-form.vue';
+import RouteOpToolPanel from './route-op-tool-panel.vue';
 
 const loading = ref(false);
 const routeSummary = ref<MdmRouteApi.Route>();
@@ -28,6 +38,10 @@ const detail = ref<MdmRouteApi.RouteDetail>();
 const selectedOpId = ref<MdmRouteApi.Id>();
 const checkedOperationIds = ref<MdmRouteApi.Id[]>([]);
 const checkedMaterialIds = ref<MdmRouteApi.Id[]>([]);
+const checkedEsopIds = ref<MdmRouteApi.Id[]>([]);
+const esopList = ref<
+  import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop[]
+>([]);
 const detailTab = ref('materials');
 
 const routeId = computed(() =>
@@ -176,6 +190,89 @@ const [RouteOpMatFormModal, routeOpMatFormModalApi] = useVbenModal({
   connectedComponent: RouteOpMatForm,
   destroyOnClose: true,
 });
+const [RouteOpEsopFormModal, routeOpEsopFormModalApi] = useVbenModal({
+  connectedComponent: RouteOpEsopForm,
+  destroyOnClose: true,
+});
+const [RouteOpEsopPreviewModal, routeOpEsopPreviewModalApi] = useVbenModal({
+  connectedComponent: RouteOpEsopPreview,
+  destroyOnClose: true,
+});
+
+const [RouteOpEsopGrid, routeOpEsopGridApi] = useVbenVxeGrid<
+  import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop
+>({
+  gridOptions: {
+    columns: [
+      { type: 'checkbox', width: 40 },
+      { field: 'seq', title: '顺序', width: 70 },
+      { field: 'title', title: '标题', minWidth: 200 },
+      {
+        field: 'fileCount',
+        title: '附件数',
+        minWidth: 120,
+        slots: { default: 'esopFile' },
+      },
+      {
+        field: 'requiredConfirmFlag',
+        title: '要求确认阅读',
+        minWidth: 110,
+        cellRender: {
+          name: 'CellDict',
+          props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+        },
+      },
+      {
+        field: 'status',
+        title: '状态',
+        minWidth: 90,
+        cellRender: {
+          name: 'CellDict',
+          props: { type: DICT_TYPE.COMMON_STATUS },
+        },
+      },
+      {
+        title: '操作',
+        width: 150,
+        fixed: 'right',
+        slots: { default: 'actions' },
+      },
+    ],
+    height: '280px',
+    keepSource: true,
+    pagerConfig: { enabled: false },
+    proxyConfig: {
+      ajax: {
+        query: async () => {
+          if (!selectedOperation.value) {
+            return { list: [], total: 0 };
+          }
+          const result = await getRouteOpEsopPage({
+            routeOpId: selectedOperation.value.id,
+            pageNo: 1,
+            pageSize: 100,
+          });
+          esopList.value = result.list;
+          return { list: result.list, total: result.total };
+        },
+      },
+    },
+    rowConfig: {
+      keyField: 'id',
+      isHover: true,
+    },
+    toolbarConfig: {
+      custom: true,
+      refresh: true,
+      search: false,
+      zoom: true,
+    },
+  },
+  gridEvents: {
+    checkboxAll: handleEsopCheckboxChange,
+    checkboxChange: handleEsopCheckboxChange,
+  },
+});
 
 const [Drawer, drawerApi] = useVbenDrawer({
   destroyOnClose: true,
@@ -238,7 +335,9 @@ async function loadDetail(preferredOpId = selectedOpId.value) {
 async function handleSelectOperation(operation: MdmRouteApi.RouteOp) {
   selectedOpId.value = operation.id;
   checkedMaterialIds.value = [];
+  checkedEsopIds.value = [];
   await materialGridApi.query();
+  await routeOpEsopGridApi.query();
 }
 
 function handleOperationCheckboxChange({
@@ -255,6 +354,14 @@ function handleMaterialCheckboxChange({
   records: MdmRouteApi.RouteOpMaterial[];
 }) {
   checkedMaterialIds.value = records.map((item) => item.id);
+}
+
+function handleEsopCheckboxChange({
+  records,
+}: {
+  records: Array<{ id: MdmRouteApi.Id }>;
+}) {
+  checkedEsopIds.value = records.map((item) => item.id);
 }
 
 function handleCreateOperation() {
@@ -346,12 +453,57 @@ async function handleDeleteMaterialBatch() {
   ElMessage.success('用料已批量删除');
   await loadDetail(selectedOpId.value);
 }
+
+function handleCreateEsop() {
+  if (!selectedOperation.value) {
+    ElMessage.warning('请先选择一道工序');
+    return;
+  }
+  routeOpEsopFormModalApi
+    .setData({
+      routeOpId: selectedOperation.value.id,
+    } as import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop)
+    .open();
+}
+
+function handleEditEsop(
+  esop: import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop,
+) {
+  routeOpEsopFormModalApi.setData(esop).open();
+}
+
+async function handlePreviewEsop(
+  esop: import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop,
+) {
+  // 列表接口只返回附件数量，预览前拉一次详情拿到完整附件列表
+  const detailData = await getRouteOpEsop(esop.id);
+  routeOpEsopPreviewModalApi
+    .setData({ title: detailData.title, files: detailData.files ?? [] })
+    .open();
+}
+
+async function handleDeleteEsop(
+  esop: import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop,
+) {
+  await deleteRouteOpEsop(esop.id);
+  ElMessage.success('作业步骤已删除');
+  await routeOpEsopGridApi.query();
+}
+
+async function handleDeleteEsopBatch() {
+  await confirm('确定批量删除选中的作业步骤吗？');
+  await deleteRouteOpEsopList(checkedEsopIds.value as number[]);
+  ElMessage.success('作业步骤已批量删除');
+  await routeOpEsopGridApi.query();
+}
 </script>
 
 <template>
   <Drawer :title="drawerTitle" class="w-full lg:w-4/5">
     <RouteOpFormModal @success="loadDetail(selectedOpId)" />
     <RouteOpMatFormModal @success="loadDetail(selectedOpId)" />
+    <RouteOpEsopFormModal @success="routeOpEsopGridApi.query()" />
+    <RouteOpEsopPreviewModal />
 
     <div v-loading="loading" class="px-4 pb-4">
       <OperationGrid table-title="工艺路线工序列表">
@@ -494,6 +646,81 @@ async function handleDeleteMaterialBatch() {
               />
             </template>
           </MaterialGrid>
+        </ElTabPane>
+        <ElTabPane name="esop" label="ESOP 作业指导">
+          <RouteOpEsopGrid
+            :table-title="
+              selectedOperation
+                ? `ESOP 作业步骤 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
+                : 'ESOP 作业步骤列表'
+            "
+          >
+            <template #toolbar-tools>
+              <TableAction
+                :actions="[
+                  {
+                    label: '新增作业步骤',
+                    type: 'primary',
+                    icon: ACTION_ICON.ADD,
+                    auth: ['mdm:esop:create'],
+                    disabled: !isEditable || !selectedOperation,
+                    onClick: handleCreateEsop,
+                  },
+                  {
+                    label: '批量删除',
+                    type: 'danger',
+                    icon: ACTION_ICON.DELETE,
+                    auth: ['mdm:esop:delete'],
+                    disabled: !isEditable || isEmpty(checkedEsopIds),
+                    onClick: handleDeleteEsopBatch,
+                  },
+                ]"
+              />
+            </template>
+            <template #esopFile="{ row }">
+              <ElLink
+                v-if="(row.fileCount ?? 0) > 0"
+                type="primary"
+                @click="handlePreviewEsop(row)"
+              >
+                {{ row.fileCount }} 个附件
+              </ElLink>
+              <span v-else>无附件</span>
+            </template>
+            <template #actions="{ row }">
+              <TableAction
+                :actions="[
+                  {
+                    label: '修改',
+                    type: 'primary',
+                    link: true,
+                    icon: ACTION_ICON.EDIT,
+                    auth: ['mdm:esop:update'],
+                    disabled: !isEditable,
+                    onClick: handleEditEsop.bind(null, row),
+                  },
+                  {
+                    label: '删除',
+                    type: 'danger',
+                    link: true,
+                    icon: ACTION_ICON.DELETE,
+                    auth: ['mdm:esop:delete'],
+                    disabled: !isEditable,
+                    popConfirm: {
+                      title: `确定删除作业步骤“${row.title ?? row.id}”吗？`,
+                      confirm: handleDeleteEsop.bind(null, row),
+                    },
+                  },
+                ]"
+              />
+            </template>
+          </RouteOpEsopGrid>
+        </ElTabPane>
+        <ElTabPane name="tools" label="工装">
+          <RouteOpToolPanel
+            :editable="isEditable"
+            :route-op-id="selectedOperation?.id"
+          />
         </ElTabPane>
       </ElTabs>
     </div>

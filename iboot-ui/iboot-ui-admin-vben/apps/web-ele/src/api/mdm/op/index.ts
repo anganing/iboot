@@ -9,6 +9,13 @@ export namespace MdmOpApi {
     code?: string; // 编码
     name?: string; // 名称
     stdDuration?: number; // 标准时长（分钟）
+    setupMinutes?: number; // 准备/换型工时（分钟）
+    stdMinutesPerUnit?: number; // 单件加工工时（分钟）
+    teardownMinutes?: number; // 收尾工时（分钟）
+    queueMinutes?: number; // 排队等待时间（分钟）
+    moveMinutes?: number; // 转移时间（分钟）
+    durationType?: string; // 时长类型：FIXED-固定工时，PER_UNIT-按件累加
+    manQty?: number; // 标准人数
     status?: number; // 状态
     remark: string; // 备注
   }

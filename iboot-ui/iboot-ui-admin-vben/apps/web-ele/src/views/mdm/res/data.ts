@@ -7,12 +7,16 @@ import { markRaw } from 'vue';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { CodeInput } from '#/components/code-input';
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
 import { MDM_RES_TYPE_OPTIONS } from '../constants';
-import { WC_RELATION_PROPS } from '../relation-config';
+import {
+  CALENDAR_RELATION_PROPS,
+  PLANT_RELATION_PROPS,
+  WC_RELATION_PROPS,
+  WORKSHOP_RELATION_PROPS,
+} from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -45,8 +49,11 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_RES_CODE', placeholder: '请输入编码' },
+      component: 'Input',
+      componentProps: {
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
+      },
     },
     {
       fieldName: 'name',
@@ -56,6 +63,59 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: {
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'efficiency',
+      label: '效率系数',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0.0001,
+        max: 10,
+        precision: 4,
+        placeholder: '默认 1.0',
+      },
+      defaultValue: 1,
+    },
+    {
+      fieldName: 'parallelCapacity',
+      label: '可同时承载任务数',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 1,
+        precision: 0,
+      },
+      defaultValue: 1,
+    },
+    {
+      fieldName: 'resGroup',
+      label: '资源组',
+      component: 'Input',
+      componentProps: {
+        placeholder: '同组可互替排程',
+        maxLength: 64,
+      },
+    },
+    {
+      fieldName: 'calendarId',
+      label: '默认日历模板',
+      component: markRaw(RelationSelect),
+      componentProps: CALENDAR_RELATION_PROPS,
+    },
+    {
+      fieldName: 'plantId',
+      label: '所属工厂',
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'workshopId',
+      label: '所属车间',
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'status',

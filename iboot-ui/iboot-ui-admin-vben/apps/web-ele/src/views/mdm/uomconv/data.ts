@@ -151,7 +151,8 @@ export function useGridColumns(): VxeTableGridOptions<MdmUomConvApi.UomConv>['co
       field: 'ratio',
       title: '换算比例',
       titlePrefix: {
-        content: '1个来源单位 × 换算比例 = 目标单位数量，例如 kg 换算为 件 时填 2，表示 1kg = 2件',
+        content:
+          '1个来源单位 × 换算比例 = 目标单位数量，例如 kg 换算为 件 时填 2，表示 1kg = 2件',
       },
       minWidth: 120,
     },

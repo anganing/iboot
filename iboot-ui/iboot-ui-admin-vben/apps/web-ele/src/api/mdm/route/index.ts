@@ -1,5 +1,6 @@
-import type { PageParam, PageResult } from '@vben/request';
 import type { Dayjs } from 'dayjs';
+
+import type { PageParam, PageResult } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
@@ -48,13 +49,20 @@ export namespace MdmRouteApi {
     matName?: string; // 物料名称
     version?: string; // 版本号
     status?: number; // 状态
-    effectiveDate?: string | Dayjs; // 生效日期
-    expiryDate: string | Dayjs; // 失效日期
+    effectiveDate?: Dayjs | string; // 生效日期
+    expiryDate: Dayjs | string; // 失效日期
     remark: string; // 备注
   }
 
   export interface RouteDetail extends Route {
     operations: RouteOp[];
+  }
+
+  /** 工艺路线复制新版本请求 */
+  export interface RouteCopy {
+    id: Id; // 原工艺路线编号
+    version: string; // 新版本号
+    effectiveDate?: string; // 生效日期，为空取当天
   }
 }
 
@@ -100,6 +108,11 @@ export function deleteRouteList(ids: MdmRouteApi.Id[]) {
 /** 导出工艺路线 */
 export function exportRoute(params: any) {
   return requestClient.download('/mdm/route/export-excel', { params });
+}
+
+/** 复制工艺路线为新版本 */
+export function copyRoute(data: MdmRouteApi.RouteCopy) {
+  return requestClient.post<number>('/mdm/route/copy', data);
 }
 
 // ==================== 子表（工艺路线工序） ====================

@@ -2,12 +2,9 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmOpApi } from '#/api/mdm/op';
 
-import { markRaw } from 'vue';
-
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { CodeInput } from '#/components/code-input';
 import { getRangePickerDefaultProps } from '#/utils';
 
 /** 新增/修改的表单 */
@@ -24,8 +21,11 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_OP_CODE', placeholder: '请输入编码' },
+      component: 'Input',
+      componentProps: {
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
+      },
     },
     {
       fieldName: 'name',
@@ -45,7 +45,90 @@ export function useFormSchema(): VbenFormSchema[] {
         class: '!w-full',
         controlsPosition: 'right',
         min: 0,
-        placeholder: '请输入标准时长（分钟）',
+        placeholder: '固定工时场景取值',
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'durationType',
+      label: '时长类型',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: getDictOptions('mdm_duration_type', 'string'),
+      },
+      defaultValue: 'FIXED',
+    },
+    {
+      fieldName: 'stdMinutesPerUnit',
+      label: '单件加工工时（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        placeholder: '按件累加时必填',
+        precision: 6,
+      },
+      dependencies: {
+        triggerFields: ['durationType'],
+        rules: (values) => {
+          return values.durationType === 'PER_UNIT' ? 'required' : null;
+        },
+      },
+    },
+    {
+      fieldName: 'setupMinutes',
+      label: '准备工时（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'teardownMinutes',
+      label: '收尾工时（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'queueMinutes',
+      label: '排队等待（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'moveMinutes',
+      label: '转移时间（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'manQty',
+      label: '标准人数',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 1,
         precision: 0,
       },
     },
@@ -156,6 +239,45 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
       minWidth: 120,
     },
     {
+      field: 'durationType',
+      title: '时长类型',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: 'mdm_duration_type' },
+      },
+    },
+    {
+      field: 'stdMinutesPerUnit',
+      title: '单件工时（分钟）',
+      minWidth: 120,
+    },
+    {
+      field: 'setupMinutes',
+      title: '准备工时',
+      minWidth: 100,
+    },
+    {
+      field: 'teardownMinutes',
+      title: '收尾工时',
+      minWidth: 100,
+    },
+    {
+      field: 'queueMinutes',
+      title: '排队等待',
+      minWidth: 100,
+    },
+    {
+      field: 'moveMinutes',
+      title: '转移时间',
+      minWidth: 100,
+    },
+    {
+      field: 'manQty',
+      title: '标准人数',
+      minWidth: 90,
+    },
+    {
       field: 'status',
       title: '状态',
       minWidth: 120,
@@ -177,7 +299,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
     },
     {
       title: '操作',
-      width: 200,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

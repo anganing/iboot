@@ -7,7 +7,6 @@ import { markRaw } from 'vue';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { CodeInput } from '#/components/code-input';
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
@@ -34,8 +33,11 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_WC_CODE', placeholder: '请输入编码' },
+      component: 'Input',
+      componentProps: {
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
+      },
     },
     {
       fieldName: 'name',

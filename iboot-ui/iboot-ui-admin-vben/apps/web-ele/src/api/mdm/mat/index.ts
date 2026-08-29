@@ -20,6 +20,23 @@ export namespace MdmMatApi {
     batchFlag?: boolean; // 是否批次管控
     snFlag?: boolean; // 是否SN管控
     shelfLifeDays: number; // 保质期（天）
+    netWeight?: number; // 净重
+    grossWeight?: number; // 毛重
+    weightUomId?: number; // 重量单位编号
+    length?: number; // 长（毫米）
+    width?: number; // 宽（毫米）
+    height?: number; // 高（毫米）
+    volume?: number; // 体积（立方毫米）
+    planStrategy?: string; // 计划策略：MTO-按单，MTS-备库
+    leadTimeDays?: number; // 生产/采购提前期（天）
+    safetyStock?: number; // 安全库存
+    minOrderQty?: number; // 最小订货量
+    orderMultiple?: number; // 订货倍数
+    defaultWhId?: number; // 默认仓库编号
+    defaultLocId?: number; // 默认库位编号
+    packQty?: number; // 标准包装量
+    abcClass?: string; // ABC分类
+    changeoverGroup?: string; // 换型分组
     status?: number; // 状态
     remark: string; // 备注
   }

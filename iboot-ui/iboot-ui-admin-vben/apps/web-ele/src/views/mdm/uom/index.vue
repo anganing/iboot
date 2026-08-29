@@ -65,7 +65,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="refresh" />
     <Grid table-title="计量单位列表">
       <template #toolbar-tools>
-<TableAction
+        <TableAction
           :actions="[
             {
               label: '新建计量单位',
@@ -75,10 +75,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: create,
             },
           ]"
-      />
-</template>
+        />
+      </template>
       <template #actions="{ row }">
-<TableAction
+        <TableAction
           :actions="[
             {
               label: $t('common.edit'),
@@ -100,8 +100,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
               },
             },
           ]"
-      />
-</template>
+        />
+      </template>
     </Grid>
   </Page>
 </template>

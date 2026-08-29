@@ -1,5 +1,6 @@
-import type { PageParam, PageResult } from '@vben/request';
 import type { Dayjs } from 'dayjs';
+
+import type { PageParam, PageResult } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
@@ -10,7 +11,7 @@ export namespace MdmResCalendarApi {
     resId?: number; // 资源编号
     resCode?: string; // 资源编码
     resName?: string; // 资源名称
-    workDate?: string | Dayjs; // 工作日期
+    workDate?: Dayjs | string; // 工作日期
     shiftId?: number; // 班次编号
     shiftCode?: string; // 班次编码
     shiftName?: string; // 班次名称

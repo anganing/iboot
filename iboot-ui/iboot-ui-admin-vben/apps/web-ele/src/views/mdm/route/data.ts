@@ -10,7 +10,6 @@ import { getDictOptions } from '@vben/hooks';
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
-import { MDM_BOOLEAN_OPTIONS } from '../constants';
 import {
   MAT_RELATION_PROPS,
   OP_RELATION_PROPS,
@@ -148,7 +147,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmRouteApi.Route>['column
     { field: 'remark', title: '备注', minWidth: 160 },
     {
       title: '操作',
-      width: 260,
+      width: 340,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -186,12 +185,60 @@ export function useRouteOpFormSchema(): VbenFormSchema[] {
       componentProps: { placeholder: '请输入并行组' },
     },
     {
+      fieldName: 'overrideSetupMinutes',
+      label: '覆盖准备工时（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '为空继承标准工序',
+      },
+    },
+    {
+      fieldName: 'overrideStdMinutesPerUnit',
+      label: '覆盖单件工时（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+        placeholder: '为空继承标准工序',
+      },
+    },
+    {
+      fieldName: 'overrideQueueMinutes',
+      label: '覆盖排队等待（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '为空继承标准工序',
+      },
+    },
+    {
+      fieldName: 'overrideMoveMinutes',
+      label: '覆盖转移时间（分钟）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '为空继承标准工序',
+      },
+    },
+    {
       fieldName: 'keyFlag',
       label: '关键工序',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -202,7 +249,7 @@ export function useRouteOpFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         buttonStyle: 'solid',
         optionType: 'button',
       },

@@ -71,6 +71,6 @@ const [Modal, modalApi] = useVbenModal({
 
 <template>
   <Modal :title="title" :class="formLayout.modalClass">
-<Form class="mx-4" />
-</Modal>
+    <Form class="mx-4" />
+  </Modal>
 </template>

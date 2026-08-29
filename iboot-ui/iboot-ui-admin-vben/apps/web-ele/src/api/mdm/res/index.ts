@@ -12,6 +12,12 @@ export namespace MdmResApi {
     resType?: string; // 资源类型
     code?: string; // 编码
     name?: string; // 名称
+    efficiency?: number; // 效率系数
+    parallelCapacity?: number; // 可同时承载任务数
+    resGroup?: string; // 资源组，同组可互替排程
+    calendarId?: number; // 默认日历模板编号
+    plantId?: number; // 工厂编号（冗余）
+    workshopId?: number; // 车间编号（冗余）
     status?: number; // 状态
     remark: string; // 备注
   }

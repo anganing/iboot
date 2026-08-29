@@ -9,14 +9,10 @@ import { getDictOptions } from '@vben/hooks';
 import { handleTree } from '@vben/utils';
 
 import { getMatCatList } from '#/api/mdm/matcat';
-import { CodeInput } from '#/components/code-input';
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
-import {
-  MDM_BOOLEAN_OPTIONS,
-  MDM_MAT_TYPE_OPTIONS,
-} from '../constants';
+import { MDM_MAT_TYPE_OPTIONS } from '../constants';
 import { MAT_CAT_RELATION_PROPS, UOM_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
@@ -48,8 +44,11 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
-      componentProps: { ruleCode: 'MDM_MAT_CODE', placeholder: '请输入编码' },
+      component: 'Input',
+      componentProps: {
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
+      },
     },
     {
       fieldName: 'name',
@@ -99,7 +98,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -111,7 +110,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         buttonStyle: 'solid',
         optionType: 'button',
       },
@@ -127,6 +126,169 @@ export function useFormSchema(): VbenFormSchema[] {
         min: 0,
         placeholder: '请输入保质期（天）',
         precision: 0,
+      },
+    },
+    {
+      fieldName: 'netWeight',
+      label: '净重',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'grossWeight',
+      label: '毛重',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'weightUomId',
+      label: '重量单位',
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
+    },
+    {
+      fieldName: 'length',
+      label: '长（毫米）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'width',
+      label: '宽（毫米）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'height',
+      label: '高（毫米）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'volume',
+      label: '体积（立方毫米）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'planStrategy',
+      label: '计划策略',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions('mdm_plan_strategy', 'string'),
+        clearable: true,
+        placeholder: '请选择计划策略',
+      },
+    },
+    {
+      fieldName: 'leadTimeDays',
+      label: '提前期（天）',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+      },
+    },
+    {
+      fieldName: 'safetyStock',
+      label: '安全库存',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+        placeholder: 'MTS 策略必填',
+      },
+      dependencies: {
+        triggerFields: ['planStrategy'],
+        rules: (values) => {
+          return values.planStrategy === 'MTS' ? 'required' : null;
+        },
+      },
+    },
+    {
+      fieldName: 'minOrderQty',
+      label: '最小订货量',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'orderMultiple',
+      label: '订货倍数',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'packQty',
+      label: '标准包装量',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 6,
+      },
+    },
+    {
+      fieldName: 'abcClass',
+      label: 'ABC分类',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions('mdm_abc_class', 'string'),
+        clearable: true,
+        placeholder: '请选择ABC分类',
+      },
+    },
+    {
+      fieldName: 'changeoverGroup',
+      label: '换型分组',
+      component: 'Input',
+      componentProps: {
+        placeholder: '如颜色/材质/型号族',
+        maxLength: 64,
       },
     },
     {
@@ -219,7 +381,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择是否批次管控',
       },
     },
@@ -229,7 +391,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: MDM_BOOLEAN_OPTIONS,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择是否SN管控',
       },
     },
@@ -319,11 +481,19 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
       field: 'batchFlag',
       title: '是否批次管控',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
     {
       field: 'snFlag',
       title: '是否SN管控',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
     {
       field: 'shelfLifeDays',

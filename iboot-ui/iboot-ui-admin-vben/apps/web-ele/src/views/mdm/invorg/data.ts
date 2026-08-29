@@ -2,12 +2,8 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmInvOrgApi } from '#/api/mdm/invorg';
 
-import { markRaw } from 'vue';
-
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
-
-import { CodeInput } from '#/components/code-input';
 
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -19,10 +15,10 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '编码',
-      component: markRaw(CodeInput),
+      component: 'Input',
       componentProps: {
-        ruleCode: 'MDM_INV_ORG_CODE',
-        placeholder: '请输入编码',
+        placeholder: '为空时按编码规则自动生成',
+        maxLength: 64,
       },
     },
     {

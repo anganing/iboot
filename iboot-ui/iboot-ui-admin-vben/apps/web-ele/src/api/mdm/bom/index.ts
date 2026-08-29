@@ -1,5 +1,6 @@
-import type { PageParam, PageResult } from '@vben/request';
 import type { Dayjs } from 'dayjs';
+
+import type { PageParam, PageResult } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
@@ -13,6 +14,12 @@ export namespace MdmBomApi {
     matCode?: string; // 物料编码快照
     matName?: string; // 物料名称快照
     qty?: number; // 数量
+    scrapRate?: number; // 损耗率
+    issueMethod?: string; // 发料方式
+    routeOpSeq?: number; // 投料工序序号
+    positionNo?: string; // 位置号
+    effectiveDate?: string; // 生效日期
+    expiryDate?: string; // 失效日期
     uomId?: number; // 计量单位编号
     uomCode?: string; // 计量单位编码
     uomName?: string; // 计量单位名称
@@ -27,8 +34,8 @@ export namespace MdmBomApi {
     matName?: string; // 物料名称
     version?: string; // 版本号
     status?: number; // 状态
-    effectiveDate?: string | Dayjs; // 生效日期
-    expiryDate: string | Dayjs; // 失效日期
+    effectiveDate?: Dayjs | string; // 生效日期
+    expiryDate: Dayjs | string; // 失效日期
     remark: string; // 备注
   }
 }

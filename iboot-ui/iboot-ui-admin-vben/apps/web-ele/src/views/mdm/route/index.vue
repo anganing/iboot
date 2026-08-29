@@ -21,9 +21,14 @@ import { $t } from '#/locales';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import RouteConfig from './modules/route-config.vue';
+import RouteCopyForm from './modules/route-copy-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+const [RouteCopyModal, routeCopyModalApi] = useVbenModal({
+  connectedComponent: RouteCopyForm,
   destroyOnClose: true,
 });
 const [RouteConfigDrawer, routeConfigDrawerApi] = useVbenDrawer({
@@ -49,6 +54,11 @@ function handleEdit(row: MdmRouteApi.Route) {
 /** 配置工艺路线 */
 function handleConfig(row: MdmRouteApi.Route) {
   routeConfigDrawerApi.setData(row).open();
+}
+
+/** 复制工艺路线为新版本 */
+function handleCopy(row: MdmRouteApi.Route) {
+  routeCopyModalApi.setData(row).open();
 }
 
 /** 删除工艺路线 */
@@ -134,6 +144,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <RouteCopyModal @success="handleRefresh" />
     <RouteConfigDrawer />
     <Grid table-title="工艺路线列表">
       <template #toolbar-tools>
@@ -182,6 +193,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['mdm:route:update'],
               onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: '复制新版本',
+              type: 'primary',
+              link: true,
+              auth: ['mdm:route:create'],
+              onClick: handleCopy.bind(null, row),
             },
             {
               label: $t('common.delete'),
