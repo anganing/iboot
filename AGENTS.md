@@ -59,3 +59,16 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 ## 提交规范
 
 - 使用带模块作用域的 Conventional Commits，例如 `feat(system): add user export`、`fix(bpm): correct process import`。
+- **提交信息一律用中文书写**，type 和 scope 仍用英文小写：
+
+  ```
+  feat(mdm): 班组列表新增班组长筛选
+  fix(mdm): 修正人员技能失效日期早于生效日期未拦截的问题
+  refactor(mdm): 消除跨模块 system_users 的 JOIN，改走 AdminUserApi 门面
+  docs: 补充跨模块取数规范
+  ```
+
+  中文 subject 不会被 commitlint 拦截：`internal/lint-configs/commitlint-config/index.mjs` 里 `subject-case` 已置为 `[0]`（关闭），且没有任何规则限制 subject 的字符集，唯一约束是 `header-max-length: 108` 个字符（`type-enum` 限定的 13 个 type 也仍用英文）。
+
+- 注意校验范围：commitlint 由 `iboot-ui/iboot-ui-admin-vben/lefthook.yml` 的 `commit-msg` 钩子触发，**只在前端子项目内提交时生效**，后端 Java 代码的提交不经过它，但仍需遵守同一套格式。
+- 仓库根目录的 `lefthook.yml` 是 `pnpm install` 误生成的示例模板，已被 `.gitignore` 忽略，不要提交；生效的钩子配置只有前端子项目那一份。
