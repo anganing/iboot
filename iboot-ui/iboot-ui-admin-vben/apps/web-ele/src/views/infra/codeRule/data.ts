@@ -203,7 +203,17 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       formatter: ({ cellValue }) => STATUS_OPTIONS[cellValue]?.label ?? '',
     },
     { field: 'remark', title: '备注', minWidth: 150 },
-    { field: 'createTime', title: '创建时间', minWidth: 180, formatter: 'formatDateTime' },
-    { title: '操作', width: 220, fixed: 'right', slots: { default: 'actions' } },
+    {
+      field: 'createTime',
+      title: '创建时间',
+      minWidth: 180,
+      formatter: 'formatDateTime',
+    },
+    {
+      title: '操作',
+      width: 220,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
   ];
 }
