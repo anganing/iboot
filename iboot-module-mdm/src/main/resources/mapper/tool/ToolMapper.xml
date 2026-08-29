@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.tool.ToolMapper">
+
+    <sql id="selectColumns">
+        tl.*,
+        w.code AS wc_code,
+        w.name AS wc_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_tool tl
+        LEFT JOIN mdm_wc w ON w.id = tl.wc_id AND w.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            tl.deleted = 0
+            <if test="req.code != null and req.code != ''">AND tl.code = #{req.code}</if>
+            <if test="req.name != null and req.name != ''">AND tl.name LIKE CONCAT('%', #{req.name}, '%')</if>
+            <if test="req.toolType != null and req.toolType != ''">AND tl.tool_type = #{req.toolType}</if>
+            <if test="req.wcId != null">AND tl.wc_id = #{req.wcId}</if>
+            <if test="req.status != null">AND tl.status = #{req.status}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND tl.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.tool.vo.ToolRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY tl.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.tool.vo.ToolRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE tl.deleted = 0 AND tl.id = #{id}
+    </select>
+
+</mapper>

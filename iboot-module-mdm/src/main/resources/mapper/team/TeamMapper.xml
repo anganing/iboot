@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.team.TeamMapper">
+
+    <sql id="selectColumns">
+        t.*,
+        w.code AS workshop_code,
+        w.name AS workshop_name,
+        s.name AS shift_name,
+        u.nickname AS leader_user_name,
+        (SELECT COUNT(*) FROM mdm_team_member tm WHERE tm.team_id = t.id AND tm.deleted = 0) AS member_count
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_team t
+        LEFT JOIN mdm_workshop w ON w.id = t.workshop_id AND w.deleted = 0
+        LEFT JOIN mdm_shift s ON s.id = t.shift_id AND s.deleted = 0
+        LEFT JOIN system_users u ON u.id = t.leader_user_id AND u.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.code != null and req.code != ''">AND t.code = #{req.code}</if>
+            <if test="req.name != null and req.name != ''">AND t.name LIKE CONCAT('%', #{req.name}, '%')</if>
+            <if test="req.workshopId != null">AND t.workshop_id = #{req.workshopId}</if>
+            <if test="req.shiftId != null">AND t.shift_id = #{req.shiftId}</if>
+            <if test="req.status != null">AND t.status = #{req.status}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.team.vo.TeamRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.team.vo.TeamRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.skill.OpSkillReqMapper">
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.skill.vo.OpSkillReqRespVO">
+        SELECT
+        osr.*,
+        o.code AS op_code,
+        o.name AS op_name,
+        sk.code AS skill_code,
+        sk.name AS skill_name
+        FROM mdm_op_skill_req osr
+        LEFT JOIN mdm_op o ON o.id = osr.op_id AND o.deleted = 0
+        LEFT JOIN mdm_skill sk ON sk.id = osr.skill_id AND sk.deleted = 0
+        WHERE osr.deleted = 0
+        <if test="opId != null">AND osr.op_id = #{opId}</if>
+        ORDER BY osr.op_id ASC, osr.id ASC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.skill.vo.OpSkillReqRespVO">
+        SELECT
+        osr.*,
+        o.code AS op_code,
+        o.name AS op_name,
+        sk.code AS skill_code,
+        sk.name AS skill_name
+        FROM mdm_op_skill_req osr
+        LEFT JOIN mdm_op o ON o.id = osr.op_id AND o.deleted = 0
+        LEFT JOIN mdm_skill sk ON sk.id = osr.skill_id AND sk.deleted = 0
+        WHERE osr.deleted = 0 AND osr.id = #{id}
+    </select>
+
+</mapper>

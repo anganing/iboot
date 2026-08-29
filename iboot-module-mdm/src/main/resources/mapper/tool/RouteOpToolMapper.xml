@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.tool.RouteOpToolMapper">
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.tool.vo.RouteOpToolRespVO">
+        SELECT
+        rot.*,
+        tl.code AS tool_code,
+        tl.name AS tool_name
+        FROM mdm_route_op_tool rot
+        LEFT JOIN mdm_tool tl ON tl.id = rot.tool_id AND tl.deleted = 0
+        WHERE rot.deleted = 0
+        <if test="routeOpId != null">AND rot.route_op_id = #{routeOpId}</if>
+        ORDER BY rot.route_op_id ASC, rot.id ASC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.tool.vo.RouteOpToolRespVO">
+        SELECT
+        rot.*,
+        tl.code AS tool_code,
+        tl.name AS tool_name
+        FROM mdm_route_op_tool rot
+        LEFT JOIN mdm_tool tl ON tl.id = rot.tool_id AND tl.deleted = 0
+        WHERE rot.deleted = 0 AND rot.id = #{id}
+    </select>
+
+</mapper>

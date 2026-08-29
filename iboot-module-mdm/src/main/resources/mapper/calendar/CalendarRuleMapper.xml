@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.calendar.CalendarRuleMapper">
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.calendar.vo.CalendarRuleRespVO">
+        SELECT
+        cr.*,
+        s.code AS shift_code,
+        s.name AS shift_name
+        FROM mdm_calendar_rule cr
+        LEFT JOIN mdm_shift s ON s.id = cr.shift_id AND s.deleted = 0
+        WHERE cr.deleted = 0 AND cr.calendar_id = #{calendarId}
+        ORDER BY cr.day_of_week ASC, s.start_time ASC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.calendar.vo.CalendarRuleRespVO">
+        SELECT
+        cr.*,
+        s.code AS shift_code,
+        s.name AS shift_name
+        FROM mdm_calendar_rule cr
+        LEFT JOIN mdm_shift s ON s.id = cr.shift_id AND s.deleted = 0
+        WHERE cr.deleted = 0 AND cr.id = #{id}
+    </select>
+
+</mapper>

@@ -15,9 +15,15 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import SkillReq from './modules/skill-req.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+
+const [SkillReqModal, skillReqModalApi] = useVbenModal({
+  connectedComponent: SkillReq,
   destroyOnClose: true,
 });
 
@@ -34,6 +40,11 @@ function handleCreate() {
 /** 编辑标准工序 */
 function handleEdit(row: MdmOpApi.Op) {
   formModalApi.setData(row).open();
+}
+
+/** 维护工序技能要求 */
+function handleSkillReq(row: MdmOpApi.Op) {
+  skillReqModalApi.setData(row).open();
 }
 
 /** 删除标准工序 */
@@ -115,6 +126,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <SkillReqModal />
     <Grid table-title="标准工序列表">
       <template #toolbar-tools>
         <TableAction
@@ -154,6 +166,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['mdm:op:update'],
               onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: '技能要求',
+              type: 'primary',
+              link: true,
+              auth: ['mdm:skill:query'],
+              onClick: handleSkillReq.bind(null, row),
             },
             {
               label: $t('common.delete'),

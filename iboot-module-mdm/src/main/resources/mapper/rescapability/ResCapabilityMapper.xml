@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.rescapability.ResCapabilityMapper">
+
+    <sql id="selectColumns">
+        rc.*,
+        r.code AS res_code,
+        r.name AS res_name,
+        o.code AS op_code,
+        o.name AS op_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_res_capability rc
+        LEFT JOIN mdm_res r ON r.id = rc.res_id AND r.deleted = 0
+        LEFT JOIN mdm_op o ON o.id = rc.op_id AND o.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            rc.deleted = 0
+            <if test="req.resId != null">AND rc.res_id = #{req.resId}</if>
+            <if test="req.opId != null">AND rc.op_id = #{req.opId}</if>
+            <if test="req.preferredFlag != null">AND rc.preferred_flag = #{req.preferredFlag}</if>
+            <if test="req.status != null">AND rc.status = #{req.status}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND rc.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.rescapability.vo.ResCapabilityRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY rc.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mdm.controller.admin.rescapability.vo.ResCapabilityRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE rc.deleted = 0 AND rc.id = #{id}
+    </select>
+
+</mapper>
