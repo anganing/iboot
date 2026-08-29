@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.esop.RouteOpEsopMapper">
+
+    <resultMap id="esopDetailMap" type="com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopRespVO">
+        <id property="id" column="id"/>
+        <result property="routeOpId" column="route_op_id"/>
+        <result property="seq" column="seq"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="paramJson" column="param_json"/>
+        <result property="requiredConfirmFlag" column="required_confirm_flag"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <collection property="files"
+                    ofType="com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopFileRespVO"
+                    columnPrefix="f_">
+            <id property="id" column="id"/>
+            <result property="esopId" column="esop_id"/>
+            <result property="seq" column="seq"/>
+            <result property="fileType" column="file_type"/>
+            <result property="fileName" column="file_name"/>
+            <result property="fileUrl" column="file_url"/>
+            <result property="fileId" column="file_id"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopRespVO">
+        SELECT
+            e.*,
+            (SELECT COUNT(1) FROM mdm_route_op_esop_file ef
+             WHERE ef.esop_id = e.id AND ef.deleted = 0) AS file_count
+        FROM mdm_route_op_esop e
+        <where>
+            e.deleted = 0
+            <if test="req.routeOpId != null">AND e.route_op_id = #{req.routeOpId}</if>
+            <if test="req.title != null and req.title != ''">AND e.title LIKE CONCAT('%', #{req.title}, '%')</if>
+            <if test="req.status != null">AND e.status = #{req.status}</if>
+        </where>
+        ORDER BY e.route_op_id ASC, e.seq ASC
+    </select>
+
+    <select id="selectJoinById" resultMap="esopDetailMap">
+        SELECT
+            e.id, e.route_op_id, e.seq, e.title, e.content, e.param_json,
+            e.required_confirm_flag, e.status, e.create_time,
+            f.id AS f_id, f.esop_id AS f_esop_id, f.seq AS f_seq, f.file_type AS f_file_type,
+            f.file_name AS f_file_name, f.file_url AS f_file_url, f.file_id AS f_file_id
+        FROM mdm_route_op_esop e
+        LEFT JOIN mdm_route_op_esop_file f ON f.esop_id = e.id AND f.deleted = 0
+        WHERE e.deleted = 0 AND e.id = #{id}
+        ORDER BY f.seq ASC
+    </select>
+
+    <select id="selectJoinListByRouteOpId" resultMap="esopDetailMap">
+        SELECT
+            e.id, e.route_op_id, e.seq, e.title, e.content, e.param_json,
+            e.required_confirm_flag, e.status, e.create_time,
+            f.id AS f_id, f.esop_id AS f_esop_id, f.seq AS f_seq, f.file_type AS f_file_type,
+            f.file_name AS f_file_name, f.file_url AS f_file_url, f.file_id AS f_file_id
+        FROM mdm_route_op_esop e
+        LEFT JOIN mdm_route_op_esop_file f ON f.esop_id = e.id AND f.deleted = 0
+        WHERE e.deleted = 0 AND e.route_op_id = #{routeOpId}
+        ORDER BY e.seq ASC, f.seq ASC
+    </select>
+
+</mapper>

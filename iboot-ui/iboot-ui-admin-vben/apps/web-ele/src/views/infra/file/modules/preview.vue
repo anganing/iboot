@@ -1,43 +1,21 @@
 <script lang="ts" setup>
-import type { FileViewerOptions } from '@file-viewer/vue3';
 import type { InfraFileApi } from '#/api/infra/file';
 
 import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
+import { FileViewer } from '@file-viewer/vue3';
 import { ElMessage } from 'element-plus';
 
-import allRenderers from '@file-viewer/preset-all';
-import { FileViewer } from '@file-viewer/vue3';
-import '@file-viewer/vue3/dist/file-viewer3.css';
-
 import { requestClient } from '#/api/request';
+import { fileViewerOptions } from '#/components/file-viewer/options';
+
+import '@file-viewer/vue3/dist/file-viewer3.css';
 
 const previewFile = ref<File>();
 const previewTitle = ref('文件预览');
 const loading = ref(false);
-
-const viewerOptions: FileViewerOptions = {
-  preset: allRenderers,
-  rendererMode: 'replace',
-  theme: 'light',
-  styleIsolation: 'shadow',
-  cad: {
-    wasmPath: '/wasm/cad',
-    workerUrl: '/wasm/cad/dwg-worker.js',
-    dwfWasmUrl: '/wasm/cad/dwfv-render.wasm',
-  },
-  drawing: {
-    viewerScriptUrl: '/vendor/drawio/viewer-static.min.js',
-  },
-  toolbar: {
-    position: 'bottom-right',
-    download: true,
-    print: true,
-    exportHtml: false,
-  },
-};
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
@@ -93,7 +71,7 @@ async function loadPreview(file: InfraFileApi.File) {
         v-if="previewFile"
         :key="`${previewFile.name}-${previewFile.size}`"
         :file="previewFile"
-        :options="viewerOptions"
+        :options="fileViewerOptions"
       />
       <div
         v-else-if="loading"
