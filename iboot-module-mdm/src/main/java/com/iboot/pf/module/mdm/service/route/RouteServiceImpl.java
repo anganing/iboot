@@ -17,6 +17,7 @@ import com.iboot.pf.module.mdm.dal.mysql.op.OpMapper;
 import com.iboot.pf.module.mdm.dal.mysql.route.RouteMapper;
 import com.iboot.pf.module.mdm.dal.mysql.route.RouteOpMapper;
 import com.iboot.pf.module.mdm.dal.mysql.routeopmat.RouteOpMatMapper;
+import com.iboot.pf.module.mdm.dal.mysql.tool.RouteOpToolMapper;
 import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,8 @@ public class RouteServiceImpl implements RouteService {
     private RouteOpEsopMapper routeOpEsopMapper;
     @Resource
     private RouteOpEsopFileMapper routeOpEsopFileMapper;
+    @Resource
+    private RouteOpToolMapper routeOpToolMapper;
     @Resource
     private MatMapper matMapper;
     @Resource
@@ -182,6 +185,7 @@ public class RouteServiceImpl implements RouteService {
         validateRouteEditable(route);
         routeOpMatMapper.deleteByRouteOpIds(List.of(id));
         deleteEsopByRouteOpIds(List.of(id));
+        routeOpToolMapper.deleteByRouteOpIds(List.of(id));
         routeOpMapper.deleteById(id);
     }
 
@@ -327,6 +331,7 @@ public class RouteServiceImpl implements RouteService {
         if (!routeOpIds.isEmpty()) {
             routeOpMatMapper.deleteByRouteOpIds(routeOpIds);
             deleteEsopByRouteOpIds(routeOpIds);
+            routeOpToolMapper.deleteByRouteOpIds(routeOpIds);
         }
         routeOpMapper.deleteByRouteId(routeId);
     }

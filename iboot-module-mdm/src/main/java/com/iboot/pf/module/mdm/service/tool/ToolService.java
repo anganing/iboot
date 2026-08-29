@@ -77,11 +77,33 @@ public interface ToolService {
     Long createRouteOpTool(@Valid RouteOpToolSaveReqVO createReqVO);
 
     /**
+     * 更新工序工装
+     *
+     * @param updateReqVO 更新信息
+     */
+    void updateRouteOpTool(@Valid RouteOpToolSaveReqVO updateReqVO);
+
+    /**
      * 删除工序工装
      *
      * @param id 编号
      */
     void deleteRouteOpTool(Long id);
+
+    /**
+     * 批量删除工序工装
+     *
+     * @param ids 编号列表
+     */
+    void deleteRouteOpToolListByIds(List<Long> ids);
+
+    /**
+     * 获得工序工装
+     *
+     * @param id 编号
+     * @return 工序工装
+     */
+    RouteOpToolRespVO getRouteOpTool(Long id);
 
     /**
      * 获得工序工装分页

@@ -2,6 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmRouteApi } from '#/api/mdm/route';
 import type { MdmRouteOpMatApi } from '#/api/mdm/routeopmat';
+import type { MdmToolApi } from '#/api/mdm/tool';
 
 import { computed, nextTick, ref } from 'vue';
 
@@ -25,12 +26,17 @@ import {
   getRouteOpEsopPage,
 } from '#/api/mdm/routeopesop';
 import { deleteRouteOpMat, deleteRouteOpMatList } from '#/api/mdm/routeopmat';
+import {
+  deleteRouteOpTool,
+  deleteRouteOpToolList,
+  getRouteOpToolPage,
+} from '#/api/mdm/tool';
 
 import RouteOpEsopForm from './route-op-esop-form.vue';
 import RouteOpEsopPreview from './route-op-esop-preview.vue';
 import RouteOpForm from './route-op-form.vue';
 import RouteOpMatForm from './route-op-mat-form.vue';
-import RouteOpToolPanel from './route-op-tool-panel.vue';
+import RouteOpToolForm from './route-op-tool-form.vue';
 
 const loading = ref(false);
 const routeSummary = ref<MdmRouteApi.Route>();
@@ -39,6 +45,7 @@ const selectedOpId = ref<MdmRouteApi.Id>();
 const checkedOperationIds = ref<MdmRouteApi.Id[]>([]);
 const checkedMaterialIds = ref<MdmRouteApi.Id[]>([]);
 const checkedEsopIds = ref<MdmRouteApi.Id[]>([]);
+const checkedToolIds = ref<MdmRouteApi.Id[]>([]);
 const esopList = ref<
   import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop[]
 >([]);
@@ -198,6 +205,10 @@ const [RouteOpEsopPreviewModal, routeOpEsopPreviewModalApi] = useVbenModal({
   connectedComponent: RouteOpEsopPreview,
   destroyOnClose: true,
 });
+const [RouteOpToolFormModal, routeOpToolFormModalApi] = useVbenModal({
+  connectedComponent: RouteOpToolForm,
+  destroyOnClose: true,
+});
 
 const [RouteOpEsopGrid, routeOpEsopGridApi] = useVbenVxeGrid<
   import('#/api/mdm/routeopesop').MdmRouteOpEsopApi.RouteOpEsop
@@ -274,6 +285,66 @@ const [RouteOpEsopGrid, routeOpEsopGridApi] = useVbenVxeGrid<
   },
 });
 
+const [RouteOpToolGrid, routeOpToolGridApi] =
+  useVbenVxeGrid<MdmToolApi.RouteOpTool>({
+    gridOptions: {
+      columns: [
+        { type: 'checkbox', width: 40 },
+        { type: 'seq', title: '序号', width: 60 },
+        { field: 'toolCode', title: '工装编码', minWidth: 140 },
+        { field: 'toolName', title: '工装名称', minWidth: 160 },
+        { field: 'qty', title: '需求数量', minWidth: 100 },
+        {
+          field: 'requiredFlag',
+          title: '是否必备',
+          minWidth: 100,
+          cellRender: {
+            name: 'CellDict',
+            props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+          },
+        },
+        {
+          title: '操作',
+          width: 150,
+          fixed: 'right',
+          slots: { default: 'actions' },
+        },
+      ],
+      height: '280px',
+      keepSource: true,
+      pagerConfig: { enabled: false },
+      proxyConfig: {
+        ajax: {
+          query: async () => {
+            if (!selectedOperation.value) {
+              return { list: [], total: 0 };
+            }
+            const result = await getRouteOpToolPage({
+              routeOpId: selectedOperation.value.id as number,
+              pageNo: 1,
+              pageSize: 100,
+            });
+            return { list: result.list, total: result.total };
+          },
+        },
+      },
+      rowConfig: {
+        keyField: 'id',
+        isHover: true,
+      },
+      toolbarConfig: {
+        custom: true,
+        refresh: true,
+        search: false,
+        zoom: true,
+      },
+    } as VxeTableGridOptions<MdmToolApi.RouteOpTool>,
+    gridEvents: {
+      checkboxAll: handleToolCheckboxChange,
+      checkboxChange: handleToolCheckboxChange,
+    },
+  });
+
 const [Drawer, drawerApi] = useVbenDrawer({
   destroyOnClose: true,
   footer: false,
@@ -284,6 +355,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
       selectedOpId.value = undefined;
       checkedOperationIds.value = [];
       checkedMaterialIds.value = [];
+      checkedEsopIds.value = [];
+      checkedToolIds.value = [];
       return;
     }
     routeSummary.value = drawerApi.getData<MdmRouteApi.Route>();
@@ -307,8 +380,12 @@ async function syncGridData() {
   await nextTick();
   checkedOperationIds.value = [];
   checkedMaterialIds.value = [];
+  checkedEsopIds.value = [];
+  checkedToolIds.value = [];
   await operationGridApi.query();
   await materialGridApi.query();
+  await routeOpEsopGridApi.query();
+  await routeOpToolGridApi.query();
   if (selectedOperation.value) {
     await operationGridApi.grid.setCurrentRow(selectedOperation.value);
   }
@@ -336,8 +413,10 @@ async function handleSelectOperation(operation: MdmRouteApi.RouteOp) {
   selectedOpId.value = operation.id;
   checkedMaterialIds.value = [];
   checkedEsopIds.value = [];
+  checkedToolIds.value = [];
   await materialGridApi.query();
   await routeOpEsopGridApi.query();
+  await routeOpToolGridApi.query();
 }
 
 function handleOperationCheckboxChange({
@@ -362,6 +441,14 @@ function handleEsopCheckboxChange({
   records: Array<{ id: MdmRouteApi.Id }>;
 }) {
   checkedEsopIds.value = records.map((item) => item.id);
+}
+
+function handleToolCheckboxChange({
+  records,
+}: {
+  records: MdmToolApi.RouteOpTool[];
+}) {
+  checkedToolIds.value = records.map((item) => item.id);
 }
 
 function handleCreateOperation() {
@@ -496,6 +583,35 @@ async function handleDeleteEsopBatch() {
   ElMessage.success('作业步骤已批量删除');
   await routeOpEsopGridApi.query();
 }
+
+function handleCreateTool() {
+  if (!selectedOperation.value) {
+    ElMessage.warning('请先选择一道工序');
+    return;
+  }
+  routeOpToolFormModalApi
+    .setData({
+      routeOpId: selectedOperation.value.id,
+    } as MdmToolApi.RouteOpTool)
+    .open();
+}
+
+function handleEditTool(tool: MdmToolApi.RouteOpTool) {
+  routeOpToolFormModalApi.setData(tool).open();
+}
+
+async function handleDeleteTool(tool: MdmToolApi.RouteOpTool) {
+  await deleteRouteOpTool(tool.id);
+  ElMessage.success('工序工装已删除');
+  await routeOpToolGridApi.query();
+}
+
+async function handleDeleteToolBatch() {
+  await confirm('确定批量删除选中的工序工装吗？');
+  await deleteRouteOpToolList(checkedToolIds.value as number[]);
+  ElMessage.success('工序工装已批量删除');
+  await routeOpToolGridApi.query();
+}
 </script>
 
 <template>
@@ -504,6 +620,7 @@ async function handleDeleteEsopBatch() {
     <RouteOpMatFormModal @success="loadDetail(selectedOpId)" />
     <RouteOpEsopFormModal @success="routeOpEsopGridApi.query()" />
     <RouteOpEsopPreviewModal />
+    <RouteOpToolFormModal @success="routeOpToolGridApi.query()" />
 
     <div v-loading="loading" class="px-4 pb-4">
       <OperationGrid table-title="工艺路线工序列表">
@@ -717,10 +834,63 @@ async function handleDeleteEsopBatch() {
           </RouteOpEsopGrid>
         </ElTabPane>
         <ElTabPane name="tools" label="工装">
-          <RouteOpToolPanel
-            :editable="isEditable"
-            :route-op-id="selectedOperation?.id"
-          />
+          <RouteOpToolGrid
+            :table-title="
+              selectedOperation
+                ? `工序工装列表 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
+                : '工序工装列表'
+            "
+          >
+            <template #toolbar-tools>
+              <TableAction
+                :actions="[
+                  {
+                    label: '新增工装',
+                    type: 'primary',
+                    icon: ACTION_ICON.ADD,
+                    auth: ['mdm:tool:update'],
+                    disabled: !isEditable || !selectedOperation,
+                    onClick: handleCreateTool,
+                  },
+                  {
+                    label: '批量删除',
+                    type: 'danger',
+                    icon: ACTION_ICON.DELETE,
+                    auth: ['mdm:tool:update'],
+                    disabled: !isEditable || isEmpty(checkedToolIds),
+                    onClick: handleDeleteToolBatch,
+                  },
+                ]"
+              />
+            </template>
+            <template #actions="{ row }">
+              <TableAction
+                :actions="[
+                  {
+                    label: '修改',
+                    type: 'primary',
+                    link: true,
+                    icon: ACTION_ICON.EDIT,
+                    auth: ['mdm:tool:update'],
+                    disabled: !isEditable,
+                    onClick: handleEditTool.bind(null, row),
+                  },
+                  {
+                    label: '删除',
+                    type: 'danger',
+                    link: true,
+                    icon: ACTION_ICON.DELETE,
+                    auth: ['mdm:tool:update'],
+                    disabled: !isEditable,
+                    popConfirm: {
+                      title: `确定删除工装“${row.toolCode ?? row.toolName ?? row.id}”吗？`,
+                      confirm: handleDeleteTool.bind(null, row),
+                    },
+                  },
+                ]"
+              />
+            </template>
+          </RouteOpToolGrid>
         </ElTabPane>
       </ElTabs>
     </div>

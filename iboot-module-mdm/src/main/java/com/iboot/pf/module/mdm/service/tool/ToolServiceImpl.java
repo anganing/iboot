@@ -116,11 +116,30 @@ public class ToolServiceImpl implements ToolService {
     }
 
     @Override
+    public void updateRouteOpTool(RouteOpToolSaveReqVO updateReqVO) {
+        validateRouteOpToolExists(updateReqVO.getId());
+        validateToolExists(updateReqVO.getToolId());
+        validateRouteOpToolUnique(updateReqVO.getRouteOpId(), updateReqVO.getToolId(), updateReqVO.getId());
+        routeOpToolMapper.updateById(BeanUtils.toBean(updateReqVO, RouteOpToolDO.class));
+    }
+
+    @Override
     public void deleteRouteOpTool(Long id) {
+        validateRouteOpToolExists(id);
+        routeOpToolMapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteRouteOpToolListByIds(List<Long> ids) {
+        for (Long id : ids) {
+            deleteRouteOpTool(id);
+        }
+    }
+
+    private void validateRouteOpToolExists(Long id) {
         if (routeOpToolMapper.selectById(id) == null) {
             throw exception(ROUTE_OP_TOOL_NOT_EXISTS);
         }
-        routeOpToolMapper.deleteById(id);
     }
 
     private void validateRouteOpToolUnique(Long routeOpId, Long toolId, Long excludeId) {
@@ -128,6 +147,11 @@ public class ToolServiceImpl implements ToolService {
         if (existing != null && !existing.getId().equals(excludeId)) {
             throw exception(ROUTE_OP_TOOL_DUPLICATE);
         }
+    }
+
+    @Override
+    public RouteOpToolRespVO getRouteOpTool(Long id) {
+        return routeOpToolMapper.selectJoinById(id);
     }
 
     @Override

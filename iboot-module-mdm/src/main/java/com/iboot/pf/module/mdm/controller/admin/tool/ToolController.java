@@ -102,6 +102,14 @@ public class ToolController {
         return success(toolService.createRouteOpTool(createReqVO));
     }
 
+    @PutMapping("/route-op/update")
+    @Operation(summary = "更新工序工装")
+    @PreAuthorize("@ss.hasPermission('mdm:tool:update')")
+    public CommonResult<Boolean> updateRouteOpTool(@Valid @RequestBody RouteOpToolSaveReqVO updateReqVO) {
+        toolService.updateRouteOpTool(updateReqVO);
+        return success(true);
+    }
+
     @DeleteMapping("/route-op/delete")
     @Operation(summary = "删除工序工装")
     @Parameter(name = "id", description = "编号", required = true)
@@ -109,6 +117,23 @@ public class ToolController {
     public CommonResult<Boolean> deleteRouteOpTool(@RequestParam("id") Long id) {
         toolService.deleteRouteOpTool(id);
         return success(true);
+    }
+
+    @DeleteMapping("/route-op/delete-list")
+    @Operation(summary = "批量删除工序工装")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mdm:tool:update')")
+    public CommonResult<Boolean> deleteRouteOpToolList(@RequestParam("ids") List<Long> ids) {
+        toolService.deleteRouteOpToolListByIds(ids);
+        return success(true);
+    }
+
+    @GetMapping("/route-op/get")
+    @Operation(summary = "获得工序工装")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('mdm:tool:query')")
+    public CommonResult<RouteOpToolRespVO> getRouteOpTool(@RequestParam("id") Long id) {
+        return success(toolService.getRouteOpTool(id));
     }
 
     @GetMapping("/route-op/page")

@@ -85,7 +85,26 @@ export function createRouteOpTool(data: MdmToolApi.RouteOpTool) {
   return requestClient.post('/mdm/tool/route-op/create', data);
 }
 
+/** 修改工序工装 */
+export function updateRouteOpTool(data: MdmToolApi.RouteOpTool) {
+  return requestClient.put('/mdm/tool/route-op/update', data);
+}
+
+/** 查询工序工装详情 */
+export function getRouteOpTool(id: number) {
+  return requestClient.get<MdmToolApi.RouteOpTool>(
+    `/mdm/tool/route-op/get?id=${id}`,
+  );
+}
+
 /** 删除工序工装 */
 export function deleteRouteOpTool(id: number) {
   return requestClient.delete(`/mdm/tool/route-op/delete?id=${id}`);
+}
+
+/** 批量删除工序工装 */
+export function deleteRouteOpToolList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/tool/route-op/delete-list?ids=${ids.join(',')}`,
+  );
 }
