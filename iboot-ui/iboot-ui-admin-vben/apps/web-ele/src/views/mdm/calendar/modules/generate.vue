@@ -13,10 +13,17 @@ import { RelationSelect } from '#/components/relation-select';
 import { RES_RELATION_PROPS } from '../../relation-config';
 
 const calendar = ref<MdmCalendarApi.Calendar>();
+// RelationSelect multiple 模式回传的是资源 ID 数组（雪花 ID 为字符串）
 const generateForm = ref({
-  resIds: [] as number[],
+  resIds: [] as string[],
   dateRange: ['', ''] as [string, string],
 });
+
+const resSelectProps = {
+  ...RES_RELATION_PROPS,
+  multiple: true,
+  placeholder: '请选择生产资源（可多选）',
+};
 
 const [Modal, modalApi] = useVbenModal({
   fullscreenButton: false,
@@ -76,7 +83,7 @@ const [Modal, modalApi] = useVbenModal({
         <el-form-item label="资源">
           <RelationSelect
             v-model="generateForm.resIds"
-            v-bind="RES_RELATION_PROPS"
+            v-bind="resSelectProps"
           />
         </el-form-item>
         <el-form-item label="日期区间">
