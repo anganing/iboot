@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.defectcode.DefectCodeMapper">
+
+    <!-- 适用工序/物料分类为多对多，用相关子查询一次拼出展示名称，避免 JOIN 笛卡尔积重复 -->
+    <sql id="selectColumns">
+        dc.*,
+        p.name AS parent_name,
+        (SELECT GROUP_CONCAT(o.code ORDER BY o.code SEPARATOR ',')
+         FROM mdm_defect_code_op dco
+         JOIN mdm_op o ON o.id = dco.op_id AND o.deleted = 0
+         WHERE dco.defect_code_id = dc.id AND dco.deleted = 0) AS op_names,
+        (SELECT GROUP_CONCAT(mc.name ORDER BY mc.name SEPARATOR ',')
+         FROM mdm_defect_code_mat_cat dcmc
+         JOIN mdm_mat_cat mc ON mc.id = dcmc.mat_cat_id AND mc.deleted = 0
+         WHERE dcmc.defect_code_id = dc.id AND dcmc.deleted = 0) AS mat_cat_names
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_defect_code dc
+        LEFT JOIN mdm_defect_code p ON p.id = dc.parent_id AND p.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            dc.deleted = 0
+            <if test="req.code != null and req.code != ''">AND dc.code = #{req.code}</if>
+            <if test="req.name != null and req.name != ''">AND dc.name LIKE CONCAT('%', #{req.name}, '%')</if>
+            <if test="req.level != null and req.level != ''">AND dc.level = #{req.level}</if>
+            <if test="req.opId != null">
+                AND EXISTS (SELECT 1 FROM mdm_defect_code_op dco
+                            WHERE dco.defect_code_id = dc.id AND dco.op_id = #{req.opId} AND dco.deleted = 0)
+            </if>
+            <if test="req.matCatId != null">
+                AND EXISTS (SELECT 1 FROM mdm_defect_code_mat_cat dcmc
+                            WHERE dcmc.defect_code_id = dc.id AND dcmc.mat_cat_id = #{req.matCatId}
+                              AND dcmc.deleted = 0)
+            </if>
+            <if test="req.parentId != null">AND dc.parent_id = #{req.parentId}</if>
+            <if test="req.status != null">AND dc.status = #{req.status}</if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND dc.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mdm.controller.admin.defectcode.vo.DefectCodeRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY dc.id DESC
+    </select>
+
+    <resultMap id="defectCodeDetailMap"
+               type="com.iboot.pf.module.mdm.controller.admin.defectcode.vo.DefectCodeRespVO">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="level" column="level"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="parentName" column="parent_name"/>
+        <result property="opNames" column="op_names"/>
+        <result property="matCatNames" column="mat_cat_names"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <collection property="opIds" javaType="java.util.ArrayList" ofType="java.lang.Long"
+                    column="id" select="selectOpIdsByDefectCodeId"/>
+        <collection property="matCatIds" javaType="java.util.ArrayList" ofType="java.lang.Long"
+                    column="id" select="selectMatCatIdsByDefectCodeId"/>
+    </resultMap>
+
+    <select id="selectOpIdsByDefectCodeId" resultType="java.lang.Long">
+        SELECT op_id FROM mdm_defect_code_op
+        WHERE defect_code_id = #{id} AND deleted = 0
+        ORDER BY op_id ASC
+    </select>
+
+    <select id="selectMatCatIdsByDefectCodeId" resultType="java.lang.Long">
+        SELECT mat_cat_id FROM mdm_defect_code_mat_cat
+        WHERE defect_code_id = #{id} AND deleted = 0
+        ORDER BY mat_cat_id ASC
+    </select>
+
+    <select id="selectJoinById" resultMap="defectCodeDetailMap">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE dc.deleted = 0 AND dc.id = #{id}
+    </select>
+
+</mapper>
