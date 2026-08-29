@@ -100,9 +100,23 @@ export function updateCalendarRule(data: MdmCalendarApi.CalendarRule) {
   return requestClient.put('/mdm/calendar/rule/update', data);
 }
 
+/** 查询日历规则详情 */
+export function getCalendarRule(id: number) {
+  return requestClient.get<MdmCalendarApi.CalendarRule>(
+    `/mdm/calendar/rule/get?id=${id}`,
+  );
+}
+
 /** 删除日历规则 */
 export function deleteCalendarRule(id: number) {
   return requestClient.delete(`/mdm/calendar/rule/delete?id=${id}`);
+}
+
+/** 批量删除日历规则 */
+export function deleteCalendarRuleList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/calendar/rule/delete-list?ids=${ids.join(',')}`,
+  );
 }
 
 // ==================== 日期例外 ====================
@@ -131,9 +145,23 @@ export function updateCalendarException(
   return requestClient.put('/mdm/calendar/exception/update', data);
 }
 
+/** 查询日历例外详情 */
+export function getCalendarException(id: number) {
+  return requestClient.get<MdmCalendarApi.CalendarException>(
+    `/mdm/calendar/exception/get?id=${id}`,
+  );
+}
+
 /** 删除日历例外 */
 export function deleteCalendarException(id: number) {
   return requestClient.delete(`/mdm/calendar/exception/delete?id=${id}`);
+}
+
+/** 批量删除日历例外 */
+export function deleteCalendarExceptionList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/calendar/exception/delete-list?ids=${ids.join(',')}`,
+  );
 }
 
 // ==================== 资源日历生成 ====================

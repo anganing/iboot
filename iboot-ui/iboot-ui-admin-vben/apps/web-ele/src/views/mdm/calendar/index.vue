@@ -4,7 +4,7 @@ import type { MdmCalendarApi } from '#/api/mdm/calendar';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -19,21 +19,21 @@ import {
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import ExceptionModal from './modules/exception.vue';
+import CalendarExceptionList from './modules/calendar-exception-list.vue';
+import CalendarRuleList from './modules/calendar-rule-list.vue';
 import Form from './modules/form.vue';
 import GenerateModal from './modules/generate.vue';
-import RuleModal from './modules/rule.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [RuleManageModal, ruleModalApi] = useVbenModal({
-  connectedComponent: RuleModal,
+const [RuleDrawer, ruleDrawerApi] = useVbenDrawer({
+  connectedComponent: CalendarRuleList,
   destroyOnClose: true,
 });
-const [ExceptionManageModal, exceptionModalApi] = useVbenModal({
-  connectedComponent: ExceptionModal,
+const [ExceptionDrawer, exceptionDrawerApi] = useVbenDrawer({
+  connectedComponent: CalendarExceptionList,
   destroyOnClose: true,
 });
 const [GenerateManageModal, generateModalApi] = useVbenModal({
@@ -54,11 +54,11 @@ function handleEdit(row: MdmCalendarApi.Calendar) {
 }
 
 function handleRule(row: MdmCalendarApi.Calendar) {
-  ruleModalApi.setData(row).open();
+  ruleDrawerApi.setData(row).open();
 }
 
 function handleException(row: MdmCalendarApi.Calendar) {
-  exceptionModalApi.setData(row).open();
+  exceptionDrawerApi.setData(row).open();
 }
 
 function handleGenerate(row: MdmCalendarApi.Calendar) {
@@ -145,8 +145,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <RuleManageModal />
-    <ExceptionManageModal />
+    <RuleDrawer />
+    <ExceptionDrawer />
     <GenerateManageModal />
     <Grid table-title="日历模板列表">
       <template #toolbar-tools>
@@ -184,6 +184,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               label: '规则',
               type: 'primary',
               link: true,
+              icon: 'lucide:calendar-clock',
               auth: ['mdm:calendar:query'],
               onClick: handleRule.bind(null, row),
             },
@@ -191,6 +192,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               label: '例外',
               type: 'primary',
               link: true,
+              icon: 'lucide:calendar-x',
               auth: ['mdm:calendar:query'],
               onClick: handleException.bind(null, row),
             },
@@ -198,6 +200,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               label: '生成日历',
               type: 'primary',
               link: true,
+              icon: 'lucide:calendar-plus',
               auth: ['mdm:calendar:update'],
               onClick: handleGenerate.bind(null, row),
             },
@@ -216,7 +219,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:calendar:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: `确定删除日历“${row.code ?? row.name ?? row.id}”吗？`,
                 confirm: handleDelete.bind(null, row),
               },
             },

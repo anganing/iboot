@@ -99,9 +99,23 @@ export function updateOpSkillReq(data: MdmSkillApi.OpSkillReq) {
   return requestClient.put('/mdm/skill/op-req/update', data);
 }
 
+/** 查询工序技能要求详情 */
+export function getOpSkillReq(id: number) {
+  return requestClient.get<MdmSkillApi.OpSkillReq>(
+    `/mdm/skill/op-req/get?id=${id}`,
+  );
+}
+
 /** 删除工序技能要求 */
 export function deleteOpSkillReq(id: number) {
   return requestClient.delete(`/mdm/skill/op-req/delete?id=${id}`);
+}
+
+/** 批量删除工序技能要求 */
+export function deleteOpSkillReqList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/skill/op-req/delete-list?ids=${ids.join(',')}`,
+  );
 }
 
 /** 查询人员技能分页 */
@@ -124,7 +138,21 @@ export function updateMemberSkill(data: MdmSkillApi.MemberSkill) {
   return requestClient.put('/mdm/skill/member/update', data);
 }
 
+/** 查询人员技能详情 */
+export function getMemberSkill(id: number) {
+  return requestClient.get<MdmSkillApi.MemberSkill>(
+    `/mdm/skill/member/get?id=${id}`,
+  );
+}
+
 /** 删除人员技能 */
 export function deleteMemberSkill(id: number) {
   return requestClient.delete(`/mdm/skill/member/delete?id=${id}`);
+}
+
+/** 批量删除人员技能 */
+export function deleteMemberSkillList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/skill/member/delete-list?ids=${ids.join(',')}`,
+  );
 }

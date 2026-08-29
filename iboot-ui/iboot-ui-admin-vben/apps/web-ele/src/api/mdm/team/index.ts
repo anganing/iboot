@@ -85,7 +85,26 @@ export function createTeamMember(data: MdmTeamApi.TeamMember) {
   return requestClient.post('/mdm/team/member/create', data);
 }
 
+/** 修改班组成员 */
+export function updateTeamMember(data: MdmTeamApi.TeamMember) {
+  return requestClient.put('/mdm/team/member/update', data);
+}
+
+/** 查询班组成员详情 */
+export function getTeamMember(id: number) {
+  return requestClient.get<MdmTeamApi.TeamMember>(
+    `/mdm/team/member/get?id=${id}`,
+  );
+}
+
 /** 删除班组成员 */
 export function deleteTeamMember(id: number) {
   return requestClient.delete(`/mdm/team/member/delete?id=${id}`);
+}
+
+/** 批量删除班组成员 */
+export function deleteTeamMemberList(ids: number[]) {
+  return requestClient.delete(
+    `/mdm/team/member/delete-list?ids=${ids.join(',')}`,
+  );
 }

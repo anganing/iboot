@@ -4,7 +4,7 @@ import type { MdmSkillApi } from '#/api/mdm/skill';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -20,15 +20,15 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import MemberSkill from './modules/member-skill.vue';
+import MemberSkillList from './modules/member-skill-list.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
-const [MemberSkillModal, memberSkillModalApi] = useVbenModal({
-  connectedComponent: MemberSkill,
+const [MemberSkillDrawer, memberSkillDrawerApi] = useVbenDrawer({
+  connectedComponent: MemberSkillList,
   destroyOnClose: true,
 });
 
@@ -45,7 +45,7 @@ function handleEdit(row: MdmSkillApi.Skill) {
 }
 
 function handleMemberSkill(row: MdmSkillApi.Skill) {
-  memberSkillModalApi.setData(row).open();
+  memberSkillDrawerApi.setData(row).open();
 }
 
 async function handleDelete(row: MdmSkillApi.Skill) {
@@ -128,7 +128,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <MemberSkillModal />
+    <MemberSkillDrawer />
     <Grid table-title="技能列表">
       <template #toolbar-tools>
         <TableAction
@@ -162,6 +162,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '人员技能',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:users',
+              auth: ['mdm:skill:query'],
+              onClick: handleMemberSkill.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -170,20 +178,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleEdit.bind(null, row),
             },
             {
-              label: '人员技能',
-              type: 'primary',
-              link: true,
-              auth: ['mdm:skill:query'],
-              onClick: handleMemberSkill.bind(null, row),
-            },
-            {
               label: $t('common.delete'),
               type: 'danger',
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:skill:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: `确定删除技能“${row.code ?? row.name ?? row.id}”吗？`,
                 confirm: handleDelete.bind(null, row),
               },
             },

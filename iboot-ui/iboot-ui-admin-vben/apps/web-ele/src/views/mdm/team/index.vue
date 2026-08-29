@@ -4,7 +4,7 @@ import type { MdmTeamApi } from '#/api/mdm/team';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -20,15 +20,15 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import Member from './modules/member.vue';
+import TeamMemberList from './modules/team-member-list.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
-const [MemberModal, memberModalApi] = useVbenModal({
-  connectedComponent: Member,
+const [TeamMemberDrawer, teamMemberDrawerApi] = useVbenDrawer({
+  connectedComponent: TeamMemberList,
   destroyOnClose: true,
 });
 
@@ -45,7 +45,7 @@ function handleEdit(row: MdmTeamApi.Team) {
 }
 
 function handleMember(row: MdmTeamApi.Team) {
-  memberModalApi.setData(row).open();
+  teamMemberDrawerApi.setData(row).open();
 }
 
 async function handleDelete(row: MdmTeamApi.Team) {
@@ -124,7 +124,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <MemberModal @success="handleRefresh" />
+    <TeamMemberDrawer @success="handleRefresh" />
     <Grid table-title="班组列表">
       <template #toolbar-tools>
         <TableAction
@@ -158,6 +158,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '成员管理',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:users',
+              auth: ['mdm:team:query'],
+              onClick: handleMember.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -166,20 +174,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleEdit.bind(null, row),
             },
             {
-              label: '成员管理',
-              type: 'primary',
-              link: true,
-              auth: ['mdm:team:query'],
-              onClick: handleMember.bind(null, row),
-            },
-            {
               label: $t('common.delete'),
               type: 'danger',
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:team:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: `确定删除班组“${row.code ?? row.name ?? row.id}”吗？`,
                 confirm: handleDelete.bind(null, row),
               },
             },

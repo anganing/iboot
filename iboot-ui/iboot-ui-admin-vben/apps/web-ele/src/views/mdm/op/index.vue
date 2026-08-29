@@ -4,7 +4,7 @@ import type { MdmOpApi } from '#/api/mdm/op';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -15,15 +15,15 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import SkillReq from './modules/skill-req.vue';
+import OpSkillReqList from './modules/op-skill-req-list.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
-const [SkillReqModal, skillReqModalApi] = useVbenModal({
-  connectedComponent: SkillReq,
+const [SkillReqDrawer, skillReqDrawerApi] = useVbenDrawer({
+  connectedComponent: OpSkillReqList,
   destroyOnClose: true,
 });
 
@@ -44,7 +44,7 @@ function handleEdit(row: MdmOpApi.Op) {
 
 /** 维护工序技能要求 */
 function handleSkillReq(row: MdmOpApi.Op) {
-  skillReqModalApi.setData(row).open();
+  skillReqDrawerApi.setData(row).open();
 }
 
 /** 删除标准工序 */
@@ -126,7 +126,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <SkillReqModal />
+    <SkillReqDrawer />
     <Grid table-title="标准工序列表">
       <template #toolbar-tools>
         <TableAction
@@ -160,6 +160,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '技能要求',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:award',
+              auth: ['mdm:skill:query'],
+              onClick: handleSkillReq.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -168,20 +176,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleEdit.bind(null, row),
             },
             {
-              label: '技能要求',
-              type: 'primary',
-              link: true,
-              auth: ['mdm:skill:query'],
-              onClick: handleSkillReq.bind(null, row),
-            },
-            {
               label: $t('common.delete'),
               type: 'danger',
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:op:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: `确定删除工序“${row.code ?? row.name ?? row.id}”吗？`,
                 confirm: handleDelete.bind(null, row),
               },
             },

@@ -2,8 +2,14 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MdmCalendarApi } from '#/api/mdm/calendar';
 
+import { markRaw } from 'vue';
+
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
+
+import { RelationSelect } from '#/components/relation-select';
+
+import { SHIFT_RELATION_PROPS } from '../relation-config';
 
 const EXCEPTION_TYPE_OPTIONS = getDictOptions(
   'mdm_calendar_exception_type',
@@ -97,6 +103,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calendar>['columns'] {
   return [
+    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'code', title: '编码', minWidth: 120 },
     { field: 'name', title: '名称', minWidth: 180 },
@@ -118,9 +125,55 @@ export function useGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calendar>['
     },
     {
       title: '操作',
-      width: 340,
+      width: 420,
       fixed: 'right',
       slots: { default: 'actions' },
+    },
+  ];
+}
+
+/** 日历规则新增/修改的表单 */
+export function useRuleFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'id',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'dayOfWeek',
+      label: '星期几',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: getDayOfWeekOptions(),
+        placeholder: '请选择星期几',
+      },
+      defaultValue: 1,
+    },
+    {
+      fieldName: 'shiftId',
+      label: '班次',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: SHIFT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'availableMinutes',
+      label: '可用分钟数',
+      rules: 'required',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '请输入可用分钟数',
+      },
+      defaultValue: 480,
     },
   ];
 }
@@ -128,6 +181,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calendar>['
 /** 规则列表的字段 */
 export function useRuleGridColumns(): VxeTableGridOptions<MdmCalendarApi.CalendarRule>['columns'] {
   return [
+    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     {
       field: 'dayOfWeek',
@@ -150,9 +204,76 @@ export function useRuleGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calenda
   ];
 }
 
+/** 日历例外新增/修改的表单 */
+export function useExceptionFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'id',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'exceptionDate',
+      label: '例外日期',
+      rules: 'required',
+      component: 'DatePicker',
+      componentProps: {
+        class: '!w-full',
+        placeholder: '请选择例外日期',
+        type: 'date',
+        valueFormat: 'YYYY-MM-DD',
+      },
+    },
+    {
+      fieldName: 'exceptionType',
+      label: '例外类型',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: EXCEPTION_TYPE_OPTIONS,
+        placeholder: '请选择例外类型',
+      },
+      defaultValue: 'HOLIDAY',
+    },
+    {
+      fieldName: 'shiftId',
+      label: '班次',
+      component: markRaw(RelationSelect),
+      componentProps: SHIFT_RELATION_PROPS,
+      // 停工例外可不选班次表示全天停工，加班与计划保养必须指定班次
+      dependencies: {
+        triggerFields: ['exceptionType'],
+        rules: (values) =>
+          values.exceptionType === 'HOLIDAY' ? null : 'required',
+      },
+    },
+    {
+      fieldName: 'availableMinutes',
+      label: '可用分钟数',
+      component: 'InputNumber',
+      componentProps: {
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '停工例外可为空，默认按 0 处理',
+      },
+      dependencies: {
+        triggerFields: ['exceptionType'],
+        rules: (values) =>
+          values.exceptionType === 'HOLIDAY' ? null : 'required',
+      },
+    },
+  ];
+}
+
 /** 例外列表的字段 */
 export function useExceptionGridColumns(): VxeTableGridOptions<MdmCalendarApi.CalendarException>['columns'] {
   return [
+    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'exceptionDate', title: '例外日期', minWidth: 120 },
     {
