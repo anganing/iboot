@@ -37,6 +37,16 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'durationType',
+      label: '时长类型',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: getDictOptions('mdm_duration_type', 'string'),
+      },
+      defaultValue: 'FIXED',
+    },
+    {
       fieldName: 'stdDuration',
       label: '标准时长（分钟）',
       rules: 'required',
@@ -48,16 +58,6 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '固定工时场景取值',
         precision: 0,
       },
-    },
-    {
-      fieldName: 'durationType',
-      label: '时长类型',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: getDictOptions('mdm_duration_type', 'string'),
-      },
-      defaultValue: 'FIXED',
     },
     {
       fieldName: 'stdMinutesPerUnit',
@@ -158,33 +158,12 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'code',
-      label: '编码',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入编码',
-      },
-    },
-    {
       fieldName: 'name',
       label: '名称',
       component: 'Input',
       componentProps: {
         clearable: true,
         placeholder: '请输入名称',
-      },
-    },
-    {
-      fieldName: 'stdDuration',
-      label: '标准时长（分钟）',
-      component: 'InputNumber',
-      componentProps: {
-        class: '!w-full',
-        controlsPosition: 'right',
-        min: 0,
-        placeholder: '请输入标准时长（分钟）',
-        precision: 0,
       },
     },
     {
@@ -195,6 +174,15 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
         placeholder: '请选择状态',
+      },
+    },
+    {
+      fieldName: 'code',
+      label: '编码',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入编码',
       },
     },
     {
@@ -231,12 +219,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
-    },
-    {
-      field: 'stdDuration',
-      title: '标准时长（分钟）',
-      minWidth: 120,
+      minWidth: 140,
     },
     {
       field: 'durationType',
@@ -248,9 +231,14 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
       },
     },
     {
+      field: 'stdDuration',
+      title: '标准时长（分钟）',
+      minWidth: 130,
+    },
+    {
       field: 'stdMinutesPerUnit',
       title: '单件工时（分钟）',
-      minWidth: 120,
+      minWidth: 130,
     },
     {
       field: 'setupMinutes',

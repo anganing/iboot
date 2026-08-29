@@ -82,12 +82,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'invOrgId',
-      label: '库存组织',
-      component: markRaw(RelationSelect),
-      componentProps: INV_ORG_RELATION_PROPS,
-    },
-    {
       fieldName: 'code',
       label: '编码',
       component: 'Input',
@@ -104,6 +98,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'invOrgId',
+      label: '库存组织',
+      component: markRaw(RelationSelect),
+      componentProps: INV_ORG_RELATION_PROPS,
     },
     {
       fieldName: 'address',
@@ -150,8 +150,6 @@ export function useGridColumns(): VxeTableGridOptions<MdmPlantApi.Plant>['column
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'invOrgCode', title: '库存组织编码', minWidth: 140 },
-    { field: 'invOrgName', title: '库存组织名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -160,8 +158,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmPlantApi.Plant>['column
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 140,
     },
+    { field: 'invOrgCode', title: '库存组织编码', minWidth: 120 },
+    { field: 'invOrgName', title: '库存组织名称', minWidth: 140 },
     {
       field: 'address',
       title: '地址',

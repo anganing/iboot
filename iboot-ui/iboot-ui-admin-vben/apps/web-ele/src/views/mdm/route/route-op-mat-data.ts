@@ -40,6 +40,13 @@ export function useRouteOpMatFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'uomId',
+      label: '单位',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
+    },
+    {
       fieldName: 'scrapRate',
       label: '损耗率',
       component: 'InputNumber',
@@ -73,13 +80,6 @@ export function useRouteOpMatFormSchema(): VbenFormSchema[] {
         optionType: 'button',
       },
       defaultValue: false,
-    },
-    {
-      fieldName: 'uomId',
-      label: '单位',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'remark',

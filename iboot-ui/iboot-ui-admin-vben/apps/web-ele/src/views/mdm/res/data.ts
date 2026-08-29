@@ -30,13 +30,6 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'wcId',
-      label: '工作中心',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: WC_RELATION_PROPS,
-    },
-    {
       fieldName: 'resType',
       label: '资源类型',
       rules: 'required',
@@ -63,6 +56,13 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: {
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'wcId',
+      label: '工作中心',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: WC_RELATION_PROPS,
     },
     {
       fieldName: 'efficiency',
@@ -143,12 +143,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'wcId',
-      label: '工作中心',
-      component: markRaw(RelationSelect),
-      componentProps: WC_RELATION_PROPS,
-    },
-    {
       fieldName: 'resType',
       label: '资源类型',
       component: 'Select',
@@ -175,6 +169,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'wcId',
+      label: '工作中心',
+      component: markRaw(RelationSelect),
+      componentProps: WC_RELATION_PROPS,
     },
     {
       fieldName: 'status',
@@ -212,13 +212,6 @@ export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] 
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'wcCode', title: '工作中心编码', minWidth: 140 },
-    { field: 'wcName', title: '工作中心名称', minWidth: 160 },
-    {
-      field: 'resType',
-      title: '资源类型',
-      minWidth: 120,
-    },
     {
       field: 'code',
       title: '编码',
@@ -227,8 +220,15 @@ export function useGridColumns(): VxeTableGridOptions<MdmResApi.Res>['columns'] 
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 140,
     },
+    {
+      field: 'resType',
+      title: '资源类型',
+      minWidth: 100,
+    },
+    { field: 'wcCode', title: '工作中心编码', minWidth: 120 },
+    { field: 'wcName', title: '工作中心名称', minWidth: 140 },
     {
       field: 'status',
       title: '状态',

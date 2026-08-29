@@ -91,12 +91,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'parentId',
-      label: '上级物料分类',
-      component: markRaw(RelationSelect),
-      componentProps: MAT_CAT_RELATION_PROPS,
-    },
-    {
       fieldName: 'code',
       label: '编码',
       component: 'Input',
@@ -113,6 +107,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'parentId',
+      label: '上级物料分类',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_CAT_RELATION_PROPS,
     },
     {
       fieldName: 'status',
@@ -149,8 +149,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MdmMatCatApi.MatCat>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'parentCode', title: '父级分类编码', minWidth: 140 },
-    { field: 'parentName', title: '父级分类名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -159,9 +157,11 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatCatApi.MatCat>['colu
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 160,
       treeNode: true,
     },
+    { field: 'parentCode', title: '父级分类编码', minWidth: 120 },
+    { field: 'parentName', title: '父级分类名称', minWidth: 140 },
     {
       field: 'status',
       title: '状态',

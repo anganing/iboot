@@ -74,12 +74,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'plantId',
-      label: '工厂',
-      component: markRaw(RelationSelect),
-      componentProps: PLANT_RELATION_PROPS,
-    },
-    {
       fieldName: 'code',
       label: '编码',
       component: 'Input',
@@ -96,6 +90,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'plantId',
+      label: '工厂',
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'status',
@@ -133,8 +133,6 @@ export function useGridColumns(): VxeTableGridOptions<MdmWorkshopApi.Workshop>['
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'plantCode', title: '工厂编码', minWidth: 140 },
-    { field: 'plantName', title: '工厂名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -143,8 +141,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmWorkshopApi.Workshop>['
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 140,
     },
+    { field: 'plantCode', title: '工厂编码', minWidth: 120 },
+    { field: 'plantName', title: '工厂名称', minWidth: 140 },
     {
       field: 'status',
       title: '状态',

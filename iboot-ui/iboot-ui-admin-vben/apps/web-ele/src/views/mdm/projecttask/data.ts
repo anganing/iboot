@@ -74,12 +74,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'projectId',
-      label: '项目',
-      component: markRaw(RelationSelect),
-      componentProps: PROJECT_RELATION_PROPS,
-    },
-    {
       fieldName: 'code',
       label: '编码',
       component: 'Input',
@@ -96,6 +90,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         placeholder: '请输入名称',
       },
+    },
+    {
+      fieldName: 'projectId',
+      label: '项目',
+      component: markRaw(RelationSelect),
+      componentProps: PROJECT_RELATION_PROPS,
     },
     {
       fieldName: 'status',
@@ -133,8 +133,6 @@ export function useGridColumns(): VxeTableGridOptions<MdmProjectTaskApi.ProjectT
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'projectCode', title: '项目编码', minWidth: 140 },
-    { field: 'projectName', title: '项目名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -143,8 +141,10 @@ export function useGridColumns(): VxeTableGridOptions<MdmProjectTaskApi.ProjectT
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 140,
     },
+    { field: 'projectCode', title: '项目编码', minWidth: 120 },
+    { field: 'projectName', title: '项目名称', minWidth: 140 },
     {
       field: 'status',
       title: '状态',

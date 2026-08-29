@@ -26,6 +26,7 @@ export function useFormSchema(): VbenFormSchema[] {
         show: () => false,
       },
     },
+    // ===== 基本标识 =====
     {
       fieldName: 'catId',
       label: '物料分类',
@@ -60,6 +61,16 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'matType',
+      label: '物料类型',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: MDM_MAT_TYPE_OPTIONS,
+        placeholder: '请选择物料类型',
+      },
+    },
+    {
       fieldName: 'spec',
       label: '规格型号',
       component: 'Input',
@@ -75,16 +86,7 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入图号',
       },
     },
-    {
-      fieldName: 'matType',
-      label: '物料类型',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: MDM_MAT_TYPE_OPTIONS,
-        placeholder: '请选择物料类型',
-      },
-    },
+    // ===== 计量与批次管控 =====
     {
       fieldName: 'baseUomId',
       label: '基准计量单位',
@@ -128,6 +130,7 @@ export function useFormSchema(): VbenFormSchema[] {
         precision: 0,
       },
     },
+    // ===== 重量与尺寸 =====
     {
       fieldName: 'netWeight',
       label: '净重',
@@ -200,6 +203,7 @@ export function useFormSchema(): VbenFormSchema[] {
         precision: 6,
       },
     },
+    // ===== 计划与采购 =====
     {
       fieldName: 'planStrategy',
       label: '计划策略',
@@ -291,6 +295,7 @@ export function useFormSchema(): VbenFormSchema[] {
         maxLength: 64,
       },
     },
+    // ===== 状态与备注 =====
     {
       fieldName: 'status',
       label: '状态',
@@ -318,12 +323,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'catId',
-      label: '物料分类',
-      component: markRaw(RelationSelect),
-      componentProps: MAT_CAT_RELATION_PROPS,
-    },
-    {
       fieldName: 'code',
       label: '编码',
       component: 'Input',
@@ -342,22 +341,10 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'spec',
-      label: '规格型号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入规格型号',
-      },
-    },
-    {
-      fieldName: 'drawingNo',
-      label: '图号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入图号',
-      },
+      fieldName: 'catId',
+      label: '物料分类',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_CAT_RELATION_PROPS,
     },
     {
       fieldName: 'matType',
@@ -367,6 +354,34 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
         options: MDM_MAT_TYPE_OPTIONS,
         placeholder: '请选择物料类型',
+      },
+    },
+    {
+      fieldName: 'spec',
+      label: '规格型号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入规格型号',
+      },
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
+        placeholder: '请选择状态',
+      },
+    },
+    {
+      fieldName: 'drawingNo',
+      label: '图号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入图号',
       },
     },
     {
@@ -408,16 +423,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'status',
-      label: '状态',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
-        placeholder: '请选择状态',
-      },
-    },
-    {
       fieldName: 'remark',
       label: '备注',
       component: 'Input',
@@ -443,8 +448,6 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'catCode', title: '分类编码', minWidth: 140 },
-    { field: 'catName', title: '分类名称', minWidth: 160 },
     {
       field: 'code',
       title: '编码',
@@ -453,7 +456,12 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
     {
       field: 'name',
       title: '名称',
-      minWidth: 120,
+      minWidth: 160,
+    },
+    {
+      field: 'matType',
+      title: '物料类型',
+      minWidth: 100,
     },
     {
       field: 'spec',
@@ -465,22 +473,19 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
       title: '图号',
       minWidth: 120,
     },
-    {
-      field: 'matType',
-      title: '物料类型',
-      minWidth: 120,
-    },
+    { field: 'catCode', title: '分类编码', minWidth: 120 },
+    { field: 'catName', title: '分类名称', minWidth: 140 },
     {
       field: 'baseUomCode',
       title: '基准计量单位',
-      minWidth: 160,
+      minWidth: 140,
       formatter: ({ row }) =>
         [row.baseUomCode, row.baseUomName].filter(Boolean).join(' / '),
     },
     {
       field: 'batchFlag',
       title: '是否批次管控',
-      minWidth: 120,
+      minWidth: 110,
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
@@ -489,7 +494,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
     {
       field: 'snFlag',
       title: '是否SN管控',
-      minWidth: 120,
+      minWidth: 110,
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
@@ -498,12 +503,12 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
     {
       field: 'shelfLifeDays',
       title: '保质期（天）',
-      minWidth: 120,
+      minWidth: 110,
     },
     {
       field: 'status',
       title: '状态',
-      minWidth: 120,
+      minWidth: 100,
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.COMMON_STATUS },
@@ -517,7 +522,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatApi.Mat>['columns'] 
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
