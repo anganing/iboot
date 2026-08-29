@@ -6,11 +6,24 @@ import type { MdmToolApi } from '#/api/mdm/tool';
 
 import { computed, nextTick, ref } from 'vue';
 
-import { confirm, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import {
+  ColPage,
+  confirm,
+  useVbenDrawer,
+  useVbenModal,
+} from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { isEmpty } from '@vben/utils';
 
-import { ElLink, ElMessage, ElTabPane, ElTabs, ElTag } from 'element-plus';
+import {
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElEmpty,
+  ElLink,
+  ElMessage,
+  ElTabPane,
+  ElTabs,
+} from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -75,27 +88,42 @@ const materialTableTitle = computed(() => {
   return `工序用料列表 - ${operation.opCode ?? ''} ${operation.opName ?? ''}`;
 });
 
+const selectedOperationContext = computed(() => {
+  const operation = selectedOperation.value;
+  if (!operation) {
+    return [];
+  }
+  return [
+    { label: '工序编码', value: operation.opCode || '-' },
+    { label: '工序名称', value: operation.opName || '-' },
+    {
+      label: '工作中心',
+      value:
+        [operation.wcCode, operation.wcName].filter(Boolean).join(' · ') ||
+        '-',
+    },
+    {
+      label: '工序标识',
+      value:
+        [
+          operation.keyFlag ? '关键' : undefined,
+          operation.faiFlag ? '首检' : undefined,
+        ]
+          .filter(Boolean)
+          .join(' / ') || '-',
+    },
+  ];
+});
+
 const operationColumns: VxeTableGridOptions<MdmRouteApi.RouteOp>['columns'] = [
   { type: 'checkbox', width: 40 },
   { field: 'seq', title: '序号', width: 70 },
   { field: 'opCode', title: '工序编码', minWidth: 120 },
   { field: 'opName', title: '工序名称', minWidth: 140 },
-  {
-    title: '工作中心',
-    minWidth: 180,
-    slots: { default: 'workCenter' },
-  },
-  {
-    title: '工序标识',
-    minWidth: 150,
-    slots: { default: 'flags' },
-  },
-  { field: 'parallelGroup', title: '并行组', minWidth: 100 },
-  { field: 'materialCount', title: '用料数', width: 90 },
-  { field: 'remark', title: '备注', minWidth: 140 },
+  { field: 'materialCount', title: '用料数', width: 80 },
   {
     title: '操作',
-    width: 280,
+    width: 180,
     fixed: 'right',
     slots: { default: 'actions' },
   },
@@ -125,7 +153,7 @@ const materialColumns: VxeTableGridOptions<MdmRouteApi.RouteOpMaterial>['columns
 const [OperationGrid, operationGridApi] = useVbenVxeGrid<MdmRouteApi.RouteOp>({
   gridOptions: {
     columns: operationColumns,
-    height: '280px',
+    height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },
     proxyConfig: {
@@ -161,7 +189,7 @@ const [MaterialGrid, materialGridApi] =
   useVbenVxeGrid<MdmRouteApi.RouteOpMaterial>({
     gridOptions: {
       columns: materialColumns,
-      height: '280px',
+      height: 'auto',
       keepSource: true,
       pagerConfig: { enabled: false },
       proxyConfig: {
@@ -249,7 +277,7 @@ const [RouteOpEsopGrid, routeOpEsopGridApi] = useVbenVxeGrid<
         slots: { default: 'actions' },
       },
     ],
-    height: '280px',
+    height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },
     proxyConfig: {
@@ -310,7 +338,7 @@ const [RouteOpToolGrid, routeOpToolGridApi] =
           slots: { default: 'actions' },
         },
       ],
-      height: '280px',
+      height: 'auto',
       keepSource: true,
       pagerConfig: { enabled: false },
       proxyConfig: {
@@ -615,284 +643,346 @@ async function handleDeleteToolBatch() {
 </script>
 
 <template>
-  <Drawer :title="drawerTitle" class="w-full lg:w-4/5">
+  <Drawer
+    :title="drawerTitle"
+    class="w-full"
+    content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
+  >
     <RouteOpFormModal @success="loadDetail(selectedOpId)" />
     <RouteOpMatFormModal @success="loadDetail(selectedOpId)" />
     <RouteOpEsopFormModal @success="routeOpEsopGridApi.query()" />
     <RouteOpEsopPreviewModal />
     <RouteOpToolFormModal @success="routeOpToolGridApi.query()" />
 
-    <div v-loading="loading" class="px-4 pb-4">
-      <OperationGrid table-title="工艺路线工序列表">
-        <template #toolbar-tools>
-          <TableAction
-            :actions="[
-              {
-                label: '新增工序',
-                type: 'primary',
-                icon: ACTION_ICON.ADD,
-                auth: ['mdm:route:create'],
-                disabled: !isEditable,
-                onClick: handleCreateOperation,
-              },
-              {
-                label: '批量删除',
-                type: 'danger',
-                icon: ACTION_ICON.DELETE,
-                auth: ['mdm:route:delete'],
-                disabled: !isEditable || isEmpty(checkedOperationIds),
-                onClick: handleDeleteOperationBatch,
-              },
-            ]"
-          />
+    <div v-loading="loading" class="h-full min-h-0">
+      <ColPage
+        content-class="overflow-hidden p-0"
+        :left-width="38"
+        :left-min-width="25"
+        :left-max-width="60"
+        :right-width="62"
+        :right-min-width="40"
+        :right-max-width="75"
+        resizable
+        split-line
+        split-handle
+      >
+        <template #left>
+          <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+            <OperationGrid
+              class="w-full min-w-0 overflow-hidden"
+              table-title="工艺路线工序列表"
+            >
+              <template #toolbar-tools>
+                <TableAction
+                  :actions="[
+                    {
+                      label: '新增工序',
+                      type: 'primary',
+                      icon: ACTION_ICON.ADD,
+                      auth: ['mdm:route:create'],
+                      disabled: !isEditable,
+                      onClick: handleCreateOperation,
+                    },
+                    {
+                      label: '批量删除',
+                      type: 'danger',
+                      icon: ACTION_ICON.DELETE,
+                      auth: ['mdm:route:delete'],
+                      disabled: !isEditable || isEmpty(checkedOperationIds),
+                      onClick: handleDeleteOperationBatch,
+                    },
+                  ]"
+                />
+              </template>
+              <template #actions="{ row }">
+                <TableAction
+                  :actions="[
+                    {
+                      label: '上移',
+                      type: 'primary',
+                      link: true,
+                      icon: 'lucide:arrow-up',
+                      auth: ['mdm:route:update'],
+                      disabled: !isEditable || getOperationIndex(row) === 0,
+                      onClick: handleMoveOperation.bind(null, row, -1),
+                    },
+                    {
+                      label: '下移',
+                      type: 'primary',
+                      link: true,
+                      icon: 'lucide:arrow-down',
+                      auth: ['mdm:route:update'],
+                      disabled:
+                        !isEditable ||
+                        getOperationIndex(row) === operations.length - 1,
+                      onClick: handleMoveOperation.bind(null, row, 1),
+                    },
+                    {
+                      label: '修改',
+                      type: 'primary',
+                      link: true,
+                      icon: ACTION_ICON.EDIT,
+                      auth: ['mdm:route:update'],
+                      disabled: !isEditable,
+                      onClick: handleEditOperation.bind(null, row),
+                    },
+                    {
+                      label: '删除',
+                      type: 'danger',
+                      link: true,
+                      icon: ACTION_ICON.DELETE,
+                      auth: ['mdm:route:delete'],
+                      disabled: !isEditable,
+                      popConfirm: {
+                        title: `确定删除工序“${row.opCode ?? row.seq}”${(row.materialCount ?? 0) > 0 ? `，并级联删除 ${row.materialCount} 条用料` : ''}吗？`,
+                        confirm: handleDeleteOperation.bind(null, row),
+                      },
+                    },
+                  ]"
+                />
+              </template>
+            </OperationGrid>
+          </section>
         </template>
-        <template #workCenter="{ row }">
-          {{ row.wcCode || '-' }}
-          <span v-if="row.wcName"> · {{ row.wcName }}</span>
-        </template>
-        <template #flags="{ row }">
-          <div class="flex items-center justify-center gap-1">
-            <ElTag v-if="row.keyFlag" size="small" type="danger"> 关键 </ElTag>
-            <ElTag v-if="row.faiFlag" size="small" type="warning"> 首检 </ElTag>
-            <span v-if="!row.keyFlag && !row.faiFlag">-</span>
-          </div>
-        </template>
-        <template #actions="{ row }">
-          <TableAction
-            :actions="[
-              {
-                label: '上移',
-                type: 'primary',
-                link: true,
-                icon: 'lucide:arrow-up',
-                auth: ['mdm:route:update'],
-                disabled: !isEditable || getOperationIndex(row) === 0,
-                onClick: handleMoveOperation.bind(null, row, -1),
-              },
-              {
-                label: '下移',
-                type: 'primary',
-                link: true,
-                icon: 'lucide:arrow-down',
-                auth: ['mdm:route:update'],
-                disabled:
-                  !isEditable ||
-                  getOperationIndex(row) === operations.length - 1,
-                onClick: handleMoveOperation.bind(null, row, 1),
-              },
-              {
-                label: '修改',
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.EDIT,
-                auth: ['mdm:route:update'],
-                disabled: !isEditable,
-                onClick: handleEditOperation.bind(null, row),
-              },
-              {
-                label: '删除',
-                type: 'danger',
-                link: true,
-                icon: ACTION_ICON.DELETE,
-                auth: ['mdm:route:delete'],
-                disabled: !isEditable,
-                popConfirm: {
-                  title: `确定删除工序“${row.opCode ?? row.seq}”${(row.materialCount ?? 0) > 0 ? `，并级联删除 ${row.materialCount} 条用料` : ''}吗？`,
-                  confirm: handleDeleteOperation.bind(null, row),
-                },
-              },
-            ]"
-          />
-        </template>
-      </OperationGrid>
 
-      <ElTabs v-model="detailTab" class="mt-2">
-        <ElTabPane name="materials" label="工序用料">
-          <MaterialGrid :table-title="materialTableTitle">
-            <template #toolbar-tools>
-              <TableAction
-                :actions="[
-                  {
-                    label: '新增用料',
-                    type: 'primary',
-                    icon: ACTION_ICON.ADD,
-                    auth: ['mdm:route-op-mat:create'],
-                    disabled: !isEditable || !selectedOperation,
-                    onClick: handleCreateMaterial,
-                  },
-                  {
-                    label: '批量删除',
-                    type: 'danger',
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:route-op-mat:delete'],
-                    disabled: !isEditable || isEmpty(checkedMaterialIds),
-                    onClick: handleDeleteMaterialBatch,
-                  },
-                ]"
-              />
-            </template>
-            <template #uom="{ row }">
-              {{ row.uomCode || '-' }}
-              <span v-if="row.uomName"> · {{ row.uomName }}</span>
-            </template>
-            <template #actions="{ row }">
-              <TableAction
-                :actions="[
-                  {
-                    label: '修改',
-                    type: 'primary',
-                    link: true,
-                    icon: ACTION_ICON.EDIT,
-                    auth: ['mdm:route-op-mat:update'],
-                    disabled: !isEditable,
-                    onClick: handleEditMaterial.bind(null, row),
-                  },
-                  {
-                    label: '删除',
-                    type: 'danger',
-                    link: true,
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:route-op-mat:delete'],
-                    disabled: !isEditable,
-                    popConfirm: {
-                      title: `确定删除用料“${row.matCode ?? row.matName ?? row.id}”吗？`,
-                      confirm: handleDeleteMaterial.bind(null, row),
-                    },
-                  },
-                ]"
-              />
-            </template>
-          </MaterialGrid>
-        </ElTabPane>
-        <ElTabPane name="esop" label="ESOP 作业指导">
-          <RouteOpEsopGrid
-            :table-title="
-              selectedOperation
-                ? `ESOP 作业步骤 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
-                : 'ESOP 作业步骤列表'
-            "
+        <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+          <ElDescriptions
+            v-if="selectedOperation"
+            :column="4"
+            border
+            size="small"
+            class="mb-3 shrink-0"
           >
-            <template #toolbar-tools>
-              <TableAction
-                :actions="[
-                  {
-                    label: '新增作业步骤',
-                    type: 'primary',
-                    icon: ACTION_ICON.ADD,
-                    auth: ['mdm:esop:create'],
-                    disabled: !isEditable || !selectedOperation,
-                    onClick: handleCreateEsop,
-                  },
-                  {
-                    label: '批量删除',
-                    type: 'danger',
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:esop:delete'],
-                    disabled: !isEditable || isEmpty(checkedEsopIds),
-                    onClick: handleDeleteEsopBatch,
-                  },
-                ]"
-              />
-            </template>
-            <template #esopFile="{ row }">
-              <ElLink
-                v-if="(row.fileCount ?? 0) > 0"
-                type="primary"
-                @click="handlePreviewEsop(row)"
+            <ElDescriptionsItem
+              v-for="item in selectedOperationContext"
+              :key="item.label"
+              :label="item.label"
+            >
+              {{ item.value }}
+            </ElDescriptionsItem>
+          </ElDescriptions>
+          <ElEmpty v-else description="请选择一道工序" class="shrink-0" />
+
+          <ElTabs
+            v-model="detailTab"
+            class="route-config-tabs flex min-h-0 flex-1 flex-col"
+          >
+            <ElTabPane name="materials" label="工序用料" class="h-full">
+              <MaterialGrid
+                class="w-full min-w-0 overflow-hidden"
+                :table-title="materialTableTitle"
               >
-                {{ row.fileCount }} 个附件
-              </ElLink>
-              <span v-else>无附件</span>
-            </template>
-            <template #actions="{ row }">
-              <TableAction
-                :actions="[
-                  {
-                    label: '修改',
-                    type: 'primary',
-                    link: true,
-                    icon: ACTION_ICON.EDIT,
-                    auth: ['mdm:esop:update'],
-                    disabled: !isEditable,
-                    onClick: handleEditEsop.bind(null, row),
-                  },
-                  {
-                    label: '删除',
-                    type: 'danger',
-                    link: true,
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:esop:delete'],
-                    disabled: !isEditable,
-                    popConfirm: {
-                      title: `确定删除作业步骤“${row.title ?? row.id}”吗？`,
-                      confirm: handleDeleteEsop.bind(null, row),
-                    },
-                  },
-                ]"
-              />
-            </template>
-          </RouteOpEsopGrid>
-        </ElTabPane>
-        <ElTabPane name="tools" label="工装">
-          <RouteOpToolGrid
-            :table-title="
-              selectedOperation
-                ? `工序工装列表 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
-                : '工序工装列表'
-            "
-          >
-            <template #toolbar-tools>
-              <TableAction
-                :actions="[
-                  {
-                    label: '新增工装',
-                    type: 'primary',
-                    icon: ACTION_ICON.ADD,
-                    auth: ['mdm:tool:update'],
-                    disabled: !isEditable || !selectedOperation,
-                    onClick: handleCreateTool,
-                  },
-                  {
-                    label: '批量删除',
-                    type: 'danger',
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:tool:update'],
-                    disabled: !isEditable || isEmpty(checkedToolIds),
-                    onClick: handleDeleteToolBatch,
-                  },
-                ]"
-              />
-            </template>
-            <template #actions="{ row }">
-              <TableAction
-                :actions="[
-                  {
-                    label: '修改',
-                    type: 'primary',
-                    link: true,
-                    icon: ACTION_ICON.EDIT,
-                    auth: ['mdm:tool:update'],
-                    disabled: !isEditable,
-                    onClick: handleEditTool.bind(null, row),
-                  },
-                  {
-                    label: '删除',
-                    type: 'danger',
-                    link: true,
-                    icon: ACTION_ICON.DELETE,
-                    auth: ['mdm:tool:update'],
-                    disabled: !isEditable,
-                    popConfirm: {
-                      title: `确定删除工装“${row.toolCode ?? row.toolName ?? row.id}”吗？`,
-                      confirm: handleDeleteTool.bind(null, row),
-                    },
-                  },
-                ]"
-              />
-            </template>
-          </RouteOpToolGrid>
-        </ElTabPane>
-      </ElTabs>
+                <template #toolbar-tools>
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '新增用料',
+                        type: 'primary',
+                        icon: ACTION_ICON.ADD,
+                        auth: ['mdm:route-op-mat:create'],
+                        disabled: !isEditable || !selectedOperation,
+                        onClick: handleCreateMaterial,
+                      },
+                      {
+                        label: '批量删除',
+                        type: 'danger',
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:route-op-mat:delete'],
+                        disabled: !isEditable || isEmpty(checkedMaterialIds),
+                        onClick: handleDeleteMaterialBatch,
+                      },
+                    ]"
+                  />
+                </template>
+                <template #uom="{ row }">
+                  {{ row.uomCode || '-' }}
+                  <span v-if="row.uomName"> · {{ row.uomName }}</span>
+                </template>
+                <template #actions="{ row }">
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '修改',
+                        type: 'primary',
+                        link: true,
+                        icon: ACTION_ICON.EDIT,
+                        auth: ['mdm:route-op-mat:update'],
+                        disabled: !isEditable,
+                        onClick: handleEditMaterial.bind(null, row),
+                      },
+                      {
+                        label: '删除',
+                        type: 'danger',
+                        link: true,
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:route-op-mat:delete'],
+                        disabled: !isEditable,
+                        popConfirm: {
+                          title: `确定删除用料“${row.matCode ?? row.matName ?? row.id}”吗？`,
+                          confirm: handleDeleteMaterial.bind(null, row),
+                        },
+                      },
+                    ]"
+                  />
+                </template>
+              </MaterialGrid>
+            </ElTabPane>
+            <ElTabPane name="esop" label="ESOP 作业指导" class="h-full">
+              <RouteOpEsopGrid
+                class="w-full min-w-0 overflow-hidden"
+                :table-title="
+                  selectedOperation
+                    ? `ESOP 作业步骤 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
+                    : 'ESOP 作业步骤列表'
+                "
+              >
+                <template #toolbar-tools>
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '新增作业步骤',
+                        type: 'primary',
+                        icon: ACTION_ICON.ADD,
+                        auth: ['mdm:esop:create'],
+                        disabled: !isEditable || !selectedOperation,
+                        onClick: handleCreateEsop,
+                      },
+                      {
+                        label: '批量删除',
+                        type: 'danger',
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:esop:delete'],
+                        disabled: !isEditable || isEmpty(checkedEsopIds),
+                        onClick: handleDeleteEsopBatch,
+                      },
+                    ]"
+                  />
+                </template>
+                <template #esopFile="{ row }">
+                  <ElLink
+                    v-if="(row.fileCount ?? 0) > 0"
+                    type="primary"
+                    @click="handlePreviewEsop(row)"
+                  >
+                    {{ row.fileCount }} 个附件
+                  </ElLink>
+                  <span v-else>无附件</span>
+                </template>
+                <template #actions="{ row }">
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '修改',
+                        type: 'primary',
+                        link: true,
+                        icon: ACTION_ICON.EDIT,
+                        auth: ['mdm:esop:update'],
+                        disabled: !isEditable,
+                        onClick: handleEditEsop.bind(null, row),
+                      },
+                      {
+                        label: '删除',
+                        type: 'danger',
+                        link: true,
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:esop:delete'],
+                        disabled: !isEditable,
+                        popConfirm: {
+                          title: `确定删除作业步骤“${row.title ?? row.id}”吗？`,
+                          confirm: handleDeleteEsop.bind(null, row),
+                        },
+                      },
+                    ]"
+                  />
+                </template>
+              </RouteOpEsopGrid>
+            </ElTabPane>
+            <ElTabPane name="tools" label="工装" class="h-full">
+              <RouteOpToolGrid
+                class="w-full min-w-0 overflow-hidden"
+                :table-title="
+                  selectedOperation
+                    ? `工序工装列表 - ${selectedOperation.opCode ?? ''} ${selectedOperation.opName ?? ''}`
+                    : '工序工装列表'
+                "
+              >
+                <template #toolbar-tools>
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '新增工装',
+                        type: 'primary',
+                        icon: ACTION_ICON.ADD,
+                        auth: ['mdm:tool:update'],
+                        disabled: !isEditable || !selectedOperation,
+                        onClick: handleCreateTool,
+                      },
+                      {
+                        label: '批量删除',
+                        type: 'danger',
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:tool:update'],
+                        disabled: !isEditable || isEmpty(checkedToolIds),
+                        onClick: handleDeleteToolBatch,
+                      },
+                    ]"
+                  />
+                </template>
+                <template #actions="{ row }">
+                  <TableAction
+                    :actions="[
+                      {
+                        label: '修改',
+                        type: 'primary',
+                        link: true,
+                        icon: ACTION_ICON.EDIT,
+                        auth: ['mdm:tool:update'],
+                        disabled: !isEditable,
+                        onClick: handleEditTool.bind(null, row),
+                      },
+                      {
+                        label: '删除',
+                        type: 'danger',
+                        link: true,
+                        icon: ACTION_ICON.DELETE,
+                        auth: ['mdm:tool:update'],
+                        disabled: !isEditable,
+                        popConfirm: {
+                          title: `确定删除工装“${row.toolCode ?? row.toolName ?? row.id}”吗？`,
+                          confirm: handleDeleteTool.bind(null, row),
+                        },
+                      },
+                    ]"
+                  />
+                </template>
+              </RouteOpToolGrid>
+            </ElTabPane>
+          </ElTabs>
+        </section>
+      </ColPage>
     </div>
   </Drawer>
 </template>
+<style scoped>
+.route-config-tabs {
+  flex-grow: 1;
+  height: 0;
+  min-height: 0;
+}
+
+.route-config-tabs :deep(.el-tabs__content) {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.route-config-tabs :deep(.el-tab-pane) {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  /* flex item 的 automatic minimum size 会按表格列宽总和撑开面板，
+     必须显式放行收缩，宽度才能从 Tabs 容器一路约束到 vxe-grid */
+  min-width: 0;
+}
+</style>
