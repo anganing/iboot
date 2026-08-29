@@ -114,7 +114,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
       refresh: true,
       search: true,
     },
-    height: '600px',
+    height: '520px',
     rowConfig: {
       keyField: 'id',
       isHover: true,
@@ -141,53 +141,55 @@ watch(
 </script>
 
 <template>
-  <FormModal @success="handleRefresh" />
-  <Grid table-title="物料清单明细列表">
+  <div class="flex h-full min-h-0 flex-col">
+    <FormModal @success="handleRefresh" />
+    <Grid table-title="物料清单明细列表">
     <template #toolbar-tools>
-      <TableAction
-        :actions="[
-          {
-            label: $t('ui.actionTitle.create', ['物料清单']),
-            type: 'primary',
-            icon: ACTION_ICON.ADD,
-            auth: ['mdm:bom:create'],
-            onClick: handleCreate,
-          },
-          {
-            label: $t('ui.actionTitle.deleteBatch'),
-            type: 'danger',
-            icon: ACTION_ICON.DELETE,
-            disabled: isEmpty(checkedIds),
-            auth: ['mdm:bom:delete'],
-            onClick: handleDeleteBatch,
-          },
-        ]"
-      />
-    </template>
-    <template #actions="{ row }">
-      <TableAction
-        :actions="[
-          {
-            label: $t('common.edit'),
-            type: 'primary',
-            link: true,
-            icon: ACTION_ICON.EDIT,
-            auth: ['mdm:bom:update'],
-            onClick: handleEdit.bind(null, row),
-          },
-          {
-            label: $t('common.delete'),
-            type: 'danger',
-            link: true,
-            icon: ACTION_ICON.DELETE,
-            auth: ['mdm:bom:delete'],
-            popConfirm: {
-              title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-              confirm: handleDelete.bind(null, row),
+        <TableAction
+          :actions="[
+            {
+              label: $t('ui.actionTitle.create', ['物料清单明细']),
+              type: 'primary',
+              icon: ACTION_ICON.ADD,
+              auth: ['mdm:bom:create'],
+              onClick: handleCreate,
             },
-          },
-        ]"
-      />
-    </template>
-  </Grid>
+            {
+              label: $t('ui.actionTitle.deleteBatch'),
+              type: 'danger',
+              icon: ACTION_ICON.DELETE,
+              disabled: isEmpty(checkedIds),
+              auth: ['mdm:bom:delete'],
+              onClick: handleDeleteBatch,
+            },
+          ]"
+        />
+      </template>
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mdm:bom:update'],
+              onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['mdm:bom:delete'],
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                confirm: handleDelete.bind(null, row),
+              },
+            },
+          ]"
+        />
+      </template>
+    </Grid>
+  </div>
 </template>

@@ -4,24 +4,25 @@ import type { MdmBomApi } from '#/api/mdm/bom';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabPane, ElTabs } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteBom, deleteBomList, exportBom, getBomPage } from '#/api/mdm/bom';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import BomLineList from './modules/bom-line-list.vue';
+import BomLineDrawer from './modules/bom-line-drawer.vue';
 import Form from './modules/form.vue';
 
-/** 子表的列表 */
-const subTabsName = ref('bomLine');
-const selectBom = ref<MdmBomApi.Bom>();
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: BomLineDrawer,
   destroyOnClose: true,
 });
 
@@ -38,6 +39,11 @@ function handleCreate() {
 /** 编辑物料清单 */
 function handleEdit(row: MdmBomApi.Bom) {
   formModalApi.setData(row).open();
+}
+
+/** 查看并维护当前 BOM 的明细 */
+function handleLines(row: MdmBomApi.Bom) {
+  lineDrawerApi.setData(row).open();
 }
 
 /** 删除物料清单 */
@@ -87,7 +93,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -100,20 +106,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
         },
       },
     },
-    rowConfig: {
-      keyField: 'id',
-      isHover: true,
-      isCurrent: true,
-    },
+    rowConfig: { keyField: 'id', isHover: true, isCurrent: true },
     toolbarConfig: {
       refresh: true,
       search: true,
     },
   } as VxeTableGridOptions<MdmBomApi.Bom>,
   gridEvents: {
-    cellClick: ({ row }: { row: MdmBomApi.Bom }) => {
-      selectBom.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -123,68 +122,69 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <div>
-      <Grid table-title="物料清单列表">
-        <template #toolbar-tools>
-          <TableAction
-            :actions="[
-              {
-                label: $t('ui.actionTitle.create', ['物料清单']),
-                type: 'primary',
-                icon: ACTION_ICON.ADD,
-                auth: ['mdm:bom:create'],
-                onClick: handleCreate,
+    <LineDrawer />
+    <Grid table-title="物料清单列表">
+      <template #toolbar-tools>
+        <TableAction
+          :actions="[
+            {
+              label: $t('ui.actionTitle.create', ['物料清单']),
+              type: 'primary',
+              icon: ACTION_ICON.ADD,
+              auth: ['mdm:bom:create'],
+              onClick: handleCreate,
+            },
+            {
+              label: $t('ui.actionTitle.export'),
+              type: 'primary',
+              icon: ACTION_ICON.DOWNLOAD,
+              auth: ['mdm:bom:export'],
+              onClick: handleExport,
+            },
+            {
+              label: $t('ui.actionTitle.deleteBatch'),
+              type: 'danger',
+              icon: ACTION_ICON.DELETE,
+              auth: ['mdm:bom:delete'],
+              disabled: isEmpty(checkedIds),
+              onClick: handleDeleteBatch,
+            },
+          ]"
+        />
+      </template>
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mdm:bom:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mdm:bom:update'],
+              onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['mdm:bom:delete'],
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                confirm: handleDelete.bind(null, row),
               },
-              {
-                label: $t('ui.actionTitle.export'),
-                type: 'primary',
-                icon: ACTION_ICON.DOWNLOAD,
-                auth: ['mdm:bom:export'],
-                onClick: handleExport,
-              },
-              {
-                label: $t('ui.actionTitle.deleteBatch'),
-                type: 'danger',
-                icon: ACTION_ICON.DELETE,
-                auth: ['mdm:bom:delete'],
-                disabled: isEmpty(checkedIds),
-                onClick: handleDeleteBatch,
-              },
-            ]"
-          />
-        </template>
-        <template #actions="{ row }">
-          <TableAction
-            :actions="[
-              {
-                label: $t('common.edit'),
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.EDIT,
-                auth: ['mdm:bom:update'],
-                onClick: handleEdit.bind(null, row),
-              },
-              {
-                label: $t('common.delete'),
-                type: 'danger',
-                link: true,
-                icon: ACTION_ICON.DELETE,
-                auth: ['mdm:bom:delete'],
-                popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                  confirm: handleDelete.bind(null, row),
-                },
-              },
-            ]"
-          />
-        </template>
-      </Grid>
-      <!-- 子表的表单 -->
-      <ElTabs v-model="subTabsName" class="mt-2">
-        <ElTabPane name="bomLine" label="物料清单明细">
-          <BomLineList :bom-id="selectBom?.id" />
-        </ElTabPane>
-      </ElTabs>
-    </div>
+            },
+          ]"
+        />
+      </template>
+    </Grid>
   </Page>
 </template>
