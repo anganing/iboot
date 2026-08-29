@@ -55,6 +55,10 @@ catalog:
   '@form-create/designer': ^3.5.0
   '@form-create/element-ui': ^3.3.1
   '@form-create/naive-ui': ^3.3.1
+  '@fullcalendar/core': ~6.1.21
+  '@fullcalendar/daygrid': ~6.1.21
+  '@fullcalendar/interaction': ~6.1.21
+  '@fullcalendar/vue3': ~6.1.21
   '@iconify/json': ^2.2.487
   '@iconify/tailwind4': ^1.2.3
   '@iconify/vue': ^5.0.1

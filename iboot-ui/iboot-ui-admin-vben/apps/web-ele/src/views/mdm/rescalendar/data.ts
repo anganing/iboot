@@ -9,6 +9,18 @@ import { getRangePickerDefaultProps } from '#/utils';
 
 import { RES_RELATION_PROPS, SHIFT_RELATION_PROPS } from '../relation-config';
 
+/** 日历视图的事件配色：按资源在结果集中的出现顺序循环取值 */
+export const RES_CALENDAR_EVENT_COLORS = [
+  '#409eff',
+  '#67c23a',
+  '#e6a23c',
+  '#f56c6c',
+  '#909399',
+  '#9254de',
+  '#13c2c2',
+  '#eb2f96',
+];
+
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [

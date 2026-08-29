@@ -59,4 +59,12 @@ public interface ResCalendarService {
      */
     PageResult<ResCalendarRespVO> getResCalendarPage(ResCalendarPageReqVO pageReqVO);
 
+    /**
+     * 获得资源日历列表
+     *
+     * @param listReqVO 列表查询
+     * @return 资源日历列表
+     */
+    List<ResCalendarRespVO> getResCalendarList(@Valid ResCalendarListReqVO listReqVO);
+
 }

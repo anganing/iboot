@@ -45,6 +45,18 @@ catalogs:
     '@form-create/element-ui':
       specifier: ^3.3.1
       version: 3.3.1
+    '@fullcalendar/core':
+      specifier: ~6.1.21
+      version: 6.1.21
+    '@fullcalendar/daygrid':
+      specifier: ~6.1.21
+      version: 6.1.21
+    '@fullcalendar/interaction':
+      specifier: ~6.1.21
+      version: 6.1.21
+    '@fullcalendar/vue3':
+      specifier: ~6.1.21
+      version: 6.1.21
     '@iconify/json':
       specifier: ^2.2.487
       version: 2.2.490
@@ -720,6 +732,18 @@ importers:
       '@form-create/element-ui':
         specifier: 'catalog:'
         version: 3.3.1(vue@3.5.39(typescript@6.0.3))
+      '@fullcalendar/core':
+        specifier: 'catalog:'
+        version: 6.1.21
+      '@fullcalendar/daygrid':
+        specifier: 'catalog:'
+        version: 6.1.21(@fullcalendar/core@6.1.21)
+      '@fullcalendar/interaction':
+        specifier: 'catalog:'
+        version: 6.1.21(@fullcalendar/core@6.1.21)
+      '@fullcalendar/vue3':
+        specifier: 'catalog:'
+        version: 6.1.21(@fullcalendar/core@6.1.21)(vue@3.5.39(typescript@6.0.3))
       '@tinymce/tinymce-vue':
         specifier: 'catalog:'
         version: 6.3.0(tinymce@7.9.3)(vue@3.5.39(typescript@6.0.3))
@@ -3632,6 +3656,25 @@ packages:
 
   '@form-create/utils@3.3.0':
     resolution: {integrity: sha512-4VGI3Qowkc0HsrxmC6NT1eUlEnN2xURqStjJXD+PjgbYKqzR01pNHJbz1UyfkrmcFE9HTUaWrH7IgPPxjlSo2g==}
+
+  '@fullcalendar/core@6.1.21':
+    resolution: {integrity: sha512-t3u/+sqh3Iq7TWtUnVLcGDUE6OWZh0UD3c04bI/l7lSLAgAKr3kngBmhHiQD1QXpwC8ZN5iNqG7a7gOVixhSKQ==}
+
+  '@fullcalendar/daygrid@6.1.21':
+    resolution: {integrity: sha512-QYb1y40RGYLlOxKpYWg8O+7njEnKnFG8Tt7qjnubJGR35s1phQg67E+81y2TyAbbm59p2JFOCXGDk9t6KDujIA==}
+    peerDependencies:
+      '@fullcalendar/core': ~6.1.21
+
+  '@fullcalendar/interaction@6.1.21':
+    resolution: {integrity: sha512-WPYpqtljDWmU0Xm2cOtFrLlocgxv7cgkOppj34Q6OUUat8a6Cnd6kYo2JR+irP223PE5lBYHFNp1qh7SIpJc0w==}
+    peerDependencies:
+      '@fullcalendar/core': ~6.1.21
+
+  '@fullcalendar/vue3@6.1.21':
+    resolution: {integrity: sha512-OGt6WSC+/zz/ej6a0KfIBNl7BYuGchpZU49SsedYyv3WZWbghAE+D8YD6nhH1ia/I4p5Gcsv/nEXgEkT/I8aYQ==}
+    peerDependencies:
+      '@fullcalendar/core': ~6.1.21
+      vue: ^3.5.38
 
   '@gera2ld/jsx-dom@2.2.2':
     resolution: {integrity: sha512-EOqf31IATRE6zS1W1EoWmXZhGfLAoO9FIlwTtHduSrBdud4npYBxYAkv8dZ5hudDPwJeeSjn40kbCL4wAzr8dA==}
@@ -9654,6 +9697,9 @@ packages:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
+  preact@10.12.1:
+    resolution: {integrity: sha512-l8386ixSsBdbreOAkqtrwqHwdvR35ID8c3rKPa8lCWuO86dBi32QWHV4vfsZK1utLLFMvw+Z5Ad4XLkZzchscg==}
+
   preact@10.29.3:
     resolution: {integrity: sha512-D9NL1GAnJZhc3RndVs4gDdxEeU9TcHgywMrhhOsnpdlvFjdbx0gAsLUnH6JEhlJH5giL7Tx5biWPUSEXE/HPzw==}
 
@@ -13817,6 +13863,23 @@ snapshots:
       vue: 3.5.39(typescript@6.0.3)
 
   '@form-create/utils@3.3.0': {}
+
+  '@fullcalendar/core@6.1.21':
+    dependencies:
+      preact: 10.12.1
+
+  '@fullcalendar/daygrid@6.1.21(@fullcalendar/core@6.1.21)':
+    dependencies:
+      '@fullcalendar/core': 6.1.21
+
+  '@fullcalendar/interaction@6.1.21(@fullcalendar/core@6.1.21)':
+    dependencies:
+      '@fullcalendar/core': 6.1.21
+
+  '@fullcalendar/vue3@6.1.21(@fullcalendar/core@6.1.21)(vue@3.5.39(typescript@6.0.3))':
+    dependencies:
+      '@fullcalendar/core': 6.1.21
+      vue: 3.5.39(typescript@6.0.3)
 
   '@gera2ld/jsx-dom@2.2.2':
     dependencies:
@@ -19958,6 +20021,8 @@ snapshots:
   potpack@2.1.0: {}
 
   powershell-utils@0.1.0: {}
+
+  preact@10.12.1: {}
 
   preact@10.29.3: {}
 

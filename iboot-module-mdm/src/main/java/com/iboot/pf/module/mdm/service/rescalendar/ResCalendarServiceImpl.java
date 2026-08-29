@@ -101,4 +101,9 @@ public class ResCalendarServiceImpl implements ResCalendarService {
         return resCalendarMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<ResCalendarRespVO> getResCalendarList(ResCalendarListReqVO listReqVO) {
+        return resCalendarMapper.selectJoinList(listReqVO);
+    }
+
 }

@@ -50,4 +50,6 @@ public interface ResCalendarMapper extends BaseMapperX<ResCalendarDO> {
 
     IPage<ResCalendarRespVO> selectJoinPage(IPage<ResCalendarRespVO> page, @Param("req") ResCalendarPageReqVO reqVO);
 
+    List<ResCalendarRespVO> selectJoinList(@Param("req") ResCalendarListReqVO reqVO);
+
 }

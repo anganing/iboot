@@ -69,9 +69,17 @@ const [Modal, modalApi] = useVbenModal({
       formData.value = undefined;
       return;
     }
+    await formApi.resetForm();
     // 加载数据
     const data = modalApi.getData<MdmResCalendarApi.ResCalendar>();
-    if (!data || !data.id) {
+    if (!data) {
+      return;
+    }
+    // 新增场景：日历点击空白日期时预填工作日期
+    if (!data.id) {
+      if (data.workDate) {
+        await formApi.setValues({ workDate: data.workDate });
+      }
       return;
     }
     modalApi.lock();

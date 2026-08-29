@@ -47,4 +47,25 @@
         WHERE rc.deleted = 0 AND rc.id = #{id}
     </select>
 
+    <sql id="listWhereConditions">
+        <where>
+            rc.deleted = 0
+            AND rc.work_date BETWEEN #{req.dateFrom} AND #{req.dateTo}
+            <if test="req.resIds != null and req.resIds.size() > 0">
+                AND rc.res_id IN
+                <foreach collection="req.resIds" item="resId" open="(" separator="," close=")">
+                    #{resId}
+                </foreach>
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinList" resultType="com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="listWhereConditions"/>
+        ORDER BY rc.work_date, rc.res_id
+    </select>
+
 </mapper>

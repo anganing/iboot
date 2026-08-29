@@ -35,6 +35,25 @@ export function getResCalendar(id: number) {
   );
 }
 
+/** 查询资源日历列表（按日期区间，供日历视图加载） */
+export function getResCalendarList(params: {
+  dateFrom: string;
+  dateTo: string;
+  resIds?: number[];
+}) {
+  const { dateFrom, dateTo, resIds } = params;
+  return requestClient.get<MdmResCalendarApi.ResCalendar[]>(
+    '/mdm/res-calendar/list',
+    {
+      params: {
+        dateFrom,
+        dateTo,
+        ...(resIds && resIds.length > 0 ? { resIds: resIds.join(',') } : {}),
+      },
+    },
+  );
+}
+
 /** 新增资源日历 */
 export function createResCalendar(data: MdmResCalendarApi.ResCalendar) {
   return requestClient.post('/mdm/res-calendar/create', data);

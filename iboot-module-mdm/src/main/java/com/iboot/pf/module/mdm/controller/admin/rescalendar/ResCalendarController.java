@@ -86,6 +86,13 @@ public class ResCalendarController {
         return success(resCalendarService.getResCalendarPage(pageReqVO));
     }
 
+    @GetMapping("/list")
+    @Operation(summary = "获得资源日历列表", description = "按资源与日期区间查询，供日历视图加载")
+    @PreAuthorize("@ss.hasPermission('mdm:res-calendar:query')")
+    public CommonResult<List<ResCalendarRespVO>> getResCalendarList(@Valid ResCalendarListReqVO listReqVO) {
+        return success(resCalendarService.getResCalendarList(listReqVO));
+    }
+
     @GetMapping("/export-excel")
     @Operation(summary = "导出资源日历 Excel")
     @PreAuthorize("@ss.hasPermission('mdm:res-calendar:export')")
