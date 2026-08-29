@@ -16,6 +16,7 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - 当前 UI 后台二次开发项目：`iboot-ui/iboot-ui-admin-vben` 的 `iboot-ui/iboot-ui-admin-vben/apps/web-ele`。
 - 数据库连接一律使用 dbx  MPC操作，连接名称为 `芋道-dev`，数据库为 `ruoyi-vue-pro-20260817`。
 - 新增后台 CRUD 功能前，先阅读并遵循 [`dev-docs/通用CRUD开发流程.md`](dev-docs/通用CRUD开发流程.md)，其中定义了 DBX  MCP数据库操作、后端分层、web-ele 页面结构、菜单权限和验证流程。
+- 写任何 web-ele 页面（含主子表 Tab、抽屉内的子表）前，先阅读并遵循 [`dev-docs/后台UI开发规范.md`](dev-docs/后台UI开发规范.md)，其中定义了页面文件结构、列表/表单/工具栏形态、控件选型、主子表 Tab 规范、子表后端接口对齐要求和交付自查清单。不可协商的红线：列表一律用 `useVbenVxeGrid`，禁止手写 `el-table`；新增/编辑一律用 `useVbenModal` + `useVbenForm` 独立弹窗，禁止行内输入框加“添加”按钮的即时追加式交互；子表必须和主表页面同构，具备新增、修改、删除、批量删除完整能力；后端接口不齐就补后端（`get`/`update`/`delete-list`），不许在前端把交互降级凑合。
 - 新增后台 CRUD 模块时优先使用 infra 代码生成器生成代码；生成前在“字段管理”里人工维护外键列的“关联表名”和“显示字段”，由生成器产出 XML JOIN 查询和列表序号/关联展示列。
 - 查询关联数据时优先在 Mapper 层使用 SQL `JOIN` 一次查询并返回可读字段；不允许默认先查主表再在应用层查询外键数据拼接。只有数据源不同、确实无法 JOIN，或关联数据已有专用聚合接口时才允许应用层组装，并必须在代码评审中说明原因。
 - 表单中的外键字段（`xxxId`）一律用选择器让用户从主数据中选取，禁止用 `InputNumber`/`Input` 把主键编号暴露给用户手填：平铺主数据用 `RelationSelect`（关联配置统一沉淀在 `views/mdm/relation-config.ts` 复用），树形主数据用 `ApiTreeSelect`。列表展示关联数据时显示编码/名称等可读字段，不显示原始 ID；代码/枚举值列必须用字典或 formatter 映射成中文，不允许直接展示 `CRITICAL` 这类原始值。
@@ -46,6 +47,7 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - 业务代码包名格式为 `com.iboot.pf.module.<module>.<feature>`。
 - 类名使用 `XxxController`、`XxxService`、`XxxServiceImpl`，测试类使用 `XxxTest`。
 - 前端使用 Vue 3、TypeScript、ESLint、Prettier 和 Stylelint，缩进 2 个空格、使用单引号、加分号。
+- 前端页面结构、组件选型与交互形态见 [`dev-docs/后台UI开发规范.md`](dev-docs/后台UI开发规范.md)，不要凭个人习惯另起一套。
 
 ## 测试规范
 
