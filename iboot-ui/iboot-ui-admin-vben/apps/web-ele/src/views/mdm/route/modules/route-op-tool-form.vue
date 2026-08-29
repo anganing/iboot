@@ -23,7 +23,7 @@ const formData = ref<MdmToolApi.RouteOpTool>();
 const getTitle = computed(() =>
   formData.value?.id ? '编辑工序工装' : '新增工序工装',
 );
-const formLayout = getMdmFormLayout(1);
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {

@@ -23,14 +23,14 @@ const formData = ref<MdmRouteOpMatApi.RouteOpMat>();
 const getTitle = computed(() =>
   formData.value?.id ? '编辑工序用料' : '新增工序用料',
 );
-const formLayout = getMdmFormLayout(1);
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
     formItemClass: formLayout.formItemClass,
     labelClass: 'justify-start',
-    labelWidth: 80,
+    labelWidth: 110,
   },
   wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',

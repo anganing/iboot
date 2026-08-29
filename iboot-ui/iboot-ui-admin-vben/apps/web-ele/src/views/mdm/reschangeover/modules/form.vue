@@ -26,7 +26,7 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['换型矩阵']);
 });
 
-const formLayout = getMdmFormLayout(1);
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {

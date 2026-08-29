@@ -22,7 +22,7 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['标准工序']);
 });
 
-const formLayout = getMdmFormLayout(1);
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
@@ -31,7 +31,7 @@ const [Form, formApi] = useVbenForm({
     },
     formItemClass: formLayout.formItemClass,
     labelClass: 'justify-start',
-    labelWidth: 80,
+    labelWidth: 140,
   },
   wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',

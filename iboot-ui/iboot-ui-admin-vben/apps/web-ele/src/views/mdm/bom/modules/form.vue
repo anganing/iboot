@@ -22,7 +22,7 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['物料清单']);
 });
 
-const formLayout = getMdmFormLayout(1);
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
