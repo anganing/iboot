@@ -131,7 +131,7 @@ defineExpose({ refresh });
 </script>
 
 <template>
-  <div class="h-full pt-2">
+  <div class="h-full box-border pt-2">
     <Grid class="h-full" table-title="资源日历列表">
       <template #toolbar-tools>
         <TableAction
