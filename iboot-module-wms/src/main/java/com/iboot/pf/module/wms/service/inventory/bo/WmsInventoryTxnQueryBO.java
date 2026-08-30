@@ -1,0 +1,38 @@
+package com.iboot.pf.module.wms.service.inventory.bo;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+/** 库存流水查询参数。为空的条件不过滤。 */
+@Data
+public class WmsInventoryTxnQueryBO {
+
+    /** 库存组织编号。 */
+    private Long invOrgId;
+
+    /** 仓库编号。 */
+    private Long whId;
+
+    /** 物料编号。 */
+    private Long matId;
+
+    /** 批次编号。 */
+    private Long batchId;
+
+    /** 事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST。 */
+    private String txnType;
+
+    /** 来源业务类型。 */
+    private String bizType;
+
+    /** 来源业务单号。 */
+    private String bizNo;
+
+    /** 过账时间起。 */
+    private LocalDateTime fromTime;
+
+    /** 过账时间止。 */
+    private LocalDateTime toTime;
+
+}
