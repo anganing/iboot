@@ -67,3 +67,5 @@ sql/
 
 .workbuddy/
 .tmp-codegen/
+.arts/
+.codeartsdoer/
