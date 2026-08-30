@@ -1,0 +1,249 @@
+package com.iboot.pf.module.wms.service.count;
+
+import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.infra.api.coderule.CodeRuleApi;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
+import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.service.batch.WmsBatchServiceImpl;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
+import com.iboot.pf.module.wms.service.count.bo.WmsCreateCountOrderBO;
+import com.iboot.pf.module.wms.service.count.bo.WmsSubmitCountResultBO;
+import com.iboot.pf.module.wms.service.inorder.WmsInOrderServiceImpl;
+import com.iboot.pf.module.wms.service.inventory.WmsInventoryServiceImpl;
+import com.iboot.pf.module.wms.service.outorder.WmsOutOrderServiceImpl;
+import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import jakarta.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
+
+/** 盘点流程测试：生成盘点行、提交差异、差异确认走单据过账不直接改余额。 */
+@Import({WmsCountOrderServiceImpl.class, WmsWarehouseServiceImpl.class, WmsInventoryServiceImpl.class,
+        WmsInOrderServiceImpl.class, WmsOutOrderServiceImpl.class, WmsBatchServiceImpl.class, WmsCodeService.class})
+class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long WH = 1L;
+    private static final Long LOC = 1L;
+    private static final Long MAT = 100L;
+    private static final Long BATCH = 10L;
+
+    @Resource
+    private WmsCountOrderService countOrderService;
+    @Resource
+    private WmsCountOrderMapper countOrderMapper;
+    @Resource
+    private WmsCountOrderLineMapper countOrderLineMapper;
+    @Resource
+    private WmsInvBalanceMapper balanceMapper;
+    @Resource
+    private WmsWhMapper whMapper;
+    @Resource
+    private WmsLocMapper locMapper;
+    @MockitoBean
+    private CodeRuleApi codeRuleApi;
+
+    @BeforeEach
+    void setUp() {
+        whMapper.insert(new WmsWhDO().setId(WH).setPlantId(1L).setCode("WH-1").setName("主仓库").setStatus(0));
+        locMapper.insert(new WmsLocDO().setId(LOC).setWhId(WH).setZoneId(0L).setCode("LOC-1").setStatus("ENABLED"));
+        when(codeRuleApi.generate("WMS_COUNT_ORDER_NO")).thenReturn("CNT-0001");
+        when(codeRuleApi.generate("WMS_IN_ORDER_NO")).thenReturn("IN-0001");
+        when(codeRuleApi.generate("WMS_OUT_ORDER_NO")).thenReturn("OUT-0001");
+        when(codeRuleApi.generate("WMS_INV_TXN_NO")).thenReturn("TXN-0001");
+    }
+
+    /** 预置 100 在库余额。 */
+    private void seedBalance(BigDecimal qty) {
+        WmsInvBalanceDO balance = new WmsInvBalanceDO();
+        balance.setInvOrgId(1L);
+        balance.setPlantId(1L);
+        balance.setWhId(WH);
+        balance.setLocId(LOC);
+        balance.setMatId(MAT);
+        balance.setBatchId(BATCH);
+        balance.setContainerId(0L);
+        balance.setProjectId(0L);
+        balance.setProjectTaskId(0L);
+        balance.setStockScope("COMMON");
+        balance.setQualityStatus("QUALIFIED");
+        balance.setMatCode("M-001");
+        balance.setMatName("物料A");
+        balance.setUomCode("EA");
+        balance.setLotNo("L-001");
+        balance.setLocCode("LOC-1");
+        balance.setQtyOnhand(qty);
+        balance.setQtyReserved(BigDecimal.ZERO);
+        balance.setQtyFrozen(BigDecimal.ZERO);
+        balance.setVersion(0);
+        balanceMapper.insert(balance);
+    }
+
+    private WmsCreateCountOrderBO createCountBO() {
+        WmsCreateCountOrderBO bo = new WmsCreateCountOrderBO();
+        bo.setIdempotencyKey("WMS:CNT:1");
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("CNT-SRC-1");
+        bo.setCountType("FULL");
+        bo.setInvOrgId(1L);
+        bo.setWhId(WH);
+        return bo;
+    }
+
+    private WmsSubmitCountResultBO submitBO(Long orderId, Long lineId, BigDecimal actualQty) {
+        WmsSubmitCountResultBO bo = new WmsSubmitCountResultBO();
+        bo.setIdempotencyKey("WMS:CNT:1");
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("CNT-SRC-1");
+        bo.setOrderId(orderId);
+
+        WmsSubmitCountResultBO.LineResult r = new WmsSubmitCountResultBO.LineResult();
+        r.setLineId(lineId);
+        r.setActualQty(actualQty);
+        bo.setResults(List.of(r));
+        return bo;
+    }
+
+    private WmsConfirmCountDiffBO confirmDiffBO(Long orderId) {
+        WmsConfirmCountDiffBO bo = new WmsConfirmCountDiffBO();
+        bo.setIdempotencyKey("WMS:CNT:1");
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("CNT-SRC-1");
+        bo.setOrderId(orderId);
+        return bo;
+    }
+
+    private WmsCountOrderLineDO firstLine(Long orderId) {
+        return countOrderLineMapper.selectListByOrderId(orderId).get(0);
+    }
+
+    @Test
+    void testCreate_generatesLineFromBalance() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        WmsCountOrderDO order = countOrderMapper.selectById(id);
+        assertEquals(WmsOrderStatusEnum.DRAFT.name(), order.getStatus());
+        assertEquals("CNT-0001", order.getCountNo());
+
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(0, line.getBookQty().compareTo(new BigDecimal("100")));
+        assertEquals(WmsCountLineStatusEnum.PENDING.name(), line.getStatus());
+    }
+
+    @Test
+    void testSubmit_computesDiff() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+
+        // 实盘 130 → 盘盈 30
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("130")));
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(WmsCountLineStatusEnum.DIFF.name(), line.getStatus());
+        assertEquals(0, line.getDiffQty().compareTo(new BigDecimal("30")));
+    }
+
+    @Test
+    void testSubmit_noDiff_whenEqual() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
+        assertEquals(WmsCountLineStatusEnum.COUNTED.name(), firstLine(id).getStatus());
+        assertEquals(0, firstLine(id).getDiffQty().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void testConfirmDiff_gain_inPostsIncrementNotDirectModify() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("150")));
+
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        // 盘盈 50 走入库单过账：余额增加
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(WmsCountLineStatusEnum.ADJUSTED.name(), line.getStatus());
+        assertNotNull(line.getAdjustBizNo(), "差异应生成调整单据号");
+        WmsInvBalanceDO balance = balanceMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
+                        .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("150")));
+        assertEquals(WmsOrderStatusEnum.DONE.name(), countOrderMapper.selectById(id).getStatus());
+    }
+
+    @Test
+    void testConfirmDiff_loss_outPostsDeductNotDirectModify() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        // 盘亏 30 走出库单过账：余额减少，且不直接改余额（差异通过单据过账体现）
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(WmsCountLineStatusEnum.ADJUSTED.name(), line.getStatus());
+        assertNotNull(line.getAdjustBizNo());
+        WmsInvBalanceDO balance = balanceMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
+                        .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("70")));
+    }
+
+    @Test
+    void testConfirmDiff_noDiff_rejected() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        // 未提交差异（状态 DRAFT）直接确认 → 状态不合法
+        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
+                COUNT_ORDER_STATUS_INVALID);
+        // 提交无差异（实盘=账面）后再确认 → 无差异可确认
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
+        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
+                COUNT_ORDER_NO_DIFF);
+    }
+
+    @Test
+    void testConfirmDiff_duplicate_keepsSingleAdjustment() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("120")));
+
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+        // 单据已 DONE，再次确认状态不合法
+        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
+                COUNT_ORDER_STATUS_INVALID);
+        // 余额仅 +20 一次
+        WmsInvBalanceDO balance = balanceMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
+                        .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("120")));
+    }
+
+}
