@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mes.dal.mysql.qcrule.QcRuleMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , qc_plan.code AS qc_plan_code
+        , qc_plan.name AS qc_plan_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mes_qc_rule t
+        LEFT JOIN mes_qc_plan qc_plan ON qc_plan.id = t.qc_plan_id AND qc_plan.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.code != null and req.code != ''">
+                AND t.code = #{req.code}
+            </if>
+            <if test="req.name != null and req.name != ''">
+                AND t.name LIKE CONCAT('%', #{req.name}, '%')
+            </if>
+            <if test="req.triggerPoint != null and req.triggerPoint != ''">
+                AND t.trigger_point = #{req.triggerPoint}
+            </if>
+            <if test="req.objectType != null and req.objectType != ''">
+                AND t.object_type = #{req.objectType}
+            </if>
+            <if test="req.matId != null">
+                AND t.mat_id = #{req.matId}
+            </if>
+            <if test="req.matCatId != null">
+                AND t.mat_cat_id = #{req.matCatId}
+            </if>
+            <if test="req.opId != null">
+                AND t.op_id = #{req.opId}
+            </if>
+            <if test="req.wcId != null">
+                AND t.wc_id = #{req.wcId}
+            </if>
+            <if test="req.supplierId != null">
+                AND t.supplier_id = #{req.supplierId}
+            </if>
+            <if test="req.qcMode != null and req.qcMode != ''">
+                AND t.qc_mode = #{req.qcMode}
+            </if>
+            <if test="req.priority != null">
+                AND t.priority = #{req.priority}
+            </if>
+            <if test="req.status != null">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

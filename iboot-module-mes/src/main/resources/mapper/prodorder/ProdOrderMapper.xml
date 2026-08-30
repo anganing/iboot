@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , prod_demand.demand_no AS demand_demand_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM mes_prod_order t
+        LEFT JOIN mes_prod_demand prod_demand ON prod_demand.id = t.demand_id AND prod_demand.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.orderNo != null and req.orderNo != ''">
+                AND t.order_no = #{req.orderNo}
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.workshopId != null">
+                AND t.workshop_id = #{req.workshopId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.projectTaskId != null">
+                AND t.project_task_id = #{req.projectTaskId}
+            </if>
+            <if test="req.matId != null">
+                AND t.mat_id = #{req.matId}
+            </if>
+            <if test="req.matCode != null and req.matCode != ''">
+                AND t.mat_code = #{req.matCode}
+            </if>
+            <if test="req.matName != null and req.matName != ''">
+                AND t.mat_name LIKE CONCAT('%', #{req.matName}, '%')
+            </if>
+            <if test="req.matSpec != null and req.matSpec != ''">
+                AND t.mat_spec = #{req.matSpec}
+            </if>
+            <if test="req.qty != null">
+                AND t.qty = #{req.qty}
+            </if>
+            <if test="req.completedQty != null">
+                AND t.completed_qty = #{req.completedQty}
+            </if>
+            <if test="req.scrapQty != null">
+                AND t.scrap_qty = #{req.scrapQty}
+            </if>
+            <if test="req.uomId != null">
+                AND t.uom_id = #{req.uomId}
+            </if>
+            <if test="req.uomCode != null and req.uomCode != ''">
+                AND t.uom_code = #{req.uomCode}
+            </if>
+            <if test="req.bomId != null">
+                AND t.bom_id = #{req.bomId}
+            </if>
+            <if test="req.bomVersion != null and req.bomVersion != ''">
+                AND t.bom_version = #{req.bomVersion}
+            </if>
+            <if test="req.routeId != null">
+                AND t.route_id = #{req.routeId}
+            </if>
+            <if test="req.routeVersion != null and req.routeVersion != ''">
+                AND t.route_version = #{req.routeVersion}
+            </if>
+            <if test="req.dueDate != null">
+                AND t.due_date = #{req.dueDate}
+            </if>
+            <if test="req.priority != null">
+                AND t.priority = #{req.priority}
+            </if>
+            <if test="req.kitStatus != null and req.kitStatus != ''">
+                AND t.kit_status = #{req.kitStatus}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.releaseTime != null">
+                AND t.release_time = #{req.releaseTime}
+            </if>
+            <if test="req.actualStartTime != null">
+                AND t.actual_start_time = #{req.actualStartTime}
+            </if>
+            <if test="req.actualEndTime != null">
+                AND t.actual_end_time = #{req.actualEndTime}
+            </if>
+            <if test="req.version != null">
+                AND t.version = #{req.version}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.prodorder.vo.ProdOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.prodorder.vo.ProdOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mes.dal.mysql.dispatchtask.DispatchTaskMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , op_task.task_no AS op_task_task_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM mes_dispatch_task t
+        LEFT JOIN mes_op_task op_task ON op_task.id = t.op_task_id AND op_task.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.dispatchNo != null and req.dispatchNo != ''">
+                AND t.dispatch_no = #{req.dispatchNo}
+            </if>
+            <if test="req.operatorId != null">
+                AND t.operator_id = #{req.operatorId}
+            </if>
+            <if test="req.teamId != null">
+                AND t.team_id = #{req.teamId}
+            </if>
+            <if test="req.resId != null">
+                AND t.res_id = #{req.resId}
+            </if>
+            <if test="req.shiftId != null">
+                AND t.shift_id = #{req.shiftId}
+            </if>
+            <if test="req.plannedStartTime != null">
+                AND t.planned_start_time = #{req.plannedStartTime}
+            </if>
+            <if test="req.plannedEndTime != null">
+                AND t.planned_end_time = #{req.plannedEndTime}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

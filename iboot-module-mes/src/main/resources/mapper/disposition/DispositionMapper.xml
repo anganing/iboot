@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mes.dal.mysql.disposition.DispositionMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , qc_task.task_no AS task_task_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM mes_disposition t
+        LEFT JOIN mes_qc_task qc_task ON qc_task.id = t.task_id AND qc_task.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.dispositionNo != null and req.dispositionNo != ''">
+                AND t.disposition_no = #{req.dispositionNo}
+            </if>
+            <if test="req.dispositionType != null and req.dispositionType != ''">
+                AND t.disposition_type = #{req.dispositionType}
+            </if>
+            <if test="req.qty != null">
+                AND t.qty = #{req.qty}
+            </if>
+            <if test="req.targetBizType != null and req.targetBizType != ''">
+                AND t.target_biz_type = #{req.targetBizType}
+            </if>
+            <if test="req.targetBizNo != null and req.targetBizNo != ''">
+                AND t.target_biz_no = #{req.targetBizNo}
+            </if>
+            <if test="req.approvedBy != null">
+                AND t.approved_by = #{req.approvedBy}
+            </if>
+            <if test="req.approveTime != null">
+                AND t.approve_time = #{req.approveTime}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
+                AND t.idempotency_key = #{req.idempotencyKey}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mes.dal.mysql.prodreport.ProdReportMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , prod_order.order_no AS prod_order_order_no
+        , work_order.work_order_no AS work_order_work_order_no
+        , op_task.task_no AS op_task_task_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM mes_prod_report t
+        LEFT JOIN mes_prod_order prod_order ON prod_order.id = t.prod_order_id AND prod_order.deleted = 0
+        LEFT JOIN mes_work_order work_order ON work_order.id = t.work_order_id AND work_order.deleted = 0
+        LEFT JOIN mes_op_task op_task ON op_task.id = t.op_task_id AND op_task.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.reportNo != null and req.reportNo != ''">
+                AND t.report_no = #{req.reportNo}
+            </if>
+            <if test="req.workerId != null">
+                AND t.worker_id = #{req.workerId}
+            </if>
+            <if test="req.resId != null">
+                AND t.res_id = #{req.resId}
+            </if>
+            <if test="req.shiftId != null">
+                AND t.shift_id = #{req.shiftId}
+            </if>
+            <if test="req.qtyGood != null">
+                AND t.qty_good = #{req.qtyGood}
+            </if>
+            <if test="req.qtyScrap != null">
+                AND t.qty_scrap = #{req.qtyScrap}
+            </if>
+            <if test="req.qtyRework != null">
+                AND t.qty_rework = #{req.qtyRework}
+            </if>
+            <if test="req.startTime != null">
+                AND t.start_time = #{req.startTime}
+            </if>
+            <if test="req.endTime != null">
+                AND t.end_time = #{req.endTime}
+            </if>
+            <if test="req.reportTime != null">
+                AND t.report_time = #{req.reportTime}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
+                AND t.idempotency_key = #{req.idempotencyKey}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>
