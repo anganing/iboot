@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.inordermgr.InOrderMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , arrival.arrival_no AS arrival_arrival_no
+        , wh.name AS wh_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_in_order t
+        LEFT JOIN wms_arrival arrival ON arrival.id = t.arrival_id AND arrival.deleted = 0
+        LEFT JOIN wms_wh wh ON wh.id = t.wh_id AND wh.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.inNo != null and req.inNo != ''">
+                AND t.in_no = #{req.inNo}
+            </if>
+            <if test="req.bizType != null and req.bizType != ''">
+                AND t.biz_type = #{req.bizType}
+            </if>
+            <if test="req.sourceType != null and req.sourceType != ''">
+                AND t.source_type = #{req.sourceType}
+            </if>
+            <if test="req.sourceBizNo != null and req.sourceBizNo != ''">
+                AND t.source_biz_no = #{req.sourceBizNo}
+            </if>
+            <if test="req.sourceLineId != null">
+                AND t.source_line_id = #{req.sourceLineId}
+            </if>
+            <if test="req.originType != null and req.originType != ''">
+                AND t.origin_type = #{req.originType}
+            </if>
+            <if test="req.originNo != null and req.originNo != ''">
+                AND t.origin_no = #{req.originNo}
+            </if>
+            <if test="req.supplierId != null">
+                AND t.supplier_id = #{req.supplierId}
+            </if>
+            <if test="req.customerId != null">
+                AND t.customer_id = #{req.customerId}
+            </if>
+            <if test="req.prodOrderNo != null and req.prodOrderNo != ''">
+                AND t.prod_order_no = #{req.prodOrderNo}
+            </if>
+            <if test="req.workOrderNo != null and req.workOrderNo != ''">
+                AND t.work_order_no = #{req.workOrderNo}
+            </if>
+            <if test="req.transferNo != null and req.transferNo != ''">
+                AND t.transfer_no = #{req.transferNo}
+            </if>
+            <if test="req.countOrderNo != null and req.countOrderNo != ''">
+                AND t.count_order_no = #{req.countOrderNo}
+            </if>
+            <if test="req.invOrgId != null">
+                AND t.inv_org_id = #{req.invOrgId}
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.projectTaskId != null">
+                AND t.project_task_id = #{req.projectTaskId}
+            </if>
+            <if test="req.whCode != null and req.whCode != ''">
+                AND t.wh_code = #{req.whCode}
+            </if>
+            <if test="req.fromInvOrgId != null">
+                AND t.from_inv_org_id = #{req.fromInvOrgId}
+            </if>
+            <if test="req.fromWhId != null">
+                AND t.from_wh_id = #{req.fromWhId}
+            </if>
+            <if test="req.needQc != null">
+                AND t.need_qc = #{req.needQc}
+            </if>
+            <if test="req.iqcMode != null and req.iqcMode != ''">
+                AND t.iqc_mode = #{req.iqcMode}
+            </if>
+            <if test="req.qualityStatus != null and req.qualityStatus != ''">
+                AND t.quality_status = #{req.qualityStatus}
+            </if>
+            <if test="req.hookMode != null and req.hookMode != ''">
+                AND t.hook_mode = #{req.hookMode}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
+                AND t.idempotency_key = #{req.idempotencyKey}
+            </if>
+            <if test="req.bizAttrsJson != null and req.bizAttrsJson != ''">
+                AND t.biz_attrs_json = #{req.bizAttrsJson}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

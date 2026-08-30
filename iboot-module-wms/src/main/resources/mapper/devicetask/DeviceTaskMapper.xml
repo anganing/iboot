@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.devicetask.DeviceTaskMapper">
+
+    <sql id="selectColumns">
+        t.*
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_device_task t
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.taskNo != null and req.taskNo != ''">
+                AND t.task_no = #{req.taskNo}
+            </if>
+            <if test="req.externalTaskNo != null and req.externalTaskNo != ''">
+                AND t.external_task_no = #{req.externalTaskNo}
+            </if>
+            <if test="req.taskType != null and req.taskType != ''">
+                AND t.task_type = #{req.taskType}
+            </if>
+            <if test="req.deviceType != null and req.deviceType != ''">
+                AND t.device_type = #{req.deviceType}
+            </if>
+            <if test="req.sourceBizType != null and req.sourceBizType != ''">
+                AND t.source_biz_type = #{req.sourceBizType}
+            </if>
+            <if test="req.sourceBizNo != null and req.sourceBizNo != ''">
+                AND t.source_biz_no = #{req.sourceBizNo}
+            </if>
+            <if test="req.sourceLineId != null">
+                AND t.source_line_id = #{req.sourceLineId}
+            </if>
+            <if test="req.containerId != null">
+                AND t.container_id = #{req.containerId}
+            </if>
+            <if test="req.fromLocId != null">
+                AND t.from_loc_id = #{req.fromLocId}
+            </if>
+            <if test="req.toLocId != null">
+                AND t.to_loc_id = #{req.toLocId}
+            </if>
+            <if test="req.actualLocId != null">
+                AND t.actual_loc_id = #{req.actualLocId}
+            </if>
+            <if test="req.externalSystemCode != null and req.externalSystemCode != ''">
+                AND t.external_system_code = #{req.externalSystemCode}
+            </if>
+            <if test="req.dispatchStatus != null and req.dispatchStatus != ''">
+                AND t.dispatch_status = #{req.dispatchStatus}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.postStatus != null and req.postStatus != ''">
+                AND t.post_status = #{req.postStatus}
+            </if>
+            <if test="req.requestSnapshotJson != null and req.requestSnapshotJson != ''">
+                AND t.request_snapshot_json = #{req.requestSnapshotJson}
+            </if>
+            <if test="req.callbackSnapshotJson != null and req.callbackSnapshotJson != ''">
+                AND t.callback_snapshot_json = #{req.callbackSnapshotJson}
+            </if>
+            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
+                AND t.idempotency_key = #{req.idempotencyKey}
+            </if>
+            <if test="req.completedTime != null">
+                AND t.completed_time = #{req.completedTime}
+            </if>
+            <if test="req.version != null">
+                AND t.version = #{req.version}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.wms.controller.admin.devicetask.vo.DeviceTaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.wms.controller.admin.devicetask.vo.DeviceTaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>
