@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.solversnapshot.SolverSnapshotMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , version.version_no AS version_version_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_solver_snapshot t
+        LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.snapshotType != null and req.snapshotType != ''">
+                AND t.snapshot_type = #{req.snapshotType}
+            </if>
+            <if test="req.snapshotJson != null and req.snapshotJson != ''">
+                AND t.snapshot_json = #{req.snapshotJson}
+            </if>
+            <if test="req.checksum != null and req.checksum != ''">
+                AND t.checksum = #{req.checksum}
+            </if>
+            <if test="req.snapshotTime != null">
+                AND t.snapshot_time = #{req.snapshotTime}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

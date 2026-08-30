@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.shortage.ShortageMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , version.version_no AS version_version_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_shortage t
+        LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.prodOrderId != null">
+                AND t.prod_order_id = #{req.prodOrderId}
+            </if>
+            <if test="req.opTaskId != null">
+                AND t.op_task_id = #{req.opTaskId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.projectTaskId != null">
+                AND t.project_task_id = #{req.projectTaskId}
+            </if>
+            <if test="req.matId != null">
+                AND t.mat_id = #{req.matId}
+            </if>
+            <if test="req.matCode != null and req.matCode != ''">
+                AND t.mat_code = #{req.matCode}
+            </if>
+            <if test="req.matName != null and req.matName != ''">
+                AND t.mat_name LIKE CONCAT('%', #{req.matName}, '%')
+            </if>
+            <if test="req.reqQty != null">
+                AND t.req_qty = #{req.reqQty}
+            </if>
+            <if test="req.availQty != null">
+                AND t.avail_qty = #{req.availQty}
+            </if>
+            <if test="req.shortQty != null">
+                AND t.short_qty = #{req.shortQty}
+            </if>
+            <if test="req.uomId != null">
+                AND t.uom_id = #{req.uomId}
+            </if>
+            <if test="req.uomCode != null and req.uomCode != ''">
+                AND t.uom_code = #{req.uomCode}
+            </if>
+            <if test="req.needDate != null">
+                AND t.need_date = #{req.needDate}
+            </if>
+            <if test="req.expectedSupplyDate != null">
+                AND t.expected_supply_date = #{req.expectedSupplyDate}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.remark != null and req.remark != ''">
+                AND t.remark = #{req.remark}
+            </if>
+            <if test="req.createTime != null">
+                AND t.create_time = #{req.createTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.shortage.vo.ShortageRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.shortage.vo.ShortageRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>
