@@ -64,3 +64,6 @@ sql/
 # lefthook 在仓库根目录执行 pnpm install 时自动生成的示例模板（全注释，无实际规则）。
 # 真正生效的配置是 iboot-ui/iboot-ui-admin-vben/lefthook.yml，勿提交根目录这份。
 /lefthook.yml
+
+.workbuddy/
+.tmp-codegen/
