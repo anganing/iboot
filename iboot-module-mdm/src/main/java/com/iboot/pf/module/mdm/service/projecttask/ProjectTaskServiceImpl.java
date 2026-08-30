@@ -96,4 +96,9 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         return projectTaskMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<ProjectTaskDO> getProjectTaskList(Long projectId) {
+        return projectTaskMapper.selectList(ProjectTaskDO::getProjectId, projectId);
+    }
+
 }

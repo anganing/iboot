@@ -4,6 +4,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.mdm.controller.admin.defectcode.vo.DefectCodePageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.defectcode.vo.DefectCodeRespVO;
 import com.iboot.pf.module.mdm.controller.admin.defectcode.vo.DefectCodeSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.defectcode.DefectCodeDO;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -59,5 +60,12 @@ public interface DefectCodeService {
      * @return 缺陷代码分页
      */
     PageResult<DefectCodeRespVO> getDefectCodePage(DefectCodePageReqVO pageReqVO);
+
+    /**
+     * 获得全部缺陷代码（含停用，供门面批量查询与树构建）
+     *
+     * @return 缺陷代码列表
+     */
+    List<DefectCodeDO> getDefectCodeList();
 
 }

@@ -59,4 +59,12 @@ public interface ResService {
      */
     PageResult<ResRespVO> getResPage(ResPageReqVO pageReqVO);
 
+    /**
+     * 按编号批量查询生产资源
+     *
+     * @param ids 资源编号集合
+     * @return 资源列表；空集合返回空列表
+     */
+    List<ResDO> getResList(Collection<Long> ids);
+
 }

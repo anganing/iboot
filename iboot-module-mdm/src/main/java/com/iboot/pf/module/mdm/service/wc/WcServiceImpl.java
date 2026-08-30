@@ -96,4 +96,14 @@ public class WcServiceImpl implements WcService {
         return wcMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<WcDO> getWcList() {
+        return wcMapper.selectList();
+    }
+
+    @Override
+    public List<WcDO> getWcListByWorkshopId(Long workshopId) {
+        return wcMapper.selectList(WcDO::getWorkshopId, workshopId);
+    }
+
 }

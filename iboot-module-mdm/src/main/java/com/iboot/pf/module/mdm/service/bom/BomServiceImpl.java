@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.time.LocalDate;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.module.mdm.dal.dataobject.mat.MatDO;
 import com.iboot.pf.module.mdm.controller.admin.bom.vo.*;
@@ -202,5 +203,38 @@ public class BomServiceImpl implements BomService {
 	private void deleteBomLineByBomIds(List<Long> bomIds) {
         bomLineMapper.deleteByBomIds(bomIds);
 	}
+
+    @Override
+    public BomDO getBomDO(Long id) {
+        return bomMapper.selectById(id);
+    }
+
+    @Override
+    public BomDO getEffectiveBom(Long matId, LocalDate date) {
+        // 仅启用状态；effectiveDate <= date，且 expiryDate 为空（开放式）或 >= date。
+        // 命中多个时取 effectiveDate 最新一条。小数据量内存过滤，规避 expiryDate 为空时 SQL 误伤。
+        List<BomDO> boms = bomMapper.selectList(BomDO::getMatId, matId);
+        BomDO best = null;
+        for (BomDO bom : boms) {
+            if (!CommonStatusEnum.isEnable(bom.getStatus())) {
+                continue;
+            }
+            if (bom.getEffectiveDate() != null && bom.getEffectiveDate().isAfter(date)) {
+                continue;
+            }
+            if (bom.getExpiryDate() != null && bom.getExpiryDate().isBefore(date)) {
+                continue;
+            }
+            if (best == null || bom.getEffectiveDate().isAfter(best.getEffectiveDate())) {
+                best = bom;
+            }
+        }
+        return best;
+    }
+
+    @Override
+    public List<BomLineDO> getBomLineList(Long bomId) {
+        return bomLineMapper.selectList(BomLineDO::getBomId, bomId);
+    }
 
 }

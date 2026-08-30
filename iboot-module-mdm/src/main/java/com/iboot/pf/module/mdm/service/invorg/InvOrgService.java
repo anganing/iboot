@@ -17,4 +17,11 @@ public interface InvOrgService {
     InvOrgDO getInvOrg(Long id);
 
     PageResult<InvOrgDO> getInvOrgPage(InvOrgPageReqVO pageReqVO);
+
+    /**
+     * 获得全部库存组织（含停用）
+     *
+     * @return 库存组织列表
+     */
+    java.util.List<InvOrgDO> getInvOrgList();
 }

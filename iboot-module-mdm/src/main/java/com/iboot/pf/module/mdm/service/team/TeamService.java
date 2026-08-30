@@ -7,6 +7,7 @@ import com.iboot.pf.module.mdm.dal.dataobject.team.TeamDO;
 import com.iboot.pf.module.mdm.dal.dataobject.team.TeamMemberDO;
 import jakarta.validation.Valid;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -117,5 +118,21 @@ public interface TeamService {
      * @return 成员列表
      */
     List<TeamMemberDO> getTeamMemberListByTeamId(Long teamId);
+
+    /**
+     * 按车间编号集合批量查询班组
+     *
+     * @param workshopIds 车间编号集合
+     * @return 班组列表；空集合返回空列表
+     */
+    List<TeamDO> getTeamListByWorkshopIds(Collection<Long> workshopIds);
+
+    /**
+     * 按班组编号集合批量查询成员
+     *
+     * @param teamIds 班组编号集合
+     * @return 成员列表；空集合返回空列表
+     */
+    List<TeamMemberDO> getTeamMemberList(Collection<Long> teamIds);
 
 }

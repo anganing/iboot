@@ -59,4 +59,19 @@ public interface SupplierService {
      */
     PageResult<SupplierDO> getSupplierPage(SupplierPageReqVO pageReqVO);
 
+    /**
+     * 获得全部供应商（含停用）
+     *
+     * @return 供应商列表
+     */
+    List<SupplierDO> getSupplierList();
+
+    /**
+     * 按编号批量查询供应商
+     *
+     * @param ids 供应商编号集合
+     * @return 供应商列表；空集合返回空列表
+     */
+    List<SupplierDO> getSupplierList(Collection<Long> ids);
+
 }

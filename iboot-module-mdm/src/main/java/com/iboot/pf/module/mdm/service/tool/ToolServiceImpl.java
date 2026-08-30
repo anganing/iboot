@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -103,6 +104,11 @@ public class ToolServiceImpl implements ToolService {
         return toolMapper.selectJoinPage(pageReqVO);
     }
 
+    @Override
+    public List<ToolDO> getToolList() {
+        return toolMapper.selectList();
+    }
+
     // ==================== 工序工装 ====================
 
     @Override
@@ -162,6 +168,14 @@ public class ToolServiceImpl implements ToolService {
     @Override
     public List<RouteOpToolDO> getRouteOpToolListByRouteOpId(Long routeOpId) {
         return routeOpToolMapper.selectListByRouteOpId(routeOpId);
+    }
+
+    @Override
+    public List<RouteOpToolDO> getRouteOpToolList(Collection<Long> routeOpIds) {
+        if (routeOpIds == null || routeOpIds.isEmpty()) {
+            return List.of();
+        }
+        return routeOpToolMapper.selectListByRouteOpIds(List.copyOf(routeOpIds));
     }
 
 }

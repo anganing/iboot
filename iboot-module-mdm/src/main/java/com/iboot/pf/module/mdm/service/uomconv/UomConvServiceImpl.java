@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.uomconv;
 
+import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.uomconv.vo.UomConvPageReqVO;
@@ -99,6 +100,14 @@ public class UomConvServiceImpl implements UomConvService {
     @Override
     public PageResult<UomConvRespVO> getUomConvPage(UomConvPageReqVO pageReqVO) {
         return uomConvMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public List<UomConvDO> getUomConvList(Collection<Long> matIds) {
+        if (CollUtil.isEmpty(matIds)) {
+            return List.of();
+        }
+        return uomConvMapper.selectList(UomConvDO::getMatId, matIds);
     }
 
 }

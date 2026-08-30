@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.rescapability;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.rescapability.vo.ResCapabilityPageReqVO;
@@ -15,6 +16,9 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -111,6 +115,28 @@ public class ResCapabilityServiceImpl implements ResCapabilityService {
     @Override
     public List<ResCapabilityDO> getResCapabilityListByOpId(Long opId) {
         return resCapabilityMapper.selectListByOpId(opId);
+    }
+
+    @Override
+    public List<ResCapabilityDO> getResCapabilityList(Collection<Long> opIds) {
+        if (opIds == null || opIds.isEmpty()) {
+            return List.of();
+        }
+        List<ResCapabilityDO> result = new ArrayList<>();
+        for (Long opId : opIds) {
+            for (ResCapabilityDO capability : resCapabilityMapper.selectListByOpId(opId)) {
+                // 仅返回启用记录
+                if (CommonStatusEnum.isEnable(capability.getStatus())) {
+                    result.add(capability);
+                }
+            }
+        }
+        // 按 opId + preferredFlag desc + resId 排序
+        result.sort(Comparator
+                .comparing(ResCapabilityDO::getOpId)
+                .thenComparing(ResCapabilityDO::getPreferredFlag, Comparator.reverseOrder())
+                .thenComparing(ResCapabilityDO::getResId));
+        return result;
     }
 
 }

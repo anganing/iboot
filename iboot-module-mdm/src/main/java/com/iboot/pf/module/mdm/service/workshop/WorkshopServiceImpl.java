@@ -96,4 +96,14 @@ public class WorkshopServiceImpl implements WorkshopService {
         return workshopMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<WorkshopDO> getWorkshopList() {
+        return workshopMapper.selectList();
+    }
+
+    @Override
+    public List<WorkshopDO> getWorkshopListByPlantId(Long plantId) {
+        return workshopMapper.selectList(WorkshopDO::getPlantId, plantId);
+    }
+
 }

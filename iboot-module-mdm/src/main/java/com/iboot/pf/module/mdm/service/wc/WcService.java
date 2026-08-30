@@ -59,4 +59,19 @@ public interface WcService {
      */
     PageResult<WcRespVO> getWcPage(WcPageReqVO pageReqVO);
 
+    /**
+     * 获得全部工作中心（含停用）
+     *
+     * @return 工作中心列表
+     */
+    List<WcDO> getWcList();
+
+    /**
+     * 按车间编号查询其下属工作中心
+     *
+     * @param workshopId 车间编号
+     * @return 工作中心列表；无工作中心返回空列表
+     */
+    List<WcDO> getWcListByWorkshopId(Long workshopId);
+
 }

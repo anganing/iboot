@@ -60,4 +60,12 @@ public interface UomConvService {
      */
     PageResult<UomConvRespVO> getUomConvPage(UomConvPageReqVO pageReqVO);
 
+    /**
+     * 按物料编号批量查询单位换算
+     *
+     * @param matIds 物料编号集合
+     * @return 单位换算列表；空集合返回空列表
+     */
+    List<UomConvDO> getUomConvList(Collection<Long> matIds);
+
 }

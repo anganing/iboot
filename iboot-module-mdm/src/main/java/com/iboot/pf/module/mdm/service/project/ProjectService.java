@@ -59,4 +59,11 @@ public interface ProjectService {
      */
     PageResult<ProjectDO> getProjectPage(ProjectPageReqVO pageReqVO);
 
+    /**
+     * 获得全部项目（含停用）
+     *
+     * @return 项目列表
+     */
+    List<ProjectDO> getProjectList();
+
 }

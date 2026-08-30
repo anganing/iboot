@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.time.LocalDate;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.rescalendar.ResCalendarDO;
 import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
@@ -104,6 +105,14 @@ public class ResCalendarServiceImpl implements ResCalendarService {
     @Override
     public List<ResCalendarRespVO> getResCalendarList(ResCalendarListReqVO listReqVO) {
         return resCalendarMapper.selectJoinList(listReqVO);
+    }
+
+    @Override
+    public List<ResCalendarDO> getResCalendarList(Collection<Long> resIds, LocalDate startDate, LocalDate endDate) {
+        if (CollUtil.isEmpty(resIds)) {
+            return List.of();
+        }
+        return resCalendarMapper.selectListByResIdsAndDateRange(new ArrayList<>(resIds), startDate, endDate);
     }
 
 }

@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.service.rescalendar;
 
 import java.util.*;
+import java.time.LocalDate;
 import jakarta.validation.*;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.rescalendar.ResCalendarDO;
@@ -66,5 +67,15 @@ public interface ResCalendarService {
      * @return 资源日历列表
      */
     List<ResCalendarRespVO> getResCalendarList(@Valid ResCalendarListReqVO listReqVO);
+
+    /**
+     * 按资源编号与日期区间（闭区间）批量查询资源日历
+     *
+     * @param resIds 资源编号集合
+     * @param startDate 起始日期（含）
+     * @param endDate 结束日期（含）
+     * @return 资源日历列表；空集合返回空列表
+     */
+    List<ResCalendarDO> getResCalendarList(Collection<Long> resIds, LocalDate startDate, LocalDate endDate);
 
 }

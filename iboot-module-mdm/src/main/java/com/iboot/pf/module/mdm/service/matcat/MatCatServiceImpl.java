@@ -140,4 +140,9 @@ public class MatCatServiceImpl implements MatCatService {
         return matCatMapper.selectList(listReqVO);
     }
 
+    @Override
+    public List<MatCatDO> getMatCatDOList() {
+        return matCatMapper.selectList();
+    }
+
 }

@@ -5,8 +5,11 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopPageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopRespVO;
 import com.iboot.pf.module.mdm.controller.admin.esop.vo.RouteOpEsopSaveReqVO;
+import com.iboot.pf.module.mdm.dal.dataobject.esop.RouteOpEsopDO;
+import com.iboot.pf.module.mdm.dal.dataobject.esop.RouteOpEsopFileDO;
 import jakarta.validation.Valid;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -69,5 +72,21 @@ public interface RouteOpEsopService {
      * @return 作业步骤列表
      */
     List<RouteOpEsopRespVO> getRouteOpEsopListByRouteOpId(Long routeOpId);
+
+    /**
+     * 按路线工序编号集合批量查询作业步骤（返回 DO）
+     *
+     * @param routeOpIds 路线工序编号集合
+     * @return 作业步骤列表；空集合返回空列表
+     */
+    List<RouteOpEsopDO> getRouteOpEsopList(Collection<Long> routeOpIds);
+
+    /**
+     * 按作业步骤编号集合批量查询附件
+     *
+     * @param esopIds 作业步骤编号集合
+     * @return 附件列表；空集合返回空列表
+     */
+    List<RouteOpEsopFileDO> getRouteOpEsopFileList(Collection<Long> esopIds);
 
 }

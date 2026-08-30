@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.service.bom;
 
 import java.util.*;
+import java.time.LocalDate;
 import jakarta.validation.*;
 import com.iboot.pf.module.mdm.controller.admin.bom.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.bom.BomDO;
@@ -107,5 +108,35 @@ public interface BomService {
      * @return 物料清单明细
 	 */
     BomLineRespVO getBomLine(Long id);
+
+    // ==================== 只读门面（供 API 层委托） ====================
+
+    /**
+     * 按编号单查 BOM（返回 DO）
+     *
+     * @param id 编号
+     * @return BOM；不存在返回 {@code null}
+     */
+    BomDO getBomDO(Long id);
+
+    /**
+     * 获得指定物料在指定日期下的生效 BOM 版本
+     *
+     * <p>规则：仅启用状态，且 effectiveDate <= date <= expiryDate；
+     * 多个生效版本取 effectiveDate 最新一条；无生效版本返回 {@code null}。
+     *
+     * @param matId 物料编号
+     * @param date 生效判定日期
+     * @return 生效 BOM；无生效版本返回 {@code null}
+     */
+    BomDO getEffectiveBom(Long matId, LocalDate date);
+
+    /**
+     * 按 BOM 编号查询其全部明细
+     *
+     * @param bomId BOM 编号
+     * @return BOM 明细列表；无明细返回空列表
+     */
+    List<BomLineDO> getBomLineList(Long bomId);
 
 }

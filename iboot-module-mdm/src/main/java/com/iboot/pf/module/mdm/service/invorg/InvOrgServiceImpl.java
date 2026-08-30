@@ -55,6 +55,11 @@ public class InvOrgServiceImpl implements InvOrgService {
         return invOrgMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public java.util.List<InvOrgDO> getInvOrgList() {
+        return invOrgMapper.selectList();
+    }
+
     private void validateInvOrgExists(Long id) {
         if (invOrgMapper.selectById(id) == null) {
             throw exception(INV_ORG_NOT_EXISTS);

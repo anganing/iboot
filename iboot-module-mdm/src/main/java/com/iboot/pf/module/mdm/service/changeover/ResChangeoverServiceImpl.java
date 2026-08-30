@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.changeover;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.changeover.vo.ResChangeoverPageReqVO;
@@ -13,6 +14,8 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -100,6 +103,27 @@ public class ResChangeoverServiceImpl implements ResChangeoverService {
     @Override
     public PageResult<ResChangeoverRespVO> getResChangeoverPage(ResChangeoverPageReqVO pageReqVO) {
         return resChangeoverMapper.selectJoinPage(pageReqVO);
+    }
+
+    @Override
+    public List<ResChangeoverDO> getChangeoverList(Collection<Long> resIds, Collection<String> resGroups) {
+        // 查询全部启用记录，再按 resIds / resGroups 过滤；resId = 0 表示按资源组生效。
+        // 小数据量内存过滤，避免组合条件导致 SQL 复杂化。
+        List<ResChangeoverDO> result = new ArrayList<>();
+        for (ResChangeoverDO changeover : resChangeoverMapper.selectList()) {
+            if (!CommonStatusEnum.isEnable(changeover.getStatus())) {
+                continue;
+            }
+            boolean matchRes = resIds != null && !resIds.isEmpty()
+                    && changeover.getResId() != null && resIds.contains(changeover.getResId());
+            boolean matchGroup = resGroups != null && !resGroups.isEmpty()
+                    && changeover.getResGroup() != null && resGroups.contains(changeover.getResGroup());
+            // 命中原则：resId 直接命中，或（resId=0 且 resGroup 命中）
+            if (matchRes || (changeover.getResId() != null && changeover.getResId() == 0L && matchGroup)) {
+                result.add(changeover);
+            }
+        }
+        return result;
     }
 
 }

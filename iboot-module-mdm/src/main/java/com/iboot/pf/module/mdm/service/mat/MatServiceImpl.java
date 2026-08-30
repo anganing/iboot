@@ -1,5 +1,7 @@
 package com.iboot.pf.module.mdm.service.mat;
 
+import cn.hutool.core.collection.CollUtil;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.mat.vo.MatPageReqVO;
@@ -14,6 +16,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -110,6 +113,38 @@ public class MatServiceImpl implements MatService {
     @Override
     public PageResult<MatRespVO> getMatPage(MatPageReqVO pageReqVO) {
         return matMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public List<MatDO> getMatList(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return List.of();
+        }
+        return matMapper.selectByIds(ids);
+    }
+
+    @Override
+    public List<MatDO> getMatListByCodes(Collection<String> codes) {
+        if (CollUtil.isEmpty(codes)) {
+            return List.of();
+        }
+        return matMapper.selectList(MatDO::getCode, codes);
+    }
+
+    @Override
+    public void validateMatList(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+        List<MatDO> mats = matMapper.selectByIds(ids);
+        if (mats.size() != CollUtil.newHashSet(ids).size()) {
+            throw exception(MATERIAL_NOT_EXISTS);
+        }
+        for (MatDO mat : mats) {
+            if (!CommonStatusEnum.isEnable(mat.getStatus())) {
+                throw exception(MATERIAL_NOT_EXISTS);
+            }
+        }
     }
 
 }

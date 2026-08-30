@@ -83,4 +83,9 @@ public class ProjectServiceImpl implements ProjectService {
         return projectMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<ProjectDO> getProjectList() {
+        return projectMapper.selectList();
+    }
+
 }

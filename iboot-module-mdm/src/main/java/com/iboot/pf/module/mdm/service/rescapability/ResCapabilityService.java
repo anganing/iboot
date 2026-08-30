@@ -7,6 +7,7 @@ import com.iboot.pf.module.mdm.controller.admin.rescapability.vo.ResCapabilitySa
 import com.iboot.pf.module.mdm.dal.dataobject.rescapability.ResCapabilityDO;
 import jakarta.validation.Valid;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -68,5 +69,15 @@ public interface ResCapabilityService {
      * @return 资源能力列表
      */
     List<ResCapabilityDO> getResCapabilityListByOpId(Long opId);
+
+    /**
+     * 按标准工序编号集合批量查询启用中的资源能力
+     *
+     * <p>仅返回启用记录，按 opId + preferredFlag desc + resId 排序。
+     *
+     * @param opIds 标准工序编号集合
+     * @return 资源能力列表；空集合返回空列表
+     */
+    List<ResCapabilityDO> getResCapabilityList(Collection<Long> opIds);
 
 }

@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -81,6 +82,19 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public PageResult<SupplierDO> getSupplierPage(SupplierPageReqVO pageReqVO) {
         return supplierMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public List<SupplierDO> getSupplierList() {
+        return supplierMapper.selectList();
+    }
+
+    @Override
+    public List<SupplierDO> getSupplierList(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return supplierMapper.selectByIds(ids);
     }
 
 }

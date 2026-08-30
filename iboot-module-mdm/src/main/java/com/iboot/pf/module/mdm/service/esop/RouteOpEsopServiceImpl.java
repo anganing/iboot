@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -240,6 +241,22 @@ public class RouteOpEsopServiceImpl implements RouteOpEsopService {
             }
             file.setFileUrl(fileApi.presignGetUrl(file.getFileUrl(), null));
         }
+    }
+
+    @Override
+    public List<RouteOpEsopDO> getRouteOpEsopList(Collection<Long> routeOpIds) {
+        if (routeOpIds == null || routeOpIds.isEmpty()) {
+            return List.of();
+        }
+        return routeOpEsopMapper.selectListByRouteOpIds(new ArrayList<>(routeOpIds));
+    }
+
+    @Override
+    public List<RouteOpEsopFileDO> getRouteOpEsopFileList(Collection<Long> esopIds) {
+        if (esopIds == null || esopIds.isEmpty()) {
+            return List.of();
+        }
+        return routeOpEsopFileMapper.selectListByEsopIds(new ArrayList<>(esopIds));
     }
 
 }

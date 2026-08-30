@@ -96,4 +96,14 @@ public class PlantServiceImpl implements PlantService {
         return plantMapper.selectPage(pageReqVO);
     }
 
+    @Override
+    public List<PlantDO> getPlantList() {
+        return plantMapper.selectList();
+    }
+
+    @Override
+    public List<PlantDO> getPlantListByInvOrgId(Long invOrgId) {
+        return plantMapper.selectList(PlantDO::getInvOrgId, invOrgId);
+    }
+
 }

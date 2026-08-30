@@ -53,4 +53,11 @@ public interface MatCatService {
      */
     List<MatCatRespVO> getMatCatList(MatCatListReqVO listReqVO);
 
+    /**
+     * 获得全部物料分类（含停用），供 API 层构造分类树
+     *
+     * @return 物料分类列表
+     */
+    List<MatCatDO> getMatCatDOList();
+
 }

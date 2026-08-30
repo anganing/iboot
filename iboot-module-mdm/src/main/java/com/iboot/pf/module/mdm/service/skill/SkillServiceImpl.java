@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +107,11 @@ public class SkillServiceImpl implements SkillService {
         return BeanUtils.toBean(pageResult, SkillRespVO.class);
     }
 
+    @Override
+    public List<SkillDO> getSkillList() {
+        return skillMapper.selectList();
+    }
+
     // ==================== 工序技能要求 ====================
 
     @Override
@@ -175,6 +181,14 @@ public class SkillServiceImpl implements SkillService {
     @Override
     public List<OpSkillReqDO> getOpSkillReqListByOpId(Long opId) {
         return opSkillReqMapper.selectListByOpId(opId);
+    }
+
+    @Override
+    public List<OpSkillReqDO> getOpSkillReqList(Collection<Long> opIds) {
+        if (opIds == null || opIds.isEmpty()) {
+            return List.of();
+        }
+        return opSkillReqMapper.selectList(OpSkillReqDO::getOpId, opIds);
     }
 
     // ==================== 人员技能 ====================
@@ -270,6 +284,14 @@ public class SkillServiceImpl implements SkillService {
                 .and(wrapper -> wrapper.isNull(MemberSkillDO::getExpiryDate)
                         .or()
                         .ge(MemberSkillDO::getExpiryDate, now)));
+    }
+
+    @Override
+    public List<MemberSkillDO> getMemberSkillList(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return memberSkillMapper.selectList(MemberSkillDO::getUserId, userIds);
     }
 
 }

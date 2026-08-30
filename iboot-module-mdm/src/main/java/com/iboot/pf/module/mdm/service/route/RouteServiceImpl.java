@@ -348,4 +348,45 @@ public class RouteServiceImpl implements RouteService {
         routeOpEsopMapper.deleteByRouteOpIds(routeOpIds);
     }
 
+    @Override
+    public RouteDO getRouteDO(Long id) {
+        return routeMapper.selectById(id);
+    }
+
+    @Override
+    public RouteDO getEffectiveRoute(Long matId, LocalDate date) {
+        // 仅启用状态；effectiveDate <= date，且 expiryDate 为空（开放式）或 >= date。
+        // 命中多个时取 effectiveDate 最新一条。小数据量内存过滤，规避 expiryDate 为空时 SQL 误伤。
+        List<RouteDO> routes = routeMapper.selectList(RouteDO::getMatId, matId);
+        RouteDO best = null;
+        for (RouteDO route : routes) {
+            if (!CommonStatusEnum.isEnable(route.getStatus())) {
+                continue;
+            }
+            if (route.getEffectiveDate() != null && route.getEffectiveDate().isAfter(date)) {
+                continue;
+            }
+            if (route.getExpiryDate() != null && route.getExpiryDate().isBefore(date)) {
+                continue;
+            }
+            if (best == null || route.getEffectiveDate().isAfter(best.getEffectiveDate())) {
+                best = route;
+            }
+        }
+        return best;
+    }
+
+    @Override
+    public List<RouteOpDO> getRouteOpList(Long routeId) {
+        return routeOpMapper.selectListByRouteId(routeId);
+    }
+
+    @Override
+    public List<RouteOpMatDO> getRouteOpMatList(Collection<Long> routeOpIds) {
+        if (routeOpIds == null || routeOpIds.isEmpty()) {
+            return List.of();
+        }
+        return routeOpMatMapper.selectListByRouteOpIds(new ArrayList<>(routeOpIds));
+    }
+
 }

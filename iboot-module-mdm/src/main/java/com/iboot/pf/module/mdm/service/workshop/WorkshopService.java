@@ -59,4 +59,19 @@ public interface WorkshopService {
      */
     PageResult<WorkshopRespVO> getWorkshopPage(WorkshopPageReqVO pageReqVO);
 
+    /**
+     * 获得全部车间（含停用）
+     *
+     * @return 车间列表
+     */
+    List<WorkshopDO> getWorkshopList();
+
+    /**
+     * 按工厂编号查询其下属车间
+     *
+     * @param plantId 工厂编号
+     * @return 车间列表；无车间返回空列表
+     */
+    List<WorkshopDO> getWorkshopListByPlantId(Long plantId);
+
 }

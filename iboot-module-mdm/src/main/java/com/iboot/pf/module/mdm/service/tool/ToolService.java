@@ -8,8 +8,10 @@ import com.iboot.pf.module.mdm.controller.admin.tool.vo.ToolPageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.tool.vo.ToolRespVO;
 import com.iboot.pf.module.mdm.controller.admin.tool.vo.ToolSaveReqVO;
 import com.iboot.pf.module.mdm.dal.dataobject.tool.RouteOpToolDO;
+import com.iboot.pf.module.mdm.dal.dataobject.tool.ToolDO;
 import jakarta.validation.Valid;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -66,6 +68,13 @@ public interface ToolService {
      */
     PageResult<ToolRespVO> getToolPage(ToolPageReqVO pageReqVO);
 
+    /**
+     * 获得全部工装（含停用，供门面批量查询）
+     *
+     * @return 工装列表
+     */
+    List<ToolDO> getToolList();
+
     // ==================== 工序工装 ====================
 
     /**
@@ -121,5 +130,13 @@ public interface ToolService {
      * @return 工装列表
      */
     List<RouteOpToolDO> getRouteOpToolListByRouteOpId(Long routeOpId);
+
+    /**
+     * 按路线工序编号集合批量查询工序工装（供门面批量查询）
+     *
+     * @param routeOpIds 路线工序编号集合
+     * @return 工序工装列表；空集合返回空列表
+     */
+    List<RouteOpToolDO> getRouteOpToolList(Collection<Long> routeOpIds);
 
 }

@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.team;
 
+import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -211,6 +213,22 @@ public class TeamServiceImpl implements TeamService {
     @Override
     public List<TeamMemberDO> getTeamMemberListByTeamId(Long teamId) {
         return teamMemberMapper.selectListByTeamId(teamId);
+    }
+
+    @Override
+    public List<TeamDO> getTeamListByWorkshopIds(Collection<Long> workshopIds) {
+        if (CollUtil.isEmpty(workshopIds)) {
+            return List.of();
+        }
+        return teamMapper.selectList(TeamDO::getWorkshopId, workshopIds);
+    }
+
+    @Override
+    public List<TeamMemberDO> getTeamMemberList(Collection<Long> teamIds) {
+        if (CollUtil.isEmpty(teamIds)) {
+            return List.of();
+        }
+        return teamMemberMapper.selectList(TeamMemberDO::getTeamId, teamIds);
     }
 
 }

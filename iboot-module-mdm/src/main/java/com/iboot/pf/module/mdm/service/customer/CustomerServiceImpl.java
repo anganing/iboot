@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -81,6 +82,19 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public PageResult<CustomerDO> getCustomerPage(CustomerPageReqVO pageReqVO) {
         return customerMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public List<CustomerDO> getCustomerList() {
+        return customerMapper.selectList();
+    }
+
+    @Override
+    public List<CustomerDO> getCustomerList(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return customerMapper.selectByIds(ids);
     }
 
 }

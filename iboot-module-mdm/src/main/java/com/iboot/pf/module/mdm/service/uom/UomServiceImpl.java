@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mdm.service.uom;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.mdm.controller.admin.uom.vo.UomPageReqVO;
@@ -10,6 +11,9 @@ import com.iboot.pf.module.mdm.dal.mysql.uom.UomMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
+import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.*;
@@ -52,6 +56,19 @@ public class UomServiceImpl implements UomService {
     @Override
     public PageResult<UomDO> getPage(UomPageReqVO reqVO) {
         return uomMapper.selectPage(reqVO);
+    }
+
+    @Override
+    public List<UomDO> getUomList() {
+        return uomMapper.selectList();
+    }
+
+    @Override
+    public List<UomDO> getUomList(Collection<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return List.of();
+        }
+        return uomMapper.selectByIds(ids);
     }
 
     private void validateExists(Long id) {

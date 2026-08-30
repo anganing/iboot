@@ -14,6 +14,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -102,6 +103,14 @@ public class ResServiceImpl implements ResService {
     @Override
     public PageResult<ResRespVO> getResPage(ResPageReqVO pageReqVO) {
         return resMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public List<ResDO> getResList(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return resMapper.selectByIds(ids);
     }
 
 }

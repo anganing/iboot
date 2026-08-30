@@ -59,4 +59,12 @@ public interface ProjectTaskService {
      */
     PageResult<ProjectTaskRespVO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO);
 
+    /**
+     * 按项目编号查询其全部项目任务
+     *
+     * @param projectId 项目编号
+     * @return 项目任务列表；无任务返回空列表
+     */
+    List<ProjectTaskDO> getProjectTaskList(Long projectId);
+
 }

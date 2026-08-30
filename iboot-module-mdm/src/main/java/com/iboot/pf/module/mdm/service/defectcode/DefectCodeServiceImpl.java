@@ -173,4 +173,9 @@ public class DefectCodeServiceImpl implements DefectCodeService {
         return defectCodeMapper.selectJoinPage(pageReqVO);
     }
 
+    @Override
+    public List<DefectCodeDO> getDefectCodeList() {
+        return defectCodeMapper.selectList();
+    }
+
 }

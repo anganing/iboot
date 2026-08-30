@@ -59,4 +59,29 @@ public interface MatService {
      */
     PageResult<MatRespVO> getMatPage(MatPageReqVO pageReqVO);
 
+    // ==================== 只读批量门面（供 API 层委托） ====================
+
+    /**
+     * 按编号批量查询物料主档
+     *
+     * @param ids 物料编号集合
+     * @return 物料主档列表；空集合返回空列表
+     */
+    List<MatDO> getMatList(Collection<Long> ids);
+
+    /**
+     * 按编码批量查询物料主档
+     *
+     * @param codes 物料编码集合
+     * @return 物料主档列表；空集合返回空列表
+     */
+    List<MatDO> getMatListByCodes(Collection<String> codes);
+
+    /**
+     * 校验物料编号集合是否均存在且启用，缺失或停用抛业务异常
+     *
+     * @param ids 物料编号集合
+     */
+    void validateMatList(Collection<Long> ids);
+
 }

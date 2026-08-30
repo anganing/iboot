@@ -5,8 +5,10 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.mdm.controller.admin.skill.vo.*;
 import com.iboot.pf.module.mdm.dal.dataobject.skill.MemberSkillDO;
 import com.iboot.pf.module.mdm.dal.dataobject.skill.OpSkillReqDO;
+import com.iboot.pf.module.mdm.dal.dataobject.skill.SkillDO;
 import jakarta.validation.Valid;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -63,6 +65,13 @@ public interface SkillService {
      */
     PageResult<SkillRespVO> getSkillPage(SkillPageReqVO pageReqVO);
 
+    /**
+     * 获得全部技能（含停用，供门面批量查询）
+     *
+     * @return 技能列表
+     */
+    List<SkillDO> getSkillList();
+
     // ==================== 工序技能要求 ====================
 
     /**
@@ -118,6 +127,14 @@ public interface SkillService {
      * @return 技能要求列表
      */
     List<OpSkillReqDO> getOpSkillReqListByOpId(Long opId);
+
+    /**
+     * 按标准工序编号集合批量查询技能要求（供门面批量查询）
+     *
+     * @param opIds 标准工序编号集合
+     * @return 技能要求列表；空集合返回空列表
+     */
+    List<OpSkillReqDO> getOpSkillReqList(Collection<Long> opIds);
 
     // ==================== 人员技能 ====================
 
@@ -176,5 +193,13 @@ public interface SkillService {
      * @return 有效技能列表
      */
     List<MemberSkillDO> getMemberSkillListByUserId(Long userId, java.time.LocalDate now);
+
+    /**
+     * 按用户编号集合批量查询人员技能（含停用，供门面批量查询）
+     *
+     * @param userIds system 用户编号集合
+     * @return 人员技能列表；空集合返回空列表
+     */
+    List<MemberSkillDO> getMemberSkillList(Collection<Long> userIds);
 
 }

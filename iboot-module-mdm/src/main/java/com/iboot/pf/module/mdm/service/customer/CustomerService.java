@@ -59,4 +59,19 @@ public interface CustomerService {
      */
     PageResult<CustomerDO> getCustomerPage(CustomerPageReqVO pageReqVO);
 
+    /**
+     * 获得全部客户（含停用）
+     *
+     * @return 客户列表
+     */
+    List<CustomerDO> getCustomerList();
+
+    /**
+     * 按编号批量查询客户
+     *
+     * @param ids 客户编号集合
+     * @return 客户列表；空集合返回空列表
+     */
+    List<CustomerDO> getCustomerList(Collection<Long> ids);
+
 }

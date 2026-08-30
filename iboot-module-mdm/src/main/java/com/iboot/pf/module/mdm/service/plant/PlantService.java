@@ -59,4 +59,19 @@ public interface PlantService {
      */
     PageResult<PlantRespVO> getPlantPage(PlantPageReqVO pageReqVO);
 
+    /**
+     * 获得全部工厂（含停用）
+     *
+     * @return 工厂列表
+     */
+    List<PlantDO> getPlantList();
+
+    /**
+     * 按库存组织编号查询其下属工厂
+     *
+     * @param invOrgId 库存组织编号
+     * @return 工厂列表；无工厂返回空列表
+     */
+    List<PlantDO> getPlantListByInvOrgId(Long invOrgId);
+
 }
