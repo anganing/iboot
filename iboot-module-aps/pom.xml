@@ -20,6 +20,21 @@
     <dependencies>
         <dependency>
             <groupId>com.iboot</groupId>
+            <artifactId>iboot-module-mdm</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.iboot</groupId>
+            <artifactId>iboot-module-wms</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.iboot</groupId>
+            <artifactId>iboot-module-mes</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.iboot</groupId>
             <artifactId>iboot-module-system</artifactId>
             <version>${revision}</version>
         </dependency>
