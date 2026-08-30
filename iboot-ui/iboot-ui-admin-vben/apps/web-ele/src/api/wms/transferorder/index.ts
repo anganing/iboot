@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsTransferOrderApi {
-  /** WMS-库存转移调拨明细信息 */
+  /** 调拨明细信息 */
   export interface TransferOrderLine {
             id: number; // 主键
             orderId?: number; // 转移调拨单编号
@@ -34,7 +33,7 @@ export namespace WmsTransferOrderApi {
             remark: string; // 备注
   }
 
-  /** WMS-库存转移调拨单信息 */
+  /** 移库调拨单信息 */
   export interface TransferOrder {
     id: number; // 主键
     transferNo?: string; // 转移或调拨单号
@@ -54,7 +53,7 @@ export namespace WmsTransferOrderApi {
   }
 }
 
-/** 查询WMS-库存转移调拨单分页 */
+/** 查询移库调拨单分页 */
 export function getTransferOrderPage(params: PageParam) {
   return requestClient.get<PageResult<WmsTransferOrderApi.TransferOrder>>(
     '/wms/transfer-order/page',
@@ -62,83 +61,83 @@ export function getTransferOrderPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-库存转移调拨单详情 */
+/** 查询移库调拨单详情 */
 export function getTransferOrder(id: number) {
   return requestClient.get<WmsTransferOrderApi.TransferOrder>(
     `/wms/transfer-order/get?id=${id}`,
   );
 }
 
-/** 新增WMS-库存转移调拨单 */
+/** 新增移库调拨单 */
 export function createTransferOrder(data: WmsTransferOrderApi.TransferOrder) {
   return requestClient.post('/wms/transfer-order/create', data);
 }
 
-/** 修改WMS-库存转移调拨单 */
+/** 修改移库调拨单 */
 export function updateTransferOrder(data: WmsTransferOrderApi.TransferOrder) {
   return requestClient.put('/wms/transfer-order/update', data);
 }
 
-/** 删除WMS-库存转移调拨单 */
+/** 删除移库调拨单 */
 export function deleteTransferOrder(id: number) {
   return requestClient.delete(`/wms/transfer-order/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库存转移调拨单 */
+/** 批量删除移库调拨单 */
 export function deleteTransferOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/transfer-order/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-库存转移调拨单 */
+/** 导出移库调拨单 */
 export function exportTransferOrder(params: any) {
   return requestClient.download('/wms/transfer-order/export-excel', { params });
 }
 
-/** 下载WMS-库存转移调拨单导入模板 */
+/** 下载移库调拨单导入模板 */
 export function importTransferOrderTemplate() {
   return requestClient.download('/wms/transfer-order/get-import-template');
 }
 
-/** 导入WMS-库存转移调拨单 */
+/** 导入移库调拨单 */
 export function importTransferOrder(file: File) {
   return requestClient.upload('/wms/transfer-order/import', { file });
 }
 
 
-// ==================== 子表（WMS-库存转移调拨明细） ====================
+// ==================== 子表（调拨明细） ====================
 
-/** 获得WMS-库存转移调拨明细分页 */
+/** 获得调拨明细分页 */
 export function getTransferOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsTransferOrderApi.TransferOrderLine>>(
     `/wms/transfer-order/transfer-order-line/page`,
     { params },
   );
 }
-/** 新增WMS-库存转移调拨明细 */
+/** 新增调拨明细 */
 export function createTransferOrderLine(data: WmsTransferOrderApi.TransferOrderLine) {
   return requestClient.post(`/wms/transfer-order/transfer-order-line/create`, data);
 }
 
-/** 修改WMS-库存转移调拨明细 */
+/** 修改调拨明细 */
 export function updateTransferOrderLine(data: WmsTransferOrderApi.TransferOrderLine) {
   return requestClient.put(`/wms/transfer-order/transfer-order-line/update`, data);
 }
 
-/** 删除WMS-库存转移调拨明细 */
+/** 删除调拨明细 */
 export function deleteTransferOrderLine(id: number) {
   return requestClient.delete(`/wms/transfer-order/transfer-order-line/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库存转移调拨明细 */
+/** 批量删除调拨明细 */
 export function deleteTransferOrderLineList(ids: number[]) {
   return requestClient.delete(
     `/wms/transfer-order/transfer-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 获得WMS-库存转移调拨明细 */
+/** 获得调拨明细 */
 export function getTransferOrderLine(id: number) {
   return requestClient.get<WmsTransferOrderApi.TransferOrderLine>(
     `/wms/transfer-order/transfer-order-line/get?id=${id}`,

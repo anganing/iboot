@@ -2,9 +2,22 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsLocApi } from '#/api/wms/loc';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { WH_RELATION_PROPS, ZONE_RELATION_PROPS } from '../relation-config';
+
+/** 尺寸类数值控件的公共配置，单位毫米 */
+const DIMENSION_PROPS = {
+  class: '!w-full',
+  controlsPosition: 'right' as const,
+  min: 0,
+  precision: 2,
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -18,156 +31,147 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'whId',
-      label: '仓库编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入仓库编号',
-      },
-    },
-    {
-      fieldName: 'zoneId',
-      label: '库区编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库区编号',
-      },
-    },
-    {
       fieldName: 'code',
       label: '库位编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入库位编码',
       },
     },
     {
+      fieldName: 'whId',
+      label: '所属仓库',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
+    },
+    {
+      fieldName: 'zoneId',
+      label: '所属库区',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: ZONE_RELATION_PROPS,
+    },
+    {
       fieldName: 'locType',
-      label: '库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX',
+      label: '库位类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX',
+        options: getDictOptions('wms_loc_type', 'string'),
+        placeholder: '请选择库位类型',
       },
     },
     {
       fieldName: 'aisleNo',
       label: '巷道号',
       component: 'Input',
-      componentProps: {
-        placeholder: '请输入巷道号',
-      },
+      componentProps: { maxLength: 32, placeholder: '请输入巷道号' },
     },
     {
       fieldName: 'rowNo',
       label: '排号',
       component: 'Input',
-      componentProps: {
-        placeholder: '请输入排号',
-      },
+      componentProps: { maxLength: 32, placeholder: '请输入排号' },
     },
     {
       fieldName: 'colNo',
       label: '列号',
       component: 'Input',
-      componentProps: {
-        placeholder: '请输入列号',
-      },
+      componentProps: { maxLength: 32, placeholder: '请输入列号' },
     },
     {
       fieldName: 'levelNo',
       label: '层号',
       component: 'Input',
-      componentProps: {
-        placeholder: '请输入层号',
-      },
+      componentProps: { maxLength: 32, placeholder: '请输入层号' },
     },
     {
       fieldName: 'depthNo',
       label: '纵深号',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入纵深号',
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '双深货位填 1 或 2',
       },
     },
     {
       fieldName: 'maxLength',
-      label: '容器最大长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入容器最大长度，单位毫米',
-      },
+      label: '最大长度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'maxWidth',
-      label: '容器最大宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入容器最大宽度，单位毫米',
-      },
+      label: '最大宽度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'maxHeight',
-      label: '容器最大高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入容器最大高度，单位毫米',
-      },
+      label: '最大高度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'maxWeight',
       label: '最大承重',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入最大承重',
-      },
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位千克' },
     },
     {
       fieldName: 'maxVolume',
       label: '最大容积',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入最大容积',
-      },
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位立方米' },
     },
     {
       fieldName: 'maxContainerQty',
-      label: '最大容器数量',
-      component: 'Input',
+      label: '最大容器数',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入最大容器数量',
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '可存放的容器数量',
       },
     },
     {
       fieldName: 'dimensionCheckMode',
-      label: '尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM',
+      label: '尺寸校验',
       rules: 'required',
-      component: 'Input',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM',
+        options: getDictOptions('wms_dimension_check_mode', 'string'),
+        placeholder: '请选择尺寸校验模式',
       },
+      defaultValue: 'NONE',
     },
     {
       fieldName: 'status',
-      label: '状态：EMPTY、OCCUPIED、LOCKED、DISABLED',
+      label: '库位状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_loc_status', 'string'),
+        placeholder: '请选择库位状态',
       },
+      defaultValue: 'EMPTY',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -178,7 +182,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-库位数据',
+      label: '库位数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -190,24 +194,6 @@ export function useImportFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'whId',
-      label: '仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入仓库编号',
-      },
-    },
-    {
-      fieldName: 'zoneId',
-      label: '库区编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库区编号',
-      },
-    },
-    {
       fieldName: 'code',
       label: '库位编码',
       component: 'Input',
@@ -217,140 +203,41 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'whId',
+      label: '所属仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
+    },
+    {
+      fieldName: 'zoneId',
+      label: '所属库区',
+      component: markRaw(RelationSelect),
+      componentProps: ZONE_RELATION_PROPS,
+    },
+    {
       fieldName: 'locType',
-      label: '库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX',
+      label: '库位类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX',
+        options: getDictOptions('wms_loc_type', 'string'),
+        placeholder: '请选择库位类型',
       },
     },
     {
       fieldName: 'aisleNo',
       label: '巷道号',
       component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入巷道号',
-      },
-    },
-    {
-      fieldName: 'rowNo',
-      label: '排号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入排号',
-      },
-    },
-    {
-      fieldName: 'colNo',
-      label: '列号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入列号',
-      },
-    },
-    {
-      fieldName: 'levelNo',
-      label: '层号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入层号',
-      },
-    },
-    {
-      fieldName: 'depthNo',
-      label: '纵深号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入纵深号',
-      },
-    },
-    {
-      fieldName: 'maxLength',
-      label: '容器最大长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器最大长度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'maxWidth',
-      label: '容器最大宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器最大宽度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'maxHeight',
-      label: '容器最大高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器最大高度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'maxWeight',
-      label: '最大承重',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入最大承重',
-      },
-    },
-    {
-      fieldName: 'maxVolume',
-      label: '最大容积',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入最大容积',
-      },
-    },
-    {
-      fieldName: 'maxContainerQty',
-      label: '最大容器数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入最大容器数量',
-      },
-    },
-    {
-      fieldName: 'dimensionCheckMode',
-      label: '尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM',
-      },
+      componentProps: { clearable: true, placeholder: '请输入巷道号' },
     },
     {
       fieldName: 'status',
-      label: '状态：EMPTY、OCCUPIED、LOCKED、DISABLED',
+      label: '库位状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：EMPTY、OCCUPIED、LOCKED、DISABLED',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions('wms_loc_status', 'string'),
+        placeholder: '请选择库位状态',
       },
     },
     {
@@ -368,117 +255,53 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsLocApi.Loc>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'code',
-      title: '库位编码',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'code', title: '库位编码', minWidth: 150 },
+    { field: 'whName', title: '所属仓库', minWidth: 140 },
+    { field: 'zoneName', title: '所属库区', minWidth: 140 },
     {
       field: 'locType',
-      title: '库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX',
-      minWidth: 120,
+      title: '库位类型',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_loc_type' } },
     },
     {
-      field: 'aisleNo',
-      title: '巷道号',
-      minWidth: 120,
+      field: 'position',
+      title: '巷道/排/列/层',
+      minWidth: 140,
+      formatter: ({ row }) =>
+        [row.aisleNo, row.rowNo, row.colNo, row.levelNo]
+          .filter(Boolean)
+          .join('-') || '-',
     },
-    {
-      field: 'rowNo',
-      title: '排号',
-      minWidth: 120,
-    },
-    {
-      field: 'colNo',
-      title: '列号',
-      minWidth: 120,
-    },
-    {
-      field: 'levelNo',
-      title: '层号',
-      minWidth: 120,
-    },
-    {
-      field: 'depthNo',
-      title: '纵深号',
-      minWidth: 120,
-    },
-    {
-      field: 'maxLength',
-      title: '容器最大长度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'maxWidth',
-      title: '容器最大宽度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'maxHeight',
-      title: '容器最大高度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'maxWeight',
-      title: '最大承重',
-      minWidth: 120,
-    },
-    {
-      field: 'maxVolume',
-      title: '最大容积',
-      minWidth: 120,
-    },
-    {
-      field: 'maxContainerQty',
-      title: '最大容器数量',
-      minWidth: 120,
-    },
+    { field: 'maxWeight', title: '最大承重', minWidth: 110 },
+    { field: 'maxContainerQty', title: '最大容器数', minWidth: 110 },
     {
       field: 'dimensionCheckMode',
-      title: '尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM',
-      minWidth: 120,
+      title: '尺寸校验',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: 'wms_dimension_check_mode' },
+      },
     },
     {
       field: 'status',
-      title: '状态：EMPTY、OCCUPIED、LOCKED、DISABLED',
-      minWidth: 120,
+      title: '库位状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_loc_status' } },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'whCode',
-      title: '仓库编码',
-      minWidth: 120,
-    },
-    {
-      field: 'whName',
-      title: '仓库名称',
-      minWidth: 120,
-    },
-    {
-      field: 'zoneCode',
-      title: '库区编码',
-      minWidth: 120,
-    },
-    {
-      field: 'zoneName',
-      title: '库区名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

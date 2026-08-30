@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsContainerTypeApi {
-  /** WMS-容器类型信息 */
+  /** 容器类型信息 */
   export interface ContainerType {
     id: number; // 主键
     code?: string; // 容器类型编码
@@ -19,7 +18,7 @@ export namespace WmsContainerTypeApi {
   }
 }
 
-/** 查询WMS-容器类型分页 */
+/** 查询容器类型分页 */
 export function getContainerTypePage(params: PageParam) {
   return requestClient.get<PageResult<WmsContainerTypeApi.ContainerType>>(
     '/wms/container-type/page',
@@ -27,46 +26,46 @@ export function getContainerTypePage(params: PageParam) {
   );
 }
 
-/** 查询WMS-容器类型详情 */
+/** 查询容器类型详情 */
 export function getContainerType(id: number) {
   return requestClient.get<WmsContainerTypeApi.ContainerType>(
     `/wms/container-type/get?id=${id}`,
   );
 }
 
-/** 新增WMS-容器类型 */
+/** 新增容器类型 */
 export function createContainerType(data: WmsContainerTypeApi.ContainerType) {
   return requestClient.post('/wms/container-type/create', data);
 }
 
-/** 修改WMS-容器类型 */
+/** 修改容器类型 */
 export function updateContainerType(data: WmsContainerTypeApi.ContainerType) {
   return requestClient.put('/wms/container-type/update', data);
 }
 
-/** 删除WMS-容器类型 */
+/** 删除容器类型 */
 export function deleteContainerType(id: number) {
   return requestClient.delete(`/wms/container-type/delete?id=${id}`);
 }
 
-/** 批量删除WMS-容器类型 */
+/** 批量删除容器类型 */
 export function deleteContainerTypeList(ids: number[]) {
   return requestClient.delete(
     `/wms/container-type/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-容器类型 */
+/** 导出容器类型 */
 export function exportContainerType(params: any) {
   return requestClient.download('/wms/container-type/export-excel', { params });
 }
 
-/** 下载WMS-容器类型导入模板 */
+/** 下载容器类型导入模板 */
 export function importContainerTypeTemplate() {
   return requestClient.download('/wms/container-type/get-import-template');
 }
 
-/** 导入WMS-容器类型 */
+/** 导入容器类型 */
 export function importContainerType(file: File) {
   return requestClient.upload('/wms/container-type/import', { file });
 }

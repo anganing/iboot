@@ -10,6 +10,7 @@
   import { useVbenForm } from '#/adapter/form';
   import { getTransferOrderLine, createTransferOrderLine, updateTransferOrderLine } from '#/api/wms/transferorder';
   import { $t } from '#/locales';
+  import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
   import { useTransferOrderLineFormSchema } from '../data';
 
@@ -17,18 +18,22 @@
   const formData = ref<WmsTransferOrderApi.TransferOrderLine>();
   const getTitle = computed(() => {
     return formData.value?.id
-        ? $t('ui.actionTitle.edit', ['WMS-库存转移调拨明细'])
-        : $t('ui.actionTitle.create', ['WMS-库存转移调拨明细']);
+        ? $t('ui.actionTitle.edit', ['调拨明细'])
+        : $t('ui.actionTitle.create', ['调拨明细']);
   });
+
+  const formLayout = getMdmFormLayout(2);
 
   const [Form, formApi] = useVbenForm({
     commonConfig: {
       componentProps: {
         class: 'w-full',
       },
-      formItemClass: 'col-span-2',
-      labelWidth: 80,
+      formItemClass: formLayout.formItemClass,
+      labelClass: 'justify-start',
+      labelWidth: 110,
     },
+    wrapperClass: formLayout.wrapperClass,
     layout: 'horizontal',
     schema: useTransferOrderLineFormSchema(),
     showDefaultActions: false
@@ -82,7 +87,7 @@
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
 </template>

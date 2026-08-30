@@ -5,7 +5,7 @@ import type { WmsWaveApi } from '#/api/wms/wave';
  import WaveLineForm from './wave-line-form.vue'
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
-import { ref, computed, nextTick,watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -27,35 +27,35 @@ async function handleRefresh() {
    await gridApi.query();
 }
 
-/** 创建WMS-波次明细 */
+/** 创建波次明细 */
 function handleCreate() {
   if (!props.waveId){
-    ElMessage.warning("请先选择一个WMS-出库波次!")
+    ElMessage.warning("请先选择一个出库波次!")
     return
   }
   formModalApi.setData({waveId: props.waveId}).open();
 }
 
-/** 编辑WMS-波次明细 */
+/** 编辑波次明细 */
 function handleEdit(row: WmsWaveApi.WaveLine) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-波次明细 */
+/** 删除波次明细 */
 async function handleDelete(row: WmsWaveApi.WaveLine) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.lineNo]),
   });
   try {
     await deleteWaveLine(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lineNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-波次明细 */
+/** 批量删除波次明细 */
 async function handleDeleteBatch() {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting'),
@@ -135,12 +135,12 @@ watch(
 
 <template>
        <FormModal @success="handleRefresh" />
-      <Grid table-title="WMS-波次明细列表">
+      <Grid table-title="波次明细列表">
         <template #toolbar-tools>
           <TableAction
             :actions="[
               {
-                label: $t('ui.actionTitle.create', ['WMS-出库波次']),
+                label: $t('ui.actionTitle.create', ['波次明细']),
                 type: 'primary',
                 icon: ACTION_ICON.ADD,
                 auth: ['wms:wave:create'],
@@ -175,7 +175,7 @@ watch(
                 icon: ACTION_ICON.DELETE,
                 auth: ['wms:wave:delete'],
                 popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                  title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
                   confirm: handleDelete.bind(null, row),
                 },
               },

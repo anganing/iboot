@@ -2,9 +2,18 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsContainerTypeApi } from '#/api/wms/containertype';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { getRangePickerDefaultProps } from '#/utils';
+
+/** 尺寸类数值控件的公共配置 */
+const DIMENSION_PROPS = {
+  class: '!w-full',
+  controlsPosition: 'right' as const,
+  min: 0,
+  precision: 2,
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,79 +28,72 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'code',
-      label: '容器类型编码',
+      label: '类型编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入容器类型编码',
       },
     },
     {
       fieldName: 'name',
-      label: '容器类型名称',
+      label: '类型名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入容器类型名称',
       },
     },
     {
       fieldName: 'stdLength',
-      label: '标准长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入标准长度，单位毫米',
-      },
+      label: '标准长度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'stdWidth',
-      label: '标准宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入标准宽度，单位毫米',
-      },
+      label: '标准宽度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'stdHeight',
-      label: '标准高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入标准高度，单位毫米',
-      },
+      label: '标准高度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'maxWeight',
       label: '最大承重',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入最大承重',
-      },
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位千克' },
     },
     {
       fieldName: 'maxVolume',
       label: '最大容积',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入最大容积',
-      },
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位立方米' },
     },
     {
       fieldName: 'status',
-      label: '状态：0-启用，1-停用',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -102,7 +104,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-容器类型数据',
+      label: '容器类型数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -115,7 +117,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'code',
-      label: '容器类型编码',
+      label: '类型编码',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -124,7 +126,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'name',
-      label: '容器类型名称',
+      label: '类型名称',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -132,67 +134,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'stdLength',
-      label: '标准长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入标准长度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'stdWidth',
-      label: '标准宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入标准宽度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'stdHeight',
-      label: '标准高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入标准高度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'maxWeight',
-      label: '最大承重',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入最大承重',
-      },
-    },
-    {
-      fieldName: 'maxVolume',
-      label: '最大容积',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入最大容积',
-      },
-    },
-    {
       fieldName: 'status',
-      label: '状态：0-启用，1-停用',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：0-启用，1-停用',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -210,62 +158,42 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsContainerTypeApi.ContainerType>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'code', title: '类型编码', minWidth: 140 },
+    { field: 'name', title: '类型名称', minWidth: 160 },
     {
-      field: 'code',
-      title: '容器类型编码',
-      minWidth: 120,
+      field: 'stdSize',
+      title: '标准尺寸（长×宽×高）',
+      minWidth: 180,
+      formatter: ({ row }) =>
+        [row.stdLength, row.stdWidth, row.stdHeight].every(
+          (item) => item !== null && item !== undefined,
+        )
+          ? `${row.stdLength} × ${row.stdWidth} × ${row.stdHeight}`
+          : '-',
     },
-    {
-      field: 'name',
-      title: '容器类型名称',
-      minWidth: 120,
-    },
-    {
-      field: 'stdLength',
-      title: '标准长度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'stdWidth',
-      title: '标准宽度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'stdHeight',
-      title: '标准高度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'maxWeight',
-      title: '最大承重',
-      minWidth: 120,
-    },
-    {
-      field: 'maxVolume',
-      title: '最大容积',
-      minWidth: 120,
-    },
+    { field: 'maxWeight', title: '最大承重', minWidth: 110 },
+    { field: 'maxVolume', title: '最大容积', minWidth: 110 },
     {
       field: 'status',
-      title: '状态：0-启用，1-停用',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 90,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

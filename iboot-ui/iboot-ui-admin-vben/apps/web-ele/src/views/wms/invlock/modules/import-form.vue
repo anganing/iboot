@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importInvLockTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-库存冻结记录导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '库存冻结导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-库存冻结记录" class="w-1/3">
+  <Modal title="导入库存冻结" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

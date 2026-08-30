@@ -127,6 +127,61 @@ export const PROJECT_RELATION_PROPS = {
   valueField: 'id',
 };
 
+export const PROJECT_TASK_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '任务编码', minWidth: 140 },
+    { field: 'name', label: '任务名称', minWidth: 160 },
+    { field: 'projectCode', label: '所属项目', minWidth: 140 },
+  ],
+  detailUri: '/mdm/project-task/get?id={id}',
+  dialogTitle: '选择项目任务',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/project-task/page',
+  placeholder: '请选择项目任务',
+  queryFields: [
+    { field: 'code', label: '任务编码' },
+    { field: 'name', label: '任务名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
+export const SUPPLIER_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '供应商编码', minWidth: 140 },
+    { field: 'name', label: '供应商名称', minWidth: 180 },
+  ],
+  detailUri: '/mdm/supplier/get?id={id}',
+  dialogTitle: '选择供应商',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/supplier/page',
+  placeholder: '请选择供应商',
+  queryFields: [
+    { field: 'code', label: '供应商编码' },
+    { field: 'name', label: '供应商名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
+export const CUSTOMER_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '客户编码', minWidth: 140 },
+    { field: 'name', label: '客户名称', minWidth: 180 },
+  ],
+  detailUri: '/mdm/customer/get?id={id}',
+  dialogTitle: '选择客户',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/customer/page',
+  placeholder: '请选择客户',
+  queryFields: [
+    { field: 'code', label: '客户编码' },
+    { field: 'name', label: '客户名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};
+
 export const MAT_CAT_RELATION_PROPS = {
   allUri: '/mdm/mat-cat/list',
   columns: [

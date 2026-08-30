@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsContainerApi {
-  /** WMS-容器主档信息 */
+  /** 容器信息 */
   export interface Container {
     id: number; // 主键
     containerNo?: string; // 容器编号或条码
@@ -22,7 +21,7 @@ export namespace WmsContainerApi {
   }
 }
 
-/** 查询WMS-容器主档分页 */
+/** 查询容器分页 */
 export function getContainerPage(params: PageParam) {
   return requestClient.get<PageResult<WmsContainerApi.Container>>(
     '/wms/container/page',
@@ -30,46 +29,46 @@ export function getContainerPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-容器主档详情 */
+/** 查询容器详情 */
 export function getContainer(id: number) {
   return requestClient.get<WmsContainerApi.Container>(
     `/wms/container/get?id=${id}`,
   );
 }
 
-/** 新增WMS-容器主档 */
+/** 新增容器 */
 export function createContainer(data: WmsContainerApi.Container) {
   return requestClient.post('/wms/container/create', data);
 }
 
-/** 修改WMS-容器主档 */
+/** 修改容器 */
 export function updateContainer(data: WmsContainerApi.Container) {
   return requestClient.put('/wms/container/update', data);
 }
 
-/** 删除WMS-容器主档 */
+/** 删除容器 */
 export function deleteContainer(id: number) {
   return requestClient.delete(`/wms/container/delete?id=${id}`);
 }
 
-/** 批量删除WMS-容器主档 */
+/** 批量删除容器 */
 export function deleteContainerList(ids: number[]) {
   return requestClient.delete(
     `/wms/container/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-容器主档 */
+/** 导出容器 */
 export function exportContainer(params: any) {
   return requestClient.download('/wms/container/export-excel', { params });
 }
 
-/** 下载WMS-容器主档导入模板 */
+/** 下载容器导入模板 */
 export function importContainerTemplate() {
   return requestClient.download('/wms/container/get-import-template');
 }
 
-/** 导入WMS-容器主档 */
+/** 导入容器 */
 export function importContainer(file: File) {
   return requestClient.upload('/wms/container/import', { file });
 }

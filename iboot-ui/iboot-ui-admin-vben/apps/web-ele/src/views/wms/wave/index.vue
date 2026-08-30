@@ -35,7 +35,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-出库波次 */
+/** 导入出库波次 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -45,31 +45,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-出库波次 */
+/** 创建出库波次 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-出库波次 */
+/** 编辑出库波次 */
 function handleEdit(row: WmsWaveApi.Wave) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-出库波次 */
+/** 删除出库波次 */
 async function handleDelete(row: WmsWaveApi.Wave) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.waveNo]),
   });
   try {
     await deleteWave(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.waveNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-出库波次 */
+/** 批量删除出库波次 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -97,7 +97,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportWave(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-出库波次.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '出库波次.xls', source: data });
 }
 
 
@@ -145,12 +145,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
    <div>
-    <Grid table-title="WMS-出库波次列表">
+    <Grid table-title="出库波次列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-出库波次']),
+              label: $t('ui.actionTitle.create', ['出库波次']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:wave:create'],
@@ -198,7 +198,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:wave:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.waveNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -208,7 +208,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
      <!-- 子表的表单 -->
     <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="waveLine" label="WMS-波次明细">
+          <ElTabPane name="waveLine" label="波次明细">
             <WaveLineList :wave-id="selectWave?.id" />
           </ElTabPane>
     </ElTabs>

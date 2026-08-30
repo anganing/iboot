@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsInvBalanceApi {
-  /** WMS-多维库存余额信息 */
+  /** 库存余额信息 */
   export interface InvBalance {
     id: number; // 主键
     invOrgId?: number; // 库存组织编号
@@ -33,7 +32,7 @@ export namespace WmsInvBalanceApi {
   }
 }
 
-/** 查询WMS-多维库存余额分页 */
+/** 查询库存余额分页 */
 export function getInvBalancePage(params: PageParam) {
   return requestClient.get<PageResult<WmsInvBalanceApi.InvBalance>>(
     '/wms/inv-balance/page',
@@ -41,46 +40,46 @@ export function getInvBalancePage(params: PageParam) {
   );
 }
 
-/** 查询WMS-多维库存余额详情 */
+/** 查询库存余额详情 */
 export function getInvBalance(id: number) {
   return requestClient.get<WmsInvBalanceApi.InvBalance>(
     `/wms/inv-balance/get?id=${id}`,
   );
 }
 
-/** 新增WMS-多维库存余额 */
+/** 新增库存余额 */
 export function createInvBalance(data: WmsInvBalanceApi.InvBalance) {
   return requestClient.post('/wms/inv-balance/create', data);
 }
 
-/** 修改WMS-多维库存余额 */
+/** 修改库存余额 */
 export function updateInvBalance(data: WmsInvBalanceApi.InvBalance) {
   return requestClient.put('/wms/inv-balance/update', data);
 }
 
-/** 删除WMS-多维库存余额 */
+/** 删除库存余额 */
 export function deleteInvBalance(id: number) {
   return requestClient.delete(`/wms/inv-balance/delete?id=${id}`);
 }
 
-/** 批量删除WMS-多维库存余额 */
+/** 批量删除库存余额 */
 export function deleteInvBalanceList(ids: number[]) {
   return requestClient.delete(
     `/wms/inv-balance/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-多维库存余额 */
+/** 导出库存余额 */
 export function exportInvBalance(params: any) {
   return requestClient.download('/wms/inv-balance/export-excel', { params });
 }
 
-/** 下载WMS-多维库存余额导入模板 */
+/** 下载库存余额导入模板 */
 export function importInvBalanceTemplate() {
   return requestClient.download('/wms/inv-balance/get-import-template');
 }
 
-/** 导入WMS-多维库存余额 */
+/** 导入库存余额 */
 export function importInvBalance(file: File) {
   return requestClient.upload('/wms/inv-balance/import', { file });
 }

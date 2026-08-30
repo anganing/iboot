@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsInOrderApi {
-  /** WMS-入库单明细信息 */
+  /** 入库明细信息 */
   export interface InOrderLine {
             id: number; // 主键
             orderId?: number; // 入库单编号
@@ -31,7 +30,7 @@ export namespace WmsInOrderApi {
             remark: string; // 备注
   }
 
-  /** WMS-入库单信息 */
+  /** 入库单信息 */
   export interface InOrder {
     id: number; // 主键
     inNo?: string; // 入库单号
@@ -67,7 +66,7 @@ export namespace WmsInOrderApi {
   }
 }
 
-/** 查询WMS-入库单分页 */
+/** 查询入库单分页 */
 export function getInOrderPage(params: PageParam) {
   return requestClient.get<PageResult<WmsInOrderApi.InOrder>>(
     '/wms/in-order/page',
@@ -75,83 +74,83 @@ export function getInOrderPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-入库单详情 */
+/** 查询入库单详情 */
 export function getInOrder(id: number) {
   return requestClient.get<WmsInOrderApi.InOrder>(
     `/wms/in-order/get?id=${id}`,
   );
 }
 
-/** 新增WMS-入库单 */
+/** 新增入库单 */
 export function createInOrder(data: WmsInOrderApi.InOrder) {
   return requestClient.post('/wms/in-order/create', data);
 }
 
-/** 修改WMS-入库单 */
+/** 修改入库单 */
 export function updateInOrder(data: WmsInOrderApi.InOrder) {
   return requestClient.put('/wms/in-order/update', data);
 }
 
-/** 删除WMS-入库单 */
+/** 删除入库单 */
 export function deleteInOrder(id: number) {
   return requestClient.delete(`/wms/in-order/delete?id=${id}`);
 }
 
-/** 批量删除WMS-入库单 */
+/** 批量删除入库单 */
 export function deleteInOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/in-order/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-入库单 */
+/** 导出入库单 */
 export function exportInOrder(params: any) {
   return requestClient.download('/wms/in-order/export-excel', { params });
 }
 
-/** 下载WMS-入库单导入模板 */
+/** 下载入库单导入模板 */
 export function importInOrderTemplate() {
   return requestClient.download('/wms/in-order/get-import-template');
 }
 
-/** 导入WMS-入库单 */
+/** 导入入库单 */
 export function importInOrder(file: File) {
   return requestClient.upload('/wms/in-order/import', { file });
 }
 
 
-// ==================== 子表（WMS-入库单明细） ====================
+// ==================== 子表（入库明细） ====================
 
-/** 获得WMS-入库单明细分页 */
+/** 获得入库明细分页 */
 export function getInOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsInOrderApi.InOrderLine>>(
     `/wms/in-order/in-order-line/page`,
     { params },
   );
 }
-/** 新增WMS-入库单明细 */
+/** 新增入库明细 */
 export function createInOrderLine(data: WmsInOrderApi.InOrderLine) {
   return requestClient.post(`/wms/in-order/in-order-line/create`, data);
 }
 
-/** 修改WMS-入库单明细 */
+/** 修改入库明细 */
 export function updateInOrderLine(data: WmsInOrderApi.InOrderLine) {
   return requestClient.put(`/wms/in-order/in-order-line/update`, data);
 }
 
-/** 删除WMS-入库单明细 */
+/** 删除入库明细 */
 export function deleteInOrderLine(id: number) {
   return requestClient.delete(`/wms/in-order/in-order-line/delete?id=${id}`);
 }
 
-/** 批量删除WMS-入库单明细 */
+/** 批量删除入库明细 */
 export function deleteInOrderLineList(ids: number[]) {
   return requestClient.delete(
     `/wms/in-order/in-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 获得WMS-入库单明细 */
+/** 获得入库明细 */
 export function getInOrderLine(id: number) {
   return requestClient.get<WmsInOrderApi.InOrderLine>(
     `/wms/in-order/in-order-line/get?id=${id}`,

@@ -2,9 +2,32 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvTxnApi } from '#/api/wms/invtxn';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  MAT_RELATION_PROPS,
+  PROJECT_RELATION_PROPS,
+  UOM_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
+
+import {
+  BATCH_RELATION_PROPS,
+  CONTAINER_RELATION_PROPS,
+  LOC_RELATION_PROPS,
+  WH_RELATION_PROPS,
+} from '../relation-config';
+
+/** 数量控件的公共配置 */
+const QTY_PROPS = {
+  class: '!w-full',
+  controlsPosition: 'right' as const,
+  min: 0,
+  precision: 6,
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,287 +42,185 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'txnNo',
-      label: '库存事务编号',
+      label: '事务编号',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入库存事务编号',
       },
     },
     {
       fieldName: 'txnType',
-      label: '事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST',
+      label: '事务类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST',
+        options: getDictOptions('wms_txn_type', 'string'),
+        placeholder: '请选择事务类型',
       },
     },
     {
-      fieldName: 'bizType',
-      label: '来源业务类型',
+      fieldName: 'ioType',
+      label: '收发方向',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择来源业务类型',
+        options: getDictOptions('wms_io_type', 'string'),
+        placeholder: '请选择收发方向',
       },
     },
     {
       fieldName: 'bizNo',
-      label: '来源业务单号',
+      label: '来源单号',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入来源业务单号',
       },
     },
     {
       fieldName: 'bizLineNo',
-      label: '来源业务行号',
+      label: '来源行号',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入来源业务行号',
       },
     },
     {
-      fieldName: 'ioType',
-      label: '收发方向：IN、OUT、MOVE、STATUS',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: [],
-        placeholder: '请选择收发方向：IN、OUT、MOVE、STATUS',
-      },
-    },
-    {
-      fieldName: 'invOrgId',
-      label: '库存组织编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库存组织编号',
-      },
-    },
-    {
-      fieldName: 'plantId',
-      label: '工厂编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂编号',
-      },
-    },
-    {
       fieldName: 'whId',
-      label: '仓库编号',
+      label: '仓库',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入仓库编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'fromLocId',
-      label: '来源库位编号，0表示无来源库位',
-      rules: 'required',
-      component: 'Input',
+      label: '来源库位',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入来源库位编号，0表示无来源库位',
+        ...LOC_RELATION_PROPS,
+        placeholder: '入库场景可留空',
       },
     },
     {
       fieldName: 'toLocId',
-      label: '目标库位编号，0表示无目标库位',
-      rules: 'required',
-      component: 'Input',
+      label: '目标库位',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入目标库位编号，0表示无目标库位',
+        ...LOC_RELATION_PROPS,
+        placeholder: '出库场景可留空',
       },
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'batchId',
-      label: '批次编号',
+      label: '批次',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入批次编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: BATCH_RELATION_PROPS,
     },
     {
       fieldName: 'containerId',
-      label: '容器编号，0表示散件',
-      rules: 'required',
-      component: 'Input',
+      label: '容器',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入容器编号，0表示散件',
+        ...CONTAINER_RELATION_PROPS,
+        placeholder: '散件留空',
       },
     },
     {
       fieldName: 'uomId',
-      label: '基准计量单位编号',
+      label: '基准单位',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入基准计量单位编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'qty',
-      label: '事务数量，使用正数',
+      label: '事务数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入事务数量，使用正数',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入正数' },
     },
     {
       fieldName: 'beforeQty',
-      label: '过账前现存数量',
+      label: '过账前数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入过账前现存数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入过账前现存数量' },
     },
     {
       fieldName: 'afterQty',
-      label: '过账后现存数量',
+      label: '过账后数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入过账后现存数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入过账后现存数量' },
     },
     {
       fieldName: 'qualityStatusFrom',
-      label: '变更前质量状态',
-      component: 'Input',
+      label: '变更前质量',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入变更前质量状态',
+        clearable: true,
+        options: getDictOptions('wms_quality_status', 'string'),
+        placeholder: '请选择变更前质量状态',
       },
     },
     {
       fieldName: 'qualityStatusTo',
-      label: '变更后质量状态',
-      component: 'Input',
+      label: '变更后质量',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入变更后质量状态',
+        clearable: true,
+        options: getDictOptions('wms_quality_status', 'string'),
+        placeholder: '请选择变更后质量状态',
       },
     },
     {
       fieldName: 'projectIdFrom',
-      label: '变更前项目编号，0表示无项目',
-      rules: 'required',
-      component: 'Input',
+      label: '变更前项目',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入变更前项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskIdFrom',
-      label: '变更前项目任务编号，0表示无项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入变更前项目任务编号，0表示无项目任务',
+        ...PROJECT_RELATION_PROPS,
+        placeholder: '公共库存留空',
       },
     },
     {
       fieldName: 'projectIdTo',
-      label: '变更后项目编号，0表示无项目',
-      rules: 'required',
-      component: 'Input',
+      label: '变更后项目',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入变更后项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskIdTo',
-      label: '变更后项目任务编号，0表示无项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入变更后项目任务编号，0表示无项目任务',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '单位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入单位编码快照',
-      },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入批次号快照',
-      },
-    },
-    {
-      fieldName: 'fromLocCode',
-      label: '来源库位编码快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源库位编码快照',
-      },
-    },
-    {
-      fieldName: 'toLocCode',
-      label: '目标库位编码快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入目标库位编码快照',
+        ...PROJECT_RELATION_PROPS,
+        placeholder: '公共库存留空',
       },
     },
     {
       fieldName: 'idempotencyKey',
-      label: '过账幂等键',
+      label: '幂等键',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入过账幂等键',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -310,7 +231,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-库存流水数据',
+      label: '库存流水数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -323,36 +244,36 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'txnNo',
-      label: '库存事务编号',
+      label: '事务编号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入库存事务编号',
+        placeholder: '请输入事务编号',
       },
     },
     {
       fieldName: 'txnType',
-      label: '事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST',
+      label: '事务类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST',
+        options: getDictOptions('wms_txn_type', 'string'),
+        placeholder: '请选择事务类型',
       },
     },
     {
-      fieldName: 'bizType',
-      label: '来源业务类型',
+      fieldName: 'ioType',
+      label: '收发方向',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择来源业务类型',
+        options: getDictOptions('wms_io_type', 'string'),
+        placeholder: '请选择收发方向',
       },
     },
     {
       fieldName: 'bizNo',
-      label: '来源业务单号',
+      label: '来源单号',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -360,261 +281,29 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'bizLineNo',
-      label: '来源业务行号',
+      fieldName: 'matId',
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'lotNo',
+      label: '批次号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入来源业务行号',
-      },
-    },
-    {
-      fieldName: 'ioType',
-      label: '收发方向：IN、OUT、MOVE、STATUS',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择收发方向：IN、OUT、MOVE、STATUS',
-      },
-    },
-    {
-      fieldName: 'invOrgId',
-      label: '库存组织编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库存组织编号',
-      },
-    },
-    {
-      fieldName: 'plantId',
-      label: '工厂编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入批次号',
       },
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入仓库编号',
-      },
-    },
-    {
-      fieldName: 'fromLocId',
-      label: '来源库位编号，0表示无来源库位',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源库位编号，0表示无来源库位',
-      },
-    },
-    {
-      fieldName: 'toLocId',
-      label: '目标库位编号，0表示无目标库位',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入目标库位编号，0表示无目标库位',
-      },
-    },
-    {
-      fieldName: 'matId',
-      label: '物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编号',
-      },
-    },
-    {
-      fieldName: 'batchId',
-      label: '批次编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入批次编号',
-      },
-    },
-    {
-      fieldName: 'containerId',
-      label: '容器编号，0表示散件',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器编号，0表示散件',
-      },
-    },
-    {
-      fieldName: 'uomId',
-      label: '基准计量单位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入基准计量单位编号',
-      },
-    },
-    {
-      fieldName: 'qty',
-      label: '事务数量，使用正数',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入事务数量，使用正数',
-      },
-    },
-    {
-      fieldName: 'beforeQty',
-      label: '过账前现存数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入过账前现存数量',
-      },
-    },
-    {
-      fieldName: 'afterQty',
-      label: '过账后现存数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入过账后现存数量',
-      },
-    },
-    {
-      fieldName: 'qualityStatusFrom',
-      label: '变更前质量状态',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更前质量状态',
-      },
-    },
-    {
-      fieldName: 'qualityStatusTo',
-      label: '变更后质量状态',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更后质量状态',
-      },
-    },
-    {
-      fieldName: 'projectIdFrom',
-      label: '变更前项目编号，0表示无项目',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更前项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskIdFrom',
-      label: '变更前项目任务编号，0表示无项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更前项目任务编号，0表示无项目任务',
-      },
-    },
-    {
-      fieldName: 'projectIdTo',
-      label: '变更后项目编号，0表示无项目',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更后项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskIdTo',
-      label: '变更后项目任务编号，0表示无项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入变更后项目任务编号，0表示无项目任务',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '单位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入单位编码快照',
-      },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入批次号快照',
-      },
-    },
-    {
-      fieldName: 'fromLocCode',
-      label: '来源库位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源库位编码快照',
-      },
-    },
-    {
-      fieldName: 'toLocCode',
-      label: '目标库位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入目标库位编码快照',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '过账幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入过账幂等键',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
+      label: '仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'createTime',
-      label: '创建时间',
+      label: '过账时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -627,182 +316,55 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsInvTxnApi.InvTxn>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'txnNo',
-      title: '库存事务编号',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'txnNo', title: '事务编号', minWidth: 160 },
     {
       field: 'txnType',
-      title: '事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST',
+      title: '事务类型',
       minWidth: 120,
-    },
-    {
-      field: 'bizType',
-      title: '来源业务类型',
-      minWidth: 120,
-    },
-    {
-      field: 'bizNo',
-      title: '来源业务单号',
-      minWidth: 120,
-    },
-    {
-      field: 'bizLineNo',
-      title: '来源业务行号',
-      minWidth: 120,
+      cellRender: { name: 'CellDict', props: { type: 'wms_txn_type' } },
     },
     {
       field: 'ioType',
-      title: '收发方向：IN、OUT、MOVE、STATUS',
-      minWidth: 120,
+      title: '收发方向',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_io_type' } },
     },
-    {
-      field: 'invOrgId',
-      title: '库存组织编号',
-      minWidth: 120,
-    },
-    {
-      field: 'plantId',
-      title: '工厂编号',
-      minWidth: 120,
-    },
-    {
-      field: 'fromLocId',
-      title: '来源库位编号，0表示无来源库位',
-      minWidth: 120,
-    },
-    {
-      field: 'toLocId',
-      title: '目标库位编号，0表示无目标库位',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'batchId',
-      title: '批次编号',
-      minWidth: 120,
-    },
-    {
-      field: 'containerId',
-      title: '容器编号，0表示散件',
-      minWidth: 120,
-    },
-    {
-      field: 'uomId',
-      title: '基准计量单位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'qty',
-      title: '事务数量，使用正数',
-      minWidth: 120,
-    },
-    {
-      field: 'beforeQty',
-      title: '过账前现存数量',
-      minWidth: 120,
-    },
-    {
-      field: 'afterQty',
-      title: '过账后现存数量',
-      minWidth: 120,
-    },
+    { field: 'bizNo', title: '来源单号', minWidth: 150 },
+    { field: 'bizLineNo', title: '来源行号', minWidth: 100 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'lotNo', title: '批次号', minWidth: 140 },
+    { field: 'whName', title: '仓库', minWidth: 130 },
+    { field: 'fromLocCode', title: '来源库位', minWidth: 130 },
+    { field: 'toLocCode', title: '目标库位', minWidth: 130 },
+    { field: 'qty', title: '事务数量', minWidth: 110 },
+    { field: 'uomCode', title: '基准单位', minWidth: 100 },
+    { field: 'beforeQty', title: '过账前数量', minWidth: 110 },
+    { field: 'afterQty', title: '过账后数量', minWidth: 110 },
     {
       field: 'qualityStatusFrom',
-      title: '变更前质量状态',
-      minWidth: 120,
+      title: '变更前质量',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
     },
     {
       field: 'qualityStatusTo',
-      title: '变更后质量状态',
-      minWidth: 120,
+      title: '变更后质量',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
     },
-    {
-      field: 'projectIdFrom',
-      title: '变更前项目编号，0表示无项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskIdFrom',
-      title: '变更前项目任务编号，0表示无项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'projectIdTo',
-      title: '变更后项目编号，0表示无项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskIdTo',
-      title: '变更后项目任务编号，0表示无项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'uomCode',
-      title: '单位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'lotNo',
-      title: '批次号快照',
-      minWidth: 120,
-    },
-    {
-      field: 'fromLocCode',
-      title: '来源库位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'toLocCode',
-      title: '目标库位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'idempotencyKey',
-      title: '过账幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
-      title: '创建时间',
-      minWidth: 120,
+      title: '过账时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'whCode',
-      title: '仓库编码',
-      minWidth: 120,
-    },
-    {
-      field: 'whName',
-      title: '仓库名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

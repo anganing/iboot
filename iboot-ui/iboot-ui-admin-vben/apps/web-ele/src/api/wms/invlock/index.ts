@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsInvLockApi {
-  /** WMS-库存冻结记录信息 */
+  /** 库存冻结信息 */
   export interface InvLock {
     id: number; // 主键
     lockNo?: string; // 冻结编号
@@ -28,7 +27,7 @@ export namespace WmsInvLockApi {
   }
 }
 
-/** 查询WMS-库存冻结记录分页 */
+/** 查询库存冻结分页 */
 export function getInvLockPage(params: PageParam) {
   return requestClient.get<PageResult<WmsInvLockApi.InvLock>>(
     '/wms/inv-lock/page',
@@ -36,46 +35,46 @@ export function getInvLockPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-库存冻结记录详情 */
+/** 查询库存冻结详情 */
 export function getInvLock(id: number) {
   return requestClient.get<WmsInvLockApi.InvLock>(
     `/wms/inv-lock/get?id=${id}`,
   );
 }
 
-/** 新增WMS-库存冻结记录 */
+/** 新增库存冻结 */
 export function createInvLock(data: WmsInvLockApi.InvLock) {
   return requestClient.post('/wms/inv-lock/create', data);
 }
 
-/** 修改WMS-库存冻结记录 */
+/** 修改库存冻结 */
 export function updateInvLock(data: WmsInvLockApi.InvLock) {
   return requestClient.put('/wms/inv-lock/update', data);
 }
 
-/** 删除WMS-库存冻结记录 */
+/** 删除库存冻结 */
 export function deleteInvLock(id: number) {
   return requestClient.delete(`/wms/inv-lock/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库存冻结记录 */
+/** 批量删除库存冻结 */
 export function deleteInvLockList(ids: number[]) {
   return requestClient.delete(
     `/wms/inv-lock/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-库存冻结记录 */
+/** 导出库存冻结 */
 export function exportInvLock(params: any) {
   return requestClient.download('/wms/inv-lock/export-excel', { params });
 }
 
-/** 下载WMS-库存冻结记录导入模板 */
+/** 下载库存冻结导入模板 */
 export function importInvLockTemplate() {
   return requestClient.download('/wms/inv-lock/get-import-template');
 }
 
-/** 导入WMS-库存冻结记录 */
+/** 导入库存冻结 */
 export function importInvLock(file: File) {
   return requestClient.upload('/wms/inv-lock/import', { file });
 }

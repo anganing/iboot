@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-设备搬运任务 */
+/** 导入设备任务 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,31 +41,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-设备搬运任务 */
+/** 创建设备任务 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-设备搬运任务 */
+/** 编辑设备任务 */
 function handleEdit(row: WmsDeviceTaskApi.DeviceTask) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-设备搬运任务 */
+/** 删除设备任务 */
 async function handleDelete(row: WmsDeviceTaskApi.DeviceTask) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.taskNo]),
   });
   try {
     await deleteDeviceTask(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.taskNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-设备搬运任务 */
+/** 批量删除设备任务 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportDeviceTask(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-设备搬运任务.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '设备任务.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="WMS-设备搬运任务列表">
+    <Grid table-title="设备任务列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-设备搬运任务']),
+              label: $t('ui.actionTitle.create', ['设备任务']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:device-task:create'],
@@ -189,7 +189,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:device-task:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.taskNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },

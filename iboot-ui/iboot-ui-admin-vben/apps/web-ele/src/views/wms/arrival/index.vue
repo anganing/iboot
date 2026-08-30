@@ -35,7 +35,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-到货登记 */
+/** 导入到货登记 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -45,31 +45,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-到货登记 */
+/** 创建到货登记 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-到货登记 */
+/** 编辑到货登记 */
 function handleEdit(row: WmsArrivalApi.Arrival) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-到货登记 */
+/** 删除到货登记 */
 async function handleDelete(row: WmsArrivalApi.Arrival) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.arrivalNo]),
   });
   try {
     await deleteArrival(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.arrivalNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-到货登记 */
+/** 批量删除到货登记 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -97,7 +97,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportArrival(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-到货登记.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '到货登记.xls', source: data });
 }
 
 
@@ -145,12 +145,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
    <div>
-    <Grid table-title="WMS-到货登记列表">
+    <Grid table-title="到货登记列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-到货登记']),
+              label: $t('ui.actionTitle.create', ['到货登记']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:arrival:create'],
@@ -198,7 +198,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:arrival:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.arrivalNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -208,7 +208,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
      <!-- 子表的表单 -->
     <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="arrivalLine" label="WMS-到货登记明细">
+          <ElTabPane name="arrivalLine" label="到货明细">
             <ArrivalLineList :arrival-id="selectArrival?.id" />
           </ElTabPane>
     </ElTabs>

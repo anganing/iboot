@@ -2,9 +2,27 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsContainerApi } from '#/api/wms/containermgr';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { INV_ORG_RELATION_PROPS } from '#/views/mdm/relation-config';
+
+import {
+  CONTAINER_TYPE_RELATION_PROPS,
+  LOC_RELATION_PROPS,
+  WH_RELATION_PROPS,
+} from '../relation-config';
+
+/** 尺寸类数值控件的公共配置 */
+const DIMENSION_PROPS = {
+  class: '!w-full',
+  controlsPosition: 'right' as const,
+  min: 0,
+  precision: 2,
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,107 +37,84 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'containerNo',
-      label: '容器编号或条码',
+      label: '容器编号',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入容器编号或条码',
       },
     },
     {
       fieldName: 'typeId',
-      label: '容器类型编号',
+      label: '容器类型',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入容器类型编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: CONTAINER_TYPE_RELATION_PROPS,
     },
     {
       fieldName: 'invOrgId',
-      label: '库存组织编号',
+      label: '库存组织',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库存组织编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: INV_ORG_RELATION_PROPS,
     },
     {
       fieldName: 'whId',
-      label: '当前仓库编号',
+      label: '所在仓库',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入当前仓库编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'locId',
-      label: '当前库位编号，0表示未落位',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入当前库位编号，0表示未落位',
-      },
+      label: '所在库位',
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
     },
     {
       fieldName: 'length',
-      label: '实际长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入实际长度，单位毫米',
-      },
+      label: '实际长度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'width',
-      label: '实际宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入实际宽度，单位毫米',
-      },
+      label: '实际宽度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'height',
-      label: '实际高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入实际高度，单位毫米',
-      },
+      label: '实际高度',
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位毫米' },
     },
     {
       fieldName: 'grossWeight',
       label: '实际毛重',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入实际毛重',
-      },
+      component: 'InputNumber',
+      componentProps: { ...DIMENSION_PROPS, placeholder: '单位千克' },
     },
     {
       fieldName: 'status',
-      label: '状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED',
+      label: '容器状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_container_status', 'string'),
+        placeholder: '请选择容器状态',
       },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
-      },
+      defaultValue: 'EMPTY',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -130,7 +125,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-容器主档数据',
+      label: '容器数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -143,111 +138,39 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'containerNo',
-      label: '容器编号或条码',
+      label: '容器编号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入容器编号或条码',
+        placeholder: '请输入容器编号',
       },
     },
     {
       fieldName: 'typeId',
-      label: '容器类型编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器类型编号',
-      },
-    },
-    {
-      fieldName: 'invOrgId',
-      label: '库存组织编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库存组织编号',
-      },
+      label: '容器类型',
+      component: markRaw(RelationSelect),
+      componentProps: CONTAINER_TYPE_RELATION_PROPS,
     },
     {
       fieldName: 'whId',
-      label: '当前仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入当前仓库编号',
-      },
+      label: '所在仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'locId',
-      label: '当前库位编号，0表示未落位',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入当前库位编号，0表示未落位',
-      },
-    },
-    {
-      fieldName: 'length',
-      label: '实际长度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实际长度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'width',
-      label: '实际宽度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实际宽度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'height',
-      label: '实际高度，单位毫米',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实际高度，单位毫米',
-      },
-    },
-    {
-      fieldName: 'grossWeight',
-      label: '实际毛重',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实际毛重',
-      },
+      label: '所在库位',
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
     },
     {
       fieldName: 'status',
-      label: '状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED',
+      label: '容器状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions('wms_container_status', 'string'),
+        placeholder: '请选择容器状态',
       },
     },
     {
@@ -265,82 +188,40 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsContainerApi.Container>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'containerNo', title: '容器编号', minWidth: 160 },
+    { field: 'typeName', title: '容器类型', minWidth: 140 },
+    { field: 'whName', title: '所在仓库', minWidth: 140 },
+    { field: 'locCode', title: '所在库位', minWidth: 140 },
     {
-      field: 'containerNo',
-      title: '容器编号或条码',
-      minWidth: 120,
+      field: 'size',
+      title: '实际尺寸（长×宽×高）',
+      minWidth: 180,
+      formatter: ({ row }) =>
+        [row.length, row.width, row.height].every(
+          (item) => item !== null && item !== undefined,
+        )
+          ? `${row.length} × ${row.width} × ${row.height}`
+          : '-',
     },
-    {
-      field: 'typeId',
-      title: '容器类型编号',
-      minWidth: 120,
-    },
-    {
-      field: 'invOrgId',
-      title: '库存组织编号',
-      minWidth: 120,
-    },
-    {
-      field: 'locId',
-      title: '当前库位编号，0表示未落位',
-      minWidth: 120,
-    },
-    {
-      field: 'length',
-      title: '实际长度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'width',
-      title: '实际宽度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'height',
-      title: '实际高度，单位毫米',
-      minWidth: 120,
-    },
-    {
-      field: 'grossWeight',
-      title: '实际毛重',
-      minWidth: 120,
-    },
+    { field: 'grossWeight', title: '实际毛重', minWidth: 110 },
     {
       field: 'status',
-      title: '状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED',
-      minWidth: 120,
+      title: '容器状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_container_status' } },
     },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'whCode',
-      title: '当前仓库编码',
-      minWidth: 120,
-    },
-    {
-      field: 'whName',
-      title: '当前仓库名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

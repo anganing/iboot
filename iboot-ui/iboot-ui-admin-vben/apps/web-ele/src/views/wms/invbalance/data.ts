@@ -2,9 +2,34 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvBalanceApi } from '#/api/wms/invbalance';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  INV_ORG_RELATION_PROPS,
+  MAT_RELATION_PROPS,
+  PLANT_RELATION_PROPS,
+  PROJECT_RELATION_PROPS,
+  PROJECT_TASK_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
+
+import {
+  BATCH_RELATION_PROPS,
+  CONTAINER_RELATION_PROPS,
+  LOC_RELATION_PROPS,
+  WH_RELATION_PROPS,
+} from '../relation-config';
+
+/** 数量控件的公共配置 */
+const QTY_PROPS = {
+  class: '!w-full',
+  controlsPosition: 'right' as const,
+  min: 0,
+  precision: 6,
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,209 +44,127 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'invOrgId',
-      label: '库存组织编号',
+      label: '库存组织',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库存组织编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: INV_ORG_RELATION_PROPS,
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '所属工厂',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
+      label: '仓库',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入仓库编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'locId',
-      label: '库位编号',
+      label: '库位',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库位编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'batchId',
-      label: '批次编号；无批次物料挂默认批次',
+      label: '批次',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入批次编号；无批次物料挂默认批次',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: BATCH_RELATION_PROPS,
     },
     {
       fieldName: 'containerId',
-      label: '容器编号，0表示散件',
-      rules: 'required',
-      component: 'Input',
+      label: '容器',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入容器编号，0表示散件',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目归属',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目编号，0表示无项目归属',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务归属',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务归属',
+        ...CONTAINER_RELATION_PROPS,
+        placeholder: '散件库存留空',
       },
     },
     {
       fieldName: 'stockScope',
-      label: '库存范围：COMMON、PROJECT_DEDICATED',
+      label: '库存范围',
       rules: 'required',
-      component: 'Input',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入库存范围：COMMON、PROJECT_DEDICATED',
+        options: getDictOptions('wms_stock_scope', 'string'),
+        placeholder: '请选择库存范围',
+      },
+      defaultValue: 'COMMON',
+    },
+    {
+      fieldName: 'projectId',
+      label: '归属项目',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...PROJECT_RELATION_PROPS,
+        placeholder: '公共库存留空',
+      },
+    },
+    {
+      fieldName: 'projectTaskId',
+      label: '项目任务',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...PROJECT_TASK_RELATION_PROPS,
+        placeholder: '无项目任务留空',
       },
     },
     {
       fieldName: 'qualityStatus',
-      label: '质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN',
+      label: '质量状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_quality_status', 'string'),
+        placeholder: '请选择质量状态',
       },
+      defaultValue: 'QUALIFIED',
     },
     {
       fieldName: 'qtyOnhand',
-      label: '现存数量，基准单位',
+      label: '现存数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入现存数量，基准单位',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入现存数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'qtyReserved',
-      label: '预留数量，基准单位',
+      label: '预留数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入预留数量，基准单位',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入预留数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'qtyFrozen',
-      label: '冻结数量，基准单位',
+      label: '冻结数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入冻结数量，基准单位',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料规格快照',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '基准单位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入基准单位编码快照',
-      },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入批次号快照',
-      },
-    },
-    {
-      fieldName: 'whCode',
-      label: '仓库编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入仓库编码快照',
-      },
-    },
-    {
-      fieldName: 'locCode',
-      label: '库位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库位编码快照',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入冻结数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -232,7 +175,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-多维库存余额数据',
+      label: '库存余额数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -244,212 +187,66 @@ export function useImportFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'invOrgId',
-      label: '库存组织编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库存组织编号',
-      },
+      fieldName: 'matId',
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
-      fieldName: 'plantId',
-      label: '工厂编号',
+      fieldName: 'matCode',
+      label: '物料编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入仓库编号',
-      },
+      label: '仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'locId',
-      label: '库位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库位编号',
-      },
+      label: '库位',
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
     },
     {
-      fieldName: 'matId',
-      label: '物料编号',
+      fieldName: 'lotNo',
+      label: '批次号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编号',
-      },
-    },
-    {
-      fieldName: 'batchId',
-      label: '批次编号；无批次物料挂默认批次',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入批次编号；无批次物料挂默认批次',
-      },
-    },
-    {
-      fieldName: 'containerId',
-      label: '容器编号，0表示散件',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器编号，0表示散件',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目归属',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目编号，0表示无项目归属',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务归属',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务归属',
-      },
-    },
-    {
-      fieldName: 'stockScope',
-      label: '库存范围：COMMON、PROJECT_DEDICATED',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库存范围：COMMON、PROJECT_DEDICATED',
+        placeholder: '请输入批次号',
       },
     },
     {
       fieldName: 'qualityStatus',
-      label: '质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN',
+      label: '质量状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN',
+        options: getDictOptions('wms_quality_status', 'string'),
+        placeholder: '请选择质量状态',
       },
     },
     {
-      fieldName: 'qtyOnhand',
-      label: '现存数量，基准单位',
-      component: 'Input',
+      fieldName: 'stockScope',
+      label: '库存范围',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入现存数量，基准单位',
+        options: getDictOptions('wms_stock_scope', 'string'),
+        placeholder: '请选择库存范围',
       },
     },
     {
-      fieldName: 'qtyReserved',
-      label: '预留数量，基准单位',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入预留数量，基准单位',
-      },
-    },
-    {
-      fieldName: 'qtyFrozen',
-      label: '冻结数量，基准单位',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入冻结数量，基准单位',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料规格快照',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '基准单位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入基准单位编码快照',
-      },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入批次号快照',
-      },
-    },
-    {
-      fieldName: 'whCode',
-      label: '仓库编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入仓库编码快照',
-      },
-    },
-    {
-      fieldName: 'locCode',
-      label: '库位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库位编码快照',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
+      fieldName: 'projectId',
+      label: '归属项目',
+      component: markRaw(RelationSelect),
+      componentProps: PROJECT_RELATION_PROPS,
     },
     {
       fieldName: 'createTime',
@@ -466,132 +263,49 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsInvBalanceApi.InvBalance>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'matSpec', title: '规格型号', minWidth: 150 },
+    { field: 'lotNo', title: '批次号', minWidth: 140 },
+    { field: 'whName', title: '仓库', minWidth: 130 },
+    { field: 'locCode', title: '库位', minWidth: 130 },
+    { field: 'qtyOnhand', title: '现存数量', minWidth: 110 },
+    { field: 'qtyReserved', title: '预留数量', minWidth: 110 },
+    { field: 'qtyFrozen', title: '冻结数量', minWidth: 110 },
     {
-      field: 'invOrgId',
-      title: '库存组织编号',
-      minWidth: 120,
+      field: 'qtyAvailable',
+      title: '可用数量',
+      minWidth: 110,
+      formatter: ({ row }) =>
+        Number(row.qtyOnhand ?? 0) -
+        Number(row.qtyReserved ?? 0) -
+        Number(row.qtyFrozen ?? 0),
     },
+    { field: 'uomCode', title: '基准单位', minWidth: 100 },
     {
-      field: 'plantId',
-      title: '工厂编号',
-      minWidth: 120,
-    },
-    {
-      field: 'locId',
-      title: '库位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'batchId',
-      title: '批次编号；无批次物料挂默认批次',
-      minWidth: 120,
-    },
-    {
-      field: 'containerId',
-      title: '容器编号，0表示散件',
-      minWidth: 120,
-    },
-    {
-      field: 'projectId',
-      title: '项目编号，0表示无项目归属',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务归属',
-      minWidth: 120,
+      field: 'qualityStatus',
+      title: '质量状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
     },
     {
       field: 'stockScope',
-      title: '库存范围：COMMON、PROJECT_DEDICATED',
-      minWidth: 120,
+      title: '库存范围',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_stock_scope' } },
     },
-    {
-      field: 'qualityStatus',
-      title: '质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyOnhand',
-      title: '现存数量，基准单位',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyReserved',
-      title: '预留数量，基准单位',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyFrozen',
-      title: '冻结数量，基准单位',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matSpec',
-      title: '物料规格快照',
-      minWidth: 120,
-    },
-    {
-      field: 'uomCode',
-      title: '基准单位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'lotNo',
-      title: '批次号快照',
-      minWidth: 120,
-    },
-    {
-      field: 'whCode',
-      title: '仓库编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'locCode',
-      title: '库位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'projectName', title: '归属项目', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'whName',
-      title: '仓库名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

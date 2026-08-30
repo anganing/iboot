@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importBatchTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-批次主档导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '批次导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-批次主档" class="w-1/3">
+  <Modal title="导入批次" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

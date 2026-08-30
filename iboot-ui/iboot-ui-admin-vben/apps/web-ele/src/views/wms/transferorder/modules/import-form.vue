@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importTransferOrderTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-库存转移调拨单导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '移库调拨单导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-库存转移调拨单" class="w-1/3">
+  <Modal title="导入移库调拨单" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

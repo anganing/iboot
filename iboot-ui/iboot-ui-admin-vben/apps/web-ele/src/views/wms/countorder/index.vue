@@ -35,7 +35,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-盘点单 */
+/** 导入盘点单 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -45,31 +45,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-盘点单 */
+/** 创建盘点单 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-盘点单 */
+/** 编辑盘点单 */
 function handleEdit(row: WmsCountOrderApi.CountOrder) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-盘点单 */
+/** 删除盘点单 */
 async function handleDelete(row: WmsCountOrderApi.CountOrder) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.countNo]),
   });
   try {
     await deleteCountOrder(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.countNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-盘点单 */
+/** 批量删除盘点单 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -97,7 +97,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportCountOrder(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-盘点单.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '盘点单.xls', source: data });
 }
 
 
@@ -145,12 +145,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
    <div>
-    <Grid table-title="WMS-盘点单列表">
+    <Grid table-title="盘点单列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-盘点单']),
+              label: $t('ui.actionTitle.create', ['盘点单']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:count-order:create'],
@@ -198,7 +198,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:count-order:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.countNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -208,7 +208,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
      <!-- 子表的表单 -->
     <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="countOrderLine" label="WMS-盘点明细">
+          <ElTabPane name="countOrderLine" label="盘点明细">
             <CountOrderLineList :order-id="selectCountOrder?.id" />
           </ElTabPane>
     </ElTabs>

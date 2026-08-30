@@ -10,6 +10,7 @@
   import { useVbenForm } from '#/adapter/form';
   import { getOutOrderLine, createOutOrderLine, updateOutOrderLine } from '#/api/wms/outordermgr';
   import { $t } from '#/locales';
+  import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
   import { useOutOrderLineFormSchema } from '../data';
 
@@ -17,18 +18,22 @@
   const formData = ref<WmsOutOrderApi.OutOrderLine>();
   const getTitle = computed(() => {
     return formData.value?.id
-        ? $t('ui.actionTitle.edit', ['WMS-出库单明细'])
-        : $t('ui.actionTitle.create', ['WMS-出库单明细']);
+        ? $t('ui.actionTitle.edit', ['出库明细'])
+        : $t('ui.actionTitle.create', ['出库明细']);
   });
+
+  const formLayout = getMdmFormLayout(2);
 
   const [Form, formApi] = useVbenForm({
     commonConfig: {
       componentProps: {
         class: 'w-full',
       },
-      formItemClass: 'col-span-2',
-      labelWidth: 80,
+      formItemClass: formLayout.formItemClass,
+      labelClass: 'justify-start',
+      labelWidth: 110,
     },
+    wrapperClass: formLayout.wrapperClass,
     layout: 'horizontal',
     schema: useOutOrderLineFormSchema(),
     showDefaultActions: false
@@ -82,7 +87,7 @@
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
 </template>

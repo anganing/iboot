@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import { requestClient } from '#/api/request';
 
 export namespace WmsInvReservationApi {
-  /** WMS-库存预留信息 */
+  /** 库存预留信息 */
   export interface InvReservation {
     id: number; // 主键
     reservationNo?: string; // 预留编号
@@ -29,7 +29,7 @@ export namespace WmsInvReservationApi {
   }
 }
 
-/** 查询WMS-库存预留分页 */
+/** 查询库存预留分页 */
 export function getInvReservationPage(params: PageParam) {
   return requestClient.get<PageResult<WmsInvReservationApi.InvReservation>>(
     '/wms/inv-reservation/page',
@@ -37,46 +37,46 @@ export function getInvReservationPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-库存预留详情 */
+/** 查询库存预留详情 */
 export function getInvReservation(id: number) {
   return requestClient.get<WmsInvReservationApi.InvReservation>(
     `/wms/inv-reservation/get?id=${id}`,
   );
 }
 
-/** 新增WMS-库存预留 */
+/** 新增库存预留 */
 export function createInvReservation(data: WmsInvReservationApi.InvReservation) {
   return requestClient.post('/wms/inv-reservation/create', data);
 }
 
-/** 修改WMS-库存预留 */
+/** 修改库存预留 */
 export function updateInvReservation(data: WmsInvReservationApi.InvReservation) {
   return requestClient.put('/wms/inv-reservation/update', data);
 }
 
-/** 删除WMS-库存预留 */
+/** 删除库存预留 */
 export function deleteInvReservation(id: number) {
   return requestClient.delete(`/wms/inv-reservation/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库存预留 */
+/** 批量删除库存预留 */
 export function deleteInvReservationList(ids: number[]) {
   return requestClient.delete(
     `/wms/inv-reservation/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-库存预留 */
+/** 导出库存预留 */
 export function exportInvReservation(params: any) {
   return requestClient.download('/wms/inv-reservation/export-excel', { params });
 }
 
-/** 下载WMS-库存预留导入模板 */
+/** 下载库存预留导入模板 */
 export function importInvReservationTemplate() {
   return requestClient.download('/wms/inv-reservation/get-import-template');
 }
 
-/** 导入WMS-库存预留 */
+/** 导入库存预留 */
 export function importInvReservation(file: File) {
   return requestClient.upload('/wms/inv-reservation/import', { file });
 }

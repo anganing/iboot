@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-多维库存余额 */
+/** 导入库存余额 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,31 +41,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-多维库存余额 */
+/** 创建库存余额 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-多维库存余额 */
+/** 编辑库存余额 */
 function handleEdit(row: WmsInvBalanceApi.InvBalance) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-多维库存余额 */
+/** 删除库存余额 */
 async function handleDelete(row: WmsInvBalanceApi.InvBalance) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.matCode]),
   });
   try {
     await deleteInvBalance(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.matCode]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-多维库存余额 */
+/** 批量删除库存余额 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportInvBalance(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-多维库存余额.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '库存余额.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="WMS-多维库存余额列表">
+    <Grid table-title="库存余额列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-多维库存余额']),
+              label: $t('ui.actionTitle.create', ['库存余额']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:inv-balance:create'],
@@ -189,7 +189,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:inv-balance:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.matCode]),
                 confirm: handleDelete.bind(null, row),
               },
             },

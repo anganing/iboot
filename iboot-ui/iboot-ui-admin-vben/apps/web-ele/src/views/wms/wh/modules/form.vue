@@ -10,6 +10,7 @@ import { ElMessage } from 'element-plus';
 import { useVbenForm } from '#/adapter/form';
 import { createWh, getWh, updateWh } from '#/api/wms/wh';
 import { $t } from '#/locales';
+import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
 import { useFormSchema } from '../data';
 
@@ -17,18 +18,22 @@ const emit = defineEmits(['success']);
 const formData = ref<WmsWhApi.Wh>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['WMS-仓库'])
-    : $t('ui.actionTitle.create', ['WMS-仓库']);
+    ? $t('ui.actionTitle.edit', ['仓库'])
+    : $t('ui.actionTitle.create', ['仓库']);
 });
+
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: {
       class: 'w-full',
     },
-    formItemClass: 'col-span-2',
-    labelWidth: 80,
+    formItemClass: formLayout.formItemClass,
+    labelClass: 'justify-start',
+    labelWidth: 110,
   },
+  wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
   schema: useFormSchema(),
   showDefaultActions: false,
@@ -76,7 +81,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
 </template>

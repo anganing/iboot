@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsStrategyApi {
-  /** WMS-仓储策略信息 */
+  /** 仓储策略信息 */
   export interface Strategy {
     id: number; // 主键
     code?: string; // 策略编码
@@ -19,7 +18,7 @@ export namespace WmsStrategyApi {
   }
 }
 
-/** 查询WMS-仓储策略分页 */
+/** 查询仓储策略分页 */
 export function getStrategyPage(params: PageParam) {
   return requestClient.get<PageResult<WmsStrategyApi.Strategy>>(
     '/wms/strategy/page',
@@ -27,46 +26,46 @@ export function getStrategyPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-仓储策略详情 */
+/** 查询仓储策略详情 */
 export function getStrategy(id: number) {
   return requestClient.get<WmsStrategyApi.Strategy>(
     `/wms/strategy/get?id=${id}`,
   );
 }
 
-/** 新增WMS-仓储策略 */
+/** 新增仓储策略 */
 export function createStrategy(data: WmsStrategyApi.Strategy) {
   return requestClient.post('/wms/strategy/create', data);
 }
 
-/** 修改WMS-仓储策略 */
+/** 修改仓储策略 */
 export function updateStrategy(data: WmsStrategyApi.Strategy) {
   return requestClient.put('/wms/strategy/update', data);
 }
 
-/** 删除WMS-仓储策略 */
+/** 删除仓储策略 */
 export function deleteStrategy(id: number) {
   return requestClient.delete(`/wms/strategy/delete?id=${id}`);
 }
 
-/** 批量删除WMS-仓储策略 */
+/** 批量删除仓储策略 */
 export function deleteStrategyList(ids: number[]) {
   return requestClient.delete(
     `/wms/strategy/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-仓储策略 */
+/** 导出仓储策略 */
 export function exportStrategy(params: any) {
   return requestClient.download('/wms/strategy/export-excel', { params });
 }
 
-/** 下载WMS-仓储策略导入模板 */
+/** 下载仓储策略导入模板 */
 export function importStrategyTemplate() {
   return requestClient.download('/wms/strategy/get-import-template');
 }
 
-/** 导入WMS-仓储策略 */
+/** 导入仓储策略 */
 export function importStrategy(file: File) {
   return requestClient.upload('/wms/strategy/import', { file });
 }

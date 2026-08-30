@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importWaveTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-出库波次导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '出库波次导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-出库波次" class="w-1/3">
+  <Modal title="导入出库波次" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

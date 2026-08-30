@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import { requestClient } from '#/api/request';
 
 export namespace WmsDeviceTaskApi {
-  /** WMS-设备搬运任务信息 */
+  /** 设备任务信息 */
   export interface DeviceTask {
     id: number; // 主键
     taskNo?: string; // 本地设备任务号
@@ -31,7 +31,7 @@ export namespace WmsDeviceTaskApi {
   }
 }
 
-/** 查询WMS-设备搬运任务分页 */
+/** 查询设备任务分页 */
 export function getDeviceTaskPage(params: PageParam) {
   return requestClient.get<PageResult<WmsDeviceTaskApi.DeviceTask>>(
     '/wms/device-task/page',
@@ -39,46 +39,46 @@ export function getDeviceTaskPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-设备搬运任务详情 */
+/** 查询设备任务详情 */
 export function getDeviceTask(id: number) {
   return requestClient.get<WmsDeviceTaskApi.DeviceTask>(
     `/wms/device-task/get?id=${id}`,
   );
 }
 
-/** 新增WMS-设备搬运任务 */
+/** 新增设备任务 */
 export function createDeviceTask(data: WmsDeviceTaskApi.DeviceTask) {
   return requestClient.post('/wms/device-task/create', data);
 }
 
-/** 修改WMS-设备搬运任务 */
+/** 修改设备任务 */
 export function updateDeviceTask(data: WmsDeviceTaskApi.DeviceTask) {
   return requestClient.put('/wms/device-task/update', data);
 }
 
-/** 删除WMS-设备搬运任务 */
+/** 删除设备任务 */
 export function deleteDeviceTask(id: number) {
   return requestClient.delete(`/wms/device-task/delete?id=${id}`);
 }
 
-/** 批量删除WMS-设备搬运任务 */
+/** 批量删除设备任务 */
 export function deleteDeviceTaskList(ids: number[]) {
   return requestClient.delete(
     `/wms/device-task/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-设备搬运任务 */
+/** 导出设备任务 */
 export function exportDeviceTask(params: any) {
   return requestClient.download('/wms/device-task/export-excel', { params });
 }
 
-/** 下载WMS-设备搬运任务导入模板 */
+/** 下载设备任务导入模板 */
 export function importDeviceTaskTemplate() {
   return requestClient.download('/wms/device-task/get-import-template');
 }
 
-/** 导入WMS-设备搬运任务 */
+/** 导入设备任务 */
 export function importDeviceTask(file: File) {
   return requestClient.upload('/wms/device-task/import', { file });
 }

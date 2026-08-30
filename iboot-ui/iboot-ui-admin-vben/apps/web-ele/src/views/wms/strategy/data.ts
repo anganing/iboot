@@ -2,9 +2,14 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsStrategyApi } from '#/api/wms/strategy';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { WH_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -23,6 +28,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入策略编码',
       },
     },
@@ -32,72 +38,81 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入策略名称',
       },
     },
     {
       fieldName: 'strategyType',
-      label: '策略类型：PUTAWAY、PICK、REPLENISH',
+      label: '策略类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择策略类型：PUTAWAY、PICK、REPLENISH',
+        options: getDictOptions('wms_strategy_type', 'string'),
+        placeholder: '请选择策略类型',
       },
     },
     {
       fieldName: 'whId',
-      label: '适用仓库编号，0表示全局',
-      rules: 'required',
-      component: 'Input',
+      label: '适用仓库',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入适用仓库编号，0表示全局',
+        ...WH_RELATION_PROPS,
+        placeholder: '留空表示全局生效',
       },
     },
     {
       fieldName: 'versionNo',
-      label: '策略版本号',
+      label: '版本号',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入策略版本号',
-      },
-    },
-    {
-      fieldName: 'configJson',
-      label: '策略条件与排序规则配置',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入策略条件与排序规则配置',
+        maxLength: 32,
+        placeholder: '例如 V1.0',
       },
     },
     {
       fieldName: 'priority',
-      label: '优先级，数值越大越优先',
+      label: '优先级',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入优先级，数值越大越优先',
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '数值越大越优先',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、ENABLED、DISABLED',
+      label: '策略状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_strategy_status', 'string'),
+        placeholder: '请选择策略状态',
+      },
+      defaultValue: 'DRAFT',
+    },
+    {
+      fieldName: 'configJson',
+      label: '策略配置',
+      component: 'Textarea',
+      componentProps: {
+        placeholder: '按 JSON 填写条件与排序规则',
+        rows: 6,
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -108,7 +123,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-仓储策略数据',
+      label: '仓储策略数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -139,67 +154,28 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'strategyType',
-      label: '策略类型：PUTAWAY、PICK、REPLENISH',
+      label: '策略类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择策略类型：PUTAWAY、PICK、REPLENISH',
+        options: getDictOptions('wms_strategy_type', 'string'),
+        placeholder: '请选择策略类型',
       },
     },
     {
       fieldName: 'whId',
-      label: '适用仓库编号，0表示全局',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入适用仓库编号，0表示全局',
-      },
-    },
-    {
-      fieldName: 'versionNo',
-      label: '策略版本号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入策略版本号',
-      },
-    },
-    {
-      fieldName: 'configJson',
-      label: '策略条件与排序规则配置',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入策略条件与排序规则配置',
-      },
-    },
-    {
-      fieldName: 'priority',
-      label: '优先级，数值越大越优先',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入优先级，数值越大越优先',
-      },
+      label: '适用仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、ENABLED、DISABLED',
+      label: '策略状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、ENABLED、DISABLED',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions('wms_strategy_status', 'string'),
+        placeholder: '请选择策略状态',
       },
     },
     {
@@ -217,67 +193,40 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsStrategyApi.Strategy>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'code',
-      title: '策略编码',
-      minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '策略名称',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'code', title: '策略编码', minWidth: 140 },
+    { field: 'name', title: '策略名称', minWidth: 160 },
     {
       field: 'strategyType',
-      title: '策略类型：PUTAWAY、PICK、REPLENISH',
-      minWidth: 120,
-    },
-    {
-      field: 'versionNo',
-      title: '策略版本号',
-      minWidth: 120,
-    },
-    {
-      field: 'configJson',
-      title: '策略条件与排序规则配置',
-      minWidth: 120,
-    },
-    {
-      field: 'priority',
-      title: '优先级，数值越大越优先',
-      minWidth: 120,
-    },
-    {
-      field: 'status',
-      title: '状态：DRAFT、ENABLED、DISABLED',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
-    {
-      field: 'createTime',
-      title: '创建时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'whCode',
-      title: '适用仓库编号，0表示全局编码',
-      minWidth: 120,
+      title: '策略类型',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_strategy_type' } },
     },
     {
       field: 'whName',
-      title: '适用仓库编号，0表示全局名称',
-      minWidth: 120,
+      title: '适用仓库',
+      minWidth: 140,
+      formatter: ({ row }) => row.whName || '全局',
+    },
+    { field: 'versionNo', title: '版本号', minWidth: 100 },
+    { field: 'priority', title: '优先级', minWidth: 90 },
+    {
+      field: 'status',
+      title: '策略状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_strategy_status' } },
+    },
+    { field: 'remark', title: '备注', minWidth: 140 },
+    {
+      field: 'createTime',
+      title: '创建时间',
+      minWidth: 160,
+      formatter: 'formatDateTime',
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

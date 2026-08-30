@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsLocApi {
-  /** WMS-库位信息 */
+  /** 库位信息 */
   export interface Loc {
     id: number; // 主键
     whId?: number; // 仓库编号
@@ -28,7 +27,7 @@ export namespace WmsLocApi {
   }
 }
 
-/** 查询WMS-库位分页 */
+/** 查询库位分页 */
 export function getLocPage(params: PageParam) {
   return requestClient.get<PageResult<WmsLocApi.Loc>>(
     '/wms/loc/page',
@@ -36,46 +35,46 @@ export function getLocPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-库位详情 */
+/** 查询库位详情 */
 export function getLoc(id: number) {
   return requestClient.get<WmsLocApi.Loc>(
     `/wms/loc/get?id=${id}`,
   );
 }
 
-/** 新增WMS-库位 */
+/** 新增库位 */
 export function createLoc(data: WmsLocApi.Loc) {
   return requestClient.post('/wms/loc/create', data);
 }
 
-/** 修改WMS-库位 */
+/** 修改库位 */
 export function updateLoc(data: WmsLocApi.Loc) {
   return requestClient.put('/wms/loc/update', data);
 }
 
-/** 删除WMS-库位 */
+/** 删除库位 */
 export function deleteLoc(id: number) {
   return requestClient.delete(`/wms/loc/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库位 */
+/** 批量删除库位 */
 export function deleteLocList(ids: number[]) {
   return requestClient.delete(
     `/wms/loc/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-库位 */
+/** 导出库位 */
 export function exportLoc(params: any) {
   return requestClient.download('/wms/loc/export-excel', { params });
 }
 
-/** 下载WMS-库位导入模板 */
+/** 下载库位导入模板 */
 export function importLocTemplate() {
   return requestClient.download('/wms/loc/get-import-template');
 }
 
-/** 导入WMS-库位 */
+/** 导入库位 */
 export function importLoc(file: File) {
   return requestClient.upload('/wms/loc/import', { file });
 }

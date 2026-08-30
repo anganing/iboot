@@ -2,9 +2,17 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsDeviceTaskApi } from '#/api/wms/devicetask';
 
+import { markRaw } from 'vue';
+
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import {
+  CONTAINER_RELATION_PROPS,
+  LOC_RELATION_PROPS,
+} from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,197 +27,158 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'taskNo',
-      label: '本地设备任务号',
+      label: '任务号',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入本地设备任务号',
       },
     },
     {
       fieldName: 'externalTaskNo',
-      label: '外部设备任务号',
+      label: '外部任务号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入外部设备任务号',
+        maxLength: 128,
+        placeholder: '设备系统回传的任务号',
       },
     },
     {
       fieldName: 'taskType',
-      label: '任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN',
+      label: '任务类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN',
+        options: getDictOptions('wms_device_task_type', 'string'),
+        placeholder: '请选择任务类型',
       },
     },
     {
       fieldName: 'deviceType',
-      label: '设备类型：WCS、AGV、RGV',
+      label: '设备类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择设备类型：WCS、AGV、RGV',
-      },
-    },
-    {
-      fieldName: 'sourceBizType',
-      label: '来源业务类型',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: [],
-        placeholder: '请选择来源业务类型',
-      },
-    },
-    {
-      fieldName: 'sourceBizNo',
-      label: '来源业务单号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源业务单号',
-      },
-    },
-    {
-      fieldName: 'sourceLineId',
-      label: '来源业务明细编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源业务明细编号',
-      },
-    },
-    {
-      fieldName: 'containerId',
-      label: '容器编号，0表示无容器',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入容器编号，0表示无容器',
-      },
-    },
-    {
-      fieldName: 'fromLocId',
-      label: '来源库位编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源库位编号',
-      },
-    },
-    {
-      fieldName: 'toLocId',
-      label: '目标库位编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入目标库位编号',
-      },
-    },
-    {
-      fieldName: 'actualLocId',
-      label: '设备回传实际库位编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入设备回传实际库位编号',
+        options: getDictOptions('wms_device_type', 'string'),
+        placeholder: '请选择设备类型',
       },
     },
     {
       fieldName: 'externalSystemCode',
-      label: '外部设备系统编码',
+      label: '外部系统编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入外部设备系统编码',
       },
     },
     {
-      fieldName: 'dispatchStatus',
-      label: '下发状态：PENDING、SENT、FAILED',
+      fieldName: 'sourceBizNo',
+      label: '来源单号',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Input',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        maxLength: 64,
+        placeholder: '请输入来源业务单号',
       },
+    },
+    {
+      fieldName: 'containerId',
+      label: '搬运容器',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...CONTAINER_RELATION_PROPS,
+        placeholder: '无容器可留空',
+      },
+    },
+    {
+      fieldName: 'fromLocId',
+      label: '来源库位',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
+    },
+    {
+      fieldName: 'toLocId',
+      label: '目标库位',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: LOC_RELATION_PROPS,
+    },
+    {
+      fieldName: 'actualLocId',
+      label: '实际库位',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...LOC_RELATION_PROPS,
+        placeholder: '设备回传后填写',
+      },
+    },
+    {
+      fieldName: 'dispatchStatus',
+      label: '下发状态',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions('wms_dispatch_status', 'string'),
+        placeholder: '请选择下发状态',
+      },
+      defaultValue: 'PENDING',
     },
     {
       fieldName: 'status',
-      label: '执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION',
+      label: '执行状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_device_task_status', 'string'),
+        placeholder: '请选择执行状态',
       },
+      defaultValue: 'CREATED',
     },
     {
       fieldName: 'postStatus',
-      label: '库存过账状态：PENDING、POSTED、FAILED',
+      label: '过账状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions('wms_post_status', 'string'),
+        placeholder: '请选择库存过账状态',
       },
+      defaultValue: 'PENDING',
     },
     {
-      fieldName: 'requestSnapshotJson',
-      label: '下发业务快照',
-      component: 'Input',
+      fieldName: 'completedTime',
+      label: '完成时间',
+      component: 'DatePicker',
       componentProps: {
-        placeholder: '请输入下发业务快照',
-      },
-    },
-    {
-      fieldName: 'callbackSnapshotJson',
-      label: '完成回调快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入完成回调快照',
+        class: '!w-full',
+        format: 'YYYY-MM-DD HH:mm:ss',
+        placeholder: '请选择设备完成时间',
+        showTime: true,
+        valueFormat: 'x',
       },
     },
     {
       fieldName: 'idempotencyKey',
-      label: '业务幂等键',
+      label: '幂等键',
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入业务幂等键',
-      },
-    },
-    {
-      fieldName: 'completedTime',
-      label: '设备完成时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -220,7 +189,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-设备搬运任务数据',
+      label: '设备任务数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -233,7 +202,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'taskNo',
-      label: '本地设备任务号',
+      label: '任务号',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -242,7 +211,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'externalTaskNo',
-      label: '外部设备任务号',
+      label: '外部任务号',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -251,37 +220,27 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'taskType',
-      label: '任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN',
+      label: '任务类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN',
+        options: getDictOptions('wms_device_task_type', 'string'),
+        placeholder: '请选择任务类型',
       },
     },
     {
       fieldName: 'deviceType',
-      label: '设备类型：WCS、AGV、RGV',
+      label: '设备类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择设备类型：WCS、AGV、RGV',
-      },
-    },
-    {
-      fieldName: 'sourceBizType',
-      label: '来源业务类型',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择来源业务类型',
+        options: getDictOptions('wms_device_type', 'string'),
+        placeholder: '请选择设备类型',
       },
     },
     {
       fieldName: 'sourceBizNo',
-      label: '来源业务单号',
+      label: '来源单号',
       component: 'Input',
       componentProps: {
         clearable: true,
@@ -289,141 +248,33 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'sourceLineId',
-      label: '来源业务明细编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源业务明细编号',
-      },
-    },
-    {
-      fieldName: 'containerId',
-      label: '容器编号，0表示无容器',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入容器编号，0表示无容器',
-      },
-    },
-    {
-      fieldName: 'fromLocId',
-      label: '来源库位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源库位编号',
-      },
-    },
-    {
-      fieldName: 'toLocId',
-      label: '目标库位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入目标库位编号',
-      },
-    },
-    {
-      fieldName: 'actualLocId',
-      label: '设备回传实际库位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入设备回传实际库位编号',
-      },
-    },
-    {
-      fieldName: 'externalSystemCode',
-      label: '外部设备系统编码',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入外部设备系统编码',
-      },
-    },
-    {
       fieldName: 'dispatchStatus',
-      label: '下发状态：PENDING、SENT、FAILED',
+      label: '下发状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择下发状态：PENDING、SENT、FAILED',
+        options: getDictOptions('wms_dispatch_status', 'string'),
+        placeholder: '请选择下发状态',
       },
     },
     {
       fieldName: 'status',
-      label: '执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION',
+      label: '执行状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION',
+        options: getDictOptions('wms_device_task_status', 'string'),
+        placeholder: '请选择执行状态',
       },
     },
     {
       fieldName: 'postStatus',
-      label: '库存过账状态：PENDING、POSTED、FAILED',
+      label: '过账状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择库存过账状态：PENDING、POSTED、FAILED',
-      },
-    },
-    {
-      fieldName: 'requestSnapshotJson',
-      label: '下发业务快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入下发业务快照',
-      },
-    },
-    {
-      fieldName: 'callbackSnapshotJson',
-      label: '完成回调快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入完成回调快照',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '业务幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入业务幂等键',
-      },
-    },
-    {
-      fieldName: 'completedTime',
-      label: '设备完成时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions('wms_post_status', 'string'),
+        placeholder: '请选择库存过账状态',
       },
     },
     {
@@ -441,123 +292,64 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsDeviceTaskApi.DeviceTask>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'taskNo',
-      title: '本地设备任务号',
-      minWidth: 120,
-    },
-    {
-      field: 'externalTaskNo',
-      title: '外部设备任务号',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'taskNo', title: '任务号', minWidth: 160 },
+    { field: 'externalTaskNo', title: '外部任务号', minWidth: 150 },
     {
       field: 'taskType',
-      title: '任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN',
-      minWidth: 120,
+      title: '任务类型',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_device_task_type' } },
     },
     {
       field: 'deviceType',
-      title: '设备类型：WCS、AGV、RGV',
-      minWidth: 120,
+      title: '设备类型',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_device_type' } },
     },
-    {
-      field: 'sourceBizType',
-      title: '来源业务类型',
-      minWidth: 120,
-    },
-    {
-      field: 'sourceBizNo',
-      title: '来源业务单号',
-      minWidth: 120,
-    },
-    {
-      field: 'sourceLineId',
-      title: '来源业务明细编号',
-      minWidth: 120,
-    },
-    {
-      field: 'containerId',
-      title: '容器编号，0表示无容器',
-      minWidth: 120,
-    },
-    {
-      field: 'fromLocId',
-      title: '来源库位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'toLocId',
-      title: '目标库位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'actualLocId',
-      title: '设备回传实际库位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'externalSystemCode',
-      title: '外部设备系统编码',
-      minWidth: 120,
-    },
+    { field: 'sourceBizNo', title: '来源单号', minWidth: 150 },
+    { field: 'containerNo', title: '搬运容器', minWidth: 140 },
+    { field: 'fromLocCode', title: '来源库位', minWidth: 130 },
+    { field: 'toLocCode', title: '目标库位', minWidth: 130 },
+    { field: 'actualLocCode', title: '实际库位', minWidth: 130 },
     {
       field: 'dispatchStatus',
-      title: '下发状态：PENDING、SENT、FAILED',
-      minWidth: 120,
+      title: '下发状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_dispatch_status' } },
     },
     {
       field: 'status',
-      title: '执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION',
-      minWidth: 120,
+      title: '执行状态',
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: 'wms_device_task_status' },
+      },
     },
     {
       field: 'postStatus',
-      title: '库存过账状态：PENDING、POSTED、FAILED',
-      minWidth: 120,
-    },
-    {
-      field: 'requestSnapshotJson',
-      title: '下发业务快照',
-      minWidth: 120,
-    },
-    {
-      field: 'callbackSnapshotJson',
-      title: '完成回调快照',
-      minWidth: 120,
-    },
-    {
-      field: 'idempotencyKey',
-      title: '业务幂等键',
-      minWidth: 120,
+      title: '过账状态',
+      minWidth: 100,
+      cellRender: { name: 'CellDict', props: { type: 'wms_post_status' } },
     },
     {
       field: 'completedTime',
-      title: '设备完成时间',
-      minWidth: 120,
+      title: '完成时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

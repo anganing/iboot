@@ -5,7 +5,7 @@ import type { WmsTransferOrderApi } from '#/api/wms/transferorder';
  import TransferOrderLineForm from './transfer-order-line-form.vue'
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
-import { ref, computed, nextTick,watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -27,35 +27,35 @@ async function handleRefresh() {
    await gridApi.query();
 }
 
-/** 创建WMS-库存转移调拨明细 */
+/** 创建调拨明细 */
 function handleCreate() {
   if (!props.orderId){
-    ElMessage.warning("请先选择一个WMS-库存转移调拨单!")
+    ElMessage.warning("请先选择一个移库调拨单!")
     return
   }
   formModalApi.setData({orderId: props.orderId}).open();
 }
 
-/** 编辑WMS-库存转移调拨明细 */
+/** 编辑调拨明细 */
 function handleEdit(row: WmsTransferOrderApi.TransferOrderLine) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-库存转移调拨明细 */
+/** 删除调拨明细 */
 async function handleDelete(row: WmsTransferOrderApi.TransferOrderLine) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.lineNo]),
   });
   try {
     await deleteTransferOrderLine(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lineNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-库存转移调拨明细 */
+/** 批量删除调拨明细 */
 async function handleDeleteBatch() {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting'),
@@ -135,12 +135,12 @@ watch(
 
 <template>
        <FormModal @success="handleRefresh" />
-      <Grid table-title="WMS-库存转移调拨明细列表">
+      <Grid table-title="调拨明细列表">
         <template #toolbar-tools>
           <TableAction
             :actions="[
               {
-                label: $t('ui.actionTitle.create', ['WMS-库存转移调拨单']),
+                label: $t('ui.actionTitle.create', ['调拨明细']),
                 type: 'primary',
                 icon: ACTION_ICON.ADD,
                 auth: ['wms:transfer-order:create'],
@@ -175,7 +175,7 @@ watch(
                 icon: ACTION_ICON.DELETE,
                 auth: ['wms:transfer-order:delete'],
                 popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                  title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
                   confirm: handleDelete.bind(null, row),
                 },
               },

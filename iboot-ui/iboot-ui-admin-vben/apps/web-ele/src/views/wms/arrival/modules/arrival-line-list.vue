@@ -5,7 +5,7 @@ import type { WmsArrivalApi } from '#/api/wms/arrival';
  import ArrivalLineForm from './arrival-line-form.vue'
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
-import { ref, computed, nextTick,watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -27,35 +27,35 @@ async function handleRefresh() {
    await gridApi.query();
 }
 
-/** 创建WMS-到货登记明细 */
+/** 创建到货明细 */
 function handleCreate() {
   if (!props.arrivalId){
-    ElMessage.warning("请先选择一个WMS-到货登记!")
+    ElMessage.warning("请先选择一个到货登记!")
     return
   }
   formModalApi.setData({arrivalId: props.arrivalId}).open();
 }
 
-/** 编辑WMS-到货登记明细 */
+/** 编辑到货明细 */
 function handleEdit(row: WmsArrivalApi.ArrivalLine) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-到货登记明细 */
+/** 删除到货明细 */
 async function handleDelete(row: WmsArrivalApi.ArrivalLine) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.lineNo]),
   });
   try {
     await deleteArrivalLine(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lineNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-到货登记明细 */
+/** 批量删除到货明细 */
 async function handleDeleteBatch() {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting'),
@@ -135,12 +135,12 @@ watch(
 
 <template>
        <FormModal @success="handleRefresh" />
-      <Grid table-title="WMS-到货登记明细列表">
+      <Grid table-title="到货明细列表">
         <template #toolbar-tools>
           <TableAction
             :actions="[
               {
-                label: $t('ui.actionTitle.create', ['WMS-到货登记']),
+                label: $t('ui.actionTitle.create', ['到货明细']),
                 type: 'primary',
                 icon: ACTION_ICON.ADD,
                 auth: ['wms:arrival:create'],
@@ -175,7 +175,7 @@ watch(
                 icon: ACTION_ICON.DELETE,
                 auth: ['wms:arrival:delete'],
                 popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                  title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
                   confirm: handleDelete.bind(null, row),
                 },
               },

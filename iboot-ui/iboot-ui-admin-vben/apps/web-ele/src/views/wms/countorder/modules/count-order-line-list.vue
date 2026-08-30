@@ -5,7 +5,7 @@ import type { WmsCountOrderApi } from '#/api/wms/countorder';
  import CountOrderLineForm from './count-order-line-form.vue'
 import { useVbenModal } from '@vben/common-ui';
 import { ElMessage, ElLoading } from 'element-plus';
-import { ref, computed, nextTick,watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { $t } from '#/locales';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -27,35 +27,35 @@ async function handleRefresh() {
    await gridApi.query();
 }
 
-/** 创建WMS-盘点明细 */
+/** 创建盘点明细 */
 function handleCreate() {
   if (!props.orderId){
-    ElMessage.warning("请先选择一个WMS-盘点单!")
+    ElMessage.warning("请先选择一个盘点单!")
     return
   }
   formModalApi.setData({orderId: props.orderId}).open();
 }
 
-/** 编辑WMS-盘点明细 */
+/** 编辑盘点明细 */
 function handleEdit(row: WmsCountOrderApi.CountOrderLine) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-盘点明细 */
+/** 删除盘点明细 */
 async function handleDelete(row: WmsCountOrderApi.CountOrderLine) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.lineNo]),
   });
   try {
     await deleteCountOrderLine(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lineNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-盘点明细 */
+/** 批量删除盘点明细 */
 async function handleDeleteBatch() {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting'),
@@ -135,12 +135,12 @@ watch(
 
 <template>
        <FormModal @success="handleRefresh" />
-      <Grid table-title="WMS-盘点明细列表">
+      <Grid table-title="盘点明细列表">
         <template #toolbar-tools>
           <TableAction
             :actions="[
               {
-                label: $t('ui.actionTitle.create', ['WMS-盘点单']),
+                label: $t('ui.actionTitle.create', ['盘点明细']),
                 type: 'primary',
                 icon: ACTION_ICON.ADD,
                 auth: ['wms:count-order:create'],
@@ -175,7 +175,7 @@ watch(
                 icon: ACTION_ICON.DELETE,
                 auth: ['wms:count-order:delete'],
                 popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                  title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
                   confirm: handleDelete.bind(null, row),
                 },
               },

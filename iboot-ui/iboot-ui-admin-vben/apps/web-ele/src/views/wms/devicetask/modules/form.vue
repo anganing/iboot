@@ -10,6 +10,7 @@ import { ElMessage } from 'element-plus';
 import { useVbenForm } from '#/adapter/form';
 import { createDeviceTask, getDeviceTask, updateDeviceTask } from '#/api/wms/devicetask';
 import { $t } from '#/locales';
+import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
 import { useFormSchema } from '../data';
 
@@ -17,18 +18,22 @@ const emit = defineEmits(['success']);
 const formData = ref<WmsDeviceTaskApi.DeviceTask>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['WMS-设备搬运任务'])
-    : $t('ui.actionTitle.create', ['WMS-设备搬运任务']);
+    ? $t('ui.actionTitle.edit', ['设备任务'])
+    : $t('ui.actionTitle.create', ['设备任务']);
 });
+
+const formLayout = getMdmFormLayout(2);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: {
       class: 'w-full',
     },
-    formItemClass: 'col-span-2',
-    labelWidth: 80,
+    formItemClass: formLayout.formItemClass,
+    labelClass: 'justify-start',
+    labelWidth: 110,
   },
+  wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
   schema: useFormSchema(),
   showDefaultActions: false,
@@ -76,7 +81,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
 </template>

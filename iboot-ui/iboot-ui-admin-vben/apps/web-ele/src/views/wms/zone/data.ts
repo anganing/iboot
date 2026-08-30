@@ -2,9 +2,15 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsZoneApi } from '#/api/wms/zone';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+
+import { WH_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -19,12 +25,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
+      label: '所属仓库',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入仓库编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -32,6 +36,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入库区编码',
       },
     },
@@ -41,66 +46,67 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入库区名称',
       },
     },
     {
       fieldName: 'zoneType',
-      label: '库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING',
+      label: '库区类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING',
+        options: getDictOptions('wms_zone_type', 'string'),
+        placeholder: '请选择库区类型',
       },
     },
     {
       fieldName: 'allowMixedMat',
-      label: '是否允许混放物料',
+      label: '混放物料',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
       },
+      defaultValue: true,
     },
     {
       fieldName: 'allowMixedLot',
-      label: '是否允许混放批次',
+      label: '混放批次',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
       },
+      defaultValue: true,
     },
     {
       fieldName: 'tempRange',
       label: '温区要求',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入温区要求',
+        maxLength: 64,
+        placeholder: '例如 2~8℃，无要求可留空',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：0-启用，1-停用',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -111,7 +117,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'WMS-库区数据',
+      label: '库区数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -124,12 +130,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'whId',
-      label: '仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入仓库编号',
-      },
+      label: '所属仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'code',
@@ -151,60 +154,22 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'zoneType',
-      label: '库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING',
+      label: '库区类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING',
-      },
-    },
-    {
-      fieldName: 'allowMixedMat',
-      label: '是否允许混放物料',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择是否允许混放物料',
-      },
-    },
-    {
-      fieldName: 'allowMixedLot',
-      label: '是否允许混放批次',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择是否允许混放批次',
-      },
-    },
-    {
-      fieldName: 'tempRange',
-      label: '温区要求',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入温区要求',
+        options: getDictOptions('wms_zone_type', 'string'),
+        placeholder: '请选择库区类型',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：0-启用，1-停用',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：0-启用，1-停用',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions(DICT_TYPE.COMMON_STATUS, 'number'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -222,67 +187,56 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsZoneApi.Zone>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'code',
-      title: '库区编码',
-      minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '库区名称',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'code', title: '库区编码', minWidth: 140 },
+    { field: 'name', title: '库区名称', minWidth: 160 },
+    { field: 'whCode', title: '仓库编码', minWidth: 130 },
+    { field: 'whName', title: '仓库名称', minWidth: 150 },
     {
       field: 'zoneType',
-      title: '库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING',
-      minWidth: 120,
+      title: '库区类型',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: 'wms_zone_type' } },
     },
     {
       field: 'allowMixedMat',
-      title: '是否允许混放物料',
-      minWidth: 120,
+      title: '混放物料',
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
     {
       field: 'allowMixedLot',
-      title: '是否允许混放批次',
-      minWidth: 120,
+      title: '混放批次',
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
-    {
-      field: 'tempRange',
-      title: '温区要求',
-      minWidth: 120,
-    },
+    { field: 'tempRange', title: '温区要求', minWidth: 120 },
     {
       field: 'status',
-      title: '状态：0-启用，1-停用',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 90,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.COMMON_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'whCode',
-      title: '仓库编码',
-      minWidth: 120,
-    },
-    {
-      field: 'whName',
-      title: '仓库名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

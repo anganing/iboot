@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-仓储策略 */
+/** 导入仓储策略 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,31 +41,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-仓储策略 */
+/** 创建仓储策略 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-仓储策略 */
+/** 编辑仓储策略 */
 function handleEdit(row: WmsStrategyApi.Strategy) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-仓储策略 */
+/** 删除仓储策略 */
 async function handleDelete(row: WmsStrategyApi.Strategy) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.code]),
   });
   try {
     await deleteStrategy(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.code]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-仓储策略 */
+/** 批量删除仓储策略 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportStrategy(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-仓储策略.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '仓储策略.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="WMS-仓储策略列表">
+    <Grid table-title="仓储策略列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-仓储策略']),
+              label: $t('ui.actionTitle.create', ['仓储策略']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:strategy:create'],
@@ -189,7 +189,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:strategy:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.code]),
                 confirm: handleDelete.bind(null, row),
               },
             },

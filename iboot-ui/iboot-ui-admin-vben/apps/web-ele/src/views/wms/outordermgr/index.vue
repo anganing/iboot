@@ -35,7 +35,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-出库单 */
+/** 导入出库单 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -45,31 +45,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-出库单 */
+/** 创建出库单 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-出库单 */
+/** 编辑出库单 */
 function handleEdit(row: WmsOutOrderApi.OutOrder) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-出库单 */
+/** 删除出库单 */
 async function handleDelete(row: WmsOutOrderApi.OutOrder) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.outNo]),
   });
   try {
     await deleteOutOrder(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.outNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-出库单 */
+/** 批量删除出库单 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -97,7 +97,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportOutOrder(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-出库单.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '出库单.xls', source: data });
 }
 
 
@@ -145,12 +145,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
    <div>
-    <Grid table-title="WMS-出库单列表">
+    <Grid table-title="出库单列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-出库单']),
+              label: $t('ui.actionTitle.create', ['出库单']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:out-order:create'],
@@ -198,7 +198,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:out-order:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.outNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -208,7 +208,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
      <!-- 子表的表单 -->
     <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="outOrderLine" label="WMS-出库单明细">
+          <ElTabPane name="outOrderLine" label="出库明细">
             <OutOrderLineList :order-id="selectOutOrder?.id" />
           </ElTabPane>
     </ElTabs>

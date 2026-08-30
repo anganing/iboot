@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import { requestClient } from '#/api/request';
 
 export namespace WmsCountOrderApi {
-  /** WMS-盘点明细信息 */
+  /** 盘点明细信息 */
   export interface CountOrderLine {
             id: number; // 主键
             orderId?: number; // 盘点单编号
@@ -29,7 +29,7 @@ export namespace WmsCountOrderApi {
             remark: string; // 备注
   }
 
-  /** WMS-盘点单信息 */
+  /** 盘点单信息 */
   export interface CountOrder {
     id: number; // 主键
     countNo?: string; // 盘点单号
@@ -46,7 +46,7 @@ export namespace WmsCountOrderApi {
   }
 }
 
-/** 查询WMS-盘点单分页 */
+/** 查询盘点单分页 */
 export function getCountOrderPage(params: PageParam) {
   return requestClient.get<PageResult<WmsCountOrderApi.CountOrder>>(
     '/wms/count-order/page',
@@ -54,83 +54,83 @@ export function getCountOrderPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-盘点单详情 */
+/** 查询盘点单详情 */
 export function getCountOrder(id: number) {
   return requestClient.get<WmsCountOrderApi.CountOrder>(
     `/wms/count-order/get?id=${id}`,
   );
 }
 
-/** 新增WMS-盘点单 */
+/** 新增盘点单 */
 export function createCountOrder(data: WmsCountOrderApi.CountOrder) {
   return requestClient.post('/wms/count-order/create', data);
 }
 
-/** 修改WMS-盘点单 */
+/** 修改盘点单 */
 export function updateCountOrder(data: WmsCountOrderApi.CountOrder) {
   return requestClient.put('/wms/count-order/update', data);
 }
 
-/** 删除WMS-盘点单 */
+/** 删除盘点单 */
 export function deleteCountOrder(id: number) {
   return requestClient.delete(`/wms/count-order/delete?id=${id}`);
 }
 
-/** 批量删除WMS-盘点单 */
+/** 批量删除盘点单 */
 export function deleteCountOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/count-order/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-盘点单 */
+/** 导出盘点单 */
 export function exportCountOrder(params: any) {
   return requestClient.download('/wms/count-order/export-excel', { params });
 }
 
-/** 下载WMS-盘点单导入模板 */
+/** 下载盘点单导入模板 */
 export function importCountOrderTemplate() {
   return requestClient.download('/wms/count-order/get-import-template');
 }
 
-/** 导入WMS-盘点单 */
+/** 导入盘点单 */
 export function importCountOrder(file: File) {
   return requestClient.upload('/wms/count-order/import', { file });
 }
 
 
-// ==================== 子表（WMS-盘点明细） ====================
+// ==================== 子表（盘点明细） ====================
 
-/** 获得WMS-盘点明细分页 */
+/** 获得盘点明细分页 */
 export function getCountOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsCountOrderApi.CountOrderLine>>(
     `/wms/count-order/count-order-line/page`,
     { params },
   );
 }
-/** 新增WMS-盘点明细 */
+/** 新增盘点明细 */
 export function createCountOrderLine(data: WmsCountOrderApi.CountOrderLine) {
   return requestClient.post(`/wms/count-order/count-order-line/create`, data);
 }
 
-/** 修改WMS-盘点明细 */
+/** 修改盘点明细 */
 export function updateCountOrderLine(data: WmsCountOrderApi.CountOrderLine) {
   return requestClient.put(`/wms/count-order/count-order-line/update`, data);
 }
 
-/** 删除WMS-盘点明细 */
+/** 删除盘点明细 */
 export function deleteCountOrderLine(id: number) {
   return requestClient.delete(`/wms/count-order/count-order-line/delete?id=${id}`);
 }
 
-/** 批量删除WMS-盘点明细 */
+/** 批量删除盘点明细 */
 export function deleteCountOrderLineList(ids: number[]) {
   return requestClient.delete(
     `/wms/count-order/count-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 获得WMS-盘点明细 */
+/** 获得盘点明细 */
 export function getCountOrderLine(id: number) {
   return requestClient.get<WmsCountOrderApi.CountOrderLine>(
     `/wms/count-order/count-order-line/get?id=${id}`,

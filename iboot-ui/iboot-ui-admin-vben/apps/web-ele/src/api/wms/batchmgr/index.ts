@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import { requestClient } from '#/api/request';
 
 export namespace WmsBatchApi {
-  /** WMS-批次主档信息 */
+  /** 批次信息 */
   export interface Batch {
     id: number; // 主键
     matId?: number; // 物料编号
@@ -23,7 +23,7 @@ export namespace WmsBatchApi {
   }
 }
 
-/** 查询WMS-批次主档分页 */
+/** 查询批次分页 */
 export function getBatchPage(params: PageParam) {
   return requestClient.get<PageResult<WmsBatchApi.Batch>>(
     '/wms/batch/page',
@@ -31,46 +31,46 @@ export function getBatchPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-批次主档详情 */
+/** 查询批次详情 */
 export function getBatch(id: number) {
   return requestClient.get<WmsBatchApi.Batch>(
     `/wms/batch/get?id=${id}`,
   );
 }
 
-/** 新增WMS-批次主档 */
+/** 新增批次 */
 export function createBatch(data: WmsBatchApi.Batch) {
   return requestClient.post('/wms/batch/create', data);
 }
 
-/** 修改WMS-批次主档 */
+/** 修改批次 */
 export function updateBatch(data: WmsBatchApi.Batch) {
   return requestClient.put('/wms/batch/update', data);
 }
 
-/** 删除WMS-批次主档 */
+/** 删除批次 */
 export function deleteBatch(id: number) {
   return requestClient.delete(`/wms/batch/delete?id=${id}`);
 }
 
-/** 批量删除WMS-批次主档 */
+/** 批量删除批次 */
 export function deleteBatchList(ids: number[]) {
   return requestClient.delete(
     `/wms/batch/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-批次主档 */
+/** 导出批次 */
 export function exportBatch(params: any) {
   return requestClient.download('/wms/batch/export-excel', { params });
 }
 
-/** 下载WMS-批次主档导入模板 */
+/** 下载批次导入模板 */
 export function importBatchTemplate() {
   return requestClient.download('/wms/batch/get-import-template');
 }
 
-/** 导入WMS-批次主档 */
+/** 导入批次 */
 export function importBatch(file: File) {
   return requestClient.upload('/wms/batch/import', { file });
 }

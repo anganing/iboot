@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsWhApi {
-  /** WMS-仓库信息 */
+  /** 仓库信息 */
   export interface Wh {
     id: number; // 主键
     invOrgId?: number; // 库存组织编号
@@ -19,7 +18,7 @@ export namespace WmsWhApi {
   }
 }
 
-/** 查询WMS-仓库分页 */
+/** 查询仓库分页 */
 export function getWhPage(params: PageParam) {
   return requestClient.get<PageResult<WmsWhApi.Wh>>(
     '/wms/wh/page',
@@ -27,46 +26,46 @@ export function getWhPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-仓库详情 */
+/** 查询仓库详情 */
 export function getWh(id: number) {
   return requestClient.get<WmsWhApi.Wh>(
     `/wms/wh/get?id=${id}`,
   );
 }
 
-/** 新增WMS-仓库 */
+/** 新增仓库 */
 export function createWh(data: WmsWhApi.Wh) {
   return requestClient.post('/wms/wh/create', data);
 }
 
-/** 修改WMS-仓库 */
+/** 修改仓库 */
 export function updateWh(data: WmsWhApi.Wh) {
   return requestClient.put('/wms/wh/update', data);
 }
 
-/** 删除WMS-仓库 */
+/** 删除仓库 */
 export function deleteWh(id: number) {
   return requestClient.delete(`/wms/wh/delete?id=${id}`);
 }
 
-/** 批量删除WMS-仓库 */
+/** 批量删除仓库 */
 export function deleteWhList(ids: number[]) {
   return requestClient.delete(
     `/wms/wh/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-仓库 */
+/** 导出仓库 */
 export function exportWh(params: any) {
   return requestClient.download('/wms/wh/export-excel', { params });
 }
 
-/** 下载WMS-仓库导入模板 */
+/** 下载仓库导入模板 */
 export function importWhTemplate() {
   return requestClient.download('/wms/wh/get-import-template');
 }
 
-/** 导入WMS-仓库 */
+/** 导入仓库 */
 export function importWh(file: File) {
   return requestClient.upload('/wms/wh/import', { file });
 }

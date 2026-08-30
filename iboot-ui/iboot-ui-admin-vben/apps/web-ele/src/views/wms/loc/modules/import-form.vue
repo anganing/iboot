@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importLocTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-库位导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '库位导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-库位" class="w-1/3">
+  <Modal title="导入库位" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

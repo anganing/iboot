@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsOutOrderApi {
-  /** WMS-出库单明细信息 */
+  /** 出库明细信息 */
   export interface OutOrderLine {
             id: number; // 主键
             orderId?: number; // 出库单编号
@@ -32,7 +31,7 @@ export namespace WmsOutOrderApi {
             remark: string; // 备注
   }
 
-  /** WMS-出库单信息 */
+  /** 出库单信息 */
   export interface OutOrder {
     id: number; // 主键
     outNo?: string; // 出库单号
@@ -67,7 +66,7 @@ export namespace WmsOutOrderApi {
   }
 }
 
-/** 查询WMS-出库单分页 */
+/** 查询出库单分页 */
 export function getOutOrderPage(params: PageParam) {
   return requestClient.get<PageResult<WmsOutOrderApi.OutOrder>>(
     '/wms/out-order/page',
@@ -75,83 +74,83 @@ export function getOutOrderPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-出库单详情 */
+/** 查询出库单详情 */
 export function getOutOrder(id: number) {
   return requestClient.get<WmsOutOrderApi.OutOrder>(
     `/wms/out-order/get?id=${id}`,
   );
 }
 
-/** 新增WMS-出库单 */
+/** 新增出库单 */
 export function createOutOrder(data: WmsOutOrderApi.OutOrder) {
   return requestClient.post('/wms/out-order/create', data);
 }
 
-/** 修改WMS-出库单 */
+/** 修改出库单 */
 export function updateOutOrder(data: WmsOutOrderApi.OutOrder) {
   return requestClient.put('/wms/out-order/update', data);
 }
 
-/** 删除WMS-出库单 */
+/** 删除出库单 */
 export function deleteOutOrder(id: number) {
   return requestClient.delete(`/wms/out-order/delete?id=${id}`);
 }
 
-/** 批量删除WMS-出库单 */
+/** 批量删除出库单 */
 export function deleteOutOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/out-order/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-出库单 */
+/** 导出出库单 */
 export function exportOutOrder(params: any) {
   return requestClient.download('/wms/out-order/export-excel', { params });
 }
 
-/** 下载WMS-出库单导入模板 */
+/** 下载出库单导入模板 */
 export function importOutOrderTemplate() {
   return requestClient.download('/wms/out-order/get-import-template');
 }
 
-/** 导入WMS-出库单 */
+/** 导入出库单 */
 export function importOutOrder(file: File) {
   return requestClient.upload('/wms/out-order/import', { file });
 }
 
 
-// ==================== 子表（WMS-出库单明细） ====================
+// ==================== 子表（出库明细） ====================
 
-/** 获得WMS-出库单明细分页 */
+/** 获得出库明细分页 */
 export function getOutOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsOutOrderApi.OutOrderLine>>(
     `/wms/out-order/out-order-line/page`,
     { params },
   );
 }
-/** 新增WMS-出库单明细 */
+/** 新增出库明细 */
 export function createOutOrderLine(data: WmsOutOrderApi.OutOrderLine) {
   return requestClient.post(`/wms/out-order/out-order-line/create`, data);
 }
 
-/** 修改WMS-出库单明细 */
+/** 修改出库明细 */
 export function updateOutOrderLine(data: WmsOutOrderApi.OutOrderLine) {
   return requestClient.put(`/wms/out-order/out-order-line/update`, data);
 }
 
-/** 删除WMS-出库单明细 */
+/** 删除出库明细 */
 export function deleteOutOrderLine(id: number) {
   return requestClient.delete(`/wms/out-order/out-order-line/delete?id=${id}`);
 }
 
-/** 批量删除WMS-出库单明细 */
+/** 批量删除出库明细 */
 export function deleteOutOrderLineList(ids: number[]) {
   return requestClient.delete(
     `/wms/out-order/out-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 获得WMS-出库单明细 */
+/** 获得出库明细 */
 export function getOutOrderLine(id: number) {
   return requestClient.get<WmsOutOrderApi.OutOrderLine>(
     `/wms/out-order/out-order-line/get?id=${id}`,

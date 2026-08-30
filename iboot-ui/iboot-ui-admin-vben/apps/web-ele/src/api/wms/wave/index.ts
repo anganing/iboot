@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import { requestClient } from '#/api/request';
 
 export namespace WmsWaveApi {
-  /** WMS-波次明细信息 */
+  /** 波次明细信息 */
   export interface WaveLine {
             id: number; // 主键
             waveId?: number; // 波次编号
@@ -16,7 +16,7 @@ export namespace WmsWaveApi {
             remark: string; // 备注
   }
 
-  /** WMS-出库波次信息 */
+  /** 出库波次信息 */
   export interface Wave {
     id: number; // 主键
     waveNo?: string; // 波次编号
@@ -29,7 +29,7 @@ export namespace WmsWaveApi {
   }
 }
 
-/** 查询WMS-出库波次分页 */
+/** 查询出库波次分页 */
 export function getWavePage(params: PageParam) {
   return requestClient.get<PageResult<WmsWaveApi.Wave>>(
     '/wms/wave/page',
@@ -37,83 +37,83 @@ export function getWavePage(params: PageParam) {
   );
 }
 
-/** 查询WMS-出库波次详情 */
+/** 查询出库波次详情 */
 export function getWave(id: number) {
   return requestClient.get<WmsWaveApi.Wave>(
     `/wms/wave/get?id=${id}`,
   );
 }
 
-/** 新增WMS-出库波次 */
+/** 新增出库波次 */
 export function createWave(data: WmsWaveApi.Wave) {
   return requestClient.post('/wms/wave/create', data);
 }
 
-/** 修改WMS-出库波次 */
+/** 修改出库波次 */
 export function updateWave(data: WmsWaveApi.Wave) {
   return requestClient.put('/wms/wave/update', data);
 }
 
-/** 删除WMS-出库波次 */
+/** 删除出库波次 */
 export function deleteWave(id: number) {
   return requestClient.delete(`/wms/wave/delete?id=${id}`);
 }
 
-/** 批量删除WMS-出库波次 */
+/** 批量删除出库波次 */
 export function deleteWaveList(ids: number[]) {
   return requestClient.delete(
     `/wms/wave/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-出库波次 */
+/** 导出出库波次 */
 export function exportWave(params: any) {
   return requestClient.download('/wms/wave/export-excel', { params });
 }
 
-/** 下载WMS-出库波次导入模板 */
+/** 下载出库波次导入模板 */
 export function importWaveTemplate() {
   return requestClient.download('/wms/wave/get-import-template');
 }
 
-/** 导入WMS-出库波次 */
+/** 导入出库波次 */
 export function importWave(file: File) {
   return requestClient.upload('/wms/wave/import', { file });
 }
 
 
-// ==================== 子表（WMS-波次明细） ====================
+// ==================== 子表（波次明细） ====================
 
-/** 获得WMS-波次明细分页 */
+/** 获得波次明细分页 */
 export function getWaveLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsWaveApi.WaveLine>>(
     `/wms/wave/wave-line/page`,
     { params },
   );
 }
-/** 新增WMS-波次明细 */
+/** 新增波次明细 */
 export function createWaveLine(data: WmsWaveApi.WaveLine) {
   return requestClient.post(`/wms/wave/wave-line/create`, data);
 }
 
-/** 修改WMS-波次明细 */
+/** 修改波次明细 */
 export function updateWaveLine(data: WmsWaveApi.WaveLine) {
   return requestClient.put(`/wms/wave/wave-line/update`, data);
 }
 
-/** 删除WMS-波次明细 */
+/** 删除波次明细 */
 export function deleteWaveLine(id: number) {
   return requestClient.delete(`/wms/wave/wave-line/delete?id=${id}`);
 }
 
-/** 批量删除WMS-波次明细 */
+/** 批量删除波次明细 */
 export function deleteWaveLineList(ids: number[]) {
   return requestClient.delete(
     `/wms/wave/wave-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 获得WMS-波次明细 */
+/** 获得波次明细 */
 export function getWaveLine(id: number) {
   return requestClient.get<WmsWaveApi.WaveLine>(
     `/wms/wave/wave-line/get?id=${id}`,

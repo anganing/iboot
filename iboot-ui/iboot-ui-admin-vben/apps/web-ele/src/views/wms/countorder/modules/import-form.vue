@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importCountOrderTemplate();
-  downloadFileFromBlobPart({ fileName: 'WMS-盘点单导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '盘点单导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入WMS-盘点单" class="w-1/3">
+  <Modal title="导入盘点单" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

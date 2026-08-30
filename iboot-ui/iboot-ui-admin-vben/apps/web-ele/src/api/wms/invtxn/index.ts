@@ -1,10 +1,9 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsInvTxnApi {
-  /** WMS-库存流水信息 */
+  /** 库存流水信息 */
   export interface InvTxn {
     id: number; // 主键
     txnNo?: string; // 库存事务编号
@@ -42,7 +41,7 @@ export namespace WmsInvTxnApi {
   }
 }
 
-/** 查询WMS-库存流水分页 */
+/** 查询库存流水分页 */
 export function getInvTxnPage(params: PageParam) {
   return requestClient.get<PageResult<WmsInvTxnApi.InvTxn>>(
     '/wms/inv-txn/page',
@@ -50,46 +49,46 @@ export function getInvTxnPage(params: PageParam) {
   );
 }
 
-/** 查询WMS-库存流水详情 */
+/** 查询库存流水详情 */
 export function getInvTxn(id: number) {
   return requestClient.get<WmsInvTxnApi.InvTxn>(
     `/wms/inv-txn/get?id=${id}`,
   );
 }
 
-/** 新增WMS-库存流水 */
+/** 新增库存流水 */
 export function createInvTxn(data: WmsInvTxnApi.InvTxn) {
   return requestClient.post('/wms/inv-txn/create', data);
 }
 
-/** 修改WMS-库存流水 */
+/** 修改库存流水 */
 export function updateInvTxn(data: WmsInvTxnApi.InvTxn) {
   return requestClient.put('/wms/inv-txn/update', data);
 }
 
-/** 删除WMS-库存流水 */
+/** 删除库存流水 */
 export function deleteInvTxn(id: number) {
   return requestClient.delete(`/wms/inv-txn/delete?id=${id}`);
 }
 
-/** 批量删除WMS-库存流水 */
+/** 批量删除库存流水 */
 export function deleteInvTxnList(ids: number[]) {
   return requestClient.delete(
     `/wms/inv-txn/delete-list?ids=${ids.join(',')}`,
   );
 }
 
-/** 导出WMS-库存流水 */
+/** 导出库存流水 */
 export function exportInvTxn(params: any) {
   return requestClient.download('/wms/inv-txn/export-excel', { params });
 }
 
-/** 下载WMS-库存流水导入模板 */
+/** 下载库存流水导入模板 */
 export function importInvTxnTemplate() {
   return requestClient.download('/wms/inv-txn/get-import-template');
 }
 
-/** 导入WMS-库存流水 */
+/** 导入库存流水 */
 export function importInvTxn(file: File) {
   return requestClient.upload('/wms/inv-txn/import', { file });
 }

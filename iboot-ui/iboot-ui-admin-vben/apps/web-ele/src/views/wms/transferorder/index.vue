@@ -35,7 +35,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入WMS-库存转移调拨单 */
+/** 导入移库调拨单 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -45,31 +45,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建WMS-库存转移调拨单 */
+/** 创建移库调拨单 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑WMS-库存转移调拨单 */
+/** 编辑移库调拨单 */
 function handleEdit(row: WmsTransferOrderApi.TransferOrder) {
   formModalApi.setData(row).open();
 }
 
-/** 删除WMS-库存转移调拨单 */
+/** 删除移库调拨单 */
 async function handleDelete(row: WmsTransferOrderApi.TransferOrder) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.transferNo]),
   });
   try {
     await deleteTransferOrder(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.transferNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除WMS-库存转移调拨单 */
+/** 批量删除移库调拨单 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -97,7 +97,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportTransferOrder(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'WMS-库存转移调拨单.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '移库调拨单.xls', source: data });
 }
 
 
@@ -145,12 +145,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
    <div>
-    <Grid table-title="WMS-库存转移调拨单列表">
+    <Grid table-title="移库调拨单列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['WMS-库存转移调拨单']),
+              label: $t('ui.actionTitle.create', ['移库调拨单']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['wms:transfer-order:create'],
@@ -198,7 +198,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:transfer-order:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.transferNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -208,7 +208,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
      <!-- 子表的表单 -->
     <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="transferOrderLine" label="WMS-库存转移调拨明细">
+          <ElTabPane name="transferOrderLine" label="调拨明细">
             <TransferOrderLineList :order-id="selectTransferOrder?.id" />
           </ElTabPane>
     </ElTabs>
