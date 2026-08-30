@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsTaskApi.Task>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-工序排程任务'])
-    : $t('ui.actionTitle.create', ['APS-工序排程任务']);
+    ? $t('ui.actionTitle.edit', ['排程任务'])
+    : $t('ui.actionTitle.create', ['排程任务']);
 });
 
 const [Form, formApi] = useVbenForm({

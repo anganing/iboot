@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-资源负荷 Excel 导入 VO
+ * 资源负荷 Excel 导入 VO
  */
 @Data
 @Builder

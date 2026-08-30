@@ -19,39 +19,39 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'snapshotType',
-      label: '快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR',
+      label: '快照类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
         options: [],
-        placeholder: '请选择快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR',
+        placeholder: '请选择快照类型',
       },
     },
     {
       fieldName: 'snapshotJson',
-      label: 'Timefold求解输入、结果或约束命中快照',
+      label: '求解内容',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入Timefold求解输入、结果或约束命中快照',
+        placeholder: '请输入求解内容',
       },
     },
     {
       fieldName: 'checksum',
-      label: '快照内容校验值',
+      label: '内容校验值',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入快照内容校验值',
+        placeholder: '请输入内容校验值',
       },
     },
     {
@@ -82,7 +82,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-Timefold求解快照数据',
+      label: '求解快照数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -95,39 +95,39 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'snapshotType',
-      label: '快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR',
+      label: '快照类型',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR',
+        placeholder: '请选择快照类型',
       },
     },
     {
       fieldName: 'snapshotJson',
-      label: 'Timefold求解输入、结果或约束命中快照',
+      label: '求解内容',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入Timefold求解输入、结果或约束命中快照',
+        placeholder: '请输入求解内容',
       },
     },
     {
       fieldName: 'checksum',
-      label: '快照内容校验值',
+      label: '内容校验值',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入快照内容校验值',
+        placeholder: '请输入内容校验值',
       },
     },
     {
@@ -167,17 +167,17 @@ export function useGridColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.Solve
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'snapshotType',
-      title: '快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR',
+      title: '快照类型',
       minWidth: 120,
     },
     {
       field: 'snapshotJson',
-      title: 'Timefold求解输入、结果或约束命中快照',
+      title: '求解内容',
       minWidth: 120,
     },
     {
       field: 'checksum',
-      title: '快照内容校验值',
+      title: '内容校验值',
       minWidth: 120,
     },
     {
@@ -199,7 +199,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.Solve
     },
     {
       field: 'versionVersion_no',
-      title: '排程版本version_no',
+      title: '排程版本号',
       minWidth: 120,
     },
     {

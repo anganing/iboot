@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 import static com.iboot.pf.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
-@Schema(description = "管理后台 - APS-排程策略分页 Request VO")
+@Schema(description = "管理后台 - 排程策略分页 Request VO")
 @Data
 public class StrategyPageReqVO extends PageParam {
 

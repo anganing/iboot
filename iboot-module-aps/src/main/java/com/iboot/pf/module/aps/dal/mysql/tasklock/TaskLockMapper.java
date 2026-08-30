@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.tasklock.vo.*;
 
 /**
- * APS-排程任务锁定记录 Mapper
+ * 任务锁定 Mapper
  *
  * @author iboot
  */

@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importTaskDepTemplate();
-  downloadFileFromBlobPart({ fileName: 'APS-排程任务依赖导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '任务依赖导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入APS-排程任务依赖" class="w-1/3">
+  <Modal title="导入任务依赖" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

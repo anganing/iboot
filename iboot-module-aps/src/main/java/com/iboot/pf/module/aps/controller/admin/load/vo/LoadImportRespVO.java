@@ -6,7 +6,7 @@ import lombok.Data;
 
 import java.util.Map;
 
-@Schema(description = "管理后台 - APS-资源负荷导入 Response VO")
+@Schema(description = "管理后台 - 资源负荷导入 Response VO")
 @Data
 @Builder
 public class LoadImportRespVO {

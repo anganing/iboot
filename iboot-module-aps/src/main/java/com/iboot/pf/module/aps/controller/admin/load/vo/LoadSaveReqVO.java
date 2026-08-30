@@ -8,7 +8,7 @@ import java.util.*;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
-@Schema(description = "管理后台 - APS-资源负荷新增/修改 Request VO")
+@Schema(description = "管理后台 - 资源负荷新增/修改 Request VO")
 @Data
 public class LoadSaveReqVO {
 

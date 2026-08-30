@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importTaskLockTemplate();
-  downloadFileFromBlobPart({ fileName: 'APS-排程任务锁定记录导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '任务锁定导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入APS-排程任务锁定记录" class="w-1/3">
+  <Modal title="导入任务锁定" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

@@ -19,7 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.STRATEGY_NOT_EXISTS;
 
 /**
- * APS-排程策略 Service 实现类
+ * 排程策略 Service 实现类
  *
  * @author iboot
  */

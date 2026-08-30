@@ -9,7 +9,7 @@ import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - APS-MDM资源与日历投影新增/修改 Request VO")
+@Schema(description = "管理后台 - 资源投影新增/修改 Request VO")
 @Data
 public class ProjectionResourceSaveReqVO {
 

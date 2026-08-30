@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.*;
 
 /**
- * APS-排程策略 Mapper
+ * 排程策略 Mapper
  *
  * @author iboot
  */

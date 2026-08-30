@@ -19,25 +19,25 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'versionNo',
-      label: '排程版本号',
+      label: '版本号',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程版本号',
+        placeholder: '请输入版本号',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
@@ -48,10 +48,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'score',
-      label: 'Timefold综合得分',
+      label: '综合得分',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入Timefold综合得分',
+        placeholder: '请输入综合得分',
       },
     },
     {
@@ -105,18 +105,18 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'publishedBy',
-      label: '发布人员编号',
+      label: '发布人员',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入发布人员编号',
+        placeholder: '请输入发布人员',
       },
     },
     {
       fieldName: 'solverMessage',
-      label: '求解结果或失败信息',
+      label: '求解信息',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入求解结果或失败信息',
+        placeholder: '请输入求解信息',
       },
     },
     {
@@ -144,7 +144,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程版本数据',
+      label: '排程版本数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -157,39 +157,39 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'versionNo',
-      label: '排程版本号',
+      label: '版本号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程版本号',
+        placeholder: '请输入版本号',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED',
+        placeholder: '请选择状态',
       },
     },
     {
       fieldName: 'score',
-      label: 'Timefold综合得分',
+      label: '综合得分',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入Timefold综合得分',
+        placeholder: '请输入综合得分',
       },
     },
     {
@@ -239,20 +239,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'publishedBy',
-      label: '发布人员编号',
+      label: '发布人员',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入发布人员编号',
+        placeholder: '请输入发布人员',
       },
     },
     {
       fieldName: 'solverMessage',
-      label: '求解结果或失败信息',
+      label: '求解信息',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入求解结果或失败信息',
+        placeholder: '请输入求解信息',
       },
     },
     {
@@ -292,17 +292,17 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'versionNo',
-      title: '排程版本号',
+      title: '版本号',
       minWidth: 120,
     },
     {
       field: 'status',
-      title: '状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED',
+      title: '状态',
       minWidth: 120,
     },
     {
       field: 'score',
-      title: 'Timefold综合得分',
+      title: '综合得分',
       minWidth: 120,
     },
     {
@@ -335,12 +335,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
     },
     {
       field: 'publishedBy',
-      title: '发布人员编号',
+      title: '发布人员',
       minWidth: 120,
     },
     {
       field: 'solverMessage',
-      title: '求解结果或失败信息',
+      title: '求解信息',
       minWidth: 120,
     },
     {

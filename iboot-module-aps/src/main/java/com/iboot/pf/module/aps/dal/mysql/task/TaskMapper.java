@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.task.vo.*;
 
 /**
- * APS-工序排程任务 Mapper
+ * 排程任务 Mapper
  *
  * @author iboot
  */

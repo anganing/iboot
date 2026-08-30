@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsTaskLockApi.TaskLock>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-排程任务锁定记录'])
-    : $t('ui.actionTitle.create', ['APS-排程任务锁定记录']);
+    ? $t('ui.actionTitle.edit', ['任务锁定'])
+    : $t('ui.actionTitle.create', ['任务锁定']);
 });
 
 const [Form, formApi] = useVbenForm({

@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-MDM资源与日历投影 DO
+ * 资源投影 DO
  *
  * @author iboot
  */

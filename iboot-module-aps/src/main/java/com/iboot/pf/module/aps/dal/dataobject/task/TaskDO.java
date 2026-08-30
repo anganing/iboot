@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-工序排程任务 DO
+ * 排程任务 DO
  *
  * @author iboot
  */

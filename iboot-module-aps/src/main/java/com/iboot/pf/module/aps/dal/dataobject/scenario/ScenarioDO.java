@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-排程场景 DO
+ * 排程场景 DO
  *
  * @author iboot
  */

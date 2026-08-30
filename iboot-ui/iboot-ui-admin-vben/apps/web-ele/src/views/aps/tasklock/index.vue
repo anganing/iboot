@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入APS-排程任务锁定记录 */
+/** 导入任务锁定 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,17 +41,17 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建APS-排程任务锁定记录 */
+/** 创建任务锁定 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑APS-排程任务锁定记录 */
+/** 编辑任务锁定 */
 function handleEdit(row: ApsTaskLockApi.TaskLock) {
   formModalApi.setData(row).open();
 }
 
-/** 删除APS-排程任务锁定记录 */
+/** 删除任务锁定 */
 async function handleDelete(row: ApsTaskLockApi.TaskLock) {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting', [row.id]),
@@ -65,7 +65,7 @@ async function handleDelete(row: ApsTaskLockApi.TaskLock) {
   }
 }
 
-/** 批量删除APS-排程任务锁定记录 */
+/** 批量删除任务锁定 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportTaskLock(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'APS-排程任务锁定记录.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '任务锁定.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="APS-排程任务锁定记录列表">
+    <Grid table-title="任务锁定列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['APS-排程任务锁定记录']),
+              label: $t('ui.actionTitle.create', ['任务锁定']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['aps:task-lock:create'],

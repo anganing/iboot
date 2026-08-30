@@ -19,7 +19,7 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.LOAD_NOT_EXISTS;
 
 /**
- * APS-资源负荷 Service 实现类
+ * 资源负荷 Service 实现类
  *
  * @author iboot
  */

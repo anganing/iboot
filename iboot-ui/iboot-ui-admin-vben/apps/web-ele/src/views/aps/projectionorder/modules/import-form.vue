@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importProjectionOrderTemplate();
-  downloadFileFromBlobPart({ fileName: 'APS-MES需求工单任务投影导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '工单投影导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入APS-MES需求工单任务投影" class="w-1/3">
+  <Modal title="导入工单投影" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

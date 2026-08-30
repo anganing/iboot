@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-排程缺料清单 Excel 导入 VO
+ * 缺料清单 Excel 导入 VO
  */
 @Data
 @Builder

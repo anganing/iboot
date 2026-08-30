@@ -19,119 +19,119 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceBalanceId',
-      label: 'WMS库存余额编号',
+      label: '库存余额',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入WMS库存余额编号',
+        placeholder: '请输入库存余额',
       },
     },
     {
       fieldName: 'invOrgId',
-      label: '库存组织编号',
+      label: '库存组织',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入库存组织编号',
+        placeholder: '请输入库存组织',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
+      label: '仓库',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入仓库编号',
+        placeholder: '请输入仓库',
       },
     },
     {
       fieldName: 'locId',
-      label: '库位编号',
+      label: '库位',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入库位编号',
+        placeholder: '请输入库位',
       },
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料编号',
+        placeholder: '请输入物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'batchId',
-      label: '批次编号',
+      label: '批次',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入批次编号',
+        placeholder: '请输入批次',
       },
     },
     {
       fieldName: 'lotNo',
-      label: '批次号快照',
+      label: '批次号',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入批次号快照',
+        placeholder: '请输入批次号',
       },
     },
     {
       fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
+      label: '项目',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入项目编号，0表示无项目',
+        placeholder: '请输入项目',
       },
     },
     {
       fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
+      label: '项目任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务',
+        placeholder: '请输入项目任务',
       },
     },
     {
       fieldName: 'stockScope',
-      label: '库存范围：COMMON、PROJECT_DEDICATED',
+      label: '库存范围',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入库存范围：COMMON、PROJECT_DEDICATED',
+        placeholder: '请输入库存范围',
       },
     },
     {
@@ -147,38 +147,38 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'qtyOnhand',
-      label: '现存数量快照',
+      label: '现存数量',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入现存数量快照',
+        placeholder: '请输入现存数量',
       },
     },
     {
       fieldName: 'qtyReserved',
-      label: '预留数量快照',
+      label: '预留数量',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预留数量快照',
+        placeholder: '请输入预留数量',
       },
     },
     {
       fieldName: 'qtyFrozen',
-      label: '冻结数量快照',
+      label: '冻结数量',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入冻结数量快照',
+        placeholder: '请输入冻结数量',
       },
     },
     {
       fieldName: 'qtyAvailable',
-      label: '可用数量快照',
+      label: '可用数量',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入可用数量快照',
+        placeholder: '请输入可用数量',
       },
     },
     {
@@ -221,7 +221,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-WMS库存投影数据',
+      label: '库存投影数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -234,119 +234,119 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceBalanceId',
-      label: 'WMS库存余额编号',
+      label: '库存余额',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入WMS库存余额编号',
+        placeholder: '请输入库存余额',
       },
     },
     {
       fieldName: 'invOrgId',
-      label: '库存组织编号',
+      label: '库存组织',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入库存组织编号',
+        placeholder: '请输入库存组织',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'whId',
-      label: '仓库编号',
+      label: '仓库',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入仓库编号',
+        placeholder: '请输入仓库',
       },
     },
     {
       fieldName: 'locId',
-      label: '库位编号',
+      label: '库位',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入库位编号',
+        placeholder: '请输入库位',
       },
     },
     {
       fieldName: 'matId',
-      label: '物料编号',
+      label: '物料',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编号',
+        placeholder: '请输入物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'batchId',
-      label: '批次编号',
+      label: '批次',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入批次编号',
+        placeholder: '请输入批次',
       },
     },
     {
       fieldName: 'lotNo',
-      label: '批次号快照',
+      label: '批次号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入批次号快照',
+        placeholder: '请输入批次号',
       },
     },
     {
       fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
+      label: '项目',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入项目编号，0表示无项目',
+        placeholder: '请输入项目',
       },
     },
     {
       fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
+      label: '项目任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务',
+        placeholder: '请输入项目任务',
       },
     },
     {
       fieldName: 'stockScope',
-      label: '库存范围：COMMON、PROJECT_DEDICATED',
+      label: '库存范围',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入库存范围：COMMON、PROJECT_DEDICATED',
+        placeholder: '请输入库存范围',
       },
     },
     {
@@ -361,38 +361,38 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'qtyOnhand',
-      label: '现存数量快照',
+      label: '现存数量',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入现存数量快照',
+        placeholder: '请输入现存数量',
       },
     },
     {
       fieldName: 'qtyReserved',
-      label: '预留数量快照',
+      label: '预留数量',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入预留数量快照',
+        placeholder: '请输入预留数量',
       },
     },
     {
       fieldName: 'qtyFrozen',
-      label: '冻结数量快照',
+      label: '冻结数量',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入冻结数量快照',
+        placeholder: '请输入冻结数量',
       },
     },
     {
       fieldName: 'qtyAvailable',
-      label: '可用数量快照',
+      label: '可用数量',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入可用数量快照',
+        placeholder: '请输入可用数量',
       },
     },
     {
@@ -441,62 +441,62 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionInvApi.Projec
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'sourceBalanceId',
-      title: 'WMS库存余额编号',
+      title: '库存余额',
       minWidth: 120,
     },
     {
       field: 'invOrgId',
-      title: '库存组织编号',
+      title: '库存组织',
       minWidth: 120,
     },
     {
       field: 'plantId',
-      title: '工厂编号',
+      title: '工厂',
       minWidth: 120,
     },
     {
       field: 'whId',
-      title: '仓库编号',
+      title: '仓库',
       minWidth: 120,
     },
     {
       field: 'locId',
-      title: '库位编号',
+      title: '库位',
       minWidth: 120,
     },
     {
       field: 'matId',
-      title: '物料编号',
+      title: '物料',
       minWidth: 120,
     },
     {
       field: 'matCode',
-      title: '物料编码快照',
+      title: '物料编码',
       minWidth: 120,
     },
     {
       field: 'batchId',
-      title: '批次编号',
+      title: '批次',
       minWidth: 120,
     },
     {
       field: 'lotNo',
-      title: '批次号快照',
+      title: '批次号',
       minWidth: 120,
     },
     {
       field: 'projectId',
-      title: '项目编号，0表示无项目',
+      title: '项目',
       minWidth: 120,
     },
     {
       field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务',
+      title: '项目任务',
       minWidth: 120,
     },
     {
       field: 'stockScope',
-      title: '库存范围：COMMON、PROJECT_DEDICATED',
+      title: '库存范围',
       minWidth: 120,
     },
     {
@@ -506,22 +506,22 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionInvApi.Projec
     },
     {
       field: 'qtyOnhand',
-      title: '现存数量快照',
+      title: '现存数量',
       minWidth: 120,
     },
     {
       field: 'qtyReserved',
-      title: '预留数量快照',
+      title: '预留数量',
       minWidth: 120,
     },
     {
       field: 'qtyFrozen',
-      title: '冻结数量快照',
+      title: '冻结数量',
       minWidth: 120,
     },
     {
       field: 'qtyAvailable',
-      title: '可用数量快照',
+      title: '可用数量',
       minWidth: 120,
     },
     {

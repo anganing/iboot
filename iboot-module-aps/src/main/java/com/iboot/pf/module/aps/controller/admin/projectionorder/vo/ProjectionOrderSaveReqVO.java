@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - APS-MES需求工单任务投影新增/修改 Request VO")
+@Schema(description = "管理后台 - 工单投影新增/修改 Request VO")
 @Data
 public class ProjectionOrderSaveReqVO {
 

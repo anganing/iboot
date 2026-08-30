@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.projectionmat.vo.*;
 import com.iboot.pf.module.aps.service.projectionmat.ProjectionMatService;
 
-@Tag(name = "管理后台 - APS-MDM物料投影")
+@Tag(name = "管理后台 - 物料投影")
 @RestController
 @RequestMapping("/aps/projection-mat")
 @Validated
@@ -38,14 +38,14 @@ public class ProjectionMatController {
     private ProjectionMatService projectionMatService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-MDM物料投影")
+    @Operation(summary = "创建物料投影")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:create')")
     public CommonResult<Long> createProjectionMat(@Valid @RequestBody ProjectionMatSaveReqVO createReqVO) {
         return success(projectionMatService.createProjectionMat(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-MDM物料投影")
+    @Operation(summary = "更新物料投影")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:update')")
     public CommonResult<Boolean> updateProjectionMat(@Valid @RequestBody ProjectionMatSaveReqVO updateReqVO) {
         projectionMatService.updateProjectionMat(updateReqVO);
@@ -53,7 +53,7 @@ public class ProjectionMatController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-MDM物料投影")
+    @Operation(summary = "删除物料投影")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:delete')")
     public CommonResult<Boolean> deleteProjectionMat(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class ProjectionMatController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-MDM物料投影")
+    @Operation(summary = "批量删除物料投影")
                 @PreAuthorize("@ss.hasPermission('aps:projection-mat:delete')")
     public CommonResult<Boolean> deleteProjectionMatList(@RequestParam("ids") List<Long> ids) {
         projectionMatService.deleteProjectionMatListByIds(ids);
@@ -71,7 +71,7 @@ public class ProjectionMatController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-MDM物料投影")
+    @Operation(summary = "获得物料投影")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:query')")
     public CommonResult<ProjectionMatRespVO> getProjectionMat(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class ProjectionMatController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-MDM物料投影分页")
+    @Operation(summary = "获得物料投影分页")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:query')")
     public CommonResult<PageResult<ProjectionMatRespVO>> getProjectionMatPage(@Valid ProjectionMatPageReqVO pageReqVO) {
         return success(projectionMatService.getProjectionMatPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-MDM物料投影 Excel")
+    @Operation(summary = "导出物料投影 Excel")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportProjectionMatExcel(@Valid ProjectionMatPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class ProjectionMatController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<ProjectionMatRespVO> list = projectionMatService.getProjectionMatPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-MDM物料投影.xls", "数据", ProjectionMatRespVO.class,
+        ExcelUtils.write(response, "物料投影.xls", "数据", ProjectionMatRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-MDM物料投影模板")
+    @Operation(summary = "获得导入物料投影模板")
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-MDM物料投影导入模板.xls", "数据",
+        ExcelUtils.write(response, "物料投影导入模板.xls", "数据",
                 ProjectionMatImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-MDM物料投影")
+    @Operation(summary = "导入物料投影")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:projection-mat:import')")
     public CommonResult<ProjectionMatImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

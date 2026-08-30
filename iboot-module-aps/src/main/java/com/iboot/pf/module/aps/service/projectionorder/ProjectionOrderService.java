@@ -8,14 +8,14 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
 /**
- * APS-MES需求工单任务投影 Service 接口
+ * 工单投影 Service 接口
  *
  * @author iboot
  */
 public interface ProjectionOrderService {
 
     /**
-     * 创建APS-MES需求工单任务投影
+     * 创建工单投影
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -23,7 +23,7 @@ public interface ProjectionOrderService {
     Long createProjectionOrder(@Valid ProjectionOrderSaveReqVO createReqVO);
 
     /**
-     * 导入APS-MES需求工单任务投影
+     * 导入工单投影
      *
      * @param importList 导入信息
      * @return 导入结果
@@ -31,39 +31,39 @@ public interface ProjectionOrderService {
     ProjectionOrderImportRespVO importProjectionOrderList(List<ProjectionOrderImportExcelVO> importList);
 
     /**
-     * 更新APS-MES需求工单任务投影
+     * 更新工单投影
      *
      * @param updateReqVO 更新信息
      */
     void updateProjectionOrder(@Valid ProjectionOrderSaveReqVO updateReqVO);
 
     /**
-     * 删除APS-MES需求工单任务投影
+     * 删除工单投影
      *
      * @param id 编号
      */
     void deleteProjectionOrder(Long id);
 
     /**
-    * 批量删除APS-MES需求工单任务投影
+    * 批量删除工单投影
     *
     * @param ids 编号
     */
     void deleteProjectionOrderListByIds(List<Long> ids);
 
     /**
-     * 获得APS-MES需求工单任务投影
+     * 获得工单投影
      *
      * @param id 编号
-     * @return APS-MES需求工单任务投影
+     * @return 工单投影
      */
     ProjectionOrderRespVO getProjectionOrder(Long id);
 
     /**
-     * 获得APS-MES需求工单任务投影分页
+     * 获得工单投影分页
      *
      * @param pageReqVO 分页查询
-     * @return APS-MES需求工单任务投影分页
+     * @return 工单投影分页
      */
     PageResult<ProjectionOrderRespVO> getProjectionOrderPage(ProjectionOrderPageReqVO pageReqVO);
 

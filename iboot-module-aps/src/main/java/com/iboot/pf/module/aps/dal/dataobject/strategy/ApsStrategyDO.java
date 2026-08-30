@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-排程策略 DO
+ * 排程策略 DO
  *
  * @author iboot
  */

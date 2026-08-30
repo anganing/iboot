@@ -19,21 +19,21 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'taskId',
-      label: '排程任务编号',
+      label: '排程任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程任务编号',
+        placeholder: '请输入排程任务',
       },
     },
     {
       fieldName: 'lockType',
-      label: '锁定类型：STARTED、MANUAL、MATERIAL、RESOURCE',
+      label: '锁定类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
         options: [],
-        placeholder: '请选择锁定类型：STARTED、MANUAL、MATERIAL、RESOURCE',
+        placeholder: '请选择锁定类型',
       },
     },
     {
@@ -47,10 +47,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'lockedBy',
-      label: '锁定人员编号',
+      label: '锁定人员',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入锁定人员编号',
+        placeholder: '请输入锁定人员',
       },
     },
     {
@@ -78,7 +78,7 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：LOCKED、UNLOCKED',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
@@ -103,7 +103,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程任务锁定记录数据',
+      label: '任务锁定数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -116,21 +116,21 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'taskId',
-      label: '排程任务编号',
+      label: '排程任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程任务编号',
+        placeholder: '请输入排程任务',
       },
     },
     {
       fieldName: 'lockType',
-      label: '锁定类型：STARTED、MANUAL、MATERIAL、RESOURCE',
+      label: '锁定类型',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择锁定类型：STARTED、MANUAL、MATERIAL、RESOURCE',
+        placeholder: '请选择锁定类型',
       },
     },
     {
@@ -144,11 +144,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'lockedBy',
-      label: '锁定人员编号',
+      label: '锁定人员',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入锁定人员编号',
+        placeholder: '请输入锁定人员',
       },
     },
     {
@@ -171,12 +171,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：LOCKED、UNLOCKED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择状态：LOCKED、UNLOCKED',
+        placeholder: '请选择状态',
       },
     },
     {
@@ -207,12 +207,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskLockApi.TaskLock>['
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'taskId',
-      title: '排程任务编号',
+      title: '排程任务',
       minWidth: 120,
     },
     {
       field: 'lockType',
-      title: '锁定类型：STARTED、MANUAL、MATERIAL、RESOURCE',
+      title: '锁定类型',
       minWidth: 120,
     },
     {
@@ -222,7 +222,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskLockApi.TaskLock>['
     },
     {
       field: 'lockedBy',
-      title: '锁定人员编号',
+      title: '锁定人员',
       minWidth: 120,
     },
     {
@@ -239,7 +239,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskLockApi.TaskLock>['
     },
     {
       field: 'status',
-      title: '状态：LOCKED、UNLOCKED',
+      title: '状态',
       minWidth: 120,
     },
     {

@@ -7,7 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
 
-@Schema(description = "管理后台 - APS-排程任务锁定记录 Response VO")
+@Schema(description = "管理后台 - 任务锁定 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class TaskLockRespVO {

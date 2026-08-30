@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.scenario.vo.*;
 
 /**
- * APS-排程场景 Mapper
+ * 排程场景 Mapper
  *
  * @author iboot
  */

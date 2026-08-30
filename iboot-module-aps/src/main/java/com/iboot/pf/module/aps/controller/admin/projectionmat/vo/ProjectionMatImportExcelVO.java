@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-MDM物料投影 Excel 导入 VO
+ * 物料投影 Excel 导入 VO
  */
 @Data
 @Builder

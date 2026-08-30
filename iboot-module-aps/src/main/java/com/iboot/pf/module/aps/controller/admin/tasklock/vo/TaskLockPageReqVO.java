@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 import static com.iboot.pf.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
-@Schema(description = "管理后台 - APS-排程任务锁定记录分页 Request VO")
+@Schema(description = "管理后台 - 任务锁定分页 Request VO")
 @Data
 public class TaskLockPageReqVO extends PageParam {
 

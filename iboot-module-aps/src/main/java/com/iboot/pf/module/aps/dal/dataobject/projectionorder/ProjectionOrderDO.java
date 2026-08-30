@@ -15,7 +15,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-MES需求工单任务投影 DO
+ * 工单投影 DO
  *
  * @author iboot
  */

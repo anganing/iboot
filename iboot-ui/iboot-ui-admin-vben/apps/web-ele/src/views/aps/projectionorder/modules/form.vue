@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsProjectionOrderApi.ProjectionOrder>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-MES需求工单任务投影'])
-    : $t('ui.actionTitle.create', ['APS-MES需求工单任务投影']);
+    ? $t('ui.actionTitle.edit', ['工单投影'])
+    : $t('ui.actionTitle.create', ['工单投影']);
 });
 
 const [Form, formApi] = useVbenForm({

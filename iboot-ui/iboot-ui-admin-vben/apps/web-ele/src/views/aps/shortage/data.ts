@@ -19,74 +19,74 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'prodOrderId',
-      label: '生产工单编号，0表示汇总缺料',
+      label: '生产工单',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入生产工单编号，0表示汇总缺料',
+        placeholder: '请输入生产工单',
       },
     },
     {
       fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序级缺料',
+      label: '工序任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工序任务编号，0表示非工序级缺料',
+        placeholder: '请输入工序任务',
       },
     },
     {
       fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
+      label: '项目',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入项目编号，0表示无项目',
+        placeholder: '请输入项目',
       },
     },
     {
       fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
+      label: '项目任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务',
+        placeholder: '请输入项目任务',
       },
     },
     {
       fieldName: 'matId',
-      label: '短缺物料编号',
+      label: '短缺物料',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入短缺物料编号',
+        placeholder: '请输入短缺物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'matName',
-      label: '物料名称快照',
+      label: '物料名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料名称快照',
+        placeholder: '请输入物料名称',
       },
     },
     {
@@ -118,20 +118,20 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'uomId',
-      label: '计量单位编号',
+      label: '计量单位',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入计量单位编号',
+        placeholder: '请输入计量单位',
       },
     },
     {
       fieldName: 'uomCode',
-      label: '计量单位编码快照',
+      label: '计量单位编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入计量单位编码快照',
+        placeholder: '请输入计量单位编码',
       },
     },
     {
@@ -159,7 +159,7 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：OPEN、PARTIAL、RESOLVED、IGNORED',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
@@ -184,7 +184,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程缺料清单数据',
+      label: '缺料清单数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -197,74 +197,74 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'prodOrderId',
-      label: '生产工单编号，0表示汇总缺料',
+      label: '生产工单',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入生产工单编号，0表示汇总缺料',
+        placeholder: '请输入生产工单',
       },
     },
     {
       fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序级缺料',
+      label: '工序任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工序任务编号，0表示非工序级缺料',
+        placeholder: '请输入工序任务',
       },
     },
     {
       fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
+      label: '项目',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入项目编号，0表示无项目',
+        placeholder: '请输入项目',
       },
     },
     {
       fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
+      label: '项目任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务',
+        placeholder: '请输入项目任务',
       },
     },
     {
       fieldName: 'matId',
-      label: '短缺物料编号',
+      label: '短缺物料',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入短缺物料编号',
+        placeholder: '请输入短缺物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'matName',
-      label: '物料名称快照',
+      label: '物料名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料名称快照',
+        placeholder: '请输入物料名称',
       },
     },
     {
@@ -296,20 +296,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'uomId',
-      label: '计量单位编号',
+      label: '计量单位',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入计量单位编号',
+        placeholder: '请输入计量单位',
       },
     },
     {
       fieldName: 'uomCode',
-      label: '计量单位编码快照',
+      label: '计量单位编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入计量单位编码快照',
+        placeholder: '请输入计量单位编码',
       },
     },
     {
@@ -332,12 +332,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：OPEN、PARTIAL、RESOLVED、IGNORED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择状态：OPEN、PARTIAL、RESOLVED、IGNORED',
+        placeholder: '请选择状态',
       },
     },
     {
@@ -368,37 +368,37 @@ export function useGridColumns(): VxeTableGridOptions<ApsShortageApi.Shortage>['
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'prodOrderId',
-      title: '生产工单编号，0表示汇总缺料',
+      title: '生产工单',
       minWidth: 120,
     },
     {
       field: 'opTaskId',
-      title: '工序任务编号，0表示非工序级缺料',
+      title: '工序任务',
       minWidth: 120,
     },
     {
       field: 'projectId',
-      title: '项目编号，0表示无项目',
+      title: '项目',
       minWidth: 120,
     },
     {
       field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务',
+      title: '项目任务',
       minWidth: 120,
     },
     {
       field: 'matId',
-      title: '短缺物料编号',
+      title: '短缺物料',
       minWidth: 120,
     },
     {
       field: 'matCode',
-      title: '物料编码快照',
+      title: '物料编码',
       minWidth: 120,
     },
     {
       field: 'matName',
-      title: '物料名称快照',
+      title: '物料名称',
       minWidth: 120,
     },
     {
@@ -418,12 +418,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsShortageApi.Shortage>['
     },
     {
       field: 'uomId',
-      title: '计量单位编号',
+      title: '计量单位',
       minWidth: 120,
     },
     {
       field: 'uomCode',
-      title: '计量单位编码快照',
+      title: '计量单位编码',
       minWidth: 120,
     },
     {
@@ -440,7 +440,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsShortageApi.Shortage>['
     },
     {
       field: 'status',
-      title: '状态：OPEN、PARTIAL、RESOLVED、IGNORED',
+      title: '状态',
       minWidth: 120,
     },
     {
@@ -456,7 +456,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsShortageApi.Shortage>['
     },
     {
       field: 'versionVersion_no',
-      title: '排程版本version_no',
+      title: '排程版本号',
       minWidth: 120,
     },
     {

@@ -19,75 +19,75 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceResId',
-      label: 'MDM生产资源编号',
+      label: '生产资源',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入MDM生产资源编号',
+        placeholder: '请输入生产资源',
       },
     },
     {
       fieldName: 'resCode',
-      label: '资源编码快照',
+      label: '资源编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入资源编码快照',
+        placeholder: '请输入资源编码',
       },
     },
     {
       fieldName: 'resName',
-      label: '资源名称快照',
+      label: '资源名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入资源名称快照',
+        placeholder: '请输入资源名称',
       },
     },
     {
       fieldName: 'resType',
-      label: '资源类型快照',
+      label: '资源类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
         options: [],
-        placeholder: '请选择资源类型快照',
+        placeholder: '请选择资源类型',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号',
+      label: '车间',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入车间编号',
+        placeholder: '请输入车间',
       },
     },
     {
       fieldName: 'wcId',
-      label: '工作中心编号',
+      label: '工作中心',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工作中心编号',
+        placeholder: '请输入工作中心',
       },
     },
     {
@@ -104,28 +104,28 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号，0表示日汇总',
+      label: '班次',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入班次编号，0表示日汇总',
+        placeholder: '请输入班次',
       },
     },
     {
       fieldName: 'availableMinutes',
-      label: '可用分钟数',
+      label: '可用产能(分钟)',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入可用分钟数',
+        placeholder: '请输入可用产能(分钟)',
       },
     },
     {
       fieldName: 'capabilityJson',
-      label: '资源能力快照',
+      label: '资源能力',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入资源能力快照',
+        placeholder: '请输入资源能力',
       },
     },
     {
@@ -168,7 +168,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-MDM资源与日历投影数据',
+      label: '资源投影数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -181,75 +181,75 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceResId',
-      label: 'MDM生产资源编号',
+      label: '生产资源',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入MDM生产资源编号',
+        placeholder: '请输入生产资源',
       },
     },
     {
       fieldName: 'resCode',
-      label: '资源编码快照',
+      label: '资源编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源编码快照',
+        placeholder: '请输入资源编码',
       },
     },
     {
       fieldName: 'resName',
-      label: '资源名称快照',
+      label: '资源名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源名称快照',
+        placeholder: '请输入资源名称',
       },
     },
     {
       fieldName: 'resType',
-      label: '资源类型快照',
+      label: '资源类型',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择资源类型快照',
+        placeholder: '请选择资源类型',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号',
+      label: '车间',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入车间编号',
+        placeholder: '请输入车间',
       },
     },
     {
       fieldName: 'wcId',
-      label: '工作中心编号',
+      label: '工作中心',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工作中心编号',
+        placeholder: '请输入工作中心',
       },
     },
     {
@@ -263,29 +263,29 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号，0表示日汇总',
+      label: '班次',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入班次编号，0表示日汇总',
+        placeholder: '请输入班次',
       },
     },
     {
       fieldName: 'availableMinutes',
-      label: '可用分钟数',
+      label: '可用产能(分钟)',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入可用分钟数',
+        placeholder: '请输入可用产能(分钟)',
       },
     },
     {
       fieldName: 'capabilityJson',
-      label: '资源能力快照',
+      label: '资源能力',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源能力快照',
+        placeholder: '请输入资源能力',
       },
     },
     {
@@ -334,37 +334,37 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionResourceApi.P
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'sourceResId',
-      title: 'MDM生产资源编号',
+      title: '生产资源',
       minWidth: 120,
     },
     {
       field: 'resCode',
-      title: '资源编码快照',
+      title: '资源编码',
       minWidth: 120,
     },
     {
       field: 'resName',
-      title: '资源名称快照',
+      title: '资源名称',
       minWidth: 120,
     },
     {
       field: 'resType',
-      title: '资源类型快照',
+      title: '资源类型',
       minWidth: 120,
     },
     {
       field: 'plantId',
-      title: '工厂编号',
+      title: '工厂',
       minWidth: 120,
     },
     {
       field: 'workshopId',
-      title: '车间编号',
+      title: '车间',
       minWidth: 120,
     },
     {
       field: 'wcId',
-      title: '工作中心编号',
+      title: '工作中心',
       minWidth: 120,
     },
     {
@@ -374,17 +374,17 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionResourceApi.P
     },
     {
       field: 'shiftId',
-      title: '班次编号，0表示日汇总',
+      title: '班次',
       minWidth: 120,
     },
     {
       field: 'availableMinutes',
-      title: '可用分钟数',
+      title: '可用产能(分钟)',
       minWidth: 120,
     },
     {
       field: 'capabilityJson',
-      title: '资源能力快照',
+      title: '资源能力',
       minWidth: 120,
     },
     {

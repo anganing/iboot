@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.projectionmat.vo.*;
 
 /**
- * APS-MDM物料投影 Mapper
+ * 物料投影 Mapper
  *
  * @author iboot
  */

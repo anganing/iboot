@@ -22,7 +22,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diff
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.*;
 
 /**
- * APS-排程任务锁定记录 Service 实现类
+ * 任务锁定 Service 实现类
  *
  * @author iboot
  */

@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsShortageApi.Shortage>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-排程缺料清单'])
-    : $t('ui.actionTitle.create', ['APS-排程缺料清单']);
+    ? $t('ui.actionTitle.edit', ['缺料清单'])
+    : $t('ui.actionTitle.create', ['缺料清单']);
 });
 
 const [Form, formApi] = useVbenForm({

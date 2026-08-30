@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsStrategyApi.Strategy>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-排程策略'])
-    : $t('ui.actionTitle.create', ['APS-排程策略']);
+    ? $t('ui.actionTitle.edit', ['排程策略'])
+    : $t('ui.actionTitle.create', ['排程策略']);
 });
 
 const [Form, formApi] = useVbenForm({

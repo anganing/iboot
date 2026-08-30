@@ -14,7 +14,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-WMS库存投影 DO
+ * 库存投影 DO
  *
  * @author iboot
  */

@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-WMS库存投影 Excel 导入 VO
+ * 库存投影 Excel 导入 VO
  */
 @Data
 @Builder

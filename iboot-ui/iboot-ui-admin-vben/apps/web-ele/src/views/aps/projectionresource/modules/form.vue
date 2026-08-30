@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsProjectionResourceApi.ProjectionResource>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-MDM资源与日历投影'])
-    : $t('ui.actionTitle.create', ['APS-MDM资源与日历投影']);
+    ? $t('ui.actionTitle.edit', ['资源投影'])
+    : $t('ui.actionTitle.create', ['资源投影']);
 });
 
 const [Form, formApi] = useVbenForm({

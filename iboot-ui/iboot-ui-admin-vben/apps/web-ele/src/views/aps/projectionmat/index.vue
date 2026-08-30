@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入APS-MDM物料投影 */
+/** 导入物料投影 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,17 +41,17 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建APS-MDM物料投影 */
+/** 创建物料投影 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑APS-MDM物料投影 */
+/** 编辑物料投影 */
 function handleEdit(row: ApsProjectionMatApi.ProjectionMat) {
   formModalApi.setData(row).open();
 }
 
-/** 删除APS-MDM物料投影 */
+/** 删除物料投影 */
 async function handleDelete(row: ApsProjectionMatApi.ProjectionMat) {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting', [row.id]),
@@ -65,7 +65,7 @@ async function handleDelete(row: ApsProjectionMatApi.ProjectionMat) {
   }
 }
 
-/** 批量删除APS-MDM物料投影 */
+/** 批量删除物料投影 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportProjectionMat(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'APS-MDM物料投影.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '物料投影.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="APS-MDM物料投影列表">
+    <Grid table-title="物料投影列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['APS-MDM物料投影']),
+              label: $t('ui.actionTitle.create', ['物料投影']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['aps:projection-mat:create'],

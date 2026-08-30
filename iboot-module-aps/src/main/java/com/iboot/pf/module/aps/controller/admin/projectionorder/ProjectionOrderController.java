@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.projectionorder.vo.*;
 import com.iboot.pf.module.aps.service.projectionorder.ProjectionOrderService;
 
-@Tag(name = "管理后台 - APS-MES需求工单任务投影")
+@Tag(name = "管理后台 - 工单投影")
 @RestController
 @RequestMapping("/aps/projection-order")
 @Validated
@@ -38,14 +38,14 @@ public class ProjectionOrderController {
     private ProjectionOrderService projectionOrderService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-MES需求工单任务投影")
+    @Operation(summary = "创建工单投影")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:create')")
     public CommonResult<Long> createProjectionOrder(@Valid @RequestBody ProjectionOrderSaveReqVO createReqVO) {
         return success(projectionOrderService.createProjectionOrder(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-MES需求工单任务投影")
+    @Operation(summary = "更新工单投影")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:update')")
     public CommonResult<Boolean> updateProjectionOrder(@Valid @RequestBody ProjectionOrderSaveReqVO updateReqVO) {
         projectionOrderService.updateProjectionOrder(updateReqVO);
@@ -53,7 +53,7 @@ public class ProjectionOrderController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-MES需求工单任务投影")
+    @Operation(summary = "删除工单投影")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:projection-order:delete')")
     public CommonResult<Boolean> deleteProjectionOrder(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class ProjectionOrderController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-MES需求工单任务投影")
+    @Operation(summary = "批量删除工单投影")
                 @PreAuthorize("@ss.hasPermission('aps:projection-order:delete')")
     public CommonResult<Boolean> deleteProjectionOrderList(@RequestParam("ids") List<Long> ids) {
         projectionOrderService.deleteProjectionOrderListByIds(ids);
@@ -71,7 +71,7 @@ public class ProjectionOrderController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-MES需求工单任务投影")
+    @Operation(summary = "获得工单投影")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:query')")
     public CommonResult<ProjectionOrderRespVO> getProjectionOrder(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class ProjectionOrderController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-MES需求工单任务投影分页")
+    @Operation(summary = "获得工单投影分页")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:query')")
     public CommonResult<PageResult<ProjectionOrderRespVO>> getProjectionOrderPage(@Valid ProjectionOrderPageReqVO pageReqVO) {
         return success(projectionOrderService.getProjectionOrderPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-MES需求工单任务投影 Excel")
+    @Operation(summary = "导出工单投影 Excel")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportProjectionOrderExcel(@Valid ProjectionOrderPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class ProjectionOrderController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<ProjectionOrderRespVO> list = projectionOrderService.getProjectionOrderPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-MES需求工单任务投影.xls", "数据", ProjectionOrderRespVO.class,
+        ExcelUtils.write(response, "工单投影.xls", "数据", ProjectionOrderRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-MES需求工单任务投影模板")
+    @Operation(summary = "获得导入工单投影模板")
     @PreAuthorize("@ss.hasPermission('aps:projection-order:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-MES需求工单任务投影导入模板.xls", "数据",
+        ExcelUtils.write(response, "工单投影导入模板.xls", "数据",
                 ProjectionOrderImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-MES需求工单任务投影")
+    @Operation(summary = "导入工单投影")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:projection-order:import')")
     public CommonResult<ProjectionOrderImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

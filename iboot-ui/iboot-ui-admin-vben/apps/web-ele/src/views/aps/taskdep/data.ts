@@ -19,48 +19,48 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'fromTaskId',
-      label: '前置排程任务编号',
+      label: '前置排程任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入前置排程任务编号',
+        placeholder: '请输入前置排程任务',
       },
     },
     {
       fieldName: 'toTaskId',
-      label: '后置排程任务编号',
+      label: '后置排程任务',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入后置排程任务编号',
+        placeholder: '请输入后置排程任务',
       },
     },
     {
       fieldName: 'depType',
-      label: '依赖类型：FINISH_START、START_START、FINISH_FINISH',
+      label: '依赖类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
         options: [],
-        placeholder: '请选择依赖类型：FINISH_START、START_START、FINISH_FINISH',
+        placeholder: '请选择依赖类型',
       },
     },
     {
       fieldName: 'lagMinutes',
-      label: '依赖间隔分钟数',
+      label: '间隔(分钟)',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入依赖间隔分钟数',
+        placeholder: '请输入间隔(分钟)',
       },
     },
     {
@@ -79,7 +79,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程任务依赖数据',
+      label: '任务依赖数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -92,48 +92,48 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'fromTaskId',
-      label: '前置排程任务编号',
+      label: '前置排程任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入前置排程任务编号',
+        placeholder: '请输入前置排程任务',
       },
     },
     {
       fieldName: 'toTaskId',
-      label: '后置排程任务编号',
+      label: '后置排程任务',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入后置排程任务编号',
+        placeholder: '请输入后置排程任务',
       },
     },
     {
       fieldName: 'depType',
-      label: '依赖类型：FINISH_START、START_START、FINISH_FINISH',
+      label: '依赖类型',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择依赖类型：FINISH_START、START_START、FINISH_FINISH',
+        placeholder: '请选择依赖类型',
       },
     },
     {
       fieldName: 'lagMinutes',
-      label: '依赖间隔分钟数',
+      label: '间隔(分钟)',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入依赖间隔分钟数',
+        placeholder: '请输入间隔(分钟)',
       },
     },
     {
@@ -164,22 +164,22 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskDepApi.TaskDep>['co
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'fromTaskId',
-      title: '前置排程任务编号',
+      title: '前置排程任务',
       minWidth: 120,
     },
     {
       field: 'toTaskId',
-      title: '后置排程任务编号',
+      title: '后置排程任务',
       minWidth: 120,
     },
     {
       field: 'depType',
-      title: '依赖类型：FINISH_START、START_START、FINISH_FINISH',
+      title: '依赖类型',
       minWidth: 120,
     },
     {
       field: 'lagMinutes',
-      title: '依赖间隔分钟数',
+      title: '间隔(分钟)',
       minWidth: 120,
     },
     {
@@ -195,7 +195,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskDepApi.TaskDep>['co
     },
     {
       field: 'versionVersion_no',
-      title: '排程版本version_no',
+      title: '排程版本号',
       minWidth: 120,
     },
     {

@@ -7,14 +7,14 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 /**
- * APS-排程策略 Service 接口
+ * 排程策略 Service 接口
  *
  * @author iboot
  */
 public interface ApsStrategyService {
 
     /**
-     * 创建APS-排程策略
+     * 创建排程策略
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -22,7 +22,7 @@ public interface ApsStrategyService {
     Long createStrategy(@Valid StrategySaveReqVO createReqVO);
 
     /**
-     * 导入APS-排程策略
+     * 导入排程策略
      *
      * @param importList 导入信息
      * @return 导入结果
@@ -30,39 +30,39 @@ public interface ApsStrategyService {
     StrategyImportRespVO importStrategyList(List<StrategyImportExcelVO> importList);
 
     /**
-     * 更新APS-排程策略
+     * 更新排程策略
      *
      * @param updateReqVO 更新信息
      */
     void updateStrategy(@Valid StrategySaveReqVO updateReqVO);
 
     /**
-     * 删除APS-排程策略
+     * 删除排程策略
      *
      * @param id 编号
      */
     void deleteStrategy(Long id);
 
     /**
-    * 批量删除APS-排程策略
+    * 批量删除排程策略
     *
     * @param ids 编号
     */
     void deleteStrategyListByIds(List<Long> ids);
 
     /**
-     * 获得APS-排程策略
+     * 获得排程策略
      *
      * @param id 编号
-     * @return APS-排程策略
+     * @return 排程策略
      */
     StrategyRespVO getStrategy(Long id);
 
     /**
-     * 获得APS-排程策略分页
+     * 获得排程策略分页
      *
      * @param pageReqVO 分页查询
-     * @return APS-排程策略分页
+     * @return 排程策略分页
      */
     PageResult<StrategyRespVO> getStrategyPage(StrategyPageReqVO pageReqVO);
 

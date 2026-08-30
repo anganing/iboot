@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.version.vo.*;
 import com.iboot.pf.module.aps.service.version.VersionService;
 
-@Tag(name = "管理后台 - APS-排程版本")
+@Tag(name = "管理后台 - 排程版本")
 @RestController
 @RequestMapping("/aps/version")
 @Validated
@@ -38,14 +38,14 @@ public class VersionController {
     private VersionService versionService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-排程版本")
+    @Operation(summary = "创建排程版本")
     @PreAuthorize("@ss.hasPermission('aps:version:create')")
     public CommonResult<Long> createVersion(@Valid @RequestBody VersionSaveReqVO createReqVO) {
         return success(versionService.createVersion(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-排程版本")
+    @Operation(summary = "更新排程版本")
     @PreAuthorize("@ss.hasPermission('aps:version:update')")
     public CommonResult<Boolean> updateVersion(@Valid @RequestBody VersionSaveReqVO updateReqVO) {
         versionService.updateVersion(updateReqVO);
@@ -53,7 +53,7 @@ public class VersionController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-排程版本")
+    @Operation(summary = "删除排程版本")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:version:delete')")
     public CommonResult<Boolean> deleteVersion(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class VersionController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-排程版本")
+    @Operation(summary = "批量删除排程版本")
                 @PreAuthorize("@ss.hasPermission('aps:version:delete')")
     public CommonResult<Boolean> deleteVersionList(@RequestParam("ids") List<Long> ids) {
         versionService.deleteVersionListByIds(ids);
@@ -71,7 +71,7 @@ public class VersionController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-排程版本")
+    @Operation(summary = "获得排程版本")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:version:query')")
     public CommonResult<VersionRespVO> getVersion(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class VersionController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-排程版本分页")
+    @Operation(summary = "获得排程版本分页")
     @PreAuthorize("@ss.hasPermission('aps:version:query')")
     public CommonResult<PageResult<VersionRespVO>> getVersionPage(@Valid VersionPageReqVO pageReqVO) {
         return success(versionService.getVersionPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-排程版本 Excel")
+    @Operation(summary = "导出排程版本 Excel")
     @PreAuthorize("@ss.hasPermission('aps:version:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportVersionExcel(@Valid VersionPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class VersionController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<VersionRespVO> list = versionService.getVersionPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-排程版本.xls", "数据", VersionRespVO.class,
+        ExcelUtils.write(response, "排程版本.xls", "数据", VersionRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-排程版本模板")
+    @Operation(summary = "获得导入排程版本模板")
     @PreAuthorize("@ss.hasPermission('aps:version:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-排程版本导入模板.xls", "数据",
+        ExcelUtils.write(response, "排程版本导入模板.xls", "数据",
                 VersionImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-排程版本")
+    @Operation(summary = "导入排程版本")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:version:import')")
     public CommonResult<VersionImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

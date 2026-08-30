@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入APS-排程版本 */
+/** 导入排程版本 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,17 +41,17 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建APS-排程版本 */
+/** 创建排程版本 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑APS-排程版本 */
+/** 编辑排程版本 */
 function handleEdit(row: ApsVersionApi.Version) {
   formModalApi.setData(row).open();
 }
 
-/** 删除APS-排程版本 */
+/** 删除排程版本 */
 async function handleDelete(row: ApsVersionApi.Version) {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting', [row.id]),
@@ -65,7 +65,7 @@ async function handleDelete(row: ApsVersionApi.Version) {
   }
 }
 
-/** 批量删除APS-排程版本 */
+/** 批量删除排程版本 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,7 +93,7 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportVersion(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'APS-排程版本.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '排程版本.xls', source: data });
 }
 
 
@@ -136,12 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="APS-排程版本列表">
+    <Grid table-title="排程版本列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['APS-排程版本']),
+              label: $t('ui.actionTitle.create', ['排程版本']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['aps:version:create'],

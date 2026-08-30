@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-工序排程任务 Excel 导入 VO
+ * 排程任务 Excel 导入 VO
  */
 @Data
 @Builder

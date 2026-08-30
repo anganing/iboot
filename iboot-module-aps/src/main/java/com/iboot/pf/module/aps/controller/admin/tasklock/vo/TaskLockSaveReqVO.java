@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - APS-排程任务锁定记录新增/修改 Request VO")
+@Schema(description = "管理后台 - 任务锁定新增/修改 Request VO")
 @Data
 public class TaskLockSaveReqVO {
 

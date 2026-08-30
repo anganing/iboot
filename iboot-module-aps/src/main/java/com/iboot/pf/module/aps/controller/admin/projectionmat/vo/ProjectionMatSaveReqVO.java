@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - APS-MDM物料投影新增/修改 Request VO")
+@Schema(description = "管理后台 - 物料投影新增/修改 Request VO")
 @Data
 public class ProjectionMatSaveReqVO {
 

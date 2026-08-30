@@ -8,14 +8,14 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
 /**
- * APS-排程版本 Service 接口
+ * 排程版本 Service 接口
  *
  * @author iboot
  */
 public interface VersionService {
 
     /**
-     * 创建APS-排程版本
+     * 创建排程版本
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -23,7 +23,7 @@ public interface VersionService {
     Long createVersion(@Valid VersionSaveReqVO createReqVO);
 
     /**
-     * 导入APS-排程版本
+     * 导入排程版本
      *
      * @param importList 导入信息
      * @return 导入结果
@@ -31,39 +31,39 @@ public interface VersionService {
     VersionImportRespVO importVersionList(List<VersionImportExcelVO> importList);
 
     /**
-     * 更新APS-排程版本
+     * 更新排程版本
      *
      * @param updateReqVO 更新信息
      */
     void updateVersion(@Valid VersionSaveReqVO updateReqVO);
 
     /**
-     * 删除APS-排程版本
+     * 删除排程版本
      *
      * @param id 编号
      */
     void deleteVersion(Long id);
 
     /**
-    * 批量删除APS-排程版本
+    * 批量删除排程版本
     *
     * @param ids 编号
     */
     void deleteVersionListByIds(List<Long> ids);
 
     /**
-     * 获得APS-排程版本
+     * 获得排程版本
      *
      * @param id 编号
-     * @return APS-排程版本
+     * @return 排程版本
      */
     VersionRespVO getVersion(Long id);
 
     /**
-     * 获得APS-排程版本分页
+     * 获得排程版本分页
      *
      * @param pageReqVO 分页查询
-     * @return APS-排程版本分页
+     * @return 排程版本分页
      */
     PageResult<VersionRespVO> getVersionPage(VersionPageReqVO pageReqVO);
 

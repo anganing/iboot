@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-排程缺料清单 DO
+ * 缺料清单 DO
  *
  * @author iboot
  */

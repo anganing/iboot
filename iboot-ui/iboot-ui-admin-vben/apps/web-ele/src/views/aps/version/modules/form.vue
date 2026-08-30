@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsVersionApi.Version>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-排程版本'])
-    : $t('ui.actionTitle.create', ['APS-排程版本']);
+    ? $t('ui.actionTitle.edit', ['排程版本'])
+    : $t('ui.actionTitle.create', ['排程版本']);
 });
 
 const [Form, formApi] = useVbenForm({

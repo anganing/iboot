@@ -9,7 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
 
-@Schema(description = "管理后台 - APS-MDM资源与日历投影 Response VO")
+@Schema(description = "管理后台 - 资源投影 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class ProjectionResourceRespVO {

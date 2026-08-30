@@ -8,14 +8,14 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
 /**
- * APS-排程任务锁定记录 Service 接口
+ * 任务锁定 Service 接口
  *
  * @author iboot
  */
 public interface TaskLockService {
 
     /**
-     * 创建APS-排程任务锁定记录
+     * 创建任务锁定
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -23,7 +23,7 @@ public interface TaskLockService {
     Long createTaskLock(@Valid TaskLockSaveReqVO createReqVO);
 
     /**
-     * 导入APS-排程任务锁定记录
+     * 导入任务锁定
      *
      * @param importList 导入信息
      * @return 导入结果
@@ -31,39 +31,39 @@ public interface TaskLockService {
     TaskLockImportRespVO importTaskLockList(List<TaskLockImportExcelVO> importList);
 
     /**
-     * 更新APS-排程任务锁定记录
+     * 更新任务锁定
      *
      * @param updateReqVO 更新信息
      */
     void updateTaskLock(@Valid TaskLockSaveReqVO updateReqVO);
 
     /**
-     * 删除APS-排程任务锁定记录
+     * 删除任务锁定
      *
      * @param id 编号
      */
     void deleteTaskLock(Long id);
 
     /**
-    * 批量删除APS-排程任务锁定记录
+    * 批量删除任务锁定
     *
     * @param ids 编号
     */
     void deleteTaskLockListByIds(List<Long> ids);
 
     /**
-     * 获得APS-排程任务锁定记录
+     * 获得任务锁定
      *
      * @param id 编号
-     * @return APS-排程任务锁定记录
+     * @return 任务锁定
      */
     TaskLockRespVO getTaskLock(Long id);
 
     /**
-     * 获得APS-排程任务锁定记录分页
+     * 获得任务锁定分页
      *
      * @param pageReqVO 分页查询
-     * @return APS-排程任务锁定记录分页
+     * @return 任务锁定分页
      */
     PageResult<TaskLockRespVO> getTaskLockPage(TaskLockPageReqVO pageReqVO);
 

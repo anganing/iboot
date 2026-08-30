@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-排程策略 Excel 导入 VO
+ * 排程策略 Excel 导入 VO
  */
 @Data
 @Builder

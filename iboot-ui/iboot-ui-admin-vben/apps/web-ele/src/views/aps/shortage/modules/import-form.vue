@@ -53,12 +53,12 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importShortageTemplate();
-  downloadFileFromBlobPart({ fileName: 'APS-排程缺料清单导入模板.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '缺料清单导入模板.xls', source: data });
 }
 </script>
 
 <template>
-  <Modal title="导入APS-排程缺料清单" class="w-1/3">
+  <Modal title="导入缺料清单" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">

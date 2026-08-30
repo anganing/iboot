@@ -19,38 +19,38 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'resId',
-      label: '生产资源编号',
+      label: '生产资源',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入生产资源编号',
+        placeholder: '请输入生产资源',
       },
     },
     {
       fieldName: 'resCode',
-      label: '资源编码快照',
+      label: '资源编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入资源编码快照',
+        placeholder: '请输入资源编码',
       },
     },
     {
       fieldName: 'resName',
-      label: '资源名称快照',
+      label: '资源名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入资源名称快照',
+        placeholder: '请输入资源名称',
       },
     },
     {
@@ -67,20 +67,20 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'loadMinutes',
-      label: '计划负荷分钟数',
+      label: '计划负荷(分钟)',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入计划负荷分钟数',
+        placeholder: '请输入计划负荷(分钟)',
       },
     },
     {
       fieldName: 'capacityMinutes',
-      label: '可用产能分钟数',
+      label: '可用产能(分钟)',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入可用产能分钟数',
+        placeholder: '请输入可用产能(分钟)',
       },
     },
     {
@@ -94,11 +94,11 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'overloadMinutes',
-      label: '超负荷分钟数',
+      label: '超负荷(分钟)',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入超负荷分钟数',
+        placeholder: '请输入超负荷(分钟)',
       },
     },
     {
@@ -117,7 +117,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-资源负荷数据',
+      label: '资源负荷数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -130,38 +130,38 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'versionId',
-      label: '排程版本编号',
+      label: '排程版本',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程版本编号',
+        placeholder: '请输入排程版本',
       },
     },
     {
       fieldName: 'resId',
-      label: '生产资源编号',
+      label: '生产资源',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入生产资源编号',
+        placeholder: '请输入生产资源',
       },
     },
     {
       fieldName: 'resCode',
-      label: '资源编码快照',
+      label: '资源编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源编码快照',
+        placeholder: '请输入资源编码',
       },
     },
     {
       fieldName: 'resName',
-      label: '资源名称快照',
+      label: '资源名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源名称快照',
+        placeholder: '请输入资源名称',
       },
     },
     {
@@ -175,20 +175,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'loadMinutes',
-      label: '计划负荷分钟数',
+      label: '计划负荷(分钟)',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入计划负荷分钟数',
+        placeholder: '请输入计划负荷(分钟)',
       },
     },
     {
       fieldName: 'capacityMinutes',
-      label: '可用产能分钟数',
+      label: '可用产能(分钟)',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入可用产能分钟数',
+        placeholder: '请输入可用产能(分钟)',
       },
     },
     {
@@ -202,11 +202,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'overloadMinutes',
-      label: '超负荷分钟数',
+      label: '超负荷(分钟)',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入超负荷分钟数',
+        placeholder: '请输入超负荷(分钟)',
       },
     },
     {
@@ -237,17 +237,17 @@ export function useGridColumns(): VxeTableGridOptions<ApsLoadApi.Load>['columns'
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'resId',
-      title: '生产资源编号',
+      title: '生产资源',
       minWidth: 120,
     },
     {
       field: 'resCode',
-      title: '资源编码快照',
+      title: '资源编码',
       minWidth: 120,
     },
     {
       field: 'resName',
-      title: '资源名称快照',
+      title: '资源名称',
       minWidth: 120,
     },
     {
@@ -257,12 +257,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsLoadApi.Load>['columns'
     },
     {
       field: 'loadMinutes',
-      title: '计划负荷分钟数',
+      title: '计划负荷(分钟)',
       minWidth: 120,
     },
     {
       field: 'capacityMinutes',
-      title: '可用产能分钟数',
+      title: '可用产能(分钟)',
       minWidth: 120,
     },
     {
@@ -272,7 +272,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsLoadApi.Load>['columns'
     },
     {
       field: 'overloadMinutes',
-      title: '超负荷分钟数',
+      title: '超负荷(分钟)',
       minWidth: 120,
     },
     {
@@ -288,7 +288,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsLoadApi.Load>['columns'
     },
     {
       field: 'versionVersion_no',
-      title: '排程版本version_no',
+      title: '排程版本号',
       minWidth: 120,
     },
     {

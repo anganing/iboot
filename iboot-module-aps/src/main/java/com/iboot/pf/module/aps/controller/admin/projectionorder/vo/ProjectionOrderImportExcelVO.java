@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * APS-MES需求工单任务投影 Excel 导入 VO
+ * 工单投影 Excel 导入 VO
  */
 @Data
 @Builder

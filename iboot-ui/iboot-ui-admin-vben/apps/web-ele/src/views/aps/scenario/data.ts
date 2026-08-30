@@ -19,52 +19,52 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'code',
-      label: '排程场景编码',
+      label: '场景编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景编码',
+        placeholder: '请输入场景编码',
       },
     },
     {
       fieldName: 'name',
-      label: '排程场景名称',
+      label: '场景名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景名称',
+        placeholder: '请输入场景名称',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号，0表示全工厂',
+      label: '车间',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入车间编号，0表示全工厂',
+        placeholder: '请输入车间',
       },
     },
     {
       fieldName: 'strategyId',
-      label: '排程策略编号',
+      label: '排程策略',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程策略编号',
+        placeholder: '请输入排程策略',
       },
     },
     {
       fieldName: 'planStartTime',
-      label: '计划窗口开始时间',
+      label: '计划开始时间',
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
@@ -76,7 +76,7 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'planEndTime',
-      label: '计划窗口结束时间',
+      label: '计划结束时间',
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
@@ -88,7 +88,7 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'snapshotTime',
-      label: '输入数据快照时间',
+      label: '快照时间',
       component: 'DatePicker',
       componentProps: {
         showTime: true,
@@ -99,7 +99,7 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、SNAPSHOTTING、READY、SOLVING、SOLVED、CLOSED',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
@@ -124,7 +124,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程场景数据',
+      label: '排程场景数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -137,52 +137,52 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'code',
-      label: '排程场景编码',
+      label: '场景编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景编码',
+        placeholder: '请输入场景编码',
       },
     },
     {
       fieldName: 'name',
-      label: '排程场景名称',
+      label: '场景名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景名称',
+        placeholder: '请输入场景名称',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入工厂编号',
+        placeholder: '请输入工厂',
       },
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号，0表示全工厂',
+      label: '车间',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入车间编号，0表示全工厂',
+        placeholder: '请输入车间',
       },
     },
     {
       fieldName: 'strategyId',
-      label: '排程策略编号',
+      label: '排程策略',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程策略编号',
+        placeholder: '请输入排程策略',
       },
     },
     {
       fieldName: 'planStartTime',
-      label: '计划窗口开始时间',
+      label: '计划开始时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -191,7 +191,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'planEndTime',
-      label: '计划窗口结束时间',
+      label: '计划结束时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -200,7 +200,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'snapshotTime',
-      label: '输入数据快照时间',
+      label: '快照时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -209,12 +209,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、SNAPSHOTTING、READY、SOLVING、SOLVED、CLOSED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择状态：DRAFT、SNAPSHOTTING、READY、SOLVING、SOLVED、CLOSED',
+        placeholder: '请选择状态',
       },
     },
     {
@@ -245,50 +245,50 @@ export function useGridColumns(): VxeTableGridOptions<ApsScenarioApi.Scenario>['
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'code',
-      title: '排程场景编码',
+      title: '场景编码',
       minWidth: 120,
     },
     {
       field: 'name',
-      title: '排程场景名称',
+      title: '场景名称',
       minWidth: 120,
     },
     {
       field: 'plantId',
-      title: '工厂编号',
+      title: '工厂',
       minWidth: 120,
     },
     {
       field: 'workshopId',
-      title: '车间编号，0表示全工厂',
+      title: '车间',
       minWidth: 120,
     },
     {
       field: 'strategyId',
-      title: '排程策略编号',
+      title: '排程策略',
       minWidth: 120,
     },
     {
       field: 'planStartTime',
-      title: '计划窗口开始时间',
+      title: '计划开始时间',
       minWidth: 120,
       formatter: 'formatDateTime',
     },
     {
       field: 'planEndTime',
-      title: '计划窗口结束时间',
+      title: '计划结束时间',
       minWidth: 120,
       formatter: 'formatDateTime',
     },
     {
       field: 'snapshotTime',
-      title: '输入数据快照时间',
+      title: '快照时间',
       minWidth: 120,
       formatter: 'formatDateTime',
     },
     {
       field: 'status',
-      title: '状态：DRAFT、SNAPSHOTTING、READY、SOLVING、SOLVED、CLOSED',
+      title: '状态',
       minWidth: 120,
     },
     {

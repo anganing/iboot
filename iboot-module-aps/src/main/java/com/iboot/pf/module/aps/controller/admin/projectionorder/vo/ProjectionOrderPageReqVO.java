@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 import static com.iboot.pf.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
-@Schema(description = "管理后台 - APS-MES需求工单任务投影分页 Request VO")
+@Schema(description = "管理后台 - 工单投影分页 Request VO")
 @Data
 public class ProjectionOrderPageReqVO extends PageParam {
 

@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.projectioninv.vo.*;
 
 /**
- * APS-WMS库存投影 Mapper
+ * 库存投影 Mapper
  *
  * @author iboot
  */

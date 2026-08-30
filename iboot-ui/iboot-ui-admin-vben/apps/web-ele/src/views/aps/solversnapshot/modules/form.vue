@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsSolverSnapshotApi.SolverSnapshot>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-Timefold求解快照'])
-    : $t('ui.actionTitle.create', ['APS-Timefold求解快照']);
+    ? $t('ui.actionTitle.edit', ['求解快照'])
+    : $t('ui.actionTitle.create', ['求解快照']);
 });
 
 const [Form, formApi] = useVbenForm({

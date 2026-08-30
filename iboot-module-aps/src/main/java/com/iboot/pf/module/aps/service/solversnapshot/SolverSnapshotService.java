@@ -8,14 +8,14 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
 /**
- * APS-Timefold求解快照 Service 接口
+ * 求解快照 Service 接口
  *
  * @author iboot
  */
 public interface SolverSnapshotService {
 
     /**
-     * 创建APS-Timefold求解快照
+     * 创建求解快照
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -23,7 +23,7 @@ public interface SolverSnapshotService {
     Long createSolverSnapshot(@Valid SolverSnapshotSaveReqVO createReqVO);
 
     /**
-     * 导入APS-Timefold求解快照
+     * 导入求解快照
      *
      * @param importList 导入信息
      * @return 导入结果
@@ -31,39 +31,39 @@ public interface SolverSnapshotService {
     SolverSnapshotImportRespVO importSolverSnapshotList(List<SolverSnapshotImportExcelVO> importList);
 
     /**
-     * 更新APS-Timefold求解快照
+     * 更新求解快照
      *
      * @param updateReqVO 更新信息
      */
     void updateSolverSnapshot(@Valid SolverSnapshotSaveReqVO updateReqVO);
 
     /**
-     * 删除APS-Timefold求解快照
+     * 删除求解快照
      *
      * @param id 编号
      */
     void deleteSolverSnapshot(Long id);
 
     /**
-    * 批量删除APS-Timefold求解快照
+    * 批量删除求解快照
     *
     * @param ids 编号
     */
     void deleteSolverSnapshotListByIds(List<Long> ids);
 
     /**
-     * 获得APS-Timefold求解快照
+     * 获得求解快照
      *
      * @param id 编号
-     * @return APS-Timefold求解快照
+     * @return 求解快照
      */
     SolverSnapshotRespVO getSolverSnapshot(Long id);
 
     /**
-     * 获得APS-Timefold求解快照分页
+     * 获得求解快照分页
      *
      * @param pageReqVO 分页查询
-     * @return APS-Timefold求解快照分页
+     * @return 求解快照分页
      */
     PageResult<SolverSnapshotRespVO> getSolverSnapshotPage(SolverSnapshotPageReqVO pageReqVO);
 

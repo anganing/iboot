@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.shortage.vo.*;
 
 /**
- * APS-排程缺料清单 Mapper
+ * 缺料清单 Mapper
  *
  * @author iboot
  */

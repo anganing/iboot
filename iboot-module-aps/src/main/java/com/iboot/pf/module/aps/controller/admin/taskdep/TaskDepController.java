@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.taskdep.vo.*;
 import com.iboot.pf.module.aps.service.taskdep.TaskDepService;
 
-@Tag(name = "管理后台 - APS-排程任务依赖")
+@Tag(name = "管理后台 - 任务依赖")
 @RestController
 @RequestMapping("/aps/task-dep")
 @Validated
@@ -38,14 +38,14 @@ public class TaskDepController {
     private TaskDepService taskDepService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-排程任务依赖")
+    @Operation(summary = "创建任务依赖")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:create')")
     public CommonResult<Long> createTaskDep(@Valid @RequestBody TaskDepSaveReqVO createReqVO) {
         return success(taskDepService.createTaskDep(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-排程任务依赖")
+    @Operation(summary = "更新任务依赖")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:update')")
     public CommonResult<Boolean> updateTaskDep(@Valid @RequestBody TaskDepSaveReqVO updateReqVO) {
         taskDepService.updateTaskDep(updateReqVO);
@@ -53,7 +53,7 @@ public class TaskDepController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-排程任务依赖")
+    @Operation(summary = "删除任务依赖")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:task-dep:delete')")
     public CommonResult<Boolean> deleteTaskDep(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class TaskDepController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-排程任务依赖")
+    @Operation(summary = "批量删除任务依赖")
                 @PreAuthorize("@ss.hasPermission('aps:task-dep:delete')")
     public CommonResult<Boolean> deleteTaskDepList(@RequestParam("ids") List<Long> ids) {
         taskDepService.deleteTaskDepListByIds(ids);
@@ -71,7 +71,7 @@ public class TaskDepController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-排程任务依赖")
+    @Operation(summary = "获得任务依赖")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:query')")
     public CommonResult<TaskDepRespVO> getTaskDep(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class TaskDepController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-排程任务依赖分页")
+    @Operation(summary = "获得任务依赖分页")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:query')")
     public CommonResult<PageResult<TaskDepRespVO>> getTaskDepPage(@Valid TaskDepPageReqVO pageReqVO) {
         return success(taskDepService.getTaskDepPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-排程任务依赖 Excel")
+    @Operation(summary = "导出任务依赖 Excel")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportTaskDepExcel(@Valid TaskDepPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class TaskDepController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<TaskDepRespVO> list = taskDepService.getTaskDepPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-排程任务依赖.xls", "数据", TaskDepRespVO.class,
+        ExcelUtils.write(response, "任务依赖.xls", "数据", TaskDepRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-排程任务依赖模板")
+    @Operation(summary = "获得导入任务依赖模板")
     @PreAuthorize("@ss.hasPermission('aps:task-dep:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-排程任务依赖导入模板.xls", "数据",
+        ExcelUtils.write(response, "任务依赖导入模板.xls", "数据",
                 TaskDepImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-排程任务依赖")
+    @Operation(summary = "导入任务依赖")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:task-dep:import')")
     public CommonResult<TaskDepImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

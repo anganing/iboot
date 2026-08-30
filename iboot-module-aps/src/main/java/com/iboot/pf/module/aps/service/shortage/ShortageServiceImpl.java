@@ -22,7 +22,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diff
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.*;
 
 /**
- * APS-排程缺料清单 Service 实现类
+ * 缺料清单 Service 实现类
  *
  * @author iboot
  */

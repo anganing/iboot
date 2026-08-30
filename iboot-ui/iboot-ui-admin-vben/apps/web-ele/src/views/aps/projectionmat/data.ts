@@ -19,74 +19,74 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceMatId',
-      label: 'MDM物料编号',
+      label: '物料',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入MDM物料编号',
+        placeholder: '请输入物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'matName',
-      label: '物料名称快照',
+      label: '物料名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料名称快照',
+        placeholder: '请输入物料名称',
       },
     },
     {
       fieldName: 'matSpec',
-      label: '物料规格快照',
+      label: '物料规格',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入物料规格快照',
+        placeholder: '请输入物料规格',
       },
     },
     {
       fieldName: 'matType',
-      label: '物料类型快照',
+      label: '物料类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
         options: [],
-        placeholder: '请选择物料类型快照',
+        placeholder: '请选择物料类型',
       },
     },
     {
       fieldName: 'baseUomId',
-      label: '基准计量单位编号',
+      label: '基准计量单位',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入基准计量单位编号',
+        placeholder: '请输入基准计量单位',
       },
     },
     {
       fieldName: 'baseUomCode',
-      label: '基准计量单位编码快照',
+      label: '基准计量单位编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入基准计量单位编码快照',
+        placeholder: '请输入基准计量单位编码',
       },
     },
     {
@@ -102,11 +102,11 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'bomId',
-      label: '当前有效BOM编号，0表示无',
+      label: '当前有效BOM',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入当前有效BOM编号，0表示无',
+        placeholder: '请输入当前有效BOM',
       },
     },
     {
@@ -119,11 +119,11 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'routeId',
-      label: '当前有效工艺路线编号，0表示无',
+      label: '当前有效工艺路线',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入当前有效工艺路线编号，0表示无',
+        placeholder: '请输入当前有效工艺路线',
       },
     },
     {
@@ -174,7 +174,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-MDM物料投影数据',
+      label: '物料投影数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -187,75 +187,75 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'scenarioId',
-      label: '排程场景编号',
+      label: '排程场景',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程场景编号',
+        placeholder: '请输入排程场景',
       },
     },
     {
       fieldName: 'sourceMatId',
-      label: 'MDM物料编号',
+      label: '物料',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入MDM物料编号',
+        placeholder: '请输入物料',
       },
     },
     {
       fieldName: 'matCode',
-      label: '物料编码快照',
+      label: '物料编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
+        placeholder: '请输入物料编码',
       },
     },
     {
       fieldName: 'matName',
-      label: '物料名称快照',
+      label: '物料名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料名称快照',
+        placeholder: '请输入物料名称',
       },
     },
     {
       fieldName: 'matSpec',
-      label: '物料规格快照',
+      label: '物料规格',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料规格快照',
+        placeholder: '请输入物料规格',
       },
     },
     {
       fieldName: 'matType',
-      label: '物料类型快照',
+      label: '物料类型',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择物料类型快照',
+        placeholder: '请选择物料类型',
       },
     },
     {
       fieldName: 'baseUomId',
-      label: '基准计量单位编号',
+      label: '基准计量单位',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入基准计量单位编号',
+        placeholder: '请输入基准计量单位',
       },
     },
     {
       fieldName: 'baseUomCode',
-      label: '基准计量单位编码快照',
+      label: '基准计量单位编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入基准计量单位编码快照',
+        placeholder: '请输入基准计量单位编码',
       },
     },
     {
@@ -270,11 +270,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'bomId',
-      label: '当前有效BOM编号，0表示无',
+      label: '当前有效BOM',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入当前有效BOM编号，0表示无',
+        placeholder: '请输入当前有效BOM',
       },
     },
     {
@@ -288,11 +288,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'routeId',
-      label: '当前有效工艺路线编号，0表示无',
+      label: '当前有效工艺路线',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入当前有效工艺路线编号，0表示无',
+        placeholder: '请输入当前有效工艺路线',
       },
     },
     {
@@ -350,37 +350,37 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionMatApi.Projec
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'sourceMatId',
-      title: 'MDM物料编号',
+      title: '物料',
       minWidth: 120,
     },
     {
       field: 'matCode',
-      title: '物料编码快照',
+      title: '物料编码',
       minWidth: 120,
     },
     {
       field: 'matName',
-      title: '物料名称快照',
+      title: '物料名称',
       minWidth: 120,
     },
     {
       field: 'matSpec',
-      title: '物料规格快照',
+      title: '物料规格',
       minWidth: 120,
     },
     {
       field: 'matType',
-      title: '物料类型快照',
+      title: '物料类型',
       minWidth: 120,
     },
     {
       field: 'baseUomId',
-      title: '基准计量单位编号',
+      title: '基准计量单位',
       minWidth: 120,
     },
     {
       field: 'baseUomCode',
-      title: '基准计量单位编码快照',
+      title: '基准计量单位编码',
       minWidth: 120,
     },
     {
@@ -390,7 +390,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionMatApi.Projec
     },
     {
       field: 'bomId',
-      title: '当前有效BOM编号，0表示无',
+      title: '当前有效BOM',
       minWidth: 120,
     },
     {
@@ -400,7 +400,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionMatApi.Projec
     },
     {
       field: 'routeId',
-      title: '当前有效工艺路线编号，0表示无',
+      title: '当前有效工艺路线',
       minWidth: 120,
     },
     {

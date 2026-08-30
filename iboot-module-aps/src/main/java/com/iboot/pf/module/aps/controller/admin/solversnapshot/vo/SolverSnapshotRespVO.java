@@ -7,7 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
 
-@Schema(description = "管理后台 - APS-Timefold求解快照 Response VO")
+@Schema(description = "管理后台 - 求解快照 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class SolverSnapshotRespVO {
@@ -45,8 +45,8 @@ public class SolverSnapshotRespVO {
     private LocalDateTime createTime;
 
 
-    @Schema(description = "排程版本version_no")
-    @ExcelProperty("排程版本version_no")
+    @Schema(description = "排程版本号")
+    @ExcelProperty("排程版本号")
     private String versionVersion_no;
 
 }

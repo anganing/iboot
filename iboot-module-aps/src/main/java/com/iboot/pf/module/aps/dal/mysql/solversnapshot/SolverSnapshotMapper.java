@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.*;
 
 /**
- * APS-Timefold求解快照 Mapper
+ * 求解快照 Mapper
  *
  * @author iboot
  */

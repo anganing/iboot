@@ -17,8 +17,8 @@ const emit = defineEmits(['success']);
 const formData = ref<ApsLoadApi.Load>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['APS-资源负荷'])
-    : $t('ui.actionTitle.create', ['APS-资源负荷']);
+    ? $t('ui.actionTitle.edit', ['资源负荷'])
+    : $t('ui.actionTitle.create', ['资源负荷']);
 });
 
 const [Form, formApi] = useVbenForm({

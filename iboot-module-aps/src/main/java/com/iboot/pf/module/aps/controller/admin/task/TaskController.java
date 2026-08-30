@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.task.vo.*;
 import com.iboot.pf.module.aps.service.task.TaskService;
 
-@Tag(name = "管理后台 - APS-工序排程任务")
+@Tag(name = "管理后台 - 排程任务")
 @RestController
 @RequestMapping("/aps/task")
 @Validated
@@ -38,14 +38,14 @@ public class TaskController {
     private TaskService taskService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-工序排程任务")
+    @Operation(summary = "创建排程任务")
     @PreAuthorize("@ss.hasPermission('aps:task:create')")
     public CommonResult<Long> createTask(@Valid @RequestBody TaskSaveReqVO createReqVO) {
         return success(taskService.createTask(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-工序排程任务")
+    @Operation(summary = "更新排程任务")
     @PreAuthorize("@ss.hasPermission('aps:task:update')")
     public CommonResult<Boolean> updateTask(@Valid @RequestBody TaskSaveReqVO updateReqVO) {
         taskService.updateTask(updateReqVO);
@@ -53,7 +53,7 @@ public class TaskController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-工序排程任务")
+    @Operation(summary = "删除排程任务")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:task:delete')")
     public CommonResult<Boolean> deleteTask(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class TaskController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-工序排程任务")
+    @Operation(summary = "批量删除排程任务")
                 @PreAuthorize("@ss.hasPermission('aps:task:delete')")
     public CommonResult<Boolean> deleteTaskList(@RequestParam("ids") List<Long> ids) {
         taskService.deleteTaskListByIds(ids);
@@ -71,7 +71,7 @@ public class TaskController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-工序排程任务")
+    @Operation(summary = "获得排程任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:task:query')")
     public CommonResult<TaskRespVO> getTask(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class TaskController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-工序排程任务分页")
+    @Operation(summary = "获得排程任务分页")
     @PreAuthorize("@ss.hasPermission('aps:task:query')")
     public CommonResult<PageResult<TaskRespVO>> getTaskPage(@Valid TaskPageReqVO pageReqVO) {
         return success(taskService.getTaskPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-工序排程任务 Excel")
+    @Operation(summary = "导出排程任务 Excel")
     @PreAuthorize("@ss.hasPermission('aps:task:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportTaskExcel(@Valid TaskPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class TaskController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<TaskRespVO> list = taskService.getTaskPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-工序排程任务.xls", "数据", TaskRespVO.class,
+        ExcelUtils.write(response, "排程任务.xls", "数据", TaskRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-工序排程任务模板")
+    @Operation(summary = "获得导入排程任务模板")
     @PreAuthorize("@ss.hasPermission('aps:task:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-工序排程任务导入模板.xls", "数据",
+        ExcelUtils.write(response, "排程任务导入模板.xls", "数据",
                 TaskImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-工序排程任务")
+    @Operation(summary = "导入排程任务")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:task:import')")
     public CommonResult<TaskImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

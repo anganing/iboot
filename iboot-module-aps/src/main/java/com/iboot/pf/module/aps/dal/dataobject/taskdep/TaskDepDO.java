@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-排程任务依赖 DO
+ * 任务依赖 DO
  *
  * @author iboot
  */

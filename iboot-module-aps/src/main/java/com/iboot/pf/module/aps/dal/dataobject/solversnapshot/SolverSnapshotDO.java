@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
- * APS-Timefold求解快照 DO
+ * 求解快照 DO
  *
  * @author iboot
  */

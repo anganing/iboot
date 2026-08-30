@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.aps.controller.admin.version.vo.*;
 
 /**
- * APS-排程版本 Mapper
+ * 排程版本 Mapper
  *
  * @author iboot
  */

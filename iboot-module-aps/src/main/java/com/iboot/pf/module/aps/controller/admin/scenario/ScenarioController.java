@@ -28,7 +28,7 @@ import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 import com.iboot.pf.module.aps.controller.admin.scenario.vo.*;
 import com.iboot.pf.module.aps.service.scenario.ScenarioService;
 
-@Tag(name = "管理后台 - APS-排程场景")
+@Tag(name = "管理后台 - 排程场景")
 @RestController
 @RequestMapping("/aps/scenario")
 @Validated
@@ -38,14 +38,14 @@ public class ScenarioController {
     private ScenarioService scenarioService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建APS-排程场景")
+    @Operation(summary = "创建排程场景")
     @PreAuthorize("@ss.hasPermission('aps:scenario:create')")
     public CommonResult<Long> createScenario(@Valid @RequestBody ScenarioSaveReqVO createReqVO) {
         return success(scenarioService.createScenario(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新APS-排程场景")
+    @Operation(summary = "更新排程场景")
     @PreAuthorize("@ss.hasPermission('aps:scenario:update')")
     public CommonResult<Boolean> updateScenario(@Valid @RequestBody ScenarioSaveReqVO updateReqVO) {
         scenarioService.updateScenario(updateReqVO);
@@ -53,7 +53,7 @@ public class ScenarioController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除APS-排程场景")
+    @Operation(summary = "删除排程场景")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('aps:scenario:delete')")
     public CommonResult<Boolean> deleteScenario(@RequestParam("id") Long id) {
@@ -63,7 +63,7 @@ public class ScenarioController {
 
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除APS-排程场景")
+    @Operation(summary = "批量删除排程场景")
                 @PreAuthorize("@ss.hasPermission('aps:scenario:delete')")
     public CommonResult<Boolean> deleteScenarioList(@RequestParam("ids") List<Long> ids) {
         scenarioService.deleteScenarioListByIds(ids);
@@ -71,7 +71,7 @@ public class ScenarioController {
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得APS-排程场景")
+    @Operation(summary = "获得排程场景")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('aps:scenario:query')")
     public CommonResult<ScenarioRespVO> getScenario(@RequestParam("id") Long id) {
@@ -79,14 +79,14 @@ public class ScenarioController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得APS-排程场景分页")
+    @Operation(summary = "获得排程场景分页")
     @PreAuthorize("@ss.hasPermission('aps:scenario:query')")
     public CommonResult<PageResult<ScenarioRespVO>> getScenarioPage(@Valid ScenarioPageReqVO pageReqVO) {
         return success(scenarioService.getScenarioPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出APS-排程场景 Excel")
+    @Operation(summary = "导出排程场景 Excel")
     @PreAuthorize("@ss.hasPermission('aps:scenario:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportScenarioExcel(@Valid ScenarioPageReqVO pageReqVO,
@@ -94,20 +94,20 @@ public class ScenarioController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<ScenarioRespVO> list = scenarioService.getScenarioPage(pageReqVO).getList();
         // 导出 Excel
-        ExcelUtils.write(response, "APS-排程场景.xls", "数据", ScenarioRespVO.class,
+        ExcelUtils.write(response, "排程场景.xls", "数据", ScenarioRespVO.class,
                         list);
     }
 
     @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入APS-排程场景模板")
+    @Operation(summary = "获得导入排程场景模板")
     @PreAuthorize("@ss.hasPermission('aps:scenario:import')")
     public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "APS-排程场景导入模板.xls", "数据",
+        ExcelUtils.write(response, "排程场景导入模板.xls", "数据",
                 ScenarioImportExcelVO.class, Collections.emptyList());
     }
 
     @PostMapping("/import")
-    @Operation(summary = "导入APS-排程场景")
+    @Operation(summary = "导入排程场景")
     @Parameter(name = "file", description = "Excel 文件", required = true)
     @PreAuthorize("@ss.hasPermission('aps:scenario:import')")
     public CommonResult<ScenarioImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {

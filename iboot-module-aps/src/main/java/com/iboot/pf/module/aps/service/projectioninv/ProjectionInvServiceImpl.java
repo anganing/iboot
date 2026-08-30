@@ -22,7 +22,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diff
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.*;
 
 /**
- * APS-WMS库存投影 Service 实现类
+ * 库存投影 Service 实现类
  *
  * @author iboot
  */

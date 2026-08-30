@@ -6,7 +6,7 @@ import lombok.Data;
 
 import java.util.Map;
 
-@Schema(description = "管理后台 - APS-排程任务锁定记录导入 Response VO")
+@Schema(description = "管理后台 - 任务锁定导入 Response VO")
 @Data
 @Builder
 public class TaskLockImportRespVO {

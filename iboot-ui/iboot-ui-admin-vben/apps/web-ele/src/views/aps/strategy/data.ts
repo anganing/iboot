@@ -19,20 +19,20 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'code',
-      label: '排程策略编码',
+      label: '策略编码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程策略编码',
+        placeholder: '请输入策略编码',
       },
     },
     {
       fieldName: 'name',
-      label: '排程策略名称',
+      label: '策略名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入排程策略名称',
+        placeholder: '请输入策略名称',
       },
     },
     {
@@ -46,25 +46,25 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'objective',
-      label: '优化目标说明',
+      label: '优化目标',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入优化目标说明',
+        placeholder: '请输入优化目标',
       },
     },
     {
       fieldName: 'configJson',
-      label: '硬约束、软约束及权重配置',
+      label: '约束配置',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入硬约束、软约束及权重配置',
+        placeholder: '请输入约束配置',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、ENABLED、DISABLED',
+      label: '状态',
       rules: 'required',
       component: 'RadioGroup',
       componentProps: {
@@ -89,7 +89,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'APS-排程策略数据',
+      label: '排程策略数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -102,20 +102,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'code',
-      label: '排程策略编码',
+      label: '策略编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程策略编码',
+        placeholder: '请输入策略编码',
       },
     },
     {
       fieldName: 'name',
-      label: '排程策略名称',
+      label: '策略名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程策略名称',
+        placeholder: '请输入策略名称',
       },
     },
     {
@@ -129,30 +129,30 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'objective',
-      label: '优化目标说明',
+      label: '优化目标',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入优化目标说明',
+        placeholder: '请输入优化目标',
       },
     },
     {
       fieldName: 'configJson',
-      label: '硬约束、软约束及权重配置',
+      label: '约束配置',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入硬约束、软约束及权重配置',
+        placeholder: '请输入约束配置',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、ENABLED、DISABLED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
         options: [],
-        placeholder: '请选择状态：DRAFT、ENABLED、DISABLED',
+        placeholder: '请选择状态',
       },
     },
     {
@@ -183,12 +183,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsStrategyApi.Strategy>['
   { type: 'seq', title: '序号', width: 60 },
     {
       field: 'code',
-      title: '排程策略编码',
+      title: '策略编码',
       minWidth: 120,
     },
     {
       field: 'name',
-      title: '排程策略名称',
+      title: '策略名称',
       minWidth: 120,
     },
     {
@@ -198,17 +198,17 @@ export function useGridColumns(): VxeTableGridOptions<ApsStrategyApi.Strategy>['
     },
     {
       field: 'objective',
-      title: '优化目标说明',
+      title: '优化目标',
       minWidth: 120,
     },
     {
       field: 'configJson',
-      title: '硬约束、软约束及权重配置',
+      title: '约束配置',
       minWidth: 120,
     },
     {
       field: 'status',
-      title: '状态：DRAFT、ENABLED、DISABLED',
+      title: '状态',
       minWidth: 120,
     },
     {
