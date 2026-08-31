@@ -6,11 +6,15 @@
         t.*
         , wh.code AS wh_code
         , wh.name AS wh_name
+        , loc.code AS loc_code
+        , batch.lot_no AS lot_no
     </sql>
 
     <sql id="joinTables">
         FROM wms_inv_reservation t
         LEFT JOIN wms_wh wh ON wh.id = t.wh_id AND wh.deleted = 0
+        LEFT JOIN wms_loc loc ON loc.id = t.loc_id AND loc.deleted = 0
+        LEFT JOIN wms_batch batch ON batch.id = t.batch_id AND batch.deleted = 0
     </sql>
 
     <sql id="whereConditions">

@@ -28,6 +28,10 @@ export namespace WmsInvReservationApi {
     createTime?: string; // 创建时间
     whCode?: string; // 仓库编码
     whName?: string; // 仓库名称
+    locCode?: string; // 库位编码
+    lotNo?: string; // 批次号
+    matCode?: string; // 物料编码
+    matName?: string; // 物料名称
   }
 }
 

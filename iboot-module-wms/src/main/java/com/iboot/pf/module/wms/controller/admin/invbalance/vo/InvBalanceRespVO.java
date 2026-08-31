@@ -123,4 +123,8 @@ public class InvBalanceRespVO {
     @ExcelProperty("仓库名称")
     private String whName;
 
+    @Schema(description = "归属项目名称")
+    @ExcelProperty("归属项目名称")
+    private String projectName;
+
 }

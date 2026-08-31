@@ -31,6 +31,7 @@ export namespace WmsInvBalanceApi {
     remark?: string; // 备注
     createTime?: string; // 创建时间
     whName?: string; // 仓库名称
+    projectName?: string; // 归属项目名称
   }
 }
 

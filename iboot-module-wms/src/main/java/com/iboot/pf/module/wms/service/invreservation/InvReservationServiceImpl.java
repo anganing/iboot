@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.invreservation.InvReservationDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.mdm.api.material.MaterialApi;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
@@ -20,7 +22,9 @@ import com.iboot.pf.module.wms.dal.mysql.invreservation.InvReservationMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.diffList;
+import static com.iboot.pf.framework.common.util.collection.MapUtils.findAndThen;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 
 /**
@@ -34,6 +38,8 @@ public class InvReservationServiceImpl implements InvReservationService {
 
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private MaterialApi materialApi;
     @Resource
     private InvReservationMapper invReservationMapper;
 
@@ -108,12 +114,32 @@ public class InvReservationServiceImpl implements InvReservationService {
 
     @Override
     public InvReservationRespVO getInvReservation(Long id) {
-        return invReservationMapper.selectJoinById(id);
+        InvReservationRespVO reservation = invReservationMapper.selectJoinById(id);
+        fillMaterialName(reservation == null ? Collections.emptyList() : Collections.singletonList(reservation));
+        return reservation;
     }
 
     @Override
     public PageResult<InvReservationRespVO> getInvReservationPage(InvReservationPageReqVO pageReqVO) {
-        return invReservationMapper.selectPage(pageReqVO);
+        PageResult<InvReservationRespVO> pageResult = invReservationMapper.selectPage(pageReqVO);
+        fillMaterialName(pageResult.getList());
+        return pageResult;
+    }
+
+    /**
+     * 批量补全物料编码与名称。物料属于 mdm，只能走门面批量取，不能在 SQL 里跨库 JOIN；
+     * 补全放在 Service 而不是 Controller，Excel 导出复用同一份结果才不会丢字段。
+     */
+    private void fillMaterialName(List<InvReservationRespVO> list) {
+        if (CollUtil.isEmpty(list)) {
+            return;
+        }
+        Map<Long, MaterialRespDTO> materialMap =
+                materialApi.getMaterialMap(convertSet(list, InvReservationRespVO::getMatId));
+        list.forEach(vo -> findAndThen(materialMap, vo.getMatId(), material -> {
+            vo.setMatCode(material.getCode());
+            vo.setMatName(material.getName());
+        }));
     }
 
 

@@ -1,6 +1,7 @@
 package com.iboot.pf.module.wms.service.invlock;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.InvLockSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
 import com.iboot.pf.module.wms.dal.mysql.invlock.InvLockMapper;
@@ -39,6 +40,8 @@ class InvLockServiceImplTest extends BaseDbUnitTest {
 
     @MockitoBean
     private WmsCodeService codeService;
+    @MockitoBean
+    private MaterialApi materialApi;
 
     @BeforeEach
     void mockExternalDependencies() {

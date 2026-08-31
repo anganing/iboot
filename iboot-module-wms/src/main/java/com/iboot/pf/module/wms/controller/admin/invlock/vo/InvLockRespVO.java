@@ -108,4 +108,20 @@ public class InvLockRespVO {
     @ExcelProperty("仓库名称")
     private String whName;
 
+    @Schema(description = "库位编码")
+    @ExcelProperty("库位编码")
+    private String locCode;
+
+    @Schema(description = "批次号")
+    @ExcelProperty("批次号")
+    private String lotNo;
+
+    @Schema(description = "物料编码")
+    @ExcelProperty("物料编码")
+    private String matCode;
+
+    @Schema(description = "物料名称")
+    @ExcelProperty("物料名称")
+    private String matName;
+
 }
