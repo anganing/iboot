@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.version.ApsVersionMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , scenario.code AS scenario_code
+        , scenario.name AS scenario_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_version t
+        LEFT JOIN aps_scenario scenario ON scenario.id = t.scenario_id AND scenario.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.scenarioId != null">
+                AND t.scenario_id = #{req.scenarioId}
+            </if>
+            <if test="req.versionNo != null">
+                AND t.version_no = #{req.versionNo}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.publishedBy != null">
+                AND t.published_by = #{req.publishedBy}
+            </if>
+            <if test="req.publishedTime != null and req.publishedTime.length == 2">
+                AND t.published_time BETWEEN #{req.publishedTime[0]} AND #{req.publishedTime[1]}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , version.version_no AS version_no
+        , scenario.code AS scenario_code
+        , scenario.name AS scenario_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_task t
+        LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+        LEFT JOIN aps_scenario scenario ON scenario.id = version.scenario_id AND scenario.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.versionId != null">
+                AND t.version_id = #{req.versionId}
+            </if>
+            <if test="req.taskNo != null and req.taskNo != ''">
+                AND t.task_no LIKE CONCAT('%', #{req.taskNo}, '%')
+            </if>
+            <if test="req.prodOrderNo != null and req.prodOrderNo != ''">
+                AND t.prod_order_no LIKE CONCAT('%', #{req.prodOrderNo}, '%')
+            </if>
+            <if test="req.opCode != null and req.opCode != ''">
+                AND t.op_code = #{req.opCode}
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.workshopId != null">
+                AND t.workshop_id = #{req.workshopId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.resId != null">
+                AND t.res_id = #{req.resId}
+            </if>
+            <if test="req.lockedFlag != null">
+                AND t.locked_flag = #{req.lockedFlag}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.startTime != null and req.startTime.length == 2">
+                AND t.start_time BETWEEN #{req.startTime[0]} AND #{req.startTime[1]}
+            </if>
+            <if test="req.endTime != null and req.endTime.length == 2">
+                AND t.end_time BETWEEN #{req.endTime[0]} AND #{req.endTime[1]}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.res_id ASC, t.start_time ASC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -4,46 +4,40 @@
 
     <sql id="selectColumns">
         t.*
-        , version.version_no AS version_version_no
+        , version.version_no AS version_no
+        , scenario.code AS scenario_code
+        , scenario.name AS scenario_name
     </sql>
 
     <sql id="joinTables">
         FROM aps_load t
         LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+        LEFT JOIN aps_scenario scenario ON scenario.id = version.scenario_id AND scenario.deleted = 0
     </sql>
 
     <sql id="whereConditions">
         <where>
             t.deleted = 0
+            <if test="req.versionId != null">
+                AND t.version_id = #{req.versionId}
+            </if>
             <if test="req.resId != null">
                 AND t.res_id = #{req.resId}
             </if>
             <if test="req.resCode != null and req.resCode != ''">
-                AND t.res_code = #{req.resCode}
+                AND t.res_code LIKE CONCAT('%', #{req.resCode}, '%')
             </if>
             <if test="req.resName != null and req.resName != ''">
                 AND t.res_name LIKE CONCAT('%', #{req.resName}, '%')
             </if>
-            <if test="req.workDate != null">
-                AND t.work_date = #{req.workDate}
+            <if test="req.overloadOnly != null and req.overloadOnly">
+                AND t.overload_minutes &gt; 0
             </if>
-            <if test="req.loadMinutes != null">
-                AND t.load_minutes = #{req.loadMinutes}
+            <if test="req.workDate != null and req.workDate.length == 2">
+                AND t.work_date BETWEEN #{req.workDate[0]} AND #{req.workDate[1]}
             </if>
-            <if test="req.capacityMinutes != null">
-                AND t.capacity_minutes = #{req.capacityMinutes}
-            </if>
-            <if test="req.loadRate != null">
-                AND t.load_rate = #{req.loadRate}
-            </if>
-            <if test="req.overloadMinutes != null">
-                AND t.overload_minutes = #{req.overloadMinutes}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>
@@ -53,7 +47,7 @@
         <include refid="selectColumns"/>
         <include refid="joinTables"/>
         <include refid="whereConditions"/>
-        ORDER BY t.id DESC
+        ORDER BY t.work_date ASC, t.res_code ASC
     </select>
 
     <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.load.vo.LoadRespVO">
@@ -61,14 +55,6 @@
         <include refid="selectColumns"/>
         <include refid="joinTables"/>
         WHERE t.deleted = 0 AND t.id = #{id}
-    </select>
-
-    <select id="selectListByVersionId" resultType="com.iboot.pf.module.aps.controller.admin.load.vo.LoadRespVO">
-        SELECT
-        <include refid="selectColumns"/>
-        <include refid="joinTables"/>
-        WHERE t.deleted = 0 AND t.version_id = #{versionId}
-        ORDER BY t.id DESC
     </select>
 
 </mapper>

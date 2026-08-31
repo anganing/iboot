@@ -1,35 +1,50 @@
 package com.iboot.pf.module.aps.controller.admin.version.vo;
 
+import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
+import cn.idev.excel.annotation.ExcelProperty;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.aps.enums.ApsDictTypeConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import java.util.*;
-import org.springframework.format.annotation.DateTimeFormat;
-import java.time.LocalDateTime;
-import cn.idev.excel.annotation.*;
+import lombok.Data;
 
-@Schema(description = "管理后台 - 排程版本 Response VO")
+import java.time.LocalDateTime;
+
+/**
+ * 排程版本 Response VO。
+ *
+ * <p>场景编码与名称由 Mapper JOIN 取出；发布人昵称由 Service 调 system 门面批量补全。
+ */
+@Schema(description = "管理后台 - APS-排程版本 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class VersionRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "2759")
-    @ExcelProperty("主键")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long id;
 
-    @Schema(description = "排程场景编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "17546")
-    @ExcelProperty("排程场景编号")
+    @Schema(description = "排程场景编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long scenarioId;
 
-    @Schema(description = "排程版本号", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "排程场景编码")
+    @ExcelProperty("排程场景编码")
+    private String scenarioCode;
+
+    @Schema(description = "排程场景名称")
+    @ExcelProperty("排程场景")
+    private String scenarioName;
+
+    @Schema(description = "排程版本号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("排程版本号")
     private Integer versionNo;
 
-    @Schema(description = "状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：SOLVING、SOLVED、PENDING_CONFIRM、PUBLISHED、REPLACED、FAILED")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "SOLVING")
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(ApsDictTypeConstants.VERSION_STATUS)
     private String status;
 
-    @Schema(description = "Timefold综合得分")
-    @ExcelProperty("Timefold综合得分")
+    @Schema(description = "求解器综合得分")
+    @ExcelProperty("综合得分")
     private String score;
 
     @Schema(description = "硬约束得分")
@@ -52,33 +67,23 @@ public class VersionRespVO {
     @ExcelProperty("发布时间")
     private LocalDateTime publishedTime;
 
-    @Schema(description = "发布人员编号")
-    @ExcelProperty("发布人员编号")
+    @Schema(description = "发布人员编号", example = "1")
     private Long publishedBy;
 
+    @Schema(description = "发布人")
+    @ExcelProperty("发布人")
+    private String publishedByName;
+
     @Schema(description = "求解结果或失败信息")
-    @ExcelProperty("求解结果或失败信息")
+    @ExcelProperty("求解信息")
     private String solverMessage;
 
-    @Schema(description = "乐观锁版本", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ExcelProperty("乐观锁版本")
-    private Integer version;
-
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
-
-
-    @Schema(description = "排程场景编码")
-    @ExcelProperty("排程场景编码")
-    private String scenarioCode;
-
-    @Schema(description = "排程场景名称")
-    @ExcelProperty("排程场景名称")
-    private String scenarioName;
 
 }

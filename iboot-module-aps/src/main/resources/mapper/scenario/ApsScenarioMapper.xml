@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.scenario.ApsScenarioMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , strategy.code AS strategy_code
+        , strategy.name AS strategy_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_scenario t
+        LEFT JOIN aps_strategy strategy ON strategy.id = t.strategy_id AND strategy.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.code != null and req.code != ''">
+                AND t.code LIKE CONCAT('%', #{req.code}, '%')
+            </if>
+            <if test="req.name != null and req.name != ''">
+                AND t.name LIKE CONCAT('%', #{req.name}, '%')
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.workshopId != null">
+                AND t.workshop_id = #{req.workshopId}
+            </if>
+            <if test="req.strategyId != null">
+                AND t.strategy_id = #{req.strategyId}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.planStartTime != null and req.planStartTime.length == 2">
+                AND t.plan_start_time BETWEEN #{req.planStartTime[0]} AND #{req.planStartTime[1]}
+            </if>
+            <if test="req.planEndTime != null and req.planEndTime.length == 2">
+                AND t.plan_end_time BETWEEN #{req.planEndTime[0]} AND #{req.planEndTime[1]}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.scenario.vo.ScenarioRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.scenario.vo.ScenarioRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

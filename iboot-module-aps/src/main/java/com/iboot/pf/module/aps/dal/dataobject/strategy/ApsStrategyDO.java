@@ -1,19 +1,23 @@
 package com.iboot.pf.module.aps.dal.dataobject.strategy;
 
-import lombok.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * 排程策略 DO
+ * APS-排程策略 DO。
  *
- * @author iboot
+ * <p>一个策略 = 一份优化目标 + 一套硬软约束权重，场景引用策略后由求解器按它排程。
+ * 编码与版本号联合唯一（uk_aps_strategy_code_ver_deleted），同一策略可保留多个版本做对比。
  */
 @TableName("aps_strategy")
-@KeySequence("aps_strategy_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -22,39 +26,29 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 @AllArgsConstructor
 public class ApsStrategyDO extends BaseDO {
 
-    /**
-     * 主键
-     */
-    @TableId
+    /** 主键。 */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
-    /**
-     * 排程策略编码
-     */
-    private String code;
-    /**
-     * 排程策略名称
-     */
-    private String name;
-    /**
-     * 策略版本号
-     */
-    private String versionNo;
-    /**
-     * 优化目标说明
-     */
-    private String objective;
-    /**
-     * 硬约束、软约束及权重配置
-     */
-    private String configJson;
-    /**
-     * 状态：DRAFT、ENABLED、DISABLED
-     */
-    private String status;
-    /**
-     * 备注
-     */
-    private String remark;
 
+    /** 排程策略编码，为空时由编码规则 APS_STRATEGY_CODE 分配。 */
+    private String code;
+
+    /** 排程策略名称。 */
+    private String name;
+
+    /** 策略版本号。 */
+    private String versionNo;
+
+    /** 优化目标说明。 */
+    private String objective;
+
+    /** 硬约束、软约束及权重配置，JSON。 */
+    private String configJson;
+
+    /** 状态，取值见 {@link com.iboot.pf.module.aps.enums.ApsStrategyStatusEnum}。 */
+    private String status;
+
+    /** 备注。 */
+    private String remark;
 
 }

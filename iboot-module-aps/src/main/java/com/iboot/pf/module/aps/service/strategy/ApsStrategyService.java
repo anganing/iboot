@@ -1,13 +1,16 @@
 package com.iboot.pf.module.aps.service.strategy;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.module.aps.controller.admin.strategy.vo.*;
+import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyRespVO;
+import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategySaveReqVO;
+import com.iboot.pf.module.aps.dal.dataobject.strategy.ApsStrategyDO;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 /**
- * 排程策略 Service 接口
+ * APS-排程策略 Service 接口。
  *
  * @author iboot
  */
@@ -20,14 +23,6 @@ public interface ApsStrategyService {
      * @return 编号
      */
     Long createStrategy(@Valid StrategySaveReqVO createReqVO);
-
-    /**
-     * 导入排程策略
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    StrategyImportRespVO importStrategyList(List<StrategyImportExcelVO> importList);
 
     /**
      * 更新排程策略
@@ -44,10 +39,10 @@ public interface ApsStrategyService {
     void deleteStrategy(Long id);
 
     /**
-    * 批量删除排程策略
-    *
-    * @param ids 编号
-    */
+     * 批量删除排程策略
+     *
+     * @param ids 编号
+     */
     void deleteStrategyListByIds(List<Long> ids);
 
     /**
@@ -65,5 +60,13 @@ public interface ApsStrategyService {
      * @return 排程策略分页
      */
     PageResult<StrategyRespVO> getStrategyPage(StrategyPageReqVO pageReqVO);
+
+    /**
+     * 校验策略存在且已启用，场景引用策略时调用
+     *
+     * @param id 编号
+     * @return 策略
+     */
+    ApsStrategyDO validateStrategyEnabled(Long id);
 
 }

@@ -1,54 +1,23 @@
 package com.iboot.pf.module.aps.service.load;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.module.aps.controller.admin.load.vo.*;
+import com.iboot.pf.module.aps.api.load.dto.RefreshLoadReqDTO;
+import com.iboot.pf.module.aps.controller.admin.load.vo.LoadPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.load.vo.LoadRespVO;
+import com.iboot.pf.module.aps.dal.dataobject.load.ApsLoadDO;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 /**
- * 资源负荷 Service 接口
+ * APS-资源负荷 Service 接口。
+ *
+ * <p>负荷是派生数据：由“刷新负荷”按当前版本的排程任务与资源日历投影整体重算，
+ * 只提供查询、导出与刷新，不提供新增、修改、删除、导入。人工改负荷分钟数会让负荷表和任务对不上。
  *
  * @author iboot
  */
 public interface ApsLoadService {
-
-    /**
-     * 创建资源负荷
-     *
-     * @param createReqVO 创建信息
-     * @return 编号
-     */
-    Long createLoad(@Valid LoadSaveReqVO createReqVO);
-
-    /**
-     * 导入资源负荷
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    LoadImportRespVO importLoadList(List<LoadImportExcelVO> importList);
-
-    /**
-     * 更新资源负荷
-     *
-     * @param updateReqVO 更新信息
-     */
-    void updateLoad(@Valid LoadSaveReqVO updateReqVO);
-
-    /**
-     * 删除资源负荷
-     *
-     * @param id 编号
-     */
-    void deleteLoad(Long id);
-
-    /**
-    * 批量删除资源负荷
-    *
-    * @param ids 编号
-    */
-    void deleteLoadListByIds(List<Long> ids);
 
     /**
      * 获得资源负荷
@@ -67,18 +36,18 @@ public interface ApsLoadService {
     PageResult<LoadRespVO> getLoadPage(LoadPageReqVO pageReqVO);
 
     /**
-     * 根据版本ID获得资源负荷列表
+     * 按版本的排程任务与资源日历投影重算负荷
      *
-     * @param versionId 版本ID
-     * @return 资源负荷列表
+     * @param reqDTO 命令
      */
-    List<LoadRespVO> getLoadListByVersionId(Long versionId);
+    void refreshLoad(@Valid RefreshLoadReqDTO reqDTO);
 
     /**
-     * 刷新资源负荷
+     * 按版本获得资源负荷列表
      *
-     * @param r 刷新请求
+     * @param versionId 版本编号
+     * @return 负荷列表
      */
-    void refreshLoad(com.iboot.pf.module.aps.api.load.dto.RefreshLoadReqDTO r);
+    List<ApsLoadDO> getLoadDOListByVersionId(Long versionId);
 
 }

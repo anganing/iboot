@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.taskdep.ApsTaskDepMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , version.version_no AS version_no
+        , from_task.task_no AS from_task_no
+        , from_task.op_code AS from_op_code
+        , from_task.op_name AS from_op_name
+        , to_task.task_no AS to_task_no
+        , to_task.op_code AS to_op_code
+        , to_task.op_name AS to_op_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_task_dep t
+        LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+        LEFT JOIN aps_task from_task ON from_task.id = t.from_task_id AND from_task.deleted = 0
+        LEFT JOIN aps_task to_task ON to_task.id = t.to_task_id AND to_task.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.versionId != null">
+                AND t.version_id = #{req.versionId}
+            </if>
+            <if test="req.fromTaskId != null">
+                AND t.from_task_id = #{req.fromTaskId}
+            </if>
+            <if test="req.toTaskId != null">
+                AND t.to_task_id = #{req.toTaskId}
+            </if>
+            <if test="req.depType != null and req.depType != ''">
+                AND t.dep_type = #{req.depType}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.aps.controller.admin.taskdep.vo.TaskDepRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.aps.controller.admin.taskdep.vo.TaskDepRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

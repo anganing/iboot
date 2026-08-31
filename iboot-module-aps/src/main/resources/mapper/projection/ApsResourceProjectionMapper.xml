@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.projection.ApsResourceProjectionMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , scenario.code AS scenario_code
+        , scenario.name AS scenario_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_projection_resource t
+        LEFT JOIN aps_scenario scenario ON scenario.id = t.scenario_id AND scenario.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.scenarioId != null">
+                AND t.scenario_id = #{req.scenarioId}
+            </if>
+            <if test="req.sourceResId != null">
+                AND t.source_res_id = #{req.sourceResId}
+            </if>
+            <if test="req.resCode != null and req.resCode != ''">
+                AND t.res_code LIKE CONCAT('%', #{req.resCode}, '%')
+            </if>
+            <if test="req.resName != null and req.resName != ''">
+                AND t.res_name LIKE CONCAT('%', #{req.resName}, '%')
+            </if>
+            <if test="req.resType != null and req.resType != ''">
+                AND t.res_type = #{req.resType}
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.workshopId != null">
+                AND t.workshop_id = #{req.workshopId}
+            </if>
+            <if test="req.wcId != null">
+                AND t.wc_id = #{req.wcId}
+            </if>
+            <if test="req.shiftId != null">
+                AND t.shift_id = #{req.shiftId}
+            </if>
+            <if test="req.workDate != null and req.workDate.length == 2">
+                AND t.work_date BETWEEN #{req.workDate[0]} AND #{req.workDate[1]}
+            </if>
+            <if test="req.snapshotTime != null and req.snapshotTime.length == 2">
+                AND t.snapshot_time BETWEEN #{req.snapshotTime[0]} AND #{req.snapshotTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.aps.controller.admin.projectionresource.vo.ProjectionResourceRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.work_date ASC, t.res_code ASC
+    </select>
+
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.aps.controller.admin.projectionresource.vo.ProjectionResourceRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

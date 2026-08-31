@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.aps.dal.mysql.projection.ApsOrderProjectionMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , scenario.code AS scenario_code
+        , scenario.name AS scenario_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM aps_projection_order t
+        LEFT JOIN aps_scenario scenario ON scenario.id = t.scenario_id AND scenario.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.scenarioId != null">
+                AND t.scenario_id = #{req.scenarioId}
+            </if>
+            <if test="req.sourceType != null and req.sourceType != ''">
+                AND t.source_type = #{req.sourceType}
+            </if>
+            <if test="req.sourceNo != null and req.sourceNo != ''">
+                AND t.source_no LIKE CONCAT('%', #{req.sourceNo}, '%')
+            </if>
+            <if test="req.prodOrderId != null">
+                AND t.prod_order_id = #{req.prodOrderId}
+            </if>
+            <if test="req.matId != null">
+                AND t.mat_id = #{req.matId}
+            </if>
+            <if test="req.matCode != null and req.matCode != ''">
+                AND t.mat_code LIKE CONCAT('%', #{req.matCode}, '%')
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.workshopId != null">
+                AND t.workshop_id = #{req.workshopId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.resId != null">
+                AND t.res_id = #{req.resId}
+            </if>
+            <if test="req.currentStatus != null and req.currentStatus != ''">
+                AND t.current_status = #{req.currentStatus}
+            </if>
+            <if test="req.lockedFlag != null">
+                AND t.locked_flag = #{req.lockedFlag}
+            </if>
+            <if test="req.dueDate != null and req.dueDate.length == 2">
+                AND t.due_date BETWEEN #{req.dueDate[0]} AND #{req.dueDate[1]}
+            </if>
+            <if test="req.snapshotTime != null and req.snapshotTime.length == 2">
+                AND t.snapshot_time BETWEEN #{req.snapshotTime[0]} AND #{req.snapshotTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.aps.controller.admin.projectionorder.vo.ProjectionOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>
+
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.aps.controller.admin.projectionorder.vo.ProjectionOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

@@ -1,87 +1,82 @@
 package com.iboot.pf.module.aps.controller.admin.load;
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.security.access.prepost.PreAuthorize;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Operation;
-
-import jakarta.validation.*;
-import jakarta.servlet.http.*;
-import java.util.*;
-import java.io.IOException;
-
+import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
+import com.iboot.pf.framework.common.pojo.CommonResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.CommonResult;
+import com.iboot.pf.framework.excel.core.util.ExcelUtils;
+import com.iboot.pf.module.aps.api.load.dto.RefreshLoadReqDTO;
+import com.iboot.pf.module.aps.controller.admin.load.vo.LoadPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.load.vo.LoadRespVO;
+import com.iboot.pf.module.aps.enums.ApsCommandTypeEnum;
+import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
+import com.iboot.pf.module.aps.service.load.ApsLoadService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.util.List;
+
+import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
+import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.UPDATE;
 import static com.iboot.pf.framework.common.pojo.CommonResult.success;
 
-import com.iboot.pf.framework.excel.core.util.ExcelUtils;
-
-import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
-import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
-
-import com.iboot.pf.module.aps.controller.admin.load.vo.*;
-import com.iboot.pf.module.aps.service.load.ApsLoadService;
-
-@Tag(name = "管理后台 - 资源负荷")
+/**
+ * APS-资源负荷。
+ *
+ * <p>负荷是排程结果的派生视图，只提供查询、导出与刷新，不提供新增、修改、删除、导入：
+ * 负荷分钟数必须等于当天排定任务的占用之和，人工写入会让产能分析失真。
+ */
+@Tag(name = "管理后台 - APS-资源负荷")
 @RestController
 @RequestMapping("/aps/load")
 @Validated
 public class LoadController {
 
     @Resource
-    private ApsLoadService apsLoadService;
-
-    @PostMapping("/create")
-    @Operation(summary = "创建资源负荷")
-    @PreAuthorize("@ss.hasPermission('aps:load:create')")
-    public CommonResult<Long> createLoad(@Valid @RequestBody LoadSaveReqVO createReqVO) {
-        return success(apsLoadService.createLoad(createReqVO));
-    }
-
-    @PutMapping("/update")
-    @Operation(summary = "更新资源负荷")
-    @PreAuthorize("@ss.hasPermission('aps:load:update')")
-    public CommonResult<Boolean> updateLoad(@Valid @RequestBody LoadSaveReqVO updateReqVO) {
-        apsLoadService.updateLoad(updateReqVO);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "删除资源负荷")
-    @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('aps:load:delete')")
-    public CommonResult<Boolean> deleteLoad(@RequestParam("id") Long id) {
-        apsLoadService.deleteLoad(id);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete-list")
-    @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除资源负荷")
-                @PreAuthorize("@ss.hasPermission('aps:load:delete')")
-    public CommonResult<Boolean> deleteLoadList(@RequestParam("ids") List<Long> ids) {
-        apsLoadService.deleteLoadListByIds(ids);
-        return success(true);
-    }
+    private ApsLoadService loadService;
 
     @GetMapping("/get")
     @Operation(summary = "获得资源负荷")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('aps:load:query')")
     public CommonResult<LoadRespVO> getLoad(@RequestParam("id") Long id) {
-        return success(apsLoadService.getLoad(id));
+        return success(loadService.getLoad(id));
     }
 
     @GetMapping("/page")
     @Operation(summary = "获得资源负荷分页")
     @PreAuthorize("@ss.hasPermission('aps:load:query')")
     public CommonResult<PageResult<LoadRespVO>> getLoadPage(@Valid LoadPageReqVO pageReqVO) {
-        return success(apsLoadService.getLoadPage(pageReqVO));
+        return success(loadService.getLoadPage(pageReqVO));
+    }
+
+    @PutMapping("/refresh")
+    @Operation(summary = "按排程任务重算资源负荷")
+    @Parameter(name = "versionId", description = "排程版本编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('aps:load:update')")
+    @ApiAccessLog(operateType = UPDATE)
+    public CommonResult<Boolean> refreshLoad(@RequestParam("versionId") Long versionId) {
+        RefreshLoadReqDTO reqDTO = new RefreshLoadReqDTO();
+        reqDTO.setVersionId(versionId);
+        // 刷新可以反复触发，幂等键带时间戳，不能只用版本编号
+        reqDTO.setIdempotencyKey(ApsSourceModuleEnum.UI.name() + ":" + ApsCommandTypeEnum.REFRESH_LOAD.name()
+                + ":" + versionId + ":" + System.currentTimeMillis());
+        reqDTO.setSourceModule(ApsSourceModuleEnum.UI.name());
+        reqDTO.setSourceBizNo(String.valueOf(versionId));
+        loadService.refreshLoad(reqDTO);
+        return success(true);
     }
 
     @GetMapping("/export-excel")
@@ -89,29 +84,10 @@ public class LoadController {
     @PreAuthorize("@ss.hasPermission('aps:load:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportLoadExcel(@Valid LoadPageReqVO pageReqVO,
-              HttpServletResponse response) throws IOException {
+                                HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<LoadRespVO> list = apsLoadService.getLoadPage(pageReqVO).getList();
-        // 导出 Excel
-        ExcelUtils.write(response, "资源负荷.xls", "数据", LoadRespVO.class,
-                        list);
-    }
-
-    @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入资源负荷模板")
-    @PreAuthorize("@ss.hasPermission('aps:load:import')")
-    public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "资源负荷导入模板.xls", "数据",
-                LoadImportExcelVO.class, Collections.emptyList());
-    }
-
-    @PostMapping("/import")
-    @Operation(summary = "导入资源负荷")
-    @Parameter(name = "file", description = "Excel 文件", required = true)
-    @PreAuthorize("@ss.hasPermission('aps:load:import')")
-    public CommonResult<LoadImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {
-        List<LoadImportExcelVO> list = ExcelUtils.read(file, LoadImportExcelVO.class);
-        return success(apsLoadService.importLoadList(list));
+        List<LoadRespVO> list = loadService.getLoadPage(pageReqVO).getList();
+        ExcelUtils.write(response, "APS-资源负荷.xls", "数据", LoadRespVO.class, list);
     }
 
 }
