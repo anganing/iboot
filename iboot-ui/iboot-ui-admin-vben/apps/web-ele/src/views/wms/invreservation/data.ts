@@ -4,6 +4,7 @@ import type { WmsInvReservationApi } from '#/api/wms/invreservation';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -138,7 +139,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -164,7 +165,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_reservation_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_RESERVATION_STATUS, 'string'),
         placeholder: '请选择预留状态',
       },
       defaultValue: 'ACTIVE',
@@ -262,7 +263,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_reservation_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_RESERVATION_STATUS, 'string'),
         placeholder: '请选择预留状态',
       },
     },
@@ -304,7 +305,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsInvReservationApi.InvRe
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'status',
@@ -312,7 +313,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsInvReservationApi.InvRe
       minWidth: 100,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_reservation_status' },
+        props: { type: DICT_TYPE.WMS_RESERVATION_STATUS },
       },
     },
     {

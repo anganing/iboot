@@ -4,10 +4,10 @@ import type { WmsCountOrderApi } from '#/api/wms/countorder';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -16,16 +16,17 @@ import {
   exportCountOrder,
   getCountOrderPage,
 } from '#/api/wms/countorder';
-import CountOrderImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import CountOrderLineDrawer from './modules/count-order-line-drawer.vue';
 import Form from './modules/form.vue';
-import CountOrderLineList from './modules/count-order-line-list.vue';
+import CountOrderImport from './modules/import-form.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('countOrderLine')
-const selectCountOrder = ref<WmsCountOrderApi.CountOrder>();
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: CountOrderLineDrawer,
+  destroyOnClose: true,
+});
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -38,6 +39,11 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 /** 导入盘点单 */
 function handleImport() {
   importFormModalApi.open();
+}
+
+/** 查看并维护当前单据的盘点明细 */
+function handleLines(row: WmsCountOrderApi.CountOrder) {
+  lineDrawerApi.setData(row).open();
 }
 
 /** 刷新表格 */
@@ -107,7 +113,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -131,9 +137,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsCountOrderApi.CountOrder>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsCountOrderApi.CountOrder}) => {
-      selectCountOrder.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -144,7 +147,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-   <div>
+    <LineDrawer />
     <Grid table-title="盘点单列表">
       <template #toolbar-tools>
         <TableAction
@@ -184,6 +187,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:count-order:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -206,12 +217,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="countOrderLine" label="盘点明细">
-            <CountOrderLineList :order-id="selectCountOrder?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

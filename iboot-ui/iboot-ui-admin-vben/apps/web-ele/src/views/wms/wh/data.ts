@@ -65,7 +65,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_wh_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_WH_TYPE, 'string'),
         placeholder: '请选择仓库类型',
       },
     },
@@ -75,7 +75,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_managed_by', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_MANAGED_BY, 'string'),
         placeholder: '请选择管理方式',
       },
       defaultValue: 'MANUAL',
@@ -164,7 +164,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_wh_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_WH_TYPE, 'string'),
         placeholder: '请选择仓库类型',
       },
     },
@@ -174,7 +174,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_managed_by', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_MANAGED_BY, 'string'),
         placeholder: '请选择管理方式',
       },
     },
@@ -213,13 +213,13 @@ export function useGridColumns(): VxeTableGridOptions<WmsWhApi.Wh>['columns'] {
       field: 'whType',
       title: '仓库类型',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_wh_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_WH_TYPE } },
     },
     {
       field: 'managedBy',
       title: '管理方式',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_managed_by' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_MANAGED_BY } },
     },
     { field: 'externalSystemCode', title: '外部系统编码', minWidth: 140 },
     {

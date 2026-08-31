@@ -4,6 +4,7 @@ import type { WmsDeviceTaskApi } from '#/api/wms/devicetask';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -50,7 +51,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_device_task_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TASK_TYPE, 'string'),
         placeholder: '请选择任务类型',
       },
     },
@@ -60,7 +61,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_device_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TYPE, 'string'),
         placeholder: '请选择设备类型',
       },
     },
@@ -122,7 +123,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_dispatch_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DISPATCH_STATUS, 'string'),
         placeholder: '请选择下发状态',
       },
       defaultValue: 'PENDING',
@@ -133,7 +134,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_device_task_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TASK_STATUS, 'string'),
         placeholder: '请选择执行状态',
       },
       defaultValue: 'CREATED',
@@ -144,7 +145,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_post_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_POST_STATUS, 'string'),
         placeholder: '请选择库存过账状态',
       },
       defaultValue: 'PENDING',
@@ -224,7 +225,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_device_task_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TASK_TYPE, 'string'),
         placeholder: '请选择任务类型',
       },
     },
@@ -234,7 +235,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_device_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TYPE, 'string'),
         placeholder: '请选择设备类型',
       },
     },
@@ -253,7 +254,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_dispatch_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DISPATCH_STATUS, 'string'),
         placeholder: '请选择下发状态',
       },
     },
@@ -263,7 +264,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_device_task_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DEVICE_TASK_STATUS, 'string'),
         placeholder: '请选择执行状态',
       },
     },
@@ -273,7 +274,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_post_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_POST_STATUS, 'string'),
         placeholder: '请选择库存过账状态',
       },
     },
@@ -300,13 +301,13 @@ export function useGridColumns(): VxeTableGridOptions<WmsDeviceTaskApi.DeviceTas
       field: 'taskType',
       title: '任务类型',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_device_task_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_DEVICE_TASK_TYPE } },
     },
     {
       field: 'deviceType',
       title: '设备类型',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_device_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_DEVICE_TYPE } },
     },
     { field: 'sourceBizNo', title: '来源单号', minWidth: 150 },
     { field: 'containerNo', title: '搬运容器', minWidth: 140 },
@@ -317,7 +318,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsDeviceTaskApi.DeviceTas
       field: 'dispatchStatus',
       title: '下发状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_dispatch_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_DISPATCH_STATUS } },
     },
     {
       field: 'status',
@@ -325,14 +326,14 @@ export function useGridColumns(): VxeTableGridOptions<WmsDeviceTaskApi.DeviceTas
       minWidth: 100,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_device_task_status' },
+        props: { type: DICT_TYPE.WMS_DEVICE_TASK_STATUS },
       },
     },
     {
       field: 'postStatus',
       title: '过账状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_post_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_POST_STATUS } },
     },
     {
       field: 'completedTime',

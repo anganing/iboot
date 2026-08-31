@@ -4,6 +4,7 @@ import type { WmsStrategyApi } from '#/api/wms/strategy';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -48,7 +49,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_strategy_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STRATEGY_TYPE, 'string'),
         placeholder: '请选择策略类型',
       },
     },
@@ -91,7 +92,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_strategy_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STRATEGY_STATUS, 'string'),
         placeholder: '请选择策略状态',
       },
       defaultValue: 'DRAFT',
@@ -158,7 +159,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_strategy_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STRATEGY_TYPE, 'string'),
         placeholder: '请选择策略类型',
       },
     },
@@ -174,7 +175,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_strategy_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STRATEGY_STATUS, 'string'),
         placeholder: '请选择策略状态',
       },
     },
@@ -201,7 +202,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsStrategyApi.Strategy>['
       field: 'strategyType',
       title: '策略类型',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_strategy_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_STRATEGY_TYPE } },
     },
     {
       field: 'whName',
@@ -215,7 +216,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsStrategyApi.Strategy>['
       field: 'status',
       title: '策略状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_strategy_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_STRATEGY_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

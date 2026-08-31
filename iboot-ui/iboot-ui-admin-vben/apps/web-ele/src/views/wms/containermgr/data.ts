@@ -4,6 +4,7 @@ import type { WmsContainerApi } from '#/api/wms/containermgr';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -102,7 +103,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_container_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_CONTAINER_STATUS, 'string'),
         placeholder: '请选择容器状态',
       },
       defaultValue: 'EMPTY',
@@ -169,7 +170,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_container_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_CONTAINER_STATUS, 'string'),
         placeholder: '请选择容器状态',
       },
     },
@@ -210,7 +211,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsContainerApi.Container>
       field: 'status',
       title: '容器状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_container_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_CONTAINER_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

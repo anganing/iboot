@@ -13,14 +13,10 @@ import {
   INV_ORG_RELATION_PROPS,
   MAT_RELATION_PROPS,
   PROJECT_RELATION_PROPS,
-  PROJECT_TASK_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
 import {
-  BATCH_RELATION_PROPS,
-  CONTAINER_RELATION_PROPS,
-  INV_BALANCE_RELATION_PROPS,
-  LOC_RELATION_PROPS,
+  INV_BALANCE_LINE_RELATION_PROPS,
   WH_RELATION_PROPS,
   ZONE_RELATION_PROPS,
 } from '../relation-config';
@@ -59,7 +55,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_count_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_COUNT_TYPE, 'string'),
         placeholder: '请选择盘点类型',
       },
     },
@@ -124,7 +120,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择盘点状态',
       },
       defaultValue: 'DRAFT',
@@ -173,7 +169,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_count_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_COUNT_TYPE, 'string'),
         placeholder: '请选择盘点类型',
       },
     },
@@ -195,7 +191,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择盘点状态',
       },
     },
@@ -221,7 +217,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
       field: 'countType',
       title: '盘点类型',
       minWidth: 130,
-      cellRender: { name: 'CellDict', props: { type: 'wms_count_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_COUNT_TYPE } },
     },
     { field: 'whName', title: '仓库', minWidth: 140 },
     { field: 'zoneName', title: '库区', minWidth: 140 },
@@ -244,7 +240,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
       field: 'status',
       title: '盘点状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
@@ -293,37 +289,10 @@ export function useCountOrderLineFormSchema(): VbenFormSchema[] {
       label: '库存余额',
       rules: 'required',
       component: markRaw(RelationSelect),
-      componentProps: INV_BALANCE_RELATION_PROPS,
-    },
-    {
-      fieldName: 'matId',
-      label: '物料',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: MAT_RELATION_PROPS,
-    },
-    {
-      fieldName: 'batchId',
-      label: '批次',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: BATCH_RELATION_PROPS,
-    },
-    {
-      fieldName: 'locId',
-      label: '库位',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: LOC_RELATION_PROPS,
-    },
-    {
-      fieldName: 'containerId',
-      label: '容器',
-      component: markRaw(RelationSelect),
-      componentProps: {
-        ...CONTAINER_RELATION_PROPS,
-        placeholder: '散件留空',
-      },
+      componentProps: INV_BALANCE_LINE_RELATION_PROPS,
+      // 物料、批次、库位、容器、项目与账面数量全部由后端从这条余额快照回填，
+      // 让用户手填只会让盘点差异算不准
+      help: '物料、批次、库位与账面数量按所选余额自动带出',
     },
     {
       fieldName: 'qualityStatus',
@@ -331,35 +300,10 @@ export function useCountOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择质量状态',
       },
       defaultValue: 'QUALIFIED',
-    },
-    {
-      fieldName: 'projectId',
-      label: '归属项目',
-      component: markRaw(RelationSelect),
-      componentProps: {
-        ...PROJECT_RELATION_PROPS,
-        placeholder: '公共库存留空',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务',
-      component: markRaw(RelationSelect),
-      componentProps: {
-        ...PROJECT_TASK_RELATION_PROPS,
-        placeholder: '无项目任务留空',
-      },
-    },
-    {
-      fieldName: 'bookQty',
-      label: '账面数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, min: 0, placeholder: '请输入账面数量' },
     },
     {
       fieldName: 'actualQty',
@@ -368,27 +312,12 @@ export function useCountOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: { ...QTY_PROPS, min: 0, placeholder: '请输入实盘数量' },
     },
     {
-      fieldName: 'diffQty',
-      label: '差异数量',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '实盘减账面，可为负数' },
-    },
-    {
-      fieldName: 'adjustBizNo',
-      label: '调整单号',
-      component: 'Input',
-      componentProps: {
-        maxLength: 64,
-        placeholder: '差异过账后的入出库单号',
-      },
-    },
-    {
       fieldName: 'status',
       label: '明细状态',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_count_line_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_COUNT_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
       defaultValue: 'PENDING',
@@ -430,7 +359,7 @@ export function useCountOrderLineGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_count_line_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_COUNT_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
     },
@@ -454,7 +383,7 @@ export function useCountOrderLineGridColumns(): VxeTableGridOptions<WmsCountOrde
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     { field: 'adjustBizNo', title: '调整单号', minWidth: 150 },
     {
@@ -463,7 +392,7 @@ export function useCountOrderLineGridColumns(): VxeTableGridOptions<WmsCountOrde
       minWidth: 110,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_count_line_status' },
+        props: { type: DICT_TYPE.WMS_COUNT_LINE_STATUS },
       },
     },
     { field: 'remark', title: '备注', minWidth: 140 },

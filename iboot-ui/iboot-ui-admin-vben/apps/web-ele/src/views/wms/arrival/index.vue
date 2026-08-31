@@ -4,10 +4,10 @@ import type { WmsArrivalApi } from '#/api/wms/arrival';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -16,16 +16,17 @@ import {
   exportArrival,
   getArrivalPage,
 } from '#/api/wms/arrival';
-import ArrivalImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import ArrivalLineDrawer from './modules/arrival-line-drawer.vue';
 import Form from './modules/form.vue';
-import ArrivalLineList from './modules/arrival-line-list.vue';
+import ArrivalImport from './modules/import-form.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('arrivalLine')
-const selectArrival = ref<WmsArrivalApi.Arrival>();
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: ArrivalLineDrawer,
+  destroyOnClose: true,
+});
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -38,6 +39,11 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 /** 导入到货登记 */
 function handleImport() {
   importFormModalApi.open();
+}
+
+/** 查看并维护当前单据的到货明细 */
+function handleLines(row: WmsArrivalApi.Arrival) {
+  lineDrawerApi.setData(row).open();
 }
 
 /** 刷新表格 */
@@ -107,7 +113,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -131,9 +137,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsArrivalApi.Arrival>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsArrivalApi.Arrival}) => {
-      selectArrival.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -144,7 +147,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-   <div>
+    <LineDrawer />
     <Grid table-title="到货登记列表">
       <template #toolbar-tools>
         <TableAction
@@ -184,6 +187,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:arrival:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -206,12 +217,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="arrivalLine" label="到货明细">
-            <ArrivalLineList :arrival-id="selectArrival?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

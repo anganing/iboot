@@ -4,6 +4,7 @@ import type { WmsInvLockApi } from '#/api/wms/invlock';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -129,7 +130,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -166,7 +167,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_lock_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOCK_STATUS, 'string'),
         placeholder: '请选择冻结状态',
       },
       defaultValue: 'ACTIVE',
@@ -252,7 +253,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_lock_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOCK_STATUS, 'string'),
         placeholder: '请选择冻结状态',
       },
     },
@@ -293,14 +294,14 @@ export function useGridColumns(): VxeTableGridOptions<WmsInvLockApi.InvLock>['co
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     { field: 'reason', title: '冻结原因', minWidth: 180 },
     {
       field: 'status',
       title: '冻结状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_lock_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_LOCK_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

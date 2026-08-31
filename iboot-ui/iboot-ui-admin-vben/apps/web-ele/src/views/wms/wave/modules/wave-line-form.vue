@@ -8,7 +8,7 @@
   import { ElMessage } from 'element-plus';
 
   import { useVbenForm } from '#/adapter/form';
-  import { getWaveLine, createWaveLine, updateWaveLine } from '#/api/wms/wave';
+  import { createWaveLine, getWaveLine, updateWaveLine } from '#/api/wms/wave';
   import { $t } from '#/locales';
   import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

@@ -8,7 +8,7 @@
   import { ElMessage } from 'element-plus';
 
   import { useVbenForm } from '#/adapter/form';
-  import { getArrivalLine, createArrivalLine, updateArrivalLine } from '#/api/wms/arrival';
+  import { createArrivalLine, getArrivalLine, updateArrivalLine } from '#/api/wms/arrival';
   import { $t } from '#/locales';
   import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

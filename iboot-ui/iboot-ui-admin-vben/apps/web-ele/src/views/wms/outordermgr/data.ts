@@ -4,6 +4,7 @@ import type { WmsOutOrderApi } from '#/api/wms/outordermgr';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -62,7 +63,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_out_biz_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_OUT_BIZ_TYPE, 'string'),
         placeholder: '请选择出库业务类型',
       },
     },
@@ -189,7 +190,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_hook_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_HOOK_MODE, 'string'),
         placeholder: '请选择外部设备触发方式',
       },
       defaultValue: 'NONE',
@@ -200,7 +201,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
       defaultValue: 'DRAFT',
@@ -249,7 +250,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_out_biz_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_OUT_BIZ_TYPE, 'string'),
         placeholder: '请选择出库业务类型',
       },
     },
@@ -286,7 +287,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
     },
@@ -312,7 +313,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrder>['
       field: 'bizType',
       title: '业务类型',
       minWidth: 130,
-      cellRender: { name: 'CellDict', props: { type: 'wms_out_biz_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_OUT_BIZ_TYPE } },
     },
     { field: 'sourceBizNo', title: '来源单号', minWidth: 150 },
     { field: 'prodOrderNo', title: '生产工单号', minWidth: 140 },
@@ -321,13 +322,13 @@ export function useGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrder>['
       field: 'hookMode',
       title: '设备触发',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_hook_mode' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_HOOK_MODE } },
     },
     {
       field: 'status',
       title: '单据状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
@@ -434,7 +435,7 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择要求的质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -447,36 +448,12 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: { ...QTY_PROPS, placeholder: '请输入计划出库数量' },
     },
     {
-      fieldName: 'allocatedQty',
-      label: '已分配数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已分配数量' },
-      defaultValue: 0,
-    },
-    {
-      fieldName: 'pickedQty',
-      label: '已拣选数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已拣选数量' },
-      defaultValue: 0,
-    },
-    {
-      fieldName: 'postedQty',
-      label: '已过账数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已过账数量' },
-      defaultValue: 0,
-    },
-    {
       fieldName: 'status',
       label: '明细状态',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
       defaultValue: 'DRAFT',
@@ -518,7 +495,7 @@ export function useOutOrderLineGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
     },
@@ -545,13 +522,13 @@ export function useOutOrderLineGridColumns(): VxeTableGridOptions<WmsOutOrderApi
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'status',
       title: '明细状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_LINE_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

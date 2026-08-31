@@ -4,10 +4,10 @@ import type { WmsWaveApi } from '#/api/wms/wave';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -16,16 +16,17 @@ import {
   exportWave,
   getWavePage,
 } from '#/api/wms/wave';
-import WaveImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import WaveLineList from './modules/wave-line-list.vue';
+import WaveImport from './modules/import-form.vue';
+import WaveLineDrawer from './modules/wave-line-drawer.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('waveLine')
-const selectWave = ref<WmsWaveApi.Wave>();
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: WaveLineDrawer,
+  destroyOnClose: true,
+});
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -38,6 +39,11 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 /** 导入出库波次 */
 function handleImport() {
   importFormModalApi.open();
+}
+
+/** 查看并维护当前单据的波次明细 */
+function handleLines(row: WmsWaveApi.Wave) {
+  lineDrawerApi.setData(row).open();
 }
 
 /** 刷新表格 */
@@ -107,7 +113,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -131,9 +137,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsWaveApi.Wave>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsWaveApi.Wave}) => {
-      selectWave.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -144,7 +147,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-   <div>
+    <LineDrawer />
     <Grid table-title="出库波次列表">
       <template #toolbar-tools>
         <TableAction
@@ -184,6 +187,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:wave:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -206,12 +217,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="waveLine" label="波次明细">
-            <WaveLineList :wave-id="selectWave?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

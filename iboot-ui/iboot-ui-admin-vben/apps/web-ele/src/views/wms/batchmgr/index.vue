@@ -16,11 +16,11 @@ import {
   exportBatch,
   getBatchPage,
 } from '#/api/wms/batchmgr';
-import BatchImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import BatchImport from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,

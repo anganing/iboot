@@ -56,7 +56,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_zone_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ZONE_TYPE, 'string'),
         placeholder: '请选择库区类型',
       },
     },
@@ -158,7 +158,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_zone_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ZONE_TYPE, 'string'),
         placeholder: '请选择库区类型',
       },
     },
@@ -197,7 +197,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsZoneApi.Zone>['columns'
       field: 'zoneType',
       title: '库区类型',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_zone_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ZONE_TYPE } },
     },
     {
       field: 'allowMixedMat',

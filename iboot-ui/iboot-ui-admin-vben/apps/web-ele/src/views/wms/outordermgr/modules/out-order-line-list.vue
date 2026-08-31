@@ -2,38 +2,51 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsOutOrderApi } from '#/api/wms/outordermgr';
 
- import OutOrderLineForm from './out-order-line-form.vue'
-import { useVbenModal } from '@vben/common-ui';
-import { ElMessage, ElLoading } from 'element-plus';
-import { nextTick, ref, watch } from 'vue';
-import { $t } from '#/locales';
-import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { computed, nextTick, ref, watch } from 'vue';
 
- import { deleteOutOrderLine, deleteOutOrderLineList, getOutOrderLinePage } from '#/api/wms/outordermgr';
-import { useOutOrderLineGridFormSchema, useOutOrderLineGridColumns } from '../data';
+import { confirm, useVbenModal } from '@vben/common-ui';
 import { isEmpty } from '@vben/utils';
 
-const props = defineProps<{
-  orderId?: number // 出库单编号（主表的关联字段）
-}>()
+import { ElLoading, ElMessage } from 'element-plus';
 
- const [FormModal, formModalApi] = useVbenModal({
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import {
+  deleteOutOrderLine,
+  deleteOutOrderLineList,
+  getOutOrderLinePage,
+} from '#/api/wms/outordermgr';
+import { $t } from '#/locales';
+
+import { useOutOrderLineGridColumns, useOutOrderLineGridFormSchema } from '../data';
+import OutOrderLineForm from './out-order-line-form.vue';
+
+const props = defineProps<{
+  orderId?: number; // 出库单编号（主表的关联字段）
+  orderNo?: string; // 出库单单号，用于表格标题
+}>();
+
+/** 表格标题带上当前父记录标识，抽屉里一眼能看出在维护哪一单 */
+const tableTitle = computed(() =>
+  props.orderNo ? `出库明细列表 - ${props.orderNo}` : '出库明细列表',
+);
+
+const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: OutOrderLineForm,
   destroyOnClose: true,
 });
 
 /** 刷新表格 */
 async function handleRefresh() {
-   await gridApi.query();
+  await gridApi.query();
 }
 
 /** 创建出库明细 */
 function handleCreate() {
-  if (!props.orderId){
-    ElMessage.warning("请先选择一个出库单!")
-    return
+  if (!props.orderId) {
+    ElMessage.warning('请先选择一个出库单');
+    return;
   }
-  formModalApi.setData({orderId: props.orderId}).open();
+  formModalApi.setData({ orderId: props.orderId }).open();
 }
 
 /** 编辑出库明细 */
@@ -49,7 +62,7 @@ async function handleDelete(row: WmsOutOrderApi.OutOrderLine) {
   try {
     await deleteOutOrderLine(row.id!);
     ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lineNo]));
-    handleRefresh();
+    await handleRefresh();
   } finally {
     loadingInstance.close();
   }
@@ -57,20 +70,21 @@ async function handleDelete(row: WmsOutOrderApi.OutOrderLine) {
 
 /** 批量删除出库明细 */
 async function handleDeleteBatch() {
+  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting'),
+    text: $t('ui.actionMessage.deletingBatch'),
   });
   try {
     await deleteOutOrderLineList(checkedIds.value);
     checkedIds.value = [];
     ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
+    await handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-const checkedIds = ref<number[]>([])
+const checkedIds = ref<number[]>([]);
 function handleRowCheckboxChange({
   records,
 }: {
@@ -84,12 +98,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useOutOrderLineGridFormSchema(),
   },
   gridOptions: {
-  columns: useOutOrderLineGridColumns(),
+    columns: useOutOrderLineGridColumns(),
+    height: 'auto',
+    keepSource: true,
+    pagerConfig: {
+      enabled: true,
+    },
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          if (!props.orderId){
-              return []
+          if (!props.orderId) {
+            return { list: [], total: 0 };
           }
           return await getOutOrderLinePage({
             pageNo: page.currentPage,
@@ -100,87 +119,89 @@ const [Grid, gridApi] = useVbenVxeGrid({
         },
       },
     },
-  pagerConfig: {
-    enabled: true,
-  },
-  toolbarConfig: {
-    refresh: true,
-    search: true,
-  },
-  height: '600px',
-  rowConfig: {
-    keyField: 'id',
-    isHover: true,
-  },
+    rowConfig: {
+      keyField: 'id',
+      isHover: true,
+    },
+    toolbarConfig: {
+      custom: true,
+      refresh: true,
+      search: true,
+      zoom: true,
+    },
   } as VxeTableGridOptions<WmsOutOrderApi.OutOrderLine>,
-  gridEvents:{
+  gridEvents: {
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
-  }
+  },
 });
 
-/** 监听主表的关联字段的变化，加载对应的子表数据 */
+/** 监听主表的关联字段变化，切换父记录时重新加载并清空勾选 */
 watch(
   () => props.orderId,
   async (val) => {
+    checkedIds.value = [];
     if (!val) {
       return;
     }
     await nextTick();
-    await handleRefresh()
+    await handleRefresh();
   },
   { immediate: true },
 );
 </script>
 
 <template>
-       <FormModal @success="handleRefresh" />
-      <Grid table-title="出库明细列表">
-        <template #toolbar-tools>
-          <TableAction
-            :actions="[
-              {
-                label: $t('ui.actionTitle.create', ['出库明细']),
-                type: 'primary',
-                icon: ACTION_ICON.ADD,
-                auth: ['wms:out-order:create'],
-                onClick: handleCreate,
+  <div class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+    <FormModal @success="handleRefresh" />
+    <Grid class="w-full min-w-0 overflow-hidden" :table-title="tableTitle">
+      <template #toolbar-tools>
+        <TableAction
+          :actions="[
+            {
+              label: $t('ui.actionTitle.create', ['出库明细']),
+              type: 'primary',
+              icon: ACTION_ICON.ADD,
+              auth: ['wms:out-order:create'],
+              disabled: !orderId,
+              onClick: handleCreate,
+            },
+            {
+              label: $t('ui.actionTitle.deleteBatch'),
+              type: 'danger',
+              icon: ACTION_ICON.DELETE,
+              auth: ['wms:out-order:delete'],
+              disabled: isEmpty(checkedIds),
+              onClick: handleDeleteBatch,
+            },
+          ]"
+        />
+      </template>
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['wms:out-order:update'],
+              onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['wms:out-order:delete'],
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
+                confirm: handleDelete.bind(null, row),
               },
-              {
-                label: $t('ui.actionTitle.deleteBatch'),
-                type: 'danger',
-                icon: ACTION_ICON.DELETE,
-                disabled: isEmpty(checkedIds),
-                auth: ['wms:out-order:delete'],
-                onClick: handleDeleteBatch,
-              },
-            ]"
-          />
-        </template>
-        <template #actions="{ row }">
-          <TableAction
-            :actions="[
-              {
-                label: $t('common.edit'),
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.EDIT,
-                auth: ['wms:out-order:update'],
-                onClick: handleEdit.bind(null, row),
-              },
-              {
-                label: $t('common.delete'),
-                type: 'danger',
-                link: true,
-                icon: ACTION_ICON.DELETE,
-                auth: ['wms:out-order:delete'],
-                popConfirm: {
-                  title: $t('ui.actionMessage.deleteConfirm', [row.lineNo]),
-                  confirm: handleDelete.bind(null, row),
-                },
-              },
-            ]"
-          />
-        </template>
-      </Grid>
-</template>
+            },
+          ]"
+        />
+      </template>
+    </Grid>
+  </div>
+</template>

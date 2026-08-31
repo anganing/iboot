@@ -4,10 +4,10 @@ import type { WmsOutOrderApi } from '#/api/wms/outordermgr';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -16,16 +16,17 @@ import {
   exportOutOrder,
   getOutOrderPage,
 } from '#/api/wms/outordermgr';
-import OutOrderImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import OutOrderLineList from './modules/out-order-line-list.vue';
+import OutOrderImport from './modules/import-form.vue';
+import OutOrderLineDrawer from './modules/out-order-line-drawer.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('outOrderLine')
-const selectOutOrder = ref<WmsOutOrderApi.OutOrder>();
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: OutOrderLineDrawer,
+  destroyOnClose: true,
+});
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -38,6 +39,11 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 /** 导入出库单 */
 function handleImport() {
   importFormModalApi.open();
+}
+
+/** 查看并维护当前单据的出库明细 */
+function handleLines(row: WmsOutOrderApi.OutOrder) {
+  lineDrawerApi.setData(row).open();
 }
 
 /** 刷新表格 */
@@ -107,7 +113,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -131,9 +137,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsOutOrderApi.OutOrder>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsOutOrderApi.OutOrder}) => {
-      selectOutOrder.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -144,7 +147,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-   <div>
+    <LineDrawer />
     <Grid table-title="出库单列表">
       <template #toolbar-tools>
         <TableAction
@@ -184,6 +187,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:out-order:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -206,12 +217,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="outOrderLine" label="出库明细">
-            <OutOrderLineList :order-id="selectOutOrder?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

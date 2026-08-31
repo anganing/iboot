@@ -8,7 +8,7 @@
   import { ElMessage } from 'element-plus';
 
   import { useVbenForm } from '#/adapter/form';
-  import { getOutOrderLine, createOutOrderLine, updateOutOrderLine } from '#/api/wms/outordermgr';
+  import { createOutOrderLine, getOutOrderLine, updateOutOrderLine } from '#/api/wms/outordermgr';
   import { $t } from '#/locales';
   import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

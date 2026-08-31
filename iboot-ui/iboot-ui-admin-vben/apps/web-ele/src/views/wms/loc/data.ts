@@ -4,6 +4,7 @@ import type { WmsLocApi } from '#/api/wms/loc';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -60,7 +61,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_loc_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOC_TYPE, 'string'),
         placeholder: '请选择库位类型',
       },
     },
@@ -148,7 +149,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_dimension_check_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_DIMENSION_CHECK_MODE, 'string'),
         placeholder: '请选择尺寸校验模式',
       },
       defaultValue: 'NONE',
@@ -159,7 +160,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_loc_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOC_STATUS, 'string'),
         placeholder: '请选择库位状态',
       },
       defaultValue: 'EMPTY',
@@ -220,7 +221,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_loc_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOC_TYPE, 'string'),
         placeholder: '请选择库位类型',
       },
     },
@@ -236,7 +237,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_loc_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_LOC_STATUS, 'string'),
         placeholder: '请选择库位状态',
       },
     },
@@ -264,7 +265,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsLocApi.Loc>['columns'] 
       field: 'locType',
       title: '库位类型',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_loc_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_LOC_TYPE } },
     },
     {
       field: 'position',
@@ -283,14 +284,14 @@ export function useGridColumns(): VxeTableGridOptions<WmsLocApi.Loc>['columns'] 
       minWidth: 110,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_dimension_check_mode' },
+        props: { type: DICT_TYPE.WMS_DIMENSION_CHECK_MODE },
       },
     },
     {
       field: 'status',
       title: '库位状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_loc_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_LOC_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

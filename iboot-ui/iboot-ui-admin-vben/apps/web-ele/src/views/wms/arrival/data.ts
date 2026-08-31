@@ -54,7 +54,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_arrival_source_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_SOURCE_TYPE, 'string'),
         placeholder: '请选择来源类型',
       },
     },
@@ -124,7 +124,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_arrival_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_STATUS, 'string'),
         placeholder: '请选择到货状态',
       },
       defaultValue: 'DRAFT',
@@ -173,7 +173,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_arrival_source_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_SOURCE_TYPE, 'string'),
         placeholder: '请选择来源类型',
       },
     },
@@ -204,7 +204,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_arrival_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_STATUS, 'string'),
         placeholder: '请选择到货状态',
       },
     },
@@ -232,7 +232,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsArrivalApi.Arrival>['co
       minWidth: 110,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_arrival_source_type' },
+        props: { type: DICT_TYPE.WMS_ARRIVAL_SOURCE_TYPE },
       },
     },
     { field: 'sourceNo', title: '来源单号', minWidth: 150 },
@@ -250,7 +250,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsArrivalApi.Arrival>['co
       field: 'status',
       title: '到货状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_arrival_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ARRIVAL_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
@@ -358,7 +358,7 @@ export function useArrivalLineFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_iqc_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_IQC_MODE, 'string'),
         placeholder: '请选择来料检验模式',
       },
     },
@@ -384,7 +384,7 @@ export function useArrivalLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_arrival_line_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
       defaultValue: 'PENDING',
@@ -426,7 +426,7 @@ export function useArrivalLineGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_arrival_line_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ARRIVAL_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
     },
@@ -459,7 +459,7 @@ export function useArrivalLineGridColumns(): VxeTableGridOptions<WmsArrivalApi.A
       field: 'iqcMode',
       title: '检验模式',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_iqc_mode' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_IQC_MODE } },
     },
     { field: 'qualifiedQty', title: '合格数量', minWidth: 110 },
     { field: 'rejectedQty', title: '不合格数量', minWidth: 110 },
@@ -469,7 +469,7 @@ export function useArrivalLineGridColumns(): VxeTableGridOptions<WmsArrivalApi.A
       minWidth: 100,
       cellRender: {
         name: 'CellDict',
-        props: { type: 'wms_arrival_line_status' },
+        props: { type: DICT_TYPE.WMS_ARRIVAL_LINE_STATUS },
       },
     },
     { field: 'remark', title: '备注', minWidth: 140 },

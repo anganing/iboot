@@ -4,6 +4,7 @@ import type { WmsTransferOrderApi } from '#/api/wms/transferorder';
 
 import { markRaw } from 'vue';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
@@ -58,7 +59,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_transfer_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_TRANSFER_TYPE, 'string'),
         placeholder: '请选择转移类型',
       },
     },
@@ -123,7 +124,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_hook_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_HOOK_MODE, 'string'),
         placeholder: '请选择外部设备触发方式',
       },
       defaultValue: 'NONE',
@@ -134,7 +135,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
       defaultValue: 'DRAFT',
@@ -183,7 +184,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_transfer_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_TRANSFER_TYPE, 'string'),
         placeholder: '请选择转移类型',
       },
     },
@@ -214,7 +215,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
     },
@@ -240,7 +241,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsTransferOrderApi.Transf
       field: 'transferType',
       title: '转移类型',
       minWidth: 130,
-      cellRender: { name: 'CellDict', props: { type: 'wms_transfer_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_TRANSFER_TYPE } },
     },
     { field: 'sourceBizNo', title: '来源单号', minWidth: 150 },
     { field: 'fromWhName', title: '来源仓库', minWidth: 140 },
@@ -249,13 +250,13 @@ export function useGridColumns(): VxeTableGridOptions<WmsTransferOrderApi.Transf
       field: 'hookMode',
       title: '设备触发',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_hook_mode' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_HOOK_MODE } },
     },
     {
       field: 'status',
       title: '单据状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
@@ -342,7 +343,7 @@ export function useTransferOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_stock_scope', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STOCK_SCOPE, 'string'),
         placeholder: '请选择来源库存范围',
       },
       defaultValue: 'COMMON',
@@ -353,7 +354,7 @@ export function useTransferOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_stock_scope', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_STOCK_SCOPE, 'string'),
         placeholder: '请选择目标库存范围',
       },
       defaultValue: 'COMMON',
@@ -400,7 +401,7 @@ export function useTransferOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择来源质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -411,7 +412,7 @@ export function useTransferOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择目标质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -431,28 +432,12 @@ export function useTransferOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: { ...QTY_PROPS, placeholder: '请输入计划转移数量' },
     },
     {
-      fieldName: 'movedQty',
-      label: '已搬运数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已搬运数量' },
-      defaultValue: 0,
-    },
-    {
-      fieldName: 'postedQty',
-      label: '已过账数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已过账数量' },
-      defaultValue: 0,
-    },
-    {
       fieldName: 'status',
       label: '明细状态',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
       defaultValue: 'DRAFT',
@@ -494,7 +479,7 @@ export function useTransferOrderLineGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
     },
@@ -520,19 +505,19 @@ export function useTransferOrderLineGridColumns(): VxeTableGridOptions<WmsTransf
       field: 'qualityStatusFrom',
       title: '来源质量状态',
       minWidth: 120,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'qualityStatusTo',
       title: '目标质量状态',
       minWidth: 120,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'status',
       title: '明细状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_LINE_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

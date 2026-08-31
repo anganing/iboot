@@ -63,7 +63,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_in_biz_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_IN_BIZ_TYPE, 'string'),
         placeholder: '请选择入库业务类型',
       },
     },
@@ -191,7 +191,7 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_iqc_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_IQC_MODE, 'string'),
         placeholder: '请选择来料检验模式',
       },
     },
@@ -201,7 +201,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择入库质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -212,7 +212,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_hook_mode', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_HOOK_MODE, 'string'),
         placeholder: '请选择外部设备触发方式',
       },
       defaultValue: 'NONE',
@@ -223,7 +223,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
       defaultValue: 'DRAFT',
@@ -272,7 +272,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_in_biz_type', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_IN_BIZ_TYPE, 'string'),
         placeholder: '请选择入库业务类型',
       },
     },
@@ -309,7 +309,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
         placeholder: '请选择单据状态',
       },
     },
@@ -335,7 +335,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsInOrderApi.InOrder>['co
       field: 'bizType',
       title: '业务类型',
       minWidth: 130,
-      cellRender: { name: 'CellDict', props: { type: 'wms_in_biz_type' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_IN_BIZ_TYPE } },
     },
     { field: 'sourceBizNo', title: '来源单号', minWidth: 150 },
     { field: 'arrivalArrivalNo', title: '到货单号', minWidth: 150 },
@@ -353,19 +353,19 @@ export function useGridColumns(): VxeTableGridOptions<WmsInOrderApi.InOrder>['co
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'hookMode',
       title: '设备触发',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_hook_mode' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_HOOK_MODE } },
     },
     {
       field: 'status',
       title: '单据状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
@@ -463,7 +463,7 @@ export function useInOrderLineFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_quality_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
         placeholder: '请选择入库质量状态',
       },
       defaultValue: 'QUALIFIED',
@@ -476,28 +476,12 @@ export function useInOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: { ...QTY_PROPS, placeholder: '请输入计划入库数量' },
     },
     {
-      fieldName: 'completedQty',
-      label: '已完成数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已完成数量' },
-      defaultValue: 0,
-    },
-    {
-      fieldName: 'postedQty',
-      label: '已过账数量',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入已过账数量' },
-      defaultValue: 0,
-    },
-    {
       fieldName: 'status',
       label: '明细状态',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
       defaultValue: 'DRAFT',
@@ -539,7 +523,7 @@ export function useInOrderLineGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: getDictOptions('wms_order_status', 'string'),
+        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
         placeholder: '请选择明细状态',
       },
     },
@@ -565,13 +549,13 @@ export function useInOrderLineGridColumns(): VxeTableGridOptions<WmsInOrderApi.I
       field: 'qualityStatus',
       title: '质量状态',
       minWidth: 100,
-      cellRender: { name: 'CellDict', props: { type: 'wms_quality_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_QUALITY_STATUS } },
     },
     {
       field: 'status',
       title: '明细状态',
       minWidth: 110,
-      cellRender: { name: 'CellDict', props: { type: 'wms_order_status' } },
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_LINE_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
     {

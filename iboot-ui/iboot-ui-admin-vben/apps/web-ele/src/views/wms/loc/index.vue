@@ -16,11 +16,11 @@ import {
   exportLoc,
   getLocPage,
 } from '#/api/wms/loc';
-import LocImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import LocImport from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,

@@ -8,7 +8,7 @@
   import { ElMessage } from 'element-plus';
 
   import { useVbenForm } from '#/adapter/form';
-  import { getTransferOrderLine, createTransferOrderLine, updateTransferOrderLine } from '#/api/wms/transferorder';
+  import { createTransferOrderLine, getTransferOrderLine, updateTransferOrderLine } from '#/api/wms/transferorder';
   import { $t } from '#/locales';
   import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

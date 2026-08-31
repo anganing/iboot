@@ -8,7 +8,7 @@
   import { ElMessage } from 'element-plus';
 
   import { useVbenForm } from '#/adapter/form';
-  import { getInOrderLine, createInOrderLine, updateInOrderLine } from '#/api/wms/inordermgr';
+  import { createInOrderLine, getInOrderLine, updateInOrderLine } from '#/api/wms/inordermgr';
   import { $t } from '#/locales';
   import { getMdmFormLayout } from '#/views/mdm/form-layout';
 

@@ -16,11 +16,11 @@ import {
   exportContainer,
   getContainerPage,
 } from '#/api/wms/containermgr';
-import ContainerImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import ContainerImport from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
