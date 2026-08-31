@@ -14,9 +14,15 @@ import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.outordermgr.OutOrderMapper;
 import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+
+import java.math.BigDecimal;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -33,14 +39,21 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class OutOrderServiceImpl implements OutOrderService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private OutOrderMapper outOrderMapper;
     @Resource
     private OutOrderLineMapper outOrderLineMapper;
+    @Resource
+    private WmsSnapshotService snapshotService;
 
     @Override
     public Long createOutOrder(OutOrderSaveReqVO createReqVO) {
         // 插入
         OutOrderDO outOrder = BeanUtils.toBean(createReqVO, OutOrderDO.class);
+        outOrder.setId(null);
+        outOrder.setOutNo(codeService.generate(WmsCodeRuleConstants.OUT_ORDER, outOrder.getOutNo()));
+        validateOutOrderUnique(outOrder, null);
         outOrderMapper.insert(outOrder);
 
         // 返回
@@ -77,6 +90,8 @@ public class OutOrderServiceImpl implements OutOrderService {
         validateOutOrderExists(updateReqVO.getId());
         // 更新
         OutOrderDO updateObj = BeanUtils.toBean(updateReqVO, OutOrderDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateOutOrderUnique(updateObj, updateReqVO.getId());
         outOrderMapper.updateById(updateObj);
     }
 
@@ -122,23 +137,32 @@ public class OutOrderServiceImpl implements OutOrderService {
     // ==================== 子表（WMS-出库单明细） ====================
 
     @Override
-    public PageResult<OutOrderLineDO> getOutOrderLinePage(PageParam pageReqVO, Long orderId) {
-        return outOrderLineMapper.selectPage(pageReqVO, orderId);
+    public PageResult<OutOrderLineRespVO> getOutOrderLinePage(OutOrderLinePageReqVO pageReqVO) {
+        return outOrderLineMapper.selectJoinPage(pageReqVO);
     }
 
     @Override
-    public Long createOutOrderLine(OutOrderLineDO outOrderLine) {
-        outOrderLine.clean(); // 清理掉创建、更新时间等相关属性值
+    public Long createOutOrderLine(OutOrderLineSaveReqVO createReqVO) {
+        validateOutOrderExists(createReqVO.getOrderId());
+        validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
+        OutOrderLineDO outOrderLine = BeanUtils.toBean(createReqVO, OutOrderLineDO.class);
+        outOrderLine.setId(null);
+        fillLineSnapshot(outOrderLine);
+        // 分配、拣选、过账数量都由作业推进，创建时归零
+        outOrderLine.setAllocatedQty(BigDecimal.ZERO);
+        outOrderLine.setPickedQty(BigDecimal.ZERO);
+        outOrderLine.setPostedQty(BigDecimal.ZERO);
         outOrderLineMapper.insert(outOrderLine);
         return outOrderLine.getId();
     }
 
     @Override
-    public void updateOutOrderLine(OutOrderLineDO outOrderLine) {
+    public void updateOutOrderLine(OutOrderLineSaveReqVO updateReqVO) {
         // 校验存在
-        validateOutOrderLineExists(outOrderLine.getId());
-        // 更新
-        outOrderLine.clean(); // 解决更新情况下：updateTime 不更新
+        validateOutOrderLineExists(updateReqVO.getId());
+        validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
+        OutOrderLineDO outOrderLine = BeanUtils.toBean(updateReqVO, OutOrderLineDO.class);
+        fillLineSnapshot(outOrderLine);
         outOrderLineMapper.updateById(outOrderLine);
     }
 
@@ -155,14 +179,35 @@ public class OutOrderServiceImpl implements OutOrderService {
 	}
 
     @Override
-    public OutOrderLineDO getOutOrderLine(Long id) {
-        return outOrderLineMapper.selectById(id);
+    public OutOrderLineRespVO getOutOrderLine(Long id) {
+        return outOrderLineMapper.selectJoinById(id);
     }
 
     private void validateOutOrderLineExists(Long id) {
         if (outOrderLineMapper.selectById(id) == null) {
             throw exception(OUT_ORDER_LINE_NOT_EXISTS);
         }
+    }
+
+    /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
+    private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
+        OutOrderLineDO existed = outOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(OUT_ORDER_LINE_NO_DUPLICATE);
+    }
+
+    /** 明细上的物料、单位、来源库位、批次快照统一由快照服务补全。 */
+    private void fillLineSnapshot(OutOrderLineDO line) {
+        MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
+        line.setMatCode(material.getCode());
+        line.setMatName(material.getName());
+        line.setMatSpec(material.getSpec());
+        line.setUomCode(snapshotService.requireUomCode(line.getUomId()));
+        line.setFromLocCode(snapshotService.locCodeOrNull(line.getFromLocId()));
+        line.setLotNo(snapshotService.lotNoOrNull(line.getBatchId()));
+        snapshotService.validateContainer(line.getContainerId());
     }
 
     private void deleteOutOrderLineByOrderId(Long orderId) {
@@ -173,4 +218,16 @@ public class OutOrderServiceImpl implements OutOrderService {
         outOrderLineMapper.deleteByOrderIds(orderIds);
 	}
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateOutOrderUnique(OutOrderDO outOrder, Long excludeId) {
+        OutOrderDO existed = outOrderMapper.selectByOutNo(outOrder.getOutNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(OUT_ORDER_NO_DUPLICATE);
+    }
+
+}

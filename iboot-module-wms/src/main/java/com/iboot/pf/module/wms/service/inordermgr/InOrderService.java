@@ -77,7 +77,7 @@ public interface InOrderService {
      * @param orderId 入库单编号
      * @return WMS-入库单明细分页
      */
-    PageResult<InOrderLineDO> getInOrderLinePage(PageParam pageReqVO, Long orderId);
+    PageResult<InOrderLineRespVO> getInOrderLinePage(InOrderLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-入库单明细
@@ -85,14 +85,14 @@ public interface InOrderService {
      * @param inOrderLine 创建信息
      * @return 编号
      */
-    Long createInOrderLine(@Valid InOrderLineDO inOrderLine);
+    Long createInOrderLine(@Valid InOrderLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-入库单明细
      *
      * @param inOrderLine 更新信息
      */
-    void updateInOrderLine(@Valid InOrderLineDO inOrderLine);
+    void updateInOrderLine(@Valid InOrderLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-入库单明细
@@ -114,6 +114,6 @@ public interface InOrderService {
 	 * @param id 编号
      * @return WMS-入库单明细
 	 */
-    InOrderLineDO getInOrderLine(Long id);
+    InOrderLineRespVO getInOrderLine(Long id);
 
-}
+}

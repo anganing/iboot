@@ -77,7 +77,7 @@ public interface CountOrderService {
      * @param orderId 盘点单编号
      * @return WMS-盘点明细分页
      */
-    PageResult<CountOrderLineDO> getCountOrderLinePage(PageParam pageReqVO, Long orderId);
+    PageResult<CountOrderLineRespVO> getCountOrderLinePage(CountOrderLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-盘点明细
@@ -85,14 +85,14 @@ public interface CountOrderService {
      * @param countOrderLine 创建信息
      * @return 编号
      */
-    Long createCountOrderLine(@Valid CountOrderLineDO countOrderLine);
+    Long createCountOrderLine(@Valid CountOrderLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-盘点明细
      *
      * @param countOrderLine 更新信息
      */
-    void updateCountOrderLine(@Valid CountOrderLineDO countOrderLine);
+    void updateCountOrderLine(@Valid CountOrderLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-盘点明细
@@ -114,6 +114,6 @@ public interface CountOrderService {
 	 * @param id 编号
      * @return WMS-盘点明细
 	 */
-    CountOrderLineDO getCountOrderLine(Long id);
+    CountOrderLineRespVO getCountOrderLine(Long id);
 
-}
+}

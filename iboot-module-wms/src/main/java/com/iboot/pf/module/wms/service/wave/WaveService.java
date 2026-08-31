@@ -77,7 +77,7 @@ public interface WaveService {
      * @param waveId 波次编号
      * @return WMS-波次明细分页
      */
-    PageResult<WaveLineDO> getWaveLinePage(PageParam pageReqVO, Long waveId);
+    PageResult<WaveLineRespVO> getWaveLinePage(WaveLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-波次明细
@@ -85,14 +85,14 @@ public interface WaveService {
      * @param waveLine 创建信息
      * @return 编号
      */
-    Long createWaveLine(@Valid WaveLineDO waveLine);
+    Long createWaveLine(@Valid WaveLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-波次明细
      *
      * @param waveLine 更新信息
      */
-    void updateWaveLine(@Valid WaveLineDO waveLine);
+    void updateWaveLine(@Valid WaveLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-波次明细
@@ -114,6 +114,6 @@ public interface WaveService {
 	 * @param id 编号
      * @return WMS-波次明细
 	 */
-    WaveLineDO getWaveLine(Long id);
+    WaveLineRespVO getWaveLine(Long id);
 
-}
+}

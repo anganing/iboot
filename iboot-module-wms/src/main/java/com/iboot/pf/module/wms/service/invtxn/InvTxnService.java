@@ -15,43 +15,6 @@ import com.iboot.pf.framework.common.pojo.PageParam;
 public interface InvTxnService {
 
     /**
-     * 创建WMS-库存流水
-     *
-     * @param createReqVO 创建信息
-     * @return 编号
-     */
-    Long createInvTxn(@Valid InvTxnSaveReqVO createReqVO);
-
-    /**
-     * 导入WMS-库存流水
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    InvTxnImportRespVO importInvTxnList(List<InvTxnImportExcelVO> importList);
-
-    /**
-     * 更新WMS-库存流水
-     *
-     * @param updateReqVO 更新信息
-     */
-    void updateInvTxn(@Valid InvTxnSaveReqVO updateReqVO);
-
-    /**
-     * 删除WMS-库存流水
-     *
-     * @param id 编号
-     */
-    void deleteInvTxn(Long id);
-
-    /**
-    * 批量删除WMS-库存流水
-    *
-    * @param ids 编号
-    */
-    void deleteInvTxnListByIds(List<Long> ids);
-
-    /**
      * 获得WMS-库存流水
      *
      * @param id 编号
@@ -67,4 +30,4 @@ public interface InvTxnService {
      */
     PageResult<InvTxnRespVO> getInvTxnPage(InvTxnPageReqVO pageReqVO);
 
-}
+}

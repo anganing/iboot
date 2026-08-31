@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.containermgr.ContainerDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.containermgr.ContainerMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class ContainerServiceImpl implements ContainerService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private ContainerMapper containerMapper;
 
     @Override
     public Long createContainer(ContainerSaveReqVO createReqVO) {
         // 插入
         ContainerDO container = BeanUtils.toBean(createReqVO, ContainerDO.class);
+        container.setId(null);
+        container.setContainerNo(codeService.generate(WmsCodeRuleConstants.CONTAINER, container.getContainerNo()));
+        validateContainerUnique(container, null);
         containerMapper.insert(container);
 
         // 返回
@@ -73,6 +80,8 @@ public class ContainerServiceImpl implements ContainerService {
         validateContainerExists(updateReqVO.getId());
         // 更新
         ContainerDO updateObj = BeanUtils.toBean(updateReqVO, ContainerDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateContainerUnique(updateObj, updateReqVO.getId());
         containerMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class ContainerServiceImpl implements ContainerService {
         return containerMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateContainerUnique(ContainerDO container, Long excludeId) {
+        ContainerDO existed = containerMapper.selectByContainerNo(container.getContainerNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(CONTAINER_NO_DUPLICATE);
+    }
+
+}

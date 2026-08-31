@@ -10,6 +10,7 @@ import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
@@ -93,7 +94,7 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
             lineDO.setAllocatedQty(BigDecimal.ZERO);
             lineDO.setPickedQty(BigDecimal.ZERO);
             lineDO.setPostedQty(BigDecimal.ZERO);
-            lineDO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+            lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
             wmsOutOrderLineMapper.insert(lineDO);
         }
         return order.getId();
@@ -110,7 +111,7 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
         order.setRemark(bo.getReason());
         wmsOutOrderMapper.updateById(order);
         for (WmsOutOrderLineDO line : wmsOutOrderLineMapper.selectListByOrderId(order.getId())) {
-            line.setStatus(WmsOrderStatusEnum.CANCELLED.name());
+            line.setStatus(WmsOrderLineStatusEnum.CANCELLED.name());
             wmsOutOrderLineMapper.updateById(line);
         }
     }
@@ -148,7 +149,7 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
 
             line.setPickedQty(nvl(line.getPickedQty()).add(qty));
             line.setPostedQty(nvl(line.getPostedQty()).add(qty));
-            line.setStatus(WmsOrderStatusEnum.DONE.name());
+            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
             wmsOutOrderLineMapper.updateById(line);
         }
 

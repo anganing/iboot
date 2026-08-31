@@ -8,6 +8,8 @@ import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderMapper;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsConstants;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
@@ -36,9 +38,6 @@ import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.TRANSFER_ORDER;
 /** 转移调拨单 Service 实现。 */
 @Service
 public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
-
-    /** 无项目编号占位值。 */
-    private static final Long NONE_ID = 0L;
 
     @Resource
     private WmsTransferOrderMapper wmsTransferOrderMapper;
@@ -81,7 +80,7 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
                     ? lineDO.getQualityStatusFrom() : line.getQualityStatusTo());
             lineDO.setMovedQty(BigDecimal.ZERO);
             lineDO.setPostedQty(BigDecimal.ZERO);
-            lineDO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+            lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
             wmsTransferOrderLineMapper.insert(lineDO);
         }
         return order.getId();
@@ -98,7 +97,7 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
         order.setRemark(bo.getReason());
         wmsTransferOrderMapper.updateById(order);
         for (WmsTransferOrderLineDO line : wmsTransferOrderLineMapper.selectListByOrderId(order.getId())) {
-            line.setStatus(WmsOrderStatusEnum.CANCELLED.name());
+            line.setStatus(WmsOrderLineStatusEnum.CANCELLED.name());
             wmsTransferOrderLineMapper.updateById(line);
         }
     }
@@ -132,7 +131,7 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
 
             line.setMovedQty(nvl(line.getMovedQty()).add(qty));
             line.setPostedQty(nvl(line.getPostedQty()).add(qty));
-            line.setStatus(WmsOrderStatusEnum.DONE.name());
+            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
             wmsTransferOrderLineMapper.updateById(line);
         }
 
@@ -212,7 +211,7 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
     }
 
     private static Long nvlId(Long value) {
-        return value == null ? NONE_ID : value;
+        return value == null ? WmsConstants.NONE_ID : value;
     }
 
 }

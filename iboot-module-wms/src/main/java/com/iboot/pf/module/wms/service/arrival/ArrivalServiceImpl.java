@@ -17,6 +17,11 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 
 import com.iboot.pf.module.wms.dal.mysql.arrival.ArrivalMapper;
 import com.iboot.pf.module.wms.dal.mysql.arrivalline.ArrivalLineMapper;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.mdm.api.material.MaterialApi;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -36,11 +41,18 @@ public class ArrivalServiceImpl implements ArrivalService {
     private ArrivalMapper arrivalMapper;
     @Resource
     private ArrivalLineMapper arrivalLineMapper;
+    @Resource
+    private WmsCodeService codeService;
+    @Resource
+    private WmsSnapshotService snapshotService;
 
     @Override
     public Long createArrival(ArrivalSaveReqVO createReqVO) {
         // 插入
         ArrivalDO arrival = BeanUtils.toBean(createReqVO, ArrivalDO.class);
+        arrival.setId(null);
+        arrival.setArrivalNo(codeService.generate(WmsCodeRuleConstants.ARRIVAL, arrival.getArrivalNo()));
+        validateArrivalNoUnique(arrival.getArrivalNo(), null);
         arrivalMapper.insert(arrival);
 
         // 返回
@@ -75,6 +87,8 @@ public class ArrivalServiceImpl implements ArrivalService {
     public void updateArrival(ArrivalSaveReqVO updateReqVO) {
         // 校验存在
         validateArrivalExists(updateReqVO.getId());
+        // 改自己不能撞自己，所以排除自身编号
+        validateArrivalNoUnique(updateReqVO.getArrivalNo(), updateReqVO.getId());
         // 更新
         ArrivalDO updateObj = BeanUtils.toBean(updateReqVO, ArrivalDO.class);
         arrivalMapper.updateById(updateObj);
@@ -109,6 +123,15 @@ public class ArrivalServiceImpl implements ArrivalService {
         }
     }
 
+    /** 到货单号唯一：唯一索引是 (arrival_no, deleted)，这里做前置校验给出可读提示。 */
+    private void validateArrivalNoUnique(String arrivalNo, Long excludeId) {
+        ArrivalDO existed = arrivalMapper.selectByArrivalNo(arrivalNo);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(ARRIVAL_NO_DUPLICATE);
+    }
+
     @Override
     public ArrivalRespVO getArrival(Long id) {
         return arrivalMapper.selectJoinById(id);
@@ -122,23 +145,28 @@ public class ArrivalServiceImpl implements ArrivalService {
     // ==================== 子表（WMS-到货登记明细） ====================
 
     @Override
-    public PageResult<ArrivalLineDO> getArrivalLinePage(PageParam pageReqVO, Long arrivalId) {
-        return arrivalLineMapper.selectPage(pageReqVO, arrivalId);
+    public PageResult<ArrivalLineRespVO> getArrivalLinePage(ArrivalLinePageReqVO pageReqVO) {
+        return arrivalLineMapper.selectJoinPage(pageReqVO);
     }
 
     @Override
-    public Long createArrivalLine(ArrivalLineDO arrivalLine) {
-        arrivalLine.clean(); // 清理掉创建、更新时间等相关属性值
+    public Long createArrivalLine(ArrivalLineSaveReqVO createReqVO) {
+        validateArrivalExists(createReqVO.getArrivalId());
+        validateLineNoUnique(createReqVO.getArrivalId(), createReqVO.getLineNo(), null);
+        ArrivalLineDO arrivalLine = BeanUtils.toBean(createReqVO, ArrivalLineDO.class);
+        arrivalLine.setId(null);
+        fillSnapshot(arrivalLine);
         arrivalLineMapper.insert(arrivalLine);
         return arrivalLine.getId();
     }
 
     @Override
-    public void updateArrivalLine(ArrivalLineDO arrivalLine) {
+    public void updateArrivalLine(ArrivalLineSaveReqVO updateReqVO) {
         // 校验存在
-        validateArrivalLineExists(arrivalLine.getId());
-        // 更新
-        arrivalLine.clean(); // 解决更新情况下：updateTime 不更新
+        validateArrivalLineExists(updateReqVO.getId());
+        validateLineNoUnique(updateReqVO.getArrivalId(), updateReqVO.getLineNo(), updateReqVO.getId());
+        ArrivalLineDO arrivalLine = BeanUtils.toBean(updateReqVO, ArrivalLineDO.class);
+        fillSnapshot(arrivalLine);
         arrivalLineMapper.updateById(arrivalLine);
     }
 
@@ -155,14 +183,35 @@ public class ArrivalServiceImpl implements ArrivalService {
 	}
 
     @Override
-    public ArrivalLineDO getArrivalLine(Long id) {
-        return arrivalLineMapper.selectById(id);
+    public ArrivalLineRespVO getArrivalLine(Long id) {
+        return arrivalLineMapper.selectJoinById(id);
     }
 
     private void validateArrivalLineExists(Long id) {
         if (arrivalLineMapper.selectById(id) == null) {
             throw exception(ARRIVAL_LINE_NOT_EXISTS);
         }
+    }
+
+    /** 明细行号唯一：唯一索引是 (arrival_id, line_no, deleted)。 */
+    private void validateLineNoUnique(Long arrivalId, Integer lineNo, Long excludeId) {
+        ArrivalLineDO existed = arrivalLineMapper.selectByArrivalIdAndLineNo(arrivalId, lineNo);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(ARRIVAL_LINE_NO_DUPLICATE);
+    }
+
+    /**
+     * 物料与单位快照跨模块取数，只能走 mdm 的 Api 门面，不允许 JOIN mdm 的表。
+     * 快照落库后列表查询无需再回查 mdm。
+     */
+    private void fillSnapshot(ArrivalLineDO line) {
+        MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
+        line.setMatCode(material.getCode());
+        line.setMatName(material.getName());
+        line.setMatSpec(material.getSpec());
+        line.setUomCode(snapshotService.requireUomCode(line.getUomId()));
     }
 
     private void deleteArrivalLineByArrivalId(Long arrivalId) {
@@ -173,4 +222,4 @@ public class ArrivalServiceImpl implements ArrivalService {
         arrivalLineMapper.deleteByArrivalIds(arrivalIds);
 	}
 
-}
+}

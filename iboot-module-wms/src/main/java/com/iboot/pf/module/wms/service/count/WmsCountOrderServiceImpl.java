@@ -8,7 +8,10 @@ import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
 import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsSourceModuleEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsCreateCountOrderBO;
@@ -43,11 +46,6 @@ import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.COUNT_ORDER;
 /** 盘点单 Service 实现。 */
 @Service
 public class WmsCountOrderServiceImpl implements WmsCountOrderService {
-
-    /** 盘盈入库业务类型。 */
-    private static final String BIZ_TYPE_COUNT_GAIN_IN = "COUNT_GAIN_IN";
-    /** 盘亏出库业务类型。 */
-    private static final String BIZ_TYPE_COUNT_LOSS_OUT = "COUNT_LOSS_OUT";
 
     @Resource
     private WmsCountOrderMapper wmsCountOrderMapper;
@@ -197,9 +195,9 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
     private String createGainInOrder(WmsCountOrderDO order, WmsCountOrderLineDO line, String lineKey) {
         WmsCreateInOrderBO createBO = new WmsCreateInOrderBO();
         createBO.setIdempotencyKey(lineKey + ":GAIN");
-        createBO.setSourceModule("WMS");
+        createBO.setSourceModule(WmsSourceModuleEnum.WMS.name());
         createBO.setSourceBizNo(order.getCountNo());
-        createBO.setBizType(BIZ_TYPE_COUNT_GAIN_IN);
+        createBO.setBizType(WmsInBizTypeEnum.COUNT_GAIN_IN.name());
         createBO.setCountOrderNo(order.getCountNo());
         createBO.setInvOrgId(order.getInvOrgId());
         createBO.setPlantId(warehouseService.getWh(order.getWhId()).getPlantId());
@@ -226,7 +224,7 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
         Long orderId = inOrderService.createInOrder(createBO);
         WmsConfirmOrderBO confirmBO = new WmsConfirmOrderBO();
         confirmBO.setIdempotencyKey(lineKey + ":GAIN");
-        confirmBO.setSourceModule("WMS");
+        confirmBO.setSourceModule(WmsSourceModuleEnum.WMS.name());
         confirmBO.setSourceBizNo(order.getCountNo());
         confirmBO.setOrderId(orderId);
         confirmBO.setRemark("盘点盘盈自动过账");
@@ -237,9 +235,9 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
     private String createLossOutOrder(WmsCountOrderDO order, WmsCountOrderLineDO line, String lineKey) {
         WmsCreateOutOrderBO createBO = new WmsCreateOutOrderBO();
         createBO.setIdempotencyKey(lineKey + ":LOSS");
-        createBO.setSourceModule("WMS");
+        createBO.setSourceModule(WmsSourceModuleEnum.WMS.name());
         createBO.setSourceBizNo(order.getCountNo());
-        createBO.setBizType(BIZ_TYPE_COUNT_LOSS_OUT);
+        createBO.setBizType(WmsOutBizTypeEnum.COUNT_LOSS_OUT.name());
         createBO.setCountOrderNo(order.getCountNo());
         createBO.setInvOrgId(order.getInvOrgId());
         createBO.setPlantId(warehouseService.getWh(order.getWhId()).getPlantId());
@@ -265,7 +263,7 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
         Long orderId = outOrderService.createOutOrder(createBO);
         WmsConfirmOrderBO confirmBO = new WmsConfirmOrderBO();
         confirmBO.setIdempotencyKey(lineKey + ":LOSS");
-        confirmBO.setSourceModule("WMS");
+        confirmBO.setSourceModule(WmsSourceModuleEnum.WMS.name());
         confirmBO.setSourceBizNo(order.getCountNo());
         confirmBO.setOrderId(orderId);
         confirmBO.setRemark("盘点盘亏自动过账");

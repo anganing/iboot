@@ -4,7 +4,6 @@ import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.arrival.vo.*;
 import com.iboot.pf.module.wms.dal.dataobject.arrival.ArrivalDO;
-import com.iboot.pf.module.wms.dal.dataobject.arrivalline.ArrivalLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
@@ -73,26 +72,25 @@ public interface ArrivalService {
     /**
      * 获得WMS-到货登记明细分页
      *
-     * @param pageReqVO 分页查询
-     * @param arrivalId 到货登记编号
+     * @param pageReqVO 分页查询，包含到货登记编号
      * @return WMS-到货登记明细分页
      */
-    PageResult<ArrivalLineDO> getArrivalLinePage(PageParam pageReqVO, Long arrivalId);
+    PageResult<ArrivalLineRespVO> getArrivalLinePage(ArrivalLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-到货登记明细
      *
-     * @param arrivalLine 创建信息
+     * @param createReqVO 创建信息
      * @return 编号
      */
-    Long createArrivalLine(@Valid ArrivalLineDO arrivalLine);
+    Long createArrivalLine(@Valid ArrivalLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-到货登记明细
      *
-     * @param arrivalLine 更新信息
+     * @param updateReqVO 更新信息
      */
-    void updateArrivalLine(@Valid ArrivalLineDO arrivalLine);
+    void updateArrivalLine(@Valid ArrivalLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-到货登记明细
@@ -114,6 +112,6 @@ public interface ArrivalService {
 	 * @param id 编号
      * @return WMS-到货登记明细
 	 */
-    ArrivalLineDO getArrivalLine(Long id);
+    ArrivalLineRespVO getArrivalLine(Long id);
 
-}
+}

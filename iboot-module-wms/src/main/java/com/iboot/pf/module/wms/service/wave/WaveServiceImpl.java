@@ -14,9 +14,13 @@ import com.iboot.pf.module.wms.dal.dataobject.waveline.WaveLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.wave.WaveMapper;
 import com.iboot.pf.module.wms.dal.mysql.waveline.WaveLineMapper;
+import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -33,14 +37,21 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class WaveServiceImpl implements WaveService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private WaveMapper waveMapper;
     @Resource
     private WaveLineMapper waveLineMapper;
+    @Resource
+    private OutOrderLineMapper outOrderLineMapper;
 
     @Override
     public Long createWave(WaveSaveReqVO createReqVO) {
         // 插入
         WaveDO wave = BeanUtils.toBean(createReqVO, WaveDO.class);
+        wave.setId(null);
+        wave.setWaveNo(codeService.generate(WmsCodeRuleConstants.WAVE, wave.getWaveNo()));
+        validateWaveUnique(wave, null);
         waveMapper.insert(wave);
 
         // 返回
@@ -77,6 +88,8 @@ public class WaveServiceImpl implements WaveService {
         validateWaveExists(updateReqVO.getId());
         // 更新
         WaveDO updateObj = BeanUtils.toBean(updateReqVO, WaveDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateWaveUnique(updateObj, updateReqVO.getId());
         waveMapper.updateById(updateObj);
     }
 
@@ -122,23 +135,30 @@ public class WaveServiceImpl implements WaveService {
     // ==================== 子表（WMS-波次明细） ====================
 
     @Override
-    public PageResult<WaveLineDO> getWaveLinePage(PageParam pageReqVO, Long waveId) {
-        return waveLineMapper.selectPage(pageReqVO, waveId);
+    public PageResult<WaveLineRespVO> getWaveLinePage(WaveLinePageReqVO pageReqVO) {
+        return waveLineMapper.selectJoinPage(pageReqVO);
     }
 
     @Override
-    public Long createWaveLine(WaveLineDO waveLine) {
-        waveLine.clean(); // 清理掉创建、更新时间等相关属性值
+    public Long createWaveLine(WaveLineSaveReqVO createReqVO) {
+        validateWaveExists(createReqVO.getWaveId());
+        validateLineNoUnique(createReqVO.getWaveId(), createReqVO.getLineNo(), null);
+        validateOutOrderLineUnique(createReqVO.getWaveId(), createReqVO.getOutOrderLineId(), null);
+        validateOutOrderLine(createReqVO.getOutOrderId(), createReqVO.getOutOrderLineId());
+        WaveLineDO waveLine = BeanUtils.toBean(createReqVO, WaveLineDO.class);
+        waveLine.setId(null);
         waveLineMapper.insert(waveLine);
         return waveLine.getId();
     }
 
     @Override
-    public void updateWaveLine(WaveLineDO waveLine) {
+    public void updateWaveLine(WaveLineSaveReqVO updateReqVO) {
         // 校验存在
-        validateWaveLineExists(waveLine.getId());
-        // 更新
-        waveLine.clean(); // 解决更新情况下：updateTime 不更新
+        validateWaveLineExists(updateReqVO.getId());
+        validateLineNoUnique(updateReqVO.getWaveId(), updateReqVO.getLineNo(), updateReqVO.getId());
+        validateOutOrderLineUnique(updateReqVO.getWaveId(), updateReqVO.getOutOrderLineId(), updateReqVO.getId());
+        validateOutOrderLine(updateReqVO.getOutOrderId(), updateReqVO.getOutOrderLineId());
+        WaveLineDO waveLine = BeanUtils.toBean(updateReqVO, WaveLineDO.class);
         waveLineMapper.updateById(waveLine);
     }
 
@@ -155,13 +175,42 @@ public class WaveServiceImpl implements WaveService {
 	}
 
     @Override
-    public WaveLineDO getWaveLine(Long id) {
-        return waveLineMapper.selectById(id);
+    public WaveLineRespVO getWaveLine(Long id) {
+        return waveLineMapper.selectJoinById(id);
     }
 
     private void validateWaveLineExists(Long id) {
         if (waveLineMapper.selectById(id) == null) {
             throw exception(WAVE_LINE_NOT_EXISTS);
+        }
+    }
+
+    /** 明细行号唯一：唯一索引是 (wave_id, line_no, deleted)。 */
+    private void validateLineNoUnique(Long waveId, Integer lineNo, Long excludeId) {
+        WaveLineDO existed = waveLineMapper.selectByWaveIdAndLineNo(waveId, lineNo);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(WAVE_LINE_NO_DUPLICATE);
+    }
+
+    /** 同一波次里一条出库明细只能加入一次：唯一索引是 (wave_id, out_order_line_id, deleted)。 */
+    private void validateOutOrderLineUnique(Long waveId, Long outOrderLineId, Long excludeId) {
+        WaveLineDO existed = waveLineMapper.selectByWaveIdAndOutOrderLineId(waveId, outOrderLineId);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(WAVE_LINE_ORDER_DUPLICATE);
+    }
+
+    /** 出库明细必须存在且属于所选出库单，避免波次挂到别的单据上。 */
+    private void validateOutOrderLine(Long outOrderId, Long outOrderLineId) {
+        OutOrderLineDO line = outOrderLineMapper.selectById(outOrderLineId);
+        if (line == null) {
+            throw exception(OUT_ORDER_LINE_NOT_EXISTS);
+        }
+        if (!line.getOrderId().equals(outOrderId)) {
+            throw exception(WAVE_LINE_ORDER_NOT_MATCH);
         }
     }
 
@@ -173,4 +222,16 @@ public class WaveServiceImpl implements WaveService {
         waveLineMapper.deleteByWaveIds(waveIds);
 	}
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateWaveUnique(WaveDO wave, Long excludeId) {
+        WaveDO existed = waveMapper.selectByWaveNo(wave.getWaveNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(WAVE_NO_DUPLICATE);
+    }
+
+}

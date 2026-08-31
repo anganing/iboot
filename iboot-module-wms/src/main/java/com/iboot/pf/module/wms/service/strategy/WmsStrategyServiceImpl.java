@@ -6,6 +6,8 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.controller.admin.strategy.vo.*;
 import com.iboot.pf.module.wms.dal.dataobject.strategy.WmsStrategyDO;
 import com.iboot.pf.module.wms.dal.mysql.strategy.WmsStrategyMapper;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.STRATEGY_CODE_DUPLICATE;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.STRATEGY_NOT_EXISTS;
 
 /**
@@ -29,11 +32,16 @@ public class WmsStrategyServiceImpl implements WmsStrategyService {
 
     @Resource
     private WmsStrategyMapper strategyMapper;
+    @Resource
+    private WmsCodeService codeService;
 
     @Override
     public Long createStrategy(StrategySaveReqVO createReqVO) {
         // 插入
         WmsStrategyDO strategy = BeanUtils.toBean(createReqVO, WmsStrategyDO.class);
+        strategy.setId(null);
+        strategy.setCode(codeService.generate(WmsCodeRuleConstants.STRATEGY, strategy.getCode()));
+        validateStrategyUnique(strategy, null);
         strategyMapper.insert(strategy);
 
         // 返回
@@ -70,6 +78,8 @@ public class WmsStrategyServiceImpl implements WmsStrategyService {
         validateStrategyExists(updateReqVO.getId());
         // 更新
         WmsStrategyDO updateObj = BeanUtils.toBean(updateReqVO, WmsStrategyDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateStrategyUnique(updateObj, updateReqVO.getId());
         strategyMapper.updateById(updateObj);
     }
 
@@ -92,6 +102,18 @@ public class WmsStrategyServiceImpl implements WmsStrategyService {
         if (strategyMapper.selectById(id) == null) {
             throw exception(STRATEGY_NOT_EXISTS);
         }
+    }
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateStrategyUnique(WmsStrategyDO strategy, Long excludeId) {
+        WmsStrategyDO existed = strategyMapper.selectByTypeAndCodeAndVersion(
+                strategy.getStrategyType(), strategy.getCode(), strategy.getVersionNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(STRATEGY_CODE_DUPLICATE);
     }
 
     @Override

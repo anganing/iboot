@@ -77,7 +77,7 @@ public interface OutOrderService {
      * @param orderId 出库单编号
      * @return WMS-出库单明细分页
      */
-    PageResult<OutOrderLineDO> getOutOrderLinePage(PageParam pageReqVO, Long orderId);
+    PageResult<OutOrderLineRespVO> getOutOrderLinePage(OutOrderLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-出库单明细
@@ -85,14 +85,14 @@ public interface OutOrderService {
      * @param outOrderLine 创建信息
      * @return 编号
      */
-    Long createOutOrderLine(@Valid OutOrderLineDO outOrderLine);
+    Long createOutOrderLine(@Valid OutOrderLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-出库单明细
      *
      * @param outOrderLine 更新信息
      */
-    void updateOutOrderLine(@Valid OutOrderLineDO outOrderLine);
+    void updateOutOrderLine(@Valid OutOrderLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-出库单明细
@@ -114,6 +114,6 @@ public interface OutOrderService {
 	 * @param id 编号
      * @return WMS-出库单明细
 	 */
-    OutOrderLineDO getOutOrderLine(Long id);
+    OutOrderLineRespVO getOutOrderLine(Long id);
 
-}
+}

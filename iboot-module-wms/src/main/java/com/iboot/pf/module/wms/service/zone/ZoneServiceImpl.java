@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class ZoneServiceImpl implements ZoneService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private ZoneMapper zoneMapper;
 
     @Override
     public Long createZone(ZoneSaveReqVO createReqVO) {
         // 插入
         ZoneDO zone = BeanUtils.toBean(createReqVO, ZoneDO.class);
+        zone.setId(null);
+        zone.setCode(codeService.generate(WmsCodeRuleConstants.ZONE, zone.getCode()));
+        validateZoneUnique(zone, null);
         zoneMapper.insert(zone);
 
         // 返回
@@ -73,6 +80,8 @@ public class ZoneServiceImpl implements ZoneService {
         validateZoneExists(updateReqVO.getId());
         // 更新
         ZoneDO updateObj = BeanUtils.toBean(updateReqVO, ZoneDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateZoneUnique(updateObj, updateReqVO.getId());
         zoneMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class ZoneServiceImpl implements ZoneService {
         return zoneMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateZoneUnique(ZoneDO zone, Long excludeId) {
+        ZoneDO existed = zoneMapper.selectByWhIdAndCode(zone.getWhId(), zone.getCode());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(ZONE_CODE_DUPLICATE);
+    }
+
+}

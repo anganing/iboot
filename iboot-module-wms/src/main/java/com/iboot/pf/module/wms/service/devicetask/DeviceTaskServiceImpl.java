@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.devicetask.DeviceTaskDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.devicetask.DeviceTaskMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class DeviceTaskServiceImpl implements DeviceTaskService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private DeviceTaskMapper deviceTaskMapper;
 
     @Override
     public Long createDeviceTask(DeviceTaskSaveReqVO createReqVO) {
         // 插入
         DeviceTaskDO deviceTask = BeanUtils.toBean(createReqVO, DeviceTaskDO.class);
+        deviceTask.setId(null);
+        deviceTask.setTaskNo(codeService.generate(WmsCodeRuleConstants.DEVICE_TASK, deviceTask.getTaskNo()));
+        validateDeviceTaskUnique(deviceTask, null);
         deviceTaskMapper.insert(deviceTask);
 
         // 返回
@@ -73,6 +80,8 @@ public class DeviceTaskServiceImpl implements DeviceTaskService {
         validateDeviceTaskExists(updateReqVO.getId());
         // 更新
         DeviceTaskDO updateObj = BeanUtils.toBean(updateReqVO, DeviceTaskDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateDeviceTaskUnique(updateObj, updateReqVO.getId());
         deviceTaskMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class DeviceTaskServiceImpl implements DeviceTaskService {
         return deviceTaskMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateDeviceTaskUnique(DeviceTaskDO deviceTask, Long excludeId) {
+        DeviceTaskDO existed = deviceTaskMapper.selectByTaskNo(deviceTask.getTaskNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(DEVICE_TASK_NO_DUPLICATE);
+    }
+
+}

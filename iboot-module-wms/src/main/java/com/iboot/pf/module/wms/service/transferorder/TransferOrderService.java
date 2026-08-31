@@ -77,7 +77,7 @@ public interface TransferOrderService {
      * @param orderId 转移调拨单编号
      * @return WMS-库存转移调拨明细分页
      */
-    PageResult<TransferOrderLineDO> getTransferOrderLinePage(PageParam pageReqVO, Long orderId);
+    PageResult<TransferOrderLineRespVO> getTransferOrderLinePage(TransferOrderLinePageReqVO pageReqVO);
 
     /**
      * 创建WMS-库存转移调拨明细
@@ -85,14 +85,14 @@ public interface TransferOrderService {
      * @param transferOrderLine 创建信息
      * @return 编号
      */
-    Long createTransferOrderLine(@Valid TransferOrderLineDO transferOrderLine);
+    Long createTransferOrderLine(@Valid TransferOrderLineSaveReqVO createReqVO);
 
     /**
      * 更新WMS-库存转移调拨明细
      *
      * @param transferOrderLine 更新信息
      */
-    void updateTransferOrderLine(@Valid TransferOrderLineDO transferOrderLine);
+    void updateTransferOrderLine(@Valid TransferOrderLineSaveReqVO updateReqVO);
 
     /**
      * 删除WMS-库存转移调拨明细
@@ -114,6 +114,6 @@ public interface TransferOrderService {
 	 * @param id 编号
      * @return WMS-库存转移调拨明细
 	 */
-    TransferOrderLineDO getTransferOrderLine(Long id);
+    TransferOrderLineRespVO getTransferOrderLine(Long id);
 
-}
+}

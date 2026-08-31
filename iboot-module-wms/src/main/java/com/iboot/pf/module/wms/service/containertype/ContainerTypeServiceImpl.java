@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.containertype.ContainerTypeDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.containertype.ContainerTypeMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class ContainerTypeServiceImpl implements ContainerTypeService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private ContainerTypeMapper containerTypeMapper;
 
     @Override
     public Long createContainerType(ContainerTypeSaveReqVO createReqVO) {
         // 插入
         ContainerTypeDO containerType = BeanUtils.toBean(createReqVO, ContainerTypeDO.class);
+        containerType.setId(null);
+        containerType.setCode(codeService.generate(WmsCodeRuleConstants.CONTAINER_TYPE, containerType.getCode()));
+        validateContainerTypeUnique(containerType, null);
         containerTypeMapper.insert(containerType);
 
         // 返回
@@ -73,6 +80,8 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
         validateContainerTypeExists(updateReqVO.getId());
         // 更新
         ContainerTypeDO updateObj = BeanUtils.toBean(updateReqVO, ContainerTypeDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateContainerTypeUnique(updateObj, updateReqVO.getId());
         containerTypeMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
         return containerTypeMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateContainerTypeUnique(ContainerTypeDO containerType, Long excludeId) {
+        ContainerTypeDO existed = containerTypeMapper.selectByCode(containerType.getCode());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(CONTAINER_TYPE_CODE_DUPLICATE);
+    }
+
+}

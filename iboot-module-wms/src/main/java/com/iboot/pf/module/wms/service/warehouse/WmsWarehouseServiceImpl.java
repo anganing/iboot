@@ -9,6 +9,7 @@ import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsZoneMapper;
+import com.iboot.pf.module.wms.enums.WmsLocStatusEnum;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +27,6 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_NOT_EXISTS;
 /** 仓库结构 Service 实现。 */
 @Service
 public class WmsWarehouseServiceImpl implements WmsWarehouseService {
-
-    /** 库位停用状态。 */
-    private static final String LOC_STATUS_DISABLED = "DISABLED";
 
     @Resource
     private WmsWhMapper wmsWhMapper;
@@ -123,7 +121,7 @@ public class WmsWarehouseServiceImpl implements WmsWarehouseService {
         if (loc == null) {
             throw exception(LOC_NOT_EXISTS);
         }
-        if (LOC_STATUS_DISABLED.equals(loc.getStatus())) {
+        if (WmsLocStatusEnum.isDisabled(loc.getStatus())) {
             throw exception(LOC_DISABLED);
         }
     }

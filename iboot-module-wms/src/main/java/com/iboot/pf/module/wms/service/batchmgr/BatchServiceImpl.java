@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.batchmgr.BatchMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class BatchServiceImpl implements BatchService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private BatchMapper batchMapper;
 
     @Override
     public Long createBatch(BatchSaveReqVO createReqVO) {
         // 插入
         BatchDO batch = BeanUtils.toBean(createReqVO, BatchDO.class);
+        batch.setId(null);
+        batch.setLotNo(codeService.generate(WmsCodeRuleConstants.BATCH_LOT, batch.getLotNo()));
+        validateBatchUnique(batch, null);
         batchMapper.insert(batch);
 
         // 返回
@@ -73,6 +80,8 @@ public class BatchServiceImpl implements BatchService {
         validateBatchExists(updateReqVO.getId());
         // 更新
         BatchDO updateObj = BeanUtils.toBean(updateReqVO, BatchDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateBatchUnique(updateObj, updateReqVO.getId());
         batchMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class BatchServiceImpl implements BatchService {
         return batchMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateBatchUnique(BatchDO batch, Long excludeId) {
+        BatchDO existed = batchMapper.selectByMatIdAndLotNo(batch.getMatId(), batch.getLotNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(BATCH_LOT_NO_DUPLICATE);
+    }
+
+}

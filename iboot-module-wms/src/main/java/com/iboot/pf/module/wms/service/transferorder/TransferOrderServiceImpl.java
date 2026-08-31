@@ -14,9 +14,16 @@ import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLin
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.transferorder.TransferOrderMapper;
 import com.iboot.pf.module.wms.dal.mysql.transferorderline.TransferOrderLineMapper;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import com.iboot.pf.module.wms.enums.WmsStockScopeEnum;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+
+import java.math.BigDecimal;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -33,14 +40,21 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class TransferOrderServiceImpl implements TransferOrderService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private TransferOrderMapper transferOrderMapper;
     @Resource
     private TransferOrderLineMapper transferOrderLineMapper;
+    @Resource
+    private WmsSnapshotService snapshotService;
 
     @Override
     public Long createTransferOrder(TransferOrderSaveReqVO createReqVO) {
         // 插入
         TransferOrderDO transferOrder = BeanUtils.toBean(createReqVO, TransferOrderDO.class);
+        transferOrder.setId(null);
+        transferOrder.setTransferNo(codeService.generate(WmsCodeRuleConstants.TRANSFER_ORDER, transferOrder.getTransferNo()));
+        validateTransferOrderUnique(transferOrder, null);
         transferOrderMapper.insert(transferOrder);
 
         // 返回
@@ -77,6 +91,8 @@ public class TransferOrderServiceImpl implements TransferOrderService {
         validateTransferOrderExists(updateReqVO.getId());
         // 更新
         TransferOrderDO updateObj = BeanUtils.toBean(updateReqVO, TransferOrderDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateTransferOrderUnique(updateObj, updateReqVO.getId());
         transferOrderMapper.updateById(updateObj);
     }
 
@@ -122,23 +138,31 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     // ==================== 子表（WMS-库存转移调拨明细） ====================
 
     @Override
-    public PageResult<TransferOrderLineDO> getTransferOrderLinePage(PageParam pageReqVO, Long orderId) {
-        return transferOrderLineMapper.selectPage(pageReqVO, orderId);
+    public PageResult<TransferOrderLineRespVO> getTransferOrderLinePage(TransferOrderLinePageReqVO pageReqVO) {
+        return transferOrderLineMapper.selectJoinPage(pageReqVO);
     }
 
     @Override
-    public Long createTransferOrderLine(TransferOrderLineDO transferOrderLine) {
-        transferOrderLine.clean(); // 清理掉创建、更新时间等相关属性值
+    public Long createTransferOrderLine(TransferOrderLineSaveReqVO createReqVO) {
+        validateTransferOrderExists(createReqVO.getOrderId());
+        validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
+        TransferOrderLineDO transferOrderLine = BeanUtils.toBean(createReqVO, TransferOrderLineDO.class);
+        transferOrderLine.setId(null);
+        fillLineSnapshot(transferOrderLine);
+        // 搬运与过账数量由作业推进，创建时归零
+        transferOrderLine.setMovedQty(BigDecimal.ZERO);
+        transferOrderLine.setPostedQty(BigDecimal.ZERO);
         transferOrderLineMapper.insert(transferOrderLine);
         return transferOrderLine.getId();
     }
 
     @Override
-    public void updateTransferOrderLine(TransferOrderLineDO transferOrderLine) {
+    public void updateTransferOrderLine(TransferOrderLineSaveReqVO updateReqVO) {
         // 校验存在
-        validateTransferOrderLineExists(transferOrderLine.getId());
-        // 更新
-        transferOrderLine.clean(); // 解决更新情况下：updateTime 不更新
+        validateTransferOrderLineExists(updateReqVO.getId());
+        validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
+        TransferOrderLineDO transferOrderLine = BeanUtils.toBean(updateReqVO, TransferOrderLineDO.class);
+        fillLineSnapshot(transferOrderLine);
         transferOrderLineMapper.updateById(transferOrderLine);
     }
 
@@ -155,14 +179,35 @@ public class TransferOrderServiceImpl implements TransferOrderService {
 	}
 
     @Override
-    public TransferOrderLineDO getTransferOrderLine(Long id) {
-        return transferOrderLineMapper.selectById(id);
+    public TransferOrderLineRespVO getTransferOrderLine(Long id) {
+        return transferOrderLineMapper.selectJoinById(id);
     }
 
     private void validateTransferOrderLineExists(Long id) {
         if (transferOrderLineMapper.selectById(id) == null) {
             throw exception(TRANSFER_ORDER_LINE_NOT_EXISTS);
         }
+    }
+
+    /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
+    private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
+        TransferOrderLineDO existed = transferOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(TRANSFER_ORDER_LINE_NO_DUPLICATE);
+    }
+
+    /** 明细上的物料、单位、批次快照补全，库存范围为空时按公共库存兜底。 */
+    private void fillLineSnapshot(TransferOrderLineDO line) {
+        MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
+        line.setMatCode(material.getCode());
+        line.setMatName(material.getName());
+        line.setUomCode(snapshotService.requireUomCode(line.getUomId()));
+        line.setLotNo(snapshotService.lotNoOrNull(line.getBatchId()));
+        snapshotService.validateContainer(line.getContainerId());
+        line.setFromStockScope(WmsStockScopeEnum.defaultIfEmpty(line.getFromStockScope()));
+        line.setToStockScope(WmsStockScopeEnum.defaultIfEmpty(line.getToStockScope()));
     }
 
     private void deleteTransferOrderLineByOrderId(Long orderId) {
@@ -173,4 +218,16 @@ public class TransferOrderServiceImpl implements TransferOrderService {
         transferOrderLineMapper.deleteByOrderIds(orderIds);
 	}
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateTransferOrderUnique(TransferOrderDO transferOrder, Long excludeId) {
+        TransferOrderDO existed = transferOrderMapper.selectByTransferNo(transferOrder.getTransferNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(TRANSFER_ORDER_NO_DUPLICATE);
+    }
+
+}

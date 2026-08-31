@@ -13,6 +13,8 @@ import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.invlock.InvLockMapper;
 
@@ -31,12 +33,17 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class InvLockServiceImpl implements InvLockService {
 
     @Resource
+    private WmsCodeService codeService;
+    @Resource
     private InvLockMapper invLockMapper;
 
     @Override
     public Long createInvLock(InvLockSaveReqVO createReqVO) {
         // 插入
         InvLockDO invLock = BeanUtils.toBean(createReqVO, InvLockDO.class);
+        invLock.setId(null);
+        invLock.setLockNo(codeService.generate(WmsCodeRuleConstants.LOCK, invLock.getLockNo()));
+        validateInvLockUnique(invLock, null);
         invLockMapper.insert(invLock);
 
         // 返回
@@ -73,6 +80,8 @@ public class InvLockServiceImpl implements InvLockService {
         validateInvLockExists(updateReqVO.getId());
         // 更新
         InvLockDO updateObj = BeanUtils.toBean(updateReqVO, InvLockDO.class);
+        // 改自己不能撞自己，所以排除自身编号
+        validateInvLockUnique(updateObj, updateReqVO.getId());
         invLockMapper.updateById(updateObj);
     }
 
@@ -107,4 +116,16 @@ public class InvLockServiceImpl implements InvLockService {
         return invLockMapper.selectPage(pageReqVO);
     }
 
-}
+
+    /**
+     * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
+     */
+    private void validateInvLockUnique(InvLockDO invLock, Long excludeId) {
+        InvLockDO existed = invLockMapper.selectByLockNo(invLock.getLockNo());
+        if (existed == null || existed.getId().equals(excludeId)) {
+            return;
+        }
+        throw exception(INV_LOCK_NO_DUPLICATE);
+    }
+
+}

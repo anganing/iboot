@@ -1,6 +1,7 @@
 package com.iboot.pf.module.wms.service.batch;
 
 import cn.hutool.core.collection.CollUtil;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
@@ -73,7 +74,7 @@ public class WmsBatchServiceImpl implements WmsBatchService {
         }
         batch = BeanUtils.toBean(bo, WmsBatchDO.class);
         batch.setId(null);
-        batch.setStatus(0);
+        batch.setStatus(CommonStatusEnum.ENABLE.getStatus());
         wmsBatchMapper.insert(batch);
         return batch;
     }

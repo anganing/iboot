@@ -11,6 +11,8 @@ import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderMapper;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsConstants;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.batch.WmsBatchService;
@@ -42,9 +44,6 @@ import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.IN_ORDER;
 /** 入库单 Service 实现。 */
 @Service
 public class WmsInOrderServiceImpl implements WmsInOrderService {
-
-    /** 无批次物料使用的默认批次号。 */
-    private static final String DEFAULT_LOT_NO = "DEFAULT";
 
     @Resource
     private WmsInOrderMapper wmsInOrderMapper;
@@ -100,12 +99,12 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
                     ? order.getQualityStatus() : line.getQualityStatus());
             lineDO.setCompletedQty(BigDecimal.ZERO);
             lineDO.setPostedQty(BigDecimal.ZERO);
-            lineDO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+            lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
             // 创建阶段注册批次并回填 batchId，此时调用方传入的批次扩展信息仍然可用
             if (lineDO.getBatchId() == null) {
                 lineDO.setBatchId(registerBatch(order, line, materialMap.get(line.getMatId())));
                 lineDO.setLotNo(line.getLotNo() == null || line.getLotNo().isEmpty()
-                        ? DEFAULT_LOT_NO : line.getLotNo());
+                        ? WmsConstants.DEFAULT_LOT_NO : line.getLotNo());
             }
             wmsInOrderLineMapper.insert(lineDO);
         }
@@ -123,7 +122,7 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
         order.setRemark(bo.getReason());
         wmsInOrderMapper.updateById(order);
         for (WmsInOrderLineDO line : wmsInOrderLineMapper.selectListByOrderId(order.getId())) {
-            line.setStatus(WmsOrderStatusEnum.CANCELLED.name());
+            line.setStatus(WmsOrderLineStatusEnum.CANCELLED.name());
             wmsInOrderLineMapper.updateById(line);
         }
     }
@@ -159,7 +158,7 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
 
             line.setPostedQty(nvl(line.getPostedQty()).add(qty));
             line.setCompletedQty(nvl(line.getCompletedQty()).add(qty));
-            line.setStatus(WmsOrderStatusEnum.DONE.name());
+            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
             wmsInOrderLineMapper.updateById(line);
         }
 
@@ -172,7 +171,8 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
         registerBO.setMatId(line.getMatId());
         registerBO.setMatCode(line.getMatCode());
         registerBO.setMatName(line.getMatName());
-        registerBO.setLotNo(line.getLotNo() == null || line.getLotNo().isEmpty() ? DEFAULT_LOT_NO : line.getLotNo());
+        registerBO.setLotNo(line.getLotNo() == null || line.getLotNo().isEmpty()
+                ? WmsConstants.DEFAULT_LOT_NO : line.getLotNo());
         registerBO.setSupplierId(line.getSupplierId());
         registerBO.setSupplierCode(line.getSupplierCode());
         registerBO.setSupplierLotNo(line.getSupplierLotNo());

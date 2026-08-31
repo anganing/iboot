@@ -9,6 +9,8 @@ import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
 import com.iboot.pf.module.wms.enums.WmsIoTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsConstants;
+import com.iboot.pf.module.wms.enums.WmsStockScopeEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
@@ -36,12 +38,6 @@ import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.TXN;
 /** 库存 Service 实现。库存余额只能通过过账修改，不对外提供直接改余额的方法。 */
 @Service
 public class WmsInventoryServiceImpl implements WmsInventoryService {
-
-    /** 无容器、无项目、无项目任务的占位编号。 */
-    private static final Long NONE_ID = 0L;
-
-    /** 公共库存范围。 */
-    private static final String STOCK_SCOPE_COMMON = "COMMON";
 
     @Resource
     private WmsInvBalanceMapper wmsInvBalanceMapper;
@@ -315,11 +311,11 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
     }
 
     private static Long nvl(Long value) {
-        return value == null ? NONE_ID : value;
+        return value == null ? WmsConstants.NONE_ID : value;
     }
 
     private static String defaultScope(String scope) {
-        return scope == null || scope.isEmpty() ? STOCK_SCOPE_COMMON : scope;
+        return WmsStockScopeEnum.defaultIfEmpty(scope);
     }
 
 }
