@@ -3,7 +3,6 @@ package com.iboot.pf.module.aps.dal.dataobject.version;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -66,8 +65,12 @@ public class ApsVersionDO extends BaseDO {
     /** 求解结果或失败信息。 */
     private String solverMessage;
 
-    /** 乐观锁版本，防止并发发布同一版本。 */
-    @Version
+    /**
+     * 乐观锁版本，防止并发发布同一版本。
+     *
+     * <p>不用 MyBatis-Plus 的 {@code @Version}：框架没有注册 OptimisticLockerInnerInterceptor，
+     * 加了注解只会让 updateById 生成拿不到参数的 SQL。和 WMS 库存余额一致，由 Service 显式带版本条件更新。
+     */
     private Integer version;
 
     /** 备注。 */

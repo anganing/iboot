@@ -1,5 +1,6 @@
 package com.iboot.pf.module.aps.service.version;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
@@ -171,18 +172,28 @@ public class ApsVersionServiceImpl implements ApsVersionService {
         }
     }
 
+    /**
+     * 带乐观锁条件更新状态。
+     *
+     * <p>版本号自增 + WHERE version = 原值：并发下只有一个请求能把同一个版本推进到下一状态，
+     * 另一个请求更新 0 行，直接报状态非法而不是静默覆盖。
+     */
     private void updateStatus(ApsVersionDO version, ApsVersionStatusEnum status, Long operatorId) {
+        int currentVersion = version.getVersion() == null ? ApsConstants.INIT_VERSION : version.getVersion();
         ApsVersionDO update = ApsVersionDO.builder()
-                .id(version.getId())
                 .status(status.name())
-                // 乐观锁字段要带上原值，否则 MyBatis-Plus 不会拼 version 条件
-                .version(version.getVersion())
+                .version(currentVersion + 1)
                 .build();
         if (status == ApsVersionStatusEnum.PUBLISHED) {
             update.setPublishedTime(LocalDateTime.now());
             update.setPublishedBy(operatorId);
         }
-        versionMapper.updateById(update);
+        LambdaUpdateWrapper<ApsVersionDO> wrapper = new LambdaUpdateWrapper<ApsVersionDO>()
+                .eq(ApsVersionDO::getId, version.getId())
+                .eq(ApsVersionDO::getVersion, currentVersion);
+        if (versionMapper.update(update, wrapper) == 0) {
+            throw exception(VERSION_STATUS_INVALID);
+        }
     }
 
     private ApsVersionDO require(Long id) {
