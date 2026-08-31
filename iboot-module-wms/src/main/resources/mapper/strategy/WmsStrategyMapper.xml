@@ -25,23 +25,11 @@
             <if test="req.strategyType != null and req.strategyType != ''">
                 AND t.strategy_type = #{req.strategyType}
             </if>
-            <if test="req.versionNo != null and req.versionNo != ''">
-                AND t.version_no = #{req.versionNo}
-            </if>
-            <if test="req.configJson != null and req.configJson != ''">
-                AND t.config_json = #{req.configJson}
-            </if>
-            <if test="req.priority != null">
-                AND t.priority = #{req.priority}
-            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

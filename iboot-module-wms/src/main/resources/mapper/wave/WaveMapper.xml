@@ -22,20 +22,11 @@
             <if test="req.waveType != null and req.waveType != ''">
                 AND t.wave_type = #{req.waveType}
             </if>
-            <if test="req.planStartTime != null">
-                AND t.plan_start_time = #{req.planStartTime}
-            </if>
-            <if test="req.planEndTime != null">
-                AND t.plan_end_time = #{req.planEndTime}
-            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

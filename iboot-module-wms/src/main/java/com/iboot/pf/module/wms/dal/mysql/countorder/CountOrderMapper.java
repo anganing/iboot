@@ -30,4 +30,10 @@ public interface CountOrderMapper extends BaseMapperX<CountOrderDO> {
 
     IPage<CountOrderRespVO> selectJoinPage(IPage<CountOrderRespVO> page, @Param("req") CountOrderPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default CountOrderDO selectByCountNo(String countNo) {
+        return selectOne(CountOrderDO::getCountNo, countNo);
+    }
+
 }

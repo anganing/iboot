@@ -28,32 +28,11 @@
             <if test="req.supplierId != null">
                 AND t.supplier_id = #{req.supplierId}
             </if>
-            <if test="req.supplierCode != null and req.supplierCode != ''">
-                AND t.supplier_code = #{req.supplierCode}
-            </if>
-            <if test="req.supplierName != null and req.supplierName != ''">
-                AND t.supplier_name LIKE CONCAT('%', #{req.supplierName}, '%')
-            </if>
-            <if test="req.invOrgId != null">
-                AND t.inv_org_id = #{req.invOrgId}
-            </if>
-            <if test="req.plantId != null">
-                AND t.plant_id = #{req.plantId}
-            </if>
-            <if test="req.expectDate != null">
-                AND t.expect_date = #{req.expectDate}
-            </if>
-            <if test="req.arrivalTime != null">
-                AND t.arrival_time = #{req.arrivalTime}
-            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

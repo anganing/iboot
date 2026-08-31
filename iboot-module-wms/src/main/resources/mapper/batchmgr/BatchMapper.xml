@@ -16,12 +16,6 @@
             <if test="req.matId != null">
                 AND t.mat_id = #{req.matId}
             </if>
-            <if test="req.matCode != null and req.matCode != ''">
-                AND t.mat_code = #{req.matCode}
-            </if>
-            <if test="req.matName != null and req.matName != ''">
-                AND t.mat_name LIKE CONCAT('%', #{req.matName}, '%')
-            </if>
             <if test="req.lotNo != null and req.lotNo != ''">
                 AND t.lot_no = #{req.lotNo}
             </if>
@@ -31,29 +25,14 @@
             <if test="req.supplierId != null">
                 AND t.supplier_id = #{req.supplierId}
             </if>
-            <if test="req.supplierCode != null and req.supplierCode != ''">
-                AND t.supplier_code = #{req.supplierCode}
-            </if>
             <if test="req.supplierLotNo != null and req.supplierLotNo != ''">
                 AND t.supplier_lot_no = #{req.supplierLotNo}
-            </if>
-            <if test="req.furnaceLotNo != null and req.furnaceLotNo != ''">
-                AND t.furnace_lot_no = #{req.furnaceLotNo}
-            </if>
-            <if test="req.produceDate != null">
-                AND t.produce_date = #{req.produceDate}
-            </if>
-            <if test="req.expiryDate != null">
-                AND t.expiry_date = #{req.expiryDate}
             </if>
             <if test="req.status != null">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

@@ -26,6 +26,13 @@ public interface WhMapper extends BaseMapperX<WhDO> {
         return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
 
+    /**
+     * 按库存组织 + 编码查询，唯一索引 uk_wms_wh_org_code_deleted 的应用层前置校验。
+     */
+    default WhDO selectByInvOrgIdAndCode(Long invOrgId, String code) {
+        return selectOne(WhDO::getInvOrgId, invOrgId, WhDO::getCode, code);
+    }
+
     WhRespVO selectJoinById(@Param("id") Long id);
 
     IPage<WhRespVO> selectJoinPage(IPage<WhRespVO> page, @Param("req") WhPageReqVO reqVO);

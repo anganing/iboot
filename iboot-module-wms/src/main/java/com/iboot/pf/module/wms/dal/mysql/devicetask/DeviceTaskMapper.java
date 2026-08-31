@@ -30,4 +30,10 @@ public interface DeviceTaskMapper extends BaseMapperX<DeviceTaskDO> {
 
     IPage<DeviceTaskRespVO> selectJoinPage(IPage<DeviceTaskRespVO> page, @Param("req") DeviceTaskPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default DeviceTaskDO selectByTaskNo(String taskNo) {
+        return selectOne(DeviceTaskDO::getTaskNo, taskNo);
+    }
+
 }

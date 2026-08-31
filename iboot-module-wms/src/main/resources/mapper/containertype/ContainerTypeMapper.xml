@@ -19,29 +19,11 @@
             <if test="req.name != null and req.name != ''">
                 AND t.name LIKE CONCAT('%', #{req.name}, '%')
             </if>
-            <if test="req.stdLength != null">
-                AND t.std_length = #{req.stdLength}
-            </if>
-            <if test="req.stdWidth != null">
-                AND t.std_width = #{req.stdWidth}
-            </if>
-            <if test="req.stdHeight != null">
-                AND t.std_height = #{req.stdHeight}
-            </if>
-            <if test="req.maxWeight != null">
-                AND t.max_weight = #{req.maxWeight}
-            </if>
-            <if test="req.maxVolume != null">
-                AND t.max_volume = #{req.maxVolume}
-            </if>
             <if test="req.status != null">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

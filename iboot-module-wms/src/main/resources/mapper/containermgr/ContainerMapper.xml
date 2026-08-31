@@ -6,11 +6,16 @@
         t.*
         , wh.code AS wh_code
         , wh.name AS wh_name
+        , ct.code AS type_code
+        , ct.name AS type_name
+        , loc.code AS loc_code
     </sql>
 
     <sql id="joinTables">
         FROM wms_container t
         LEFT JOIN wms_wh wh ON wh.id = t.wh_id AND wh.deleted = 0
+        LEFT JOIN wms_container_type ct ON ct.id = t.type_id AND ct.deleted = 0
+        LEFT JOIN wms_loc loc ON loc.id = t.loc_id AND loc.deleted = 0
     </sql>
 
     <sql id="whereConditions">
@@ -22,35 +27,14 @@
             <if test="req.typeId != null">
                 AND t.type_id = #{req.typeId}
             </if>
-            <if test="req.invOrgId != null">
-                AND t.inv_org_id = #{req.invOrgId}
-            </if>
             <if test="req.locId != null">
                 AND t.loc_id = #{req.locId}
-            </if>
-            <if test="req.length != null">
-                AND t.length = #{req.length}
-            </if>
-            <if test="req.width != null">
-                AND t.width = #{req.width}
-            </if>
-            <if test="req.height != null">
-                AND t.height = #{req.height}
-            </if>
-            <if test="req.grossWeight != null">
-                AND t.gross_weight = #{req.grossWeight}
             </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.version != null">
-                AND t.version = #{req.version}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

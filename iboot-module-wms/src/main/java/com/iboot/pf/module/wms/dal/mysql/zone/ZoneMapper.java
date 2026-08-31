@@ -30,4 +30,10 @@ public interface ZoneMapper extends BaseMapperX<ZoneDO> {
 
     IPage<ZoneRespVO> selectJoinPage(IPage<ZoneRespVO> page, @Param("req") ZonePageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default ZoneDO selectByWhIdAndCode(Long whId, String code) {
+        return selectOne(ZoneDO::getWhId, whId, ZoneDO::getCode, code);
+    }
+
 }

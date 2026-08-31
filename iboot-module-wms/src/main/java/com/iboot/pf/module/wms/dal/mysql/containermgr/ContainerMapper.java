@@ -30,4 +30,10 @@ public interface ContainerMapper extends BaseMapperX<ContainerDO> {
 
     IPage<ContainerRespVO> selectJoinPage(IPage<ContainerRespVO> page, @Param("req") ContainerPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default ContainerDO selectByContainerNo(String containerNo) {
+        return selectOne(ContainerDO::getContainerNo, containerNo);
+    }
+
 }

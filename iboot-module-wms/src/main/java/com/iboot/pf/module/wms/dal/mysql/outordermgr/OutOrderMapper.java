@@ -30,4 +30,10 @@ public interface OutOrderMapper extends BaseMapperX<OutOrderDO> {
 
     IPage<OutOrderRespVO> selectJoinPage(IPage<OutOrderRespVO> page, @Param("req") OutOrderPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default OutOrderDO selectByOutNo(String outNo) {
+        return selectOne(OutOrderDO::getOutNo, outNo);
+    }
+
 }

@@ -5,6 +5,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
+import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -53,7 +54,8 @@ public interface WmsInvBalanceMapper extends BaseMapperX<WmsInvBalanceDO> {
                 .eqIfPresent(WmsInvBalanceDO::getProjectTaskId, query.getProjectTaskId())
                 .eqIfPresent(WmsInvBalanceDO::getStockScope, query.getStockScope())
                 .eqIfPresent(WmsInvBalanceDO::getQualityStatus, query.getQualityStatus())
-                .eq(Boolean.TRUE.equals(query.getQualifiedOnly()), WmsInvBalanceDO::getQualityStatus, "QUALIFIED")
+                .eq(Boolean.TRUE.equals(query.getQualifiedOnly()), WmsInvBalanceDO::getQualityStatus,
+                        WmsQualityStatusEnum.QUALIFIED.name())
                 .orderByDesc(WmsInvBalanceDO::getId);
     }
 

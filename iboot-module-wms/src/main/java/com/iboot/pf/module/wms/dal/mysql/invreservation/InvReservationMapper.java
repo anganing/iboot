@@ -30,4 +30,10 @@ public interface InvReservationMapper extends BaseMapperX<InvReservationDO> {
 
     IPage<InvReservationRespVO> selectJoinPage(IPage<InvReservationRespVO> page, @Param("req") InvReservationPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default InvReservationDO selectByReservationNo(String reservationNo) {
+        return selectOne(InvReservationDO::getReservationNo, reservationNo);
+    }
+
 }

@@ -30,4 +30,10 @@ public interface TransferOrderMapper extends BaseMapperX<TransferOrderDO> {
 
     IPage<TransferOrderRespVO> selectJoinPage(IPage<TransferOrderRespVO> page, @Param("req") TransferOrderPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default TransferOrderDO selectByTransferNo(String transferNo) {
+        return selectOne(TransferOrderDO::getTransferNo, transferNo);
+    }
+
 }

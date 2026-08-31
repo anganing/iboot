@@ -30,4 +30,10 @@ public interface LocMapper extends BaseMapperX<LocDO> {
 
     IPage<LocRespVO> selectJoinPage(IPage<LocRespVO> page, @Param("req") LocPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default LocDO selectByWhIdAndCode(Long whId, String code) {
+        return selectOne(LocDO::getWhId, whId, LocDO::getCode, code);
+    }
+
 }

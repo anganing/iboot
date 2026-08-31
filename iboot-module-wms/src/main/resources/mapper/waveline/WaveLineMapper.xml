@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.waveline.WaveLineMapper">
+
+    <!-- 波次明细本身只存两个外键，出库单号、出库行与物料全部靠 JOIN 补出来 -->
+    <sql id="selectColumns">
+        t.*
+        , out_order.out_no AS out_order_no
+        , out_line.line_no AS out_order_line_no
+        , out_line.mat_code AS mat_code
+        , out_line.mat_name AS mat_name
+        , out_line.plan_qty AS plan_qty
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_wave_line t
+        LEFT JOIN wms_out_order out_order ON out_order.id = t.out_order_id AND out_order.deleted = 0
+        LEFT JOIN wms_out_order_line out_line ON out_line.id = t.out_order_line_id AND out_line.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            AND t.wave_id = #{req.waveId}
+            <if test="req.outOrderId != null">
+                AND t.out_order_id = #{req.outOrderId}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.wms.controller.admin.wave.vo.WaveLineRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.priority DESC, t.line_no ASC
+    </select>
+
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.wms.controller.admin.wave.vo.WaveLineRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

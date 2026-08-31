@@ -30,4 +30,10 @@ public interface InOrderMapper extends BaseMapperX<InOrderDO> {
 
     IPage<InOrderRespVO> selectJoinPage(IPage<InOrderRespVO> page, @Param("req") InOrderPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default InOrderDO selectByInNo(String inNo) {
+        return selectOne(InOrderDO::getInNo, inNo);
+    }
+
 }

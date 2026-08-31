@@ -30,4 +30,10 @@ public interface WaveMapper extends BaseMapperX<WaveDO> {
 
     IPage<WaveRespVO> selectJoinPage(IPage<WaveRespVO> page, @Param("req") WavePageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default WaveDO selectByWaveNo(String waveNo) {
+        return selectOne(WaveDO::getWaveNo, waveNo);
+    }
+
 }

@@ -30,4 +30,10 @@ public interface BatchMapper extends BaseMapperX<BatchDO> {
 
     IPage<BatchRespVO> selectJoinPage(IPage<BatchRespVO> page, @Param("req") BatchPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default BatchDO selectByMatIdAndLotNo(Long matId, String lotNo) {
+        return selectOne(BatchDO::getMatId, matId, BatchDO::getLotNo, lotNo);
+    }
+
 }

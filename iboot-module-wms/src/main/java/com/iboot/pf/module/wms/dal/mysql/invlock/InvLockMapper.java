@@ -30,4 +30,10 @@ public interface InvLockMapper extends BaseMapperX<InvLockDO> {
 
     IPage<InvLockRespVO> selectJoinPage(IPage<InvLockRespVO> page, @Param("req") InvLockPageReqVO reqVO);
 
+
+    /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
+    default InvLockDO selectByLockNo(String lockNo) {
+        return selectOne(InvLockDO::getLockNo, lockNo);
+    }
+
 }

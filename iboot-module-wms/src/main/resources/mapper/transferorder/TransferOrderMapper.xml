@@ -4,10 +4,16 @@
 
     <sql id="selectColumns">
         t.*
+        , from_wh.code AS from_wh_code
+        , from_wh.name AS from_wh_name
+        , to_wh.code AS to_wh_code
+        , to_wh.name AS to_wh_name
     </sql>
 
     <sql id="joinTables">
         FROM wms_transfer_order t
+        LEFT JOIN wms_wh from_wh ON from_wh.id = t.from_wh_id AND from_wh.deleted = 0
+        LEFT JOIN wms_wh to_wh ON to_wh.id = t.to_wh_id AND to_wh.deleted = 0
     </sql>
 
     <sql id="whereConditions">
@@ -19,17 +25,8 @@
             <if test="req.transferType != null and req.transferType != ''">
                 AND t.transfer_type = #{req.transferType}
             </if>
-            <if test="req.sourceType != null and req.sourceType != ''">
-                AND t.source_type = #{req.sourceType}
-            </if>
             <if test="req.sourceBizNo != null and req.sourceBizNo != ''">
                 AND t.source_biz_no = #{req.sourceBizNo}
-            </if>
-            <if test="req.fromInvOrgId != null">
-                AND t.from_inv_org_id = #{req.fromInvOrgId}
-            </if>
-            <if test="req.toInvOrgId != null">
-                AND t.to_inv_org_id = #{req.toInvOrgId}
             </if>
             <if test="req.fromWhId != null">
                 AND t.from_wh_id = #{req.fromWhId}
@@ -37,26 +34,11 @@
             <if test="req.toWhId != null">
                 AND t.to_wh_id = #{req.toWhId}
             </if>
-            <if test="req.fromProjectId != null">
-                AND t.from_project_id = #{req.fromProjectId}
-            </if>
-            <if test="req.toProjectId != null">
-                AND t.to_project_id = #{req.toProjectId}
-            </if>
-            <if test="req.hookMode != null and req.hookMode != ''">
-                AND t.hook_mode = #{req.hookMode}
-            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
-                AND t.idempotency_key = #{req.idempotencyKey}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

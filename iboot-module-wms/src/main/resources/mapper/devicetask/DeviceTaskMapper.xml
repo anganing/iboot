@@ -4,10 +4,18 @@
 
     <sql id="selectColumns">
         t.*
+        , container.container_no AS container_no
+        , from_loc.code AS from_loc_code
+        , to_loc.code AS to_loc_code
+        , actual_loc.code AS actual_loc_code
     </sql>
 
     <sql id="joinTables">
         FROM wms_device_task t
+        LEFT JOIN wms_container container ON container.id = t.container_id AND container.deleted = 0
+        LEFT JOIN wms_loc from_loc ON from_loc.id = t.from_loc_id AND from_loc.deleted = 0
+        LEFT JOIN wms_loc to_loc ON to_loc.id = t.to_loc_id AND to_loc.deleted = 0
+        LEFT JOIN wms_loc actual_loc ON actual_loc.id = t.actual_loc_id AND actual_loc.deleted = 0
     </sql>
 
     <sql id="whereConditions">
@@ -31,24 +39,6 @@
             <if test="req.sourceBizNo != null and req.sourceBizNo != ''">
                 AND t.source_biz_no = #{req.sourceBizNo}
             </if>
-            <if test="req.sourceLineId != null">
-                AND t.source_line_id = #{req.sourceLineId}
-            </if>
-            <if test="req.containerId != null">
-                AND t.container_id = #{req.containerId}
-            </if>
-            <if test="req.fromLocId != null">
-                AND t.from_loc_id = #{req.fromLocId}
-            </if>
-            <if test="req.toLocId != null">
-                AND t.to_loc_id = #{req.toLocId}
-            </if>
-            <if test="req.actualLocId != null">
-                AND t.actual_loc_id = #{req.actualLocId}
-            </if>
-            <if test="req.externalSystemCode != null and req.externalSystemCode != ''">
-                AND t.external_system_code = #{req.externalSystemCode}
-            </if>
             <if test="req.dispatchStatus != null and req.dispatchStatus != ''">
                 AND t.dispatch_status = #{req.dispatchStatus}
             </if>
@@ -58,26 +48,8 @@
             <if test="req.postStatus != null and req.postStatus != ''">
                 AND t.post_status = #{req.postStatus}
             </if>
-            <if test="req.requestSnapshotJson != null and req.requestSnapshotJson != ''">
-                AND t.request_snapshot_json = #{req.requestSnapshotJson}
-            </if>
-            <if test="req.callbackSnapshotJson != null and req.callbackSnapshotJson != ''">
-                AND t.callback_snapshot_json = #{req.callbackSnapshotJson}
-            </if>
-            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
-                AND t.idempotency_key = #{req.idempotencyKey}
-            </if>
-            <if test="req.completedTime != null">
-                AND t.completed_time = #{req.completedTime}
-            </if>
-            <if test="req.version != null">
-                AND t.version = #{req.version}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

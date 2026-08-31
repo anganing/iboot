@@ -28,47 +28,11 @@
             <if test="req.aisleNo != null and req.aisleNo != ''">
                 AND t.aisle_no = #{req.aisleNo}
             </if>
-            <if test="req.rowNo != null and req.rowNo != ''">
-                AND t.row_no = #{req.rowNo}
-            </if>
-            <if test="req.colNo != null and req.colNo != ''">
-                AND t.col_no = #{req.colNo}
-            </if>
-            <if test="req.levelNo != null and req.levelNo != ''">
-                AND t.level_no = #{req.levelNo}
-            </if>
-            <if test="req.depthNo != null">
-                AND t.depth_no = #{req.depthNo}
-            </if>
-            <if test="req.maxLength != null">
-                AND t.max_length = #{req.maxLength}
-            </if>
-            <if test="req.maxWidth != null">
-                AND t.max_width = #{req.maxWidth}
-            </if>
-            <if test="req.maxHeight != null">
-                AND t.max_height = #{req.maxHeight}
-            </if>
-            <if test="req.maxWeight != null">
-                AND t.max_weight = #{req.maxWeight}
-            </if>
-            <if test="req.maxVolume != null">
-                AND t.max_volume = #{req.maxVolume}
-            </if>
-            <if test="req.maxContainerQty != null">
-                AND t.max_container_qty = #{req.maxContainerQty}
-            </if>
-            <if test="req.dimensionCheckMode != null and req.dimensionCheckMode != ''">
-                AND t.dimension_check_mode = #{req.dimensionCheckMode}
-            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>
