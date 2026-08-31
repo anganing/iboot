@@ -342,11 +342,43 @@ const MES_DICT = {
 
 /** ========== WMS - 仓储管理模块 ========== */
 const WMS_DICT = {
-  WMS_MERCHANT_TYPE: 'merchant_type', // WMS 往来企业类型
-  WMS_ORDER_TYPE: 'wms_order_type', // WMS 单据类型
+  WMS_ARRIVAL_LINE_STATUS: 'wms_arrival_line_status', // WMS 到货明细状态
+  WMS_ARRIVAL_SOURCE_TYPE: 'wms_arrival_source_type', // WMS 到货来源类型
+  WMS_ARRIVAL_STATUS: 'wms_arrival_status', // WMS 到货状态
+  WMS_CONTAINER_STATUS: 'wms_container_status', // WMS 容器状态
+  WMS_COUNT_LINE_STATUS: 'wms_count_line_status', // WMS 盘点明细状态
+  WMS_COUNT_TYPE: 'wms_count_type', // WMS 盘点类型
+  WMS_DEVICE_TASK_STATUS: 'wms_device_task_status', // WMS 设备任务状态
+  WMS_DEVICE_TASK_TYPE: 'wms_device_task_type', // WMS 设备任务类型
+  WMS_DEVICE_TYPE: 'wms_device_type', // WMS 设备类型
+  WMS_DIMENSION_CHECK_MODE: 'wms_dimension_check_mode', // WMS 尺寸校验模式
+  WMS_DISPATCH_STATUS: 'wms_dispatch_status', // WMS 任务下发状态
+  WMS_HOOK_MODE: 'wms_hook_mode', // WMS 设备触发方式
+  WMS_IN_BIZ_TYPE: 'wms_in_biz_type', // WMS 入库业务类型
+  WMS_IO_TYPE: 'wms_io_type', // WMS 收发方向
+  WMS_IQC_MODE: 'wms_iqc_mode', // WMS 来料检验模式
+  WMS_LOC_STATUS: 'wms_loc_status', // WMS 库位状态
+  WMS_LOC_TYPE: 'wms_loc_type', // WMS 库位类型
+  WMS_LOCK_STATUS: 'wms_lock_status', // WMS 冻结状态
+  WMS_MANAGED_BY: 'wms_managed_by', // WMS 仓库管理方式
+  WMS_ORDER_LINE_STATUS: 'wms_order_line_status', // WMS 单据明细状态
   WMS_ORDER_STATUS: 'wms_order_status', // WMS 单据状态
-  WMS_RECEIPT_ORDER_TYPE: 'wms_receipt_order_type', // WMS 入库单类型
-  WMS_SHIPMENT_ORDER_TYPE: 'wms_shipment_order_type', // WMS 出库单类型
+  WMS_ORIGIN_TYPE: 'wms_origin_type', // WMS 原始来源类型
+  WMS_OUT_BIZ_TYPE: 'wms_out_biz_type', // WMS 出库业务类型
+  WMS_POST_STATUS: 'wms_post_status', // WMS 库存过账状态
+  WMS_QUALITY_STATUS: 'wms_quality_status', // WMS 质量状态
+  WMS_RESERVATION_STATUS: 'wms_reservation_status', // WMS 预留状态
+  WMS_SOURCE_BIZ_TYPE: 'wms_source_biz_type', // WMS 来源业务类型
+  WMS_SOURCE_MODULE: 'wms_source_module', // WMS 来源模块
+  WMS_STOCK_SCOPE: 'wms_stock_scope', // WMS 库存范围
+  WMS_STRATEGY_STATUS: 'wms_strategy_status', // WMS 策略状态
+  WMS_STRATEGY_TYPE: 'wms_strategy_type', // WMS 策略类型
+  WMS_TRANSFER_TYPE: 'wms_transfer_type', // WMS 转移类型
+  WMS_TXN_TYPE: 'wms_txn_type', // WMS 库存事务类型
+  WMS_WAVE_STATUS: 'wms_wave_status', // WMS 波次状态
+  WMS_WAVE_TYPE: 'wms_wave_type', // WMS 波次类型
+  WMS_WH_TYPE: 'wms_wh_type', // WMS 仓库类型
+  WMS_ZONE_TYPE: 'wms_zone_type', // WMS 库区类型
 } as const;
 
 /** 字典类型枚举 - 统一导出 */

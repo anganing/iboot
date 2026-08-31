@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import type { RelationSelectColumn, RelationSelectQueryField } from './types';
+
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-
-import type { RelationSelectColumn, RelationSelectQueryField } from './types';
 
 import { computed, nextTick, ref, useAttrs, watch } from 'vue';
 
@@ -30,10 +30,11 @@ const props = withDefaults(
     clearable?: boolean;
     columns?: RelationSelectColumn[];
     detailUri?: string;
-    disabled?: boolean;
-    dialogWidth?: string;
-    displayFields?: string[];
     dialogTitle?: string;
+    dialogWidth?: string;
+    disabled?: boolean;
+    displayFields?: string[];
+    extraParams?: Recordable;
     gridHeight?: number;
     labelSeparator?: string;
     modelValue?: RelationValue;
@@ -53,6 +54,7 @@ const props = withDefaults(
     dialogWidth: 'min(1200px, calc(100vw - 32px))',
     displayFields: () => ['name'],
     dialogTitle: '选择关联数据',
+    extraParams: () => ({}),
     gridHeight: 520,
     labelSeparator: ' / ',
     modelValue: undefined,
@@ -182,6 +184,8 @@ function getGridHeight() {
 
 async function queryData({ page }: any, formValues: Recordable) {
   const params = {
+    // 父级固定条件（如出库单编号）由调用方通过 extraParams 传入，用户不可改
+    ...props.extraParams,
     ...formValues,
     ...(props.queryAll
       ? { pageNo: 1, pageSize: props.queryAllPageSize }
@@ -202,7 +206,7 @@ async function resolveItemByValue(value: any) {
     return await requestClient.get(formatUri(props.detailUri, { id: value }));
   }
   const data = await requestClient.get(props.pageUri, {
-    params: { pageNo: 1, pageSize: props.queryAllPageSize },
+    params: { ...props.extraParams, pageNo: 1, pageSize: props.queryAllPageSize },
   });
   return normalizeResult(data).list.find((item) =>
     sameValue(item[props.valueField], value),
