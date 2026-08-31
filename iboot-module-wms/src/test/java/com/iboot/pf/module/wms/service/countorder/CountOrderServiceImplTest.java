@@ -1,173 +1,215 @@
 package com.iboot.pf.module.wms.service.countorder;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
+import com.iboot.pf.module.wms.controller.admin.countorder.vo.CountOrderLineSaveReqVO;
+import com.iboot.pf.module.wms.controller.admin.countorder.vo.CountOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.countorder.CountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.invbalance.InvBalanceDO;
 import com.iboot.pf.module.wms.dal.mysql.countorder.CountOrderMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.dal.mysql.countorderline.CountOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
+import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsCountTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_BALANCE_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link CountOrderServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 盘点单 Service 测试：单号自动分配、单号唯一、明细行号与余额唯一、
+ * 账面数量与差异由余额快照推导、主单删除级联清理明细。
  */
 @Import(CountOrderServiceImpl.class)
-public class CountOrderServiceImplTest extends BaseDbUnitTest {
+class CountOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private CountOrderServiceImpl countOrderService;
-
+    private CountOrderService countOrderService;
     @Resource
     private CountOrderMapper countOrderMapper;
+    @Resource
+    private CountOrderLineMapper countOrderLineMapper;
+    @Resource
+    private InvBalanceMapper invBalanceMapper;
 
-    @Test
-    public void testCreateCountOrder_success() {
-        // 准备参数
-        CountOrderSaveReqVO createReqVO = randomPojo(CountOrderSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
 
-        // 调用
-        Long countOrderId = countOrderService.createCountOrder(createReqVO);
-        // 断言
-        assertNotNull(countOrderId);
-        // 校验记录的属性是否正确
-        CountOrderDO countOrder = countOrderMapper.selectById(countOrderId);
-        assertPojoEquals(createReqVO, countOrder, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "CNT0001" : invocation.getArgument(1));
+    }
+
+    private CountOrderSaveReqVO buildReqVO(String countNo) {
+        CountOrderSaveReqVO reqVO = new CountOrderSaveReqVO();
+        reqVO.setCountNo(countNo);
+        reqVO.setCountType(WmsCountTypeEnum.FULL.name());
+        reqVO.setInvOrgId(1L);
+        reqVO.setWhId(1L);
+        reqVO.setZoneId(0L);
+        reqVO.setProjectId(0L);
+        reqVO.setSnapshotTime(LocalDateTime.now().withNano(0));
+        reqVO.setBlindCountFlag(false);
+        reqVO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
+    }
+
+    /** 预置一条库存余额，盘点明细的维度与账面数量都来自它。 */
+    private Long seedBalance(String matCode, BigDecimal qtyOnhand) {
+        InvBalanceDO balance = new InvBalanceDO();
+        balance.setInvOrgId(1L);
+        balance.setPlantId(1L);
+        balance.setWhId(1L);
+        balance.setLocId(1L);
+        balance.setMatId(100L);
+        balance.setBatchId(10L);
+        balance.setContainerId(0L);
+        balance.setProjectId(0L);
+        balance.setProjectTaskId(0L);
+        balance.setStockScope("COMMON");
+        balance.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+        balance.setQtyOnhand(qtyOnhand);
+        balance.setQtyReserved(BigDecimal.ZERO);
+        balance.setQtyFrozen(BigDecimal.ZERO);
+        balance.setMatCode(matCode);
+        balance.setMatName("物料A");
+        balance.setLotNo("LOT-1");
+        balance.setLocCode("LOC-1");
+        balance.setVersion(0);
+        invBalanceMapper.insert(balance);
+        return balance.getId();
+    }
+
+    private CountOrderLineSaveReqVO buildLineReqVO(Long orderId, Integer lineNo, Long balanceId,
+                                                  BigDecimal actualQty) {
+        CountOrderLineSaveReqVO reqVO = new CountOrderLineSaveReqVO();
+        reqVO.setOrderId(orderId);
+        reqVO.setLineNo(lineNo);
+        reqVO.setBalanceId(balanceId);
+        reqVO.setActualQty(actualQty);
+        reqVO.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setStatus(WmsCountLineStatusEnum.PENDING.name());
+        reqVO.setRemark("单测明细");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateCountOrder_success() {
-        // mock 数据
-        CountOrderDO dbCountOrder = randomPojo(CountOrderDO.class);
-        countOrderMapper.insert(dbCountOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        CountOrderSaveReqVO updateReqVO = randomPojo(CountOrderSaveReqVO.class, o -> {
-            o.setId(dbCountOrder.getId()); // 设置更新的 ID
-        });
+    void testCreateCountOrder_blankNoFilledByRule() {
+        Long id = countOrderService.createCountOrder(buildReqVO(null));
 
-        // 调用
+        CountOrderDO order = countOrderMapper.selectById(id);
+        assertNotNull(order);
+        assertEquals("CNT0001", order.getCountNo());
+    }
+
+    @Test
+    void testCreateCountOrder_duplicateNoRejected() {
+        countOrderService.createCountOrder(buildReqVO("CNT-A"));
+
+        assertServiceException(() -> countOrderService.createCountOrder(buildReqVO("CNT-A")),
+                COUNT_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateCountOrder_keepOwnNo() {
+        Long id = countOrderService.createCountOrder(buildReqVO("CNT-A"));
+
+        CountOrderSaveReqVO updateReqVO = buildReqVO("CNT-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("盘点范围调整");
         countOrderService.updateCountOrder(updateReqVO);
-        // 校验是否更新正确
-        CountOrderDO countOrder = countOrderMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, countOrder);
+
+        assertEquals("盘点范围调整", countOrderMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateCountOrder_notExists() {
-        // 准备参数
-        CountOrderSaveReqVO updateReqVO = randomPojo(CountOrderSaveReqVO.class);
+    void testUpdateCountOrder_notExists() {
+        CountOrderSaveReqVO updateReqVO = buildReqVO("CNT-A");
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
         assertServiceException(() -> countOrderService.updateCountOrder(updateReqVO), COUNT_ORDER_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteCountOrder_success() {
-        // mock 数据
-        CountOrderDO dbCountOrder = randomPojo(CountOrderDO.class);
-        countOrderMapper.insert(dbCountOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbCountOrder.getId();
+    void testCreateCountOrderLine_fillFromBalance() {
+        Long orderId = countOrderService.createCountOrder(buildReqVO("CNT-A"));
+        Long balanceId = seedBalance("M-001", new BigDecimal("100"));
 
-        // 调用
-        countOrderService.deleteCountOrder(id);
-       // 校验数据不存在了
-       assertNull(countOrderMapper.selectById(id));
+        Long lineId = countOrderService.createCountOrderLine(
+                buildLineReqVO(orderId, 10, balanceId, new BigDecimal("95")));
+
+        // 账面数量必须来自余额，差异按实盘算，前端传什么都不影响
+        CountOrderLineDO line = countOrderLineMapper.selectById(lineId);
+        assertNotNull(line);
+        assertEquals("M-001", line.getMatCode());
+        assertEquals("LOC-1", line.getLocCode());
+        assertEquals(0, line.getBookQty().compareTo(new BigDecimal("100")));
+        assertEquals(0, line.getDiffQty().compareTo(new BigDecimal("-5")));
     }
 
     @Test
-    public void testDeleteCountOrder_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testCreateCountOrderLine_duplicateLineNoRejected() {
+        Long orderId = countOrderService.createCountOrder(buildReqVO("CNT-A"));
+        Long firstBalance = seedBalance("M-001", new BigDecimal("100"));
+        Long secondBalance = seedBalance("M-002", new BigDecimal("50"));
+        countOrderService.createCountOrderLine(buildLineReqVO(orderId, 10, firstBalance, null));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> countOrderService.deleteCountOrder(id), COUNT_ORDER_NOT_EXISTS);
+        assertServiceException(
+                () -> countOrderService.createCountOrderLine(buildLineReqVO(orderId, 10, secondBalance, null)),
+                COUNT_ORDER_LINE_NO_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetCountOrderPage() {
-       // mock 数据
-       CountOrderDO dbCountOrder = randomPojo(CountOrderDO.class, o -> { // 等会查询到
-           o.setCountNo(null);
-           o.setCountType(null);
-           o.setInvOrgId(null);
-           o.setWhId(null);
-           o.setZoneId(null);
-           o.setProjectId(null);
-           o.setSnapshotTime(null);
-           o.setBlindCountFlag(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       countOrderMapper.insert(dbCountOrder);
-       // 测试 countNo 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setCountNo(null)));
-       // 测试 countType 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setCountType(null)));
-       // 测试 invOrgId 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setInvOrgId(null)));
-       // 测试 whId 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setWhId(null)));
-       // 测试 zoneId 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setZoneId(null)));
-       // 测试 projectId 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setProjectId(null)));
-       // 测试 snapshotTime 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setSnapshotTime(null)));
-       // 测试 blindCountFlag 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setBlindCountFlag(null)));
-       // 测试 status 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setIdempotencyKey(null)));
-       // 测试 remark 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       countOrderMapper.insert(cloneIgnoreId(dbCountOrder, o -> o.setCreateTime(null)));
-       // 准备参数
-       CountOrderPageReqVO reqVO = new CountOrderPageReqVO();
-       reqVO.setCountNo(null);
-       reqVO.setCountType(null);
-       reqVO.setInvOrgId(null);
-       reqVO.setWhId(null);
-       reqVO.setZoneId(null);
-       reqVO.setProjectId(null);
-       reqVO.setSnapshotTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setBlindCountFlag(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testCreateCountOrderLine_duplicateBalanceRejected() {
+        Long orderId = countOrderService.createCountOrder(buildReqVO("CNT-A"));
+        Long balanceId = seedBalance("M-001", new BigDecimal("100"));
+        countOrderService.createCountOrderLine(buildLineReqVO(orderId, 10, balanceId, null));
 
-       // 调用
-       PageResult<CountOrderRespVO> pageResult = countOrderService.getCountOrderPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbCountOrder, pageResult.getList().get(0));
+        // 同一盘点单里一个余额只能盘一次，否则差异会被重复过账
+        assertServiceException(
+                () -> countOrderService.createCountOrderLine(buildLineReqVO(orderId, 20, balanceId, null)),
+                COUNT_ORDER_LINE_BALANCE_DUPLICATE);
+    }
+
+    @Test
+    void testDeleteCountOrder_cascadeLines() {
+        Long orderId = countOrderService.createCountOrder(buildReqVO("CNT-A"));
+        Long balanceId = seedBalance("M-001", new BigDecimal("100"));
+        countOrderService.createCountOrderLine(buildLineReqVO(orderId, 10, balanceId, null));
+
+        countOrderService.deleteCountOrder(orderId);
+
+        assertNull(countOrderMapper.selectById(orderId));
+        assertEquals(0, countOrderLineMapper.selectCount("order_id", orderId));
+    }
+
+    @Test
+    void testDeleteCountOrder_notExists() {
+        assertServiceException(() -> countOrderService.deleteCountOrder(randomLongId()), COUNT_ORDER_NOT_EXISTS);
     }
 
 }

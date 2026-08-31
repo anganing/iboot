@@ -1,245 +1,188 @@
 package com.iboot.pf.module.wms.service.outordermgr;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
+import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.outordermgr.OutOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.outordermgr.OutOrderMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderLineSaveReqVO;
+import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
+import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import java.math.BigDecimal;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LINE_NO_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link OutOrderServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 出库单 Service 测试：覆盖单号自动分配、单号唯一、存在性校验、子表行号唯一与快照补全、主单删除级联。
  */
 @Import(OutOrderServiceImpl.class)
-public class OutOrderServiceImplTest extends BaseDbUnitTest {
+class OutOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private OutOrderServiceImpl outOrderService;
-
+    private OutOrderService outOrderService;
     @Resource
     private OutOrderMapper outOrderMapper;
+    @Resource
+    private OutOrderLineMapper outOrderLineMapper;
 
-    @Test
-    public void testCreateOutOrder_success() {
-        // 准备参数
-        OutOrderSaveReqVO createReqVO = randomPojo(OutOrderSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
+    @MockitoBean
+    private WmsSnapshotService snapshotService;
 
-        // 调用
-        Long outOrderId = outOrderService.createOutOrder(createReqVO);
-        // 断言
-        assertNotNull(outOrderId);
-        // 校验记录的属性是否正确
-        OutOrderDO outOrder = outOrderMapper.selectById(outOrderId);
-        assertPojoEquals(createReqVO, outOrder, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "OUT0001" : invocation.getArgument(1));
+        // 物料与单位快照来自 mdm 门面，单测只验证字段被写入
+        MaterialRespDTO material = new MaterialRespDTO();
+        material.setCode("M-001");
+        material.setName("物料A");
+        when(snapshotService.requireMaterial(any())).thenReturn(material);
+        when(snapshotService.requireUomCode(any())).thenReturn("PCS");
+    }
+
+    private OutOrderSaveReqVO buildReqVO(String outNo) {
+        OutOrderSaveReqVO reqVO = new OutOrderSaveReqVO();
+        reqVO.setOutNo(outNo);
+        reqVO.setBizType(WmsOutBizTypeEnum.PROD_ISSUE_OUT.name());
+        reqVO.setInvOrgId(1L);
+        reqVO.setPlantId(1L);
+        reqVO.setProjectId(0L);
+        reqVO.setProjectTaskId(0L);
+        reqVO.setWhId(1L);
+        reqVO.setWhCode("WH-1");
+        reqVO.setToInvOrgId(0L);
+        reqVO.setToWhId(0L);
+        reqVO.setHookMode(WmsHookModeEnum.NONE.name());
+        reqVO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateOutOrder_success() {
-        // mock 数据
-        OutOrderDO dbOutOrder = randomPojo(OutOrderDO.class);
-        outOrderMapper.insert(dbOutOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        OutOrderSaveReqVO updateReqVO = randomPojo(OutOrderSaveReqVO.class, o -> {
-            o.setId(dbOutOrder.getId()); // 设置更新的 ID
-        });
+    void testCreateOutOrder_blankNoFilledByRule() {
+        Long id = outOrderService.createOutOrder(buildReqVO(null));
 
-        // 调用
+        OutOrderDO entity = outOrderMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("OUT0001", entity.getOutNo());
+    }
+
+    @Test
+    void testCreateOutOrder_duplicateNoRejected() {
+        outOrderService.createOutOrder(buildReqVO("OUT-A"));
+
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> outOrderService.createOutOrder(buildReqVO("OUT-A")), OUT_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateOutOrder_keepOwnNo() {
+        Long id = outOrderService.createOutOrder(buildReqVO("OUT-A"));
+
+        OutOrderSaveReqVO updateReqVO = buildReqVO("OUT-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("单据备注调整");
         outOrderService.updateOutOrder(updateReqVO);
-        // 校验是否更新正确
-        OutOrderDO outOrder = outOrderMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, outOrder);
+
+        assertEquals("单据备注调整", outOrderMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateOutOrder_notExists() {
-        // 准备参数
-        OutOrderSaveReqVO updateReqVO = randomPojo(OutOrderSaveReqVO.class);
+    void testUpdateOutOrder_duplicateNoRejected() {
+        outOrderService.createOutOrder(buildReqVO("OUT-A"));
+        Long secondId = outOrderService.createOutOrder(buildReqVO("OUT-B"));
 
-        // 调用, 并断言异常
+        OutOrderSaveReqVO updateReqVO = buildReqVO("OUT-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> outOrderService.updateOutOrder(updateReqVO), OUT_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateOutOrder_notExists() {
+        OutOrderSaveReqVO updateReqVO = buildReqVO("OUT-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> outOrderService.updateOutOrder(updateReqVO), OUT_ORDER_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteOutOrder_success() {
-        // mock 数据
-        OutOrderDO dbOutOrder = randomPojo(OutOrderDO.class);
-        outOrderMapper.insert(dbOutOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbOutOrder.getId();
+    void testDeleteOutOrder_notExists() {
+        assertServiceException(() -> outOrderService.deleteOutOrder(randomLongId()), OUT_ORDER_NOT_EXISTS);
+    }
 
-        // 调用
-        outOrderService.deleteOutOrder(id);
-       // 校验数据不存在了
-       assertNull(outOrderMapper.selectById(id));
+    private OutOrderLineSaveReqVO buildLineReqVO(Long parentId, Integer lineNo) {
+        OutOrderLineSaveReqVO reqVO = new OutOrderLineSaveReqVO();
+        reqVO.setOrderId(parentId);
+        reqVO.setLineNo(lineNo);
+        reqVO.setMatId(1L);
+        reqVO.setUomId(1L);
+        reqVO.setFromLocId(1L);
+        reqVO.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setPlanQty(new BigDecimal("100"));
+        reqVO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测明细");
+        return reqVO;
     }
 
     @Test
-    public void testDeleteOutOrder_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testCreateOutOrderLine_duplicateLineNoRejected() {
+        Long parentId = outOrderService.createOutOrder(buildReqVO("OUT-A"));
+        outOrderService.createOutOrderLine(buildLineReqVO(parentId, 10));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> outOrderService.deleteOutOrder(id), OUT_ORDER_NOT_EXISTS);
+        // 同一单据下行号唯一，唯一索引对应的前置校验
+        assertServiceException(() -> outOrderService.createOutOrderLine(buildLineReqVO(parentId, 10)),
+                OUT_ORDER_LINE_NO_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetOutOrderPage() {
-       // mock 数据
-       OutOrderDO dbOutOrder = randomPojo(OutOrderDO.class, o -> { // 等会查询到
-           o.setOutNo(null);
-           o.setBizType(null);
-           o.setSourceType(null);
-           o.setSourceBizNo(null);
-           o.setSourceLineId(null);
-           o.setOriginType(null);
-           o.setOriginNo(null);
-           o.setCustomerId(null);
-           o.setSupplierId(null);
-           o.setProdOrderNo(null);
-           o.setWorkOrderNo(null);
-           o.setOpTaskId(null);
-           o.setMaterialReqNo(null);
-           o.setTransferNo(null);
-           o.setCountOrderNo(null);
-           o.setInvOrgId(null);
-           o.setPlantId(null);
-           o.setProjectId(null);
-           o.setProjectTaskId(null);
-           o.setWhId(null);
-           o.setWhCode(null);
-           o.setToInvOrgId(null);
-           o.setToWhId(null);
-           o.setPickStrategyId(null);
-           o.setHookMode(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setBizAttrsJson(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       outOrderMapper.insert(dbOutOrder);
-       // 测试 outNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setOutNo(null)));
-       // 测试 bizType 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setBizType(null)));
-       // 测试 sourceType 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setSourceType(null)));
-       // 测试 sourceBizNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setSourceBizNo(null)));
-       // 测试 sourceLineId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setSourceLineId(null)));
-       // 测试 originType 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setOriginType(null)));
-       // 测试 originNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setOriginNo(null)));
-       // 测试 customerId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setCustomerId(null)));
-       // 测试 supplierId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setSupplierId(null)));
-       // 测试 prodOrderNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setProdOrderNo(null)));
-       // 测试 workOrderNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setWorkOrderNo(null)));
-       // 测试 opTaskId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setOpTaskId(null)));
-       // 测试 materialReqNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setMaterialReqNo(null)));
-       // 测试 transferNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setTransferNo(null)));
-       // 测试 countOrderNo 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setCountOrderNo(null)));
-       // 测试 invOrgId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setInvOrgId(null)));
-       // 测试 plantId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setPlantId(null)));
-       // 测试 projectId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setProjectId(null)));
-       // 测试 projectTaskId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setProjectTaskId(null)));
-       // 测试 whId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setWhId(null)));
-       // 测试 whCode 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setWhCode(null)));
-       // 测试 toInvOrgId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setToInvOrgId(null)));
-       // 测试 toWhId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setToWhId(null)));
-       // 测试 pickStrategyId 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setPickStrategyId(null)));
-       // 测试 hookMode 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setHookMode(null)));
-       // 测试 status 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setIdempotencyKey(null)));
-       // 测试 bizAttrsJson 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setBizAttrsJson(null)));
-       // 测试 remark 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       outOrderMapper.insert(cloneIgnoreId(dbOutOrder, o -> o.setCreateTime(null)));
-       // 准备参数
-       OutOrderPageReqVO reqVO = new OutOrderPageReqVO();
-       reqVO.setOutNo(null);
-       reqVO.setBizType(null);
-       reqVO.setSourceType(null);
-       reqVO.setSourceBizNo(null);
-       reqVO.setSourceLineId(null);
-       reqVO.setOriginType(null);
-       reqVO.setOriginNo(null);
-       reqVO.setCustomerId(null);
-       reqVO.setSupplierId(null);
-       reqVO.setProdOrderNo(null);
-       reqVO.setWorkOrderNo(null);
-       reqVO.setOpTaskId(null);
-       reqVO.setMaterialReqNo(null);
-       reqVO.setTransferNo(null);
-       reqVO.setCountOrderNo(null);
-       reqVO.setInvOrgId(null);
-       reqVO.setPlantId(null);
-       reqVO.setProjectId(null);
-       reqVO.setProjectTaskId(null);
-       reqVO.setWhId(null);
-       reqVO.setWhCode(null);
-       reqVO.setToInvOrgId(null);
-       reqVO.setToWhId(null);
-       reqVO.setPickStrategyId(null);
-       reqVO.setHookMode(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setBizAttrsJson(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testCreateOutOrderLine_snapshotFilled() {
+        Long parentId = outOrderService.createOutOrder(buildReqVO("OUT-A"));
+        Long lineId = outOrderService.createOutOrderLine(buildLineReqVO(parentId, 10));
 
-       // 调用
-       PageResult<OutOrderRespVO> pageResult = outOrderService.getOutOrderPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbOutOrder, pageResult.getList().get(0));
+        // 物料与单位快照写入时落库，列表查询不再回查 mdm
+        OutOrderLineDO line = outOrderLineMapper.selectById(lineId);
+        assertNotNull(line);
+        assertEquals("M-001", line.getMatCode());
+        assertEquals("物料A", line.getMatName());
+        assertEquals("PCS", line.getUomCode());
+    }
+
+    @Test
+    void testDeleteOutOrder_cascadeLines() {
+        Long parentId = outOrderService.createOutOrder(buildReqVO("OUT-A"));
+        outOrderService.createOutOrderLine(buildLineReqVO(parentId, 10));
+
+        outOrderService.deleteOutOrder(parentId);
+
+        // 主单删除必须级联清理明细，否则留下孤儿数据
+        assertNull(outOrderMapper.selectById(parentId));
+        assertEquals(0, outOrderLineMapper.selectCount("order_id", parentId));
     }
 
 }

@@ -1,165 +1,225 @@
 package com.iboot.pf.module.wms.service.wh;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.wh.vo.*;
+import com.iboot.pf.module.mdm.api.org.OrgApi;
+import com.iboot.pf.module.mdm.api.org.dto.InvOrgRespDTO;
+import com.iboot.pf.module.mdm.api.org.dto.PlantRespDTO;
+import com.iboot.pf.module.wms.controller.admin.wh.vo.WhPageReqVO;
+import com.iboot.pf.module.wms.controller.admin.wh.vo.WhRespVO;
+import com.iboot.pf.module.wms.controller.admin.wh.vo.WhSaveReqVO;
+import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
 import com.iboot.pf.module.wms.dal.dataobject.wh.WhDO;
+import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
 import com.iboot.pf.module.wms.dal.mysql.wh.WhMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
+import com.iboot.pf.module.wms.enums.WmsManagedByEnum;
+import com.iboot.pf.module.wms.enums.WmsWhTypeEnum;
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_CODE_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_HAS_LOC;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_HAS_ZONE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_INV_ORG_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link WhServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 仓库 Service 测试：编码自动分配、同组织编码唯一、跨模块组织校验、删除前的下级占用检查。
  */
 @Import(WhServiceImpl.class)
-public class WhServiceImplTest extends BaseDbUnitTest {
+class WhServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long INV_ORG = 1L;
+    private static final Long PLANT = 1L;
 
     @Resource
-    private WhServiceImpl whService;
-
+    private WhService whService;
     @Resource
     private WhMapper whMapper;
+    @Resource
+    private ZoneMapper zoneMapper;
+    @Resource
+    private LocMapper locMapper;
 
-    @Test
-    public void testCreateWh_success() {
-        // 准备参数
-        WhSaveReqVO createReqVO = randomPojo(WhSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
+    @MockitoBean
+    private OrgApi orgApi;
 
-        // 调用
-        Long whId = whService.createWh(createReqVO);
-        // 断言
-        assertNotNull(whId);
-        // 校验记录的属性是否正确
-        WhDO wh = whMapper.selectById(whId);
-        assertPojoEquals(createReqVO, wh, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "WH0001" : invocation.getArgument(1));
+        // 库存组织与工厂来自 mdm 门面，只有登记过的编号才算存在
+        when(orgApi.getInvOrgMap(any())).thenAnswer(invocation -> buildInvOrgMap(invocation.getArgument(0)));
+        when(orgApi.getPlantMap(any())).thenAnswer(invocation -> buildPlantMap(invocation.getArgument(0)));
     }
 
-    @Test
-    public void testUpdateWh_success() {
-        // mock 数据
-        WhDO dbWh = randomPojo(WhDO.class);
-        whMapper.insert(dbWh);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        WhSaveReqVO updateReqVO = randomPojo(WhSaveReqVO.class, o -> {
-            o.setId(dbWh.getId()); // 设置更新的 ID
+    private Map<Long, InvOrgRespDTO> buildInvOrgMap(Collection<Long> ids) {
+        Map<Long, InvOrgRespDTO> result = new HashMap<>();
+        ids.stream().filter(INV_ORG::equals).forEach(id -> {
+            InvOrgRespDTO dto = new InvOrgRespDTO();
+            dto.setId(id);
+            dto.setCode("IO0001");
+            dto.setName("默认库存组织");
+            result.put(id, dto);
         });
+        return result;
+    }
 
-        // 调用
-        whService.updateWh(updateReqVO);
-        // 校验是否更新正确
-        WhDO wh = whMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, wh);
+    private Map<Long, PlantRespDTO> buildPlantMap(Collection<Long> ids) {
+        Map<Long, PlantRespDTO> result = new HashMap<>();
+        ids.stream().filter(PLANT::equals).forEach(id -> {
+            PlantRespDTO dto = new PlantRespDTO();
+            dto.setId(id);
+            dto.setCode("PL0001");
+            dto.setName("默认工厂");
+            result.put(id, dto);
+        });
+        return result;
+    }
+
+    private WhSaveReqVO buildReqVO(String code) {
+        WhSaveReqVO reqVO = new WhSaveReqVO();
+        reqVO.setInvOrgId(INV_ORG);
+        reqVO.setPlantId(PLANT);
+        reqVO.setCode(code);
+        reqVO.setName("原料立库");
+        reqVO.setWhType(WmsWhTypeEnum.ASRS.name());
+        reqVO.setManagedBy(WmsManagedByEnum.WCS.name());
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        return reqVO;
     }
 
     @Test
-    public void testUpdateWh_notExists() {
-        // 准备参数
-        WhSaveReqVO updateReqVO = randomPojo(WhSaveReqVO.class);
+    void testCreateWh_blankCodeFilledByRule() {
+        Long id = whService.createWh(buildReqVO(null));
 
-        // 调用, 并断言异常
+        WhDO wh = whMapper.selectById(id);
+        assertNotNull(wh);
+        assertEquals("WH0001", wh.getCode());
+        assertEquals(WmsWhTypeEnum.ASRS.name(), wh.getWhType());
+        assertEquals(WmsManagedByEnum.WCS.name(), wh.getManagedBy());
+    }
+
+    @Test
+    void testCreateWh_duplicateCodeRejected() {
+        whService.createWh(buildReqVO("WH-A"));
+
+        assertServiceException(() -> whService.createWh(buildReqVO("WH-A")), WH_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testCreateWh_invalidInvOrgRejected() {
+        WhSaveReqVO reqVO = buildReqVO("WH-A");
+        reqVO.setInvOrgId(999L);
+
+        assertServiceException(() -> whService.createWh(reqVO), WH_INV_ORG_NOT_EXISTS);
+    }
+
+    @Test
+    void testUpdateWh_keepOwnCode() {
+        Long id = whService.createWh(buildReqVO("WH-A"));
+
+        // 改自己时编码没变，不应该撞到自己
+        WhSaveReqVO updateReqVO = buildReqVO("WH-A");
+        updateReqVO.setId(id);
+        updateReqVO.setName("原料立库改名");
+        whService.updateWh(updateReqVO);
+
+        assertEquals("原料立库改名", whMapper.selectById(id).getName());
+    }
+
+    @Test
+    void testUpdateWh_duplicateCodeRejected() {
+        whService.createWh(buildReqVO("WH-A"));
+        Long secondId = whService.createWh(buildReqVO("WH-B"));
+
+        WhSaveReqVO updateReqVO = buildReqVO("WH-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> whService.updateWh(updateReqVO), WH_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateWh_notExists() {
+        WhSaveReqVO updateReqVO = buildReqVO("WH-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> whService.updateWh(updateReqVO), WH_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteWh_success() {
-        // mock 数据
-        WhDO dbWh = randomPojo(WhDO.class);
-        whMapper.insert(dbWh);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbWh.getId();
+    void testDeleteWh_success() {
+        Long id = whService.createWh(buildReqVO("WH-A"));
 
-        // 调用
         whService.deleteWh(id);
-       // 校验数据不存在了
-       assertNull(whMapper.selectById(id));
+
+        assertNull(whMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteWh_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteWh_hasZoneRejected() {
+        Long id = whService.createWh(buildReqVO("WH-A"));
+        zoneMapper.insert(new ZoneDO().setWhId(id).setCode("ZN-1").setName("原料区")
+                .setStatus(CommonStatusEnum.ENABLE.getStatus()));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> whService.deleteWh(id), WH_NOT_EXISTS);
+        assertServiceException(() -> whService.deleteWh(id), WH_HAS_ZONE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetWhPage() {
-       // mock 数据
-       WhDO dbWh = randomPojo(WhDO.class, o -> { // 等会查询到
-           o.setInvOrgId(null);
-           o.setPlantId(null);
-           o.setCode(null);
-           o.setName(null);
-           o.setWhType(null);
-           o.setManagedBy(null);
-           o.setExternalSystemCode(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       whMapper.insert(dbWh);
-       // 测试 invOrgId 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setInvOrgId(null)));
-       // 测试 plantId 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setPlantId(null)));
-       // 测试 code 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setCode(null)));
-       // 测试 name 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setName(null)));
-       // 测试 whType 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setWhType(null)));
-       // 测试 managedBy 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setManagedBy(null)));
-       // 测试 externalSystemCode 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setExternalSystemCode(null)));
-       // 测试 status 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       whMapper.insert(cloneIgnoreId(dbWh, o -> o.setCreateTime(null)));
-       // 准备参数
-       WhPageReqVO reqVO = new WhPageReqVO();
-       reqVO.setInvOrgId(null);
-       reqVO.setPlantId(null);
-       reqVO.setCode(null);
-       reqVO.setName(null);
-       reqVO.setWhType(null);
-       reqVO.setManagedBy(null);
-       reqVO.setExternalSystemCode(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteWh_hasLocRejected() {
+        Long id = whService.createWh(buildReqVO("WH-A"));
+        locMapper.insert(new LocDO().setWhId(id).setZoneId(0L).setCode("LOC-1"));
 
-       // 调用
-       PageResult<WhRespVO> pageResult = whService.getWhPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbWh, pageResult.getList().get(0));
+        assertServiceException(() -> whService.deleteWh(id), WH_HAS_LOC);
+    }
+
+    @Test
+    void testDeleteWhList_hasZoneRejected() {
+        Long first = whService.createWh(buildReqVO("WH-A"));
+        Long second = whService.createWh(buildReqVO("WH-B"));
+        zoneMapper.insert(new ZoneDO().setWhId(second).setCode("ZN-1").setName("原料区")
+                .setStatus(CommonStatusEnum.ENABLE.getStatus()));
+
+        // 批量删除同样要逐个检查下级占用，否则会留下孤儿库区
+        assertServiceException(() -> whService.deleteWhListByIds(List.of(first, second)), WH_HAS_ZONE);
+        assertNotNull(whMapper.selectById(first));
+    }
+
+    @Test
+    void testGetWhPage_fillOrgName() {
+        whService.createWh(buildReqVO("WH-A"));
+
+        WhPageReqVO reqVO = new WhPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<WhRespVO> list = whService.getWhPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        // 组织名称由 Service 走 mdm 门面补全，Excel 导出复用同一结果才不会丢字段
+        assertEquals("默认库存组织", list.get(0).getInvOrgName());
+        assertEquals("默认工厂", list.get(0).getPlantName());
     }
 
 }

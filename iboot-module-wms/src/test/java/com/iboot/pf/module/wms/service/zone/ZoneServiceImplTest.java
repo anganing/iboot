@@ -1,165 +1,124 @@
 package com.iboot.pf.module.wms.service.zone;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.zone.vo.*;
+import com.iboot.pf.module.wms.controller.admin.zone.vo.ZoneSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
 import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsZoneTypeEnum;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.ZONE_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.ZONE_CODE_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link ZoneServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 库区 Service 测试：覆盖编码自动分配、业务唯一性、存在性校验与删除。
  */
 @Import(ZoneServiceImpl.class)
-public class ZoneServiceImplTest extends BaseDbUnitTest {
+class ZoneServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private ZoneServiceImpl zoneService;
-
+    private ZoneService zoneService;
     @Resource
     private ZoneMapper zoneMapper;
 
-    @Test
-    public void testCreateZone_success() {
-        // 准备参数
-        ZoneSaveReqVO createReqVO = randomPojo(ZoneSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
 
-        // 调用
-        Long zoneId = zoneService.createZone(createReqVO);
-        // 断言
-        assertNotNull(zoneId);
-        // 校验记录的属性是否正确
-        ZoneDO zone = zoneMapper.selectById(zoneId);
-        assertPojoEquals(createReqVO, zone, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "ZN0001" : invocation.getArgument(1));
+    }
+
+    private ZoneSaveReqVO buildReqVO(String code) {
+        ZoneSaveReqVO reqVO = new ZoneSaveReqVO();
+        reqVO.setWhId(1L);
+        reqVO.setCode(code);
+        reqVO.setName("原料区");
+        reqVO.setZoneType(WmsZoneTypeEnum.RAW.name());
+        reqVO.setAllowMixedMat(true);
+        reqVO.setAllowMixedLot(true);
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateZone_success() {
-        // mock 数据
-        ZoneDO dbZone = randomPojo(ZoneDO.class);
-        zoneMapper.insert(dbZone);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        ZoneSaveReqVO updateReqVO = randomPojo(ZoneSaveReqVO.class, o -> {
-            o.setId(dbZone.getId()); // 设置更新的 ID
-        });
+    void testCreateZone_blankCodeFilledByRule() {
+        Long id = zoneService.createZone(buildReqVO(null));
 
-        // 调用
+        ZoneDO entity = zoneMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("ZN0001", entity.getCode());
+    }
+
+    @Test
+    void testCreateZone_duplicateRejected() {
+        zoneService.createZone(buildReqVO("ZN0-A"));
+
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> zoneService.createZone(buildReqVO("ZN0-A")), ZONE_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateZone_keepOwnCode() {
+        Long id = zoneService.createZone(buildReqVO("ZN0-A"));
+
+        // 改自己时业务编码没变，不应该撞到自己
+        ZoneSaveReqVO updateReqVO = buildReqVO("ZN0-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("规则调整");
         zoneService.updateZone(updateReqVO);
-        // 校验是否更新正确
-        ZoneDO zone = zoneMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, zone);
+
+        assertEquals("规则调整", zoneMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateZone_notExists() {
-        // 准备参数
-        ZoneSaveReqVO updateReqVO = randomPojo(ZoneSaveReqVO.class);
+    void testUpdateZone_duplicateRejected() {
+        zoneService.createZone(buildReqVO("ZN0-A"));
+        Long secondId = zoneService.createZone(buildReqVO("ZN0-B"));
 
-        // 调用, 并断言异常
+        ZoneSaveReqVO updateReqVO = buildReqVO("ZN0-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> zoneService.updateZone(updateReqVO), ZONE_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateZone_notExists() {
+        ZoneSaveReqVO updateReqVO = buildReqVO("ZN0-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> zoneService.updateZone(updateReqVO), ZONE_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteZone_success() {
-        // mock 数据
-        ZoneDO dbZone = randomPojo(ZoneDO.class);
-        zoneMapper.insert(dbZone);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbZone.getId();
+    void testDeleteZone_success() {
+        Long id = zoneService.createZone(buildReqVO("ZN0-A"));
 
-        // 调用
         zoneService.deleteZone(id);
-       // 校验数据不存在了
-       assertNull(zoneMapper.selectById(id));
+
+        assertNull(zoneMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteZone_notExists() {
-        // 准备参数
-        Long id = randomLongId();
-
-        // 调用, 并断言异常
-        assertServiceException(() -> zoneService.deleteZone(id), ZONE_NOT_EXISTS);
-    }
-
-    @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetZonePage() {
-       // mock 数据
-       ZoneDO dbZone = randomPojo(ZoneDO.class, o -> { // 等会查询到
-           o.setWhId(null);
-           o.setCode(null);
-           o.setName(null);
-           o.setZoneType(null);
-           o.setAllowMixedMat(null);
-           o.setAllowMixedLot(null);
-           o.setTempRange(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       zoneMapper.insert(dbZone);
-       // 测试 whId 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setWhId(null)));
-       // 测试 code 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setCode(null)));
-       // 测试 name 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setName(null)));
-       // 测试 zoneType 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setZoneType(null)));
-       // 测试 allowMixedMat 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setAllowMixedMat(null)));
-       // 测试 allowMixedLot 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setAllowMixedLot(null)));
-       // 测试 tempRange 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setTempRange(null)));
-       // 测试 status 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       zoneMapper.insert(cloneIgnoreId(dbZone, o -> o.setCreateTime(null)));
-       // 准备参数
-       ZonePageReqVO reqVO = new ZonePageReqVO();
-       reqVO.setWhId(null);
-       reqVO.setCode(null);
-       reqVO.setName(null);
-       reqVO.setZoneType(null);
-       reqVO.setAllowMixedMat(null);
-       reqVO.setAllowMixedLot(null);
-       reqVO.setTempRange(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-
-       // 调用
-       PageResult<ZoneRespVO> pageResult = zoneService.getZonePage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbZone, pageResult.getList().get(0));
+    void testDeleteZone_notExists() {
+        assertServiceException(() -> zoneService.deleteZone(randomLongId()), ZONE_NOT_EXISTS);
     }
 
 }

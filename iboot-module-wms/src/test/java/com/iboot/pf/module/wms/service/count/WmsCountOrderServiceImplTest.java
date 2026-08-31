@@ -2,6 +2,8 @@ package com.iboot.pf.module.wms.service.count;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.infra.api.coderule.CodeRuleApi;
+import com.iboot.pf.module.mdm.api.material.MaterialApi;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
@@ -31,12 +33,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import jakarta.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.when;
 
 /** 盘点流程测试：生成盘点行、提交差异、差异确认走单据过账不直接改余额。 */
@@ -52,26 +56,34 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private WmsCountOrderService countOrderService;
     @Resource
-    private WmsCountOrderMapper countOrderMapper;
+    private WmsCountOrderMapper wmsCountOrderMapper;
     @Resource
-    private WmsCountOrderLineMapper countOrderLineMapper;
+    private WmsCountOrderLineMapper wmsCountOrderLineMapper;
     @Resource
-    private WmsInvBalanceMapper balanceMapper;
+    private WmsInvBalanceMapper wmsInvBalanceMapper;
     @Resource
-    private WmsWhMapper whMapper;
+    private WmsWhMapper wmsWhMapper;
     @Resource
-    private WmsLocMapper locMapper;
+    private WmsLocMapper wmsLocMapper;
     @MockitoBean
     private CodeRuleApi codeRuleApi;
+    @MockitoBean
+    private MaterialApi materialApi;
 
     @BeforeEach
     void setUp() {
-        whMapper.insert(new WmsWhDO().setId(WH).setPlantId(1L).setCode("WH-1").setName("主仓库").setStatus(0));
-        locMapper.insert(new WmsLocDO().setId(LOC).setWhId(WH).setZoneId(0L).setCode("LOC-1").setStatus("ENABLED"));
-        when(codeRuleApi.generate("WMS_COUNT_ORDER_NO")).thenReturn("CNT-0001");
+        wmsWhMapper.insert(new WmsWhDO().setId(WH).setPlantId(1L).setCode("WH-1").setName("主仓库").setStatus(0));
+        wmsLocMapper.insert(new WmsLocDO().setId(LOC).setWhId(WH).setZoneId(0L).setCode("LOC-1").setStatus("ENABLED"));
+        when(codeRuleApi.generate("WMS_COUNT_NO")).thenReturn("CNT-0001");
         when(codeRuleApi.generate("WMS_IN_ORDER_NO")).thenReturn("IN-0001");
         when(codeRuleApi.generate("WMS_OUT_ORDER_NO")).thenReturn("OUT-0001");
         when(codeRuleApi.generate("WMS_INV_TXN_NO")).thenReturn("TXN-0001");
+        // 盘盈盘亏会走入库/出库单，物料快照来自 mdm 门面
+        MaterialRespDTO material = new MaterialRespDTO();
+        material.setId(MAT);
+        material.setCode("M-001");
+        material.setName("物料A");
+        when(materialApi.getMaterialMap(anyCollection())).thenReturn(Map.of(MAT, material));
     }
 
     /** 预置 100 在库余额。 */
@@ -97,7 +109,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         balance.setQtyReserved(BigDecimal.ZERO);
         balance.setQtyFrozen(BigDecimal.ZERO);
         balance.setVersion(0);
-        balanceMapper.insert(balance);
+        wmsInvBalanceMapper.insert(balance);
     }
 
     private WmsCreateCountOrderBO createCountBO() {
@@ -135,14 +147,14 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
     }
 
     private WmsCountOrderLineDO firstLine(Long orderId) {
-        return countOrderLineMapper.selectListByOrderId(orderId).get(0);
+        return wmsCountOrderLineMapper.selectListByOrderId(orderId).get(0);
     }
 
     @Test
     void testCreate_generatesLineFromBalance() {
         seedBalance(new BigDecimal("100"));
         Long id = countOrderService.createCountOrder(createCountBO());
-        WmsCountOrderDO order = countOrderMapper.selectById(id);
+        WmsCountOrderDO order = wmsCountOrderMapper.selectById(id);
         assertEquals(WmsOrderStatusEnum.DRAFT.name(), order.getStatus());
         assertEquals("CNT-0001", order.getCountNo());
 
@@ -188,11 +200,11 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         WmsCountOrderLineDO line = firstLine(id);
         assertEquals(WmsCountLineStatusEnum.ADJUSTED.name(), line.getStatus());
         assertNotNull(line.getAdjustBizNo(), "差异应生成调整单据号");
-        WmsInvBalanceDO balance = balanceMapper.selectList(
+        WmsInvBalanceDO balance = wmsInvBalanceMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("150")));
-        assertEquals(WmsOrderStatusEnum.DONE.name(), countOrderMapper.selectById(id).getStatus());
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
     }
 
     @Test
@@ -208,7 +220,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         WmsCountOrderLineDO line = firstLine(id);
         assertEquals(WmsCountLineStatusEnum.ADJUSTED.name(), line.getStatus());
         assertNotNull(line.getAdjustBizNo());
-        WmsInvBalanceDO balance = balanceMapper.selectList(
+        WmsInvBalanceDO balance = wmsInvBalanceMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("70")));
@@ -240,7 +252,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
                 COUNT_ORDER_STATUS_INVALID);
         // 余额仅 +20 一次
-        WmsInvBalanceDO balance = balanceMapper.selectList(
+        WmsInvBalanceDO balance = wmsInvBalanceMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("120")));

@@ -1,249 +1,190 @@
 package com.iboot.pf.module.wms.service.inordermgr;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.*;
+import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.inordermgr.InOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.inordermgr.InOrderMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderLineSaveReqVO;
+import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.mysql.inorderline.InOrderLineMapper;
+import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
+import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import java.math.BigDecimal;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_LINE_NO_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link InOrderServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 入库单 Service 测试：覆盖单号自动分配、单号唯一、存在性校验、子表行号唯一与快照补全、主单删除级联。
  */
 @Import(InOrderServiceImpl.class)
-public class InOrderServiceImplTest extends BaseDbUnitTest {
+class InOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private InOrderServiceImpl inOrderService;
-
+    private InOrderService inOrderService;
     @Resource
     private InOrderMapper inOrderMapper;
+    @Resource
+    private InOrderLineMapper inOrderLineMapper;
 
-    @Test
-    public void testCreateInOrder_success() {
-        // 准备参数
-        InOrderSaveReqVO createReqVO = randomPojo(InOrderSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
+    @MockitoBean
+    private WmsSnapshotService snapshotService;
 
-        // 调用
-        Long inOrderId = inOrderService.createInOrder(createReqVO);
-        // 断言
-        assertNotNull(inOrderId);
-        // 校验记录的属性是否正确
-        InOrderDO inOrder = inOrderMapper.selectById(inOrderId);
-        assertPojoEquals(createReqVO, inOrder, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "IN0001" : invocation.getArgument(1));
+        // 物料与单位快照来自 mdm 门面，单测只验证字段被写入
+        MaterialRespDTO material = new MaterialRespDTO();
+        material.setCode("M-001");
+        material.setName("物料A");
+        when(snapshotService.requireMaterial(any())).thenReturn(material);
+        when(snapshotService.requireUomCode(any())).thenReturn("PCS");
+    }
+
+    private InOrderSaveReqVO buildReqVO(String inNo) {
+        InOrderSaveReqVO reqVO = new InOrderSaveReqVO();
+        reqVO.setInNo(inNo);
+        reqVO.setBizType(WmsInBizTypeEnum.PO_IN.name());
+        reqVO.setInvOrgId(1L);
+        reqVO.setPlantId(1L);
+        reqVO.setProjectId(0L);
+        reqVO.setProjectTaskId(0L);
+        reqVO.setWhId(1L);
+        reqVO.setWhCode("WH-1");
+        reqVO.setFromInvOrgId(0L);
+        reqVO.setFromWhId(0L);
+        reqVO.setNeedQc(false);
+        reqVO.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setHookMode(WmsHookModeEnum.NONE.name());
+        reqVO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateInOrder_success() {
-        // mock 数据
-        InOrderDO dbInOrder = randomPojo(InOrderDO.class);
-        inOrderMapper.insert(dbInOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        InOrderSaveReqVO updateReqVO = randomPojo(InOrderSaveReqVO.class, o -> {
-            o.setId(dbInOrder.getId()); // 设置更新的 ID
-        });
+    void testCreateInOrder_blankNoFilledByRule() {
+        Long id = inOrderService.createInOrder(buildReqVO(null));
 
-        // 调用
+        InOrderDO entity = inOrderMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("IN0001", entity.getInNo());
+    }
+
+    @Test
+    void testCreateInOrder_duplicateNoRejected() {
+        inOrderService.createInOrder(buildReqVO("IN0-A"));
+
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> inOrderService.createInOrder(buildReqVO("IN0-A")), IN_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateInOrder_keepOwnNo() {
+        Long id = inOrderService.createInOrder(buildReqVO("IN0-A"));
+
+        InOrderSaveReqVO updateReqVO = buildReqVO("IN0-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("单据备注调整");
         inOrderService.updateInOrder(updateReqVO);
-        // 校验是否更新正确
-        InOrderDO inOrder = inOrderMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, inOrder);
+
+        assertEquals("单据备注调整", inOrderMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateInOrder_notExists() {
-        // 准备参数
-        InOrderSaveReqVO updateReqVO = randomPojo(InOrderSaveReqVO.class);
+    void testUpdateInOrder_duplicateNoRejected() {
+        inOrderService.createInOrder(buildReqVO("IN0-A"));
+        Long secondId = inOrderService.createInOrder(buildReqVO("IN0-B"));
 
-        // 调用, 并断言异常
+        InOrderSaveReqVO updateReqVO = buildReqVO("IN0-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> inOrderService.updateInOrder(updateReqVO), IN_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateInOrder_notExists() {
+        InOrderSaveReqVO updateReqVO = buildReqVO("IN0-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> inOrderService.updateInOrder(updateReqVO), IN_ORDER_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteInOrder_success() {
-        // mock 数据
-        InOrderDO dbInOrder = randomPojo(InOrderDO.class);
-        inOrderMapper.insert(dbInOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbInOrder.getId();
+    void testDeleteInOrder_notExists() {
+        assertServiceException(() -> inOrderService.deleteInOrder(randomLongId()), IN_ORDER_NOT_EXISTS);
+    }
 
-        // 调用
-        inOrderService.deleteInOrder(id);
-       // 校验数据不存在了
-       assertNull(inOrderMapper.selectById(id));
+    private InOrderLineSaveReqVO buildLineReqVO(Long parentId, Integer lineNo) {
+        InOrderLineSaveReqVO reqVO = new InOrderLineSaveReqVO();
+        reqVO.setOrderId(parentId);
+        reqVO.setLineNo(lineNo);
+        reqVO.setMatId(1L);
+        reqVO.setUomId(1L);
+        reqVO.setLocId(1L);
+        reqVO.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setPlanQty(new BigDecimal("100"));
+        reqVO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测明细");
+        return reqVO;
     }
 
     @Test
-    public void testDeleteInOrder_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testCreateInOrderLine_duplicateLineNoRejected() {
+        Long parentId = inOrderService.createInOrder(buildReqVO("IN0-A"));
+        inOrderService.createInOrderLine(buildLineReqVO(parentId, 10));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> inOrderService.deleteInOrder(id), IN_ORDER_NOT_EXISTS);
+        // 同一单据下行号唯一，唯一索引对应的前置校验
+        assertServiceException(() -> inOrderService.createInOrderLine(buildLineReqVO(parentId, 10)),
+                IN_ORDER_LINE_NO_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetInOrderPage() {
-       // mock 数据
-       InOrderDO dbInOrder = randomPojo(InOrderDO.class, o -> { // 等会查询到
-           o.setInNo(null);
-           o.setBizType(null);
-           o.setSourceType(null);
-           o.setSourceBizNo(null);
-           o.setSourceLineId(null);
-           o.setOriginType(null);
-           o.setOriginNo(null);
-           o.setArrivalId(null);
-           o.setSupplierId(null);
-           o.setCustomerId(null);
-           o.setProdOrderNo(null);
-           o.setWorkOrderNo(null);
-           o.setTransferNo(null);
-           o.setCountOrderNo(null);
-           o.setInvOrgId(null);
-           o.setPlantId(null);
-           o.setProjectId(null);
-           o.setProjectTaskId(null);
-           o.setWhId(null);
-           o.setWhCode(null);
-           o.setFromInvOrgId(null);
-           o.setFromWhId(null);
-           o.setNeedQc(null);
-           o.setIqcMode(null);
-           o.setQualityStatus(null);
-           o.setHookMode(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setBizAttrsJson(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       inOrderMapper.insert(dbInOrder);
-       // 测试 inNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setInNo(null)));
-       // 测试 bizType 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setBizType(null)));
-       // 测试 sourceType 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setSourceType(null)));
-       // 测试 sourceBizNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setSourceBizNo(null)));
-       // 测试 sourceLineId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setSourceLineId(null)));
-       // 测试 originType 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setOriginType(null)));
-       // 测试 originNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setOriginNo(null)));
-       // 测试 arrivalId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setArrivalId(null)));
-       // 测试 supplierId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setSupplierId(null)));
-       // 测试 customerId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setCustomerId(null)));
-       // 测试 prodOrderNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setProdOrderNo(null)));
-       // 测试 workOrderNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setWorkOrderNo(null)));
-       // 测试 transferNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setTransferNo(null)));
-       // 测试 countOrderNo 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setCountOrderNo(null)));
-       // 测试 invOrgId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setInvOrgId(null)));
-       // 测试 plantId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setPlantId(null)));
-       // 测试 projectId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setProjectId(null)));
-       // 测试 projectTaskId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setProjectTaskId(null)));
-       // 测试 whId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setWhId(null)));
-       // 测试 whCode 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setWhCode(null)));
-       // 测试 fromInvOrgId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setFromInvOrgId(null)));
-       // 测试 fromWhId 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setFromWhId(null)));
-       // 测试 needQc 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setNeedQc(null)));
-       // 测试 iqcMode 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setIqcMode(null)));
-       // 测试 qualityStatus 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setQualityStatus(null)));
-       // 测试 hookMode 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setHookMode(null)));
-       // 测试 status 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setIdempotencyKey(null)));
-       // 测试 bizAttrsJson 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setBizAttrsJson(null)));
-       // 测试 remark 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       inOrderMapper.insert(cloneIgnoreId(dbInOrder, o -> o.setCreateTime(null)));
-       // 准备参数
-       InOrderPageReqVO reqVO = new InOrderPageReqVO();
-       reqVO.setInNo(null);
-       reqVO.setBizType(null);
-       reqVO.setSourceType(null);
-       reqVO.setSourceBizNo(null);
-       reqVO.setSourceLineId(null);
-       reqVO.setOriginType(null);
-       reqVO.setOriginNo(null);
-       reqVO.setArrivalId(null);
-       reqVO.setSupplierId(null);
-       reqVO.setCustomerId(null);
-       reqVO.setProdOrderNo(null);
-       reqVO.setWorkOrderNo(null);
-       reqVO.setTransferNo(null);
-       reqVO.setCountOrderNo(null);
-       reqVO.setInvOrgId(null);
-       reqVO.setPlantId(null);
-       reqVO.setProjectId(null);
-       reqVO.setProjectTaskId(null);
-       reqVO.setWhId(null);
-       reqVO.setWhCode(null);
-       reqVO.setFromInvOrgId(null);
-       reqVO.setFromWhId(null);
-       reqVO.setNeedQc(null);
-       reqVO.setIqcMode(null);
-       reqVO.setQualityStatus(null);
-       reqVO.setHookMode(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setBizAttrsJson(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testCreateInOrderLine_snapshotFilled() {
+        Long parentId = inOrderService.createInOrder(buildReqVO("IN0-A"));
+        Long lineId = inOrderService.createInOrderLine(buildLineReqVO(parentId, 10));
 
-       // 调用
-       PageResult<InOrderRespVO> pageResult = inOrderService.getInOrderPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbInOrder, pageResult.getList().get(0));
+        // 物料与单位快照写入时落库，列表查询不再回查 mdm
+        InOrderLineDO line = inOrderLineMapper.selectById(lineId);
+        assertNotNull(line);
+        assertEquals("M-001", line.getMatCode());
+        assertEquals("物料A", line.getMatName());
+        assertEquals("PCS", line.getUomCode());
+    }
+
+    @Test
+    void testDeleteInOrder_cascadeLines() {
+        Long parentId = inOrderService.createInOrder(buildReqVO("IN0-A"));
+        inOrderService.createInOrderLine(buildLineReqVO(parentId, 10));
+
+        inOrderService.deleteInOrder(parentId);
+
+        // 主单删除必须级联清理明细，否则留下孤儿数据
+        assertNull(inOrderMapper.selectById(parentId));
+        assertEquals(0, inOrderLineMapper.selectCount("order_id", parentId));
     }
 
 }

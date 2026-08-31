@@ -1,181 +1,180 @@
 package com.iboot.pf.module.wms.service.arrival;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.arrival.vo.*;
+import com.iboot.pf.module.wms.controller.admin.arrival.vo.ArrivalSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.arrival.ArrivalDO;
 import com.iboot.pf.module.wms.dal.mysql.arrival.ArrivalMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.controller.admin.arrival.vo.ArrivalLineSaveReqVO;
+import com.iboot.pf.module.wms.dal.dataobject.arrivalline.ArrivalLineDO;
+import com.iboot.pf.module.wms.dal.mysql.arrivalline.ArrivalLineMapper;
+import com.iboot.pf.module.wms.enums.WmsArrivalLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsArrivalSourceTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsArrivalStatusEnum;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import java.math.BigDecimal;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.ARRIVAL_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.ARRIVAL_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.ARRIVAL_LINE_NO_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link ArrivalServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 到货登记 Service 测试：覆盖单号自动分配、单号唯一、存在性校验、子表行号唯一与快照补全、主单删除级联。
  */
 @Import(ArrivalServiceImpl.class)
-public class ArrivalServiceImplTest extends BaseDbUnitTest {
+class ArrivalServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private ArrivalServiceImpl arrivalService;
-
+    private ArrivalService arrivalService;
     @Resource
     private ArrivalMapper arrivalMapper;
+    @Resource
+    private ArrivalLineMapper arrivalLineMapper;
 
-    @Test
-    public void testCreateArrival_success() {
-        // 准备参数
-        ArrivalSaveReqVO createReqVO = randomPojo(ArrivalSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
+    @MockitoBean
+    private WmsSnapshotService snapshotService;
 
-        // 调用
-        Long arrivalId = arrivalService.createArrival(createReqVO);
-        // 断言
-        assertNotNull(arrivalId);
-        // 校验记录的属性是否正确
-        ArrivalDO arrival = arrivalMapper.selectById(arrivalId);
-        assertPojoEquals(createReqVO, arrival, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "ARR0001" : invocation.getArgument(1));
+        // 物料与单位快照来自 mdm 门面，单测只验证字段被写入
+        MaterialRespDTO material = new MaterialRespDTO();
+        material.setCode("M-001");
+        material.setName("物料A");
+        when(snapshotService.requireMaterial(any())).thenReturn(material);
+        when(snapshotService.requireUomCode(any())).thenReturn("PCS");
+    }
+
+    private ArrivalSaveReqVO buildReqVO(String arrivalNo) {
+        ArrivalSaveReqVO reqVO = new ArrivalSaveReqVO();
+        reqVO.setArrivalNo(arrivalNo);
+        reqVO.setSourceType(WmsArrivalSourceTypeEnum.PURCHASE_ORDER.name());
+        reqVO.setSourceNo("PO-0001");
+        reqVO.setInvOrgId(1L);
+        reqVO.setPlantId(1L);
+        reqVO.setWhId(1L);
+        reqVO.setStatus(WmsArrivalStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateArrival_success() {
-        // mock 数据
-        ArrivalDO dbArrival = randomPojo(ArrivalDO.class);
-        arrivalMapper.insert(dbArrival);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        ArrivalSaveReqVO updateReqVO = randomPojo(ArrivalSaveReqVO.class, o -> {
-            o.setId(dbArrival.getId()); // 设置更新的 ID
-        });
+    void testCreateArrival_blankNoFilledByRule() {
+        Long id = arrivalService.createArrival(buildReqVO(null));
 
-        // 调用
+        ArrivalDO entity = arrivalMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("ARR0001", entity.getArrivalNo());
+    }
+
+    @Test
+    void testCreateArrival_duplicateNoRejected() {
+        arrivalService.createArrival(buildReqVO("ARR-A"));
+
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> arrivalService.createArrival(buildReqVO("ARR-A")), ARRIVAL_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateArrival_keepOwnNo() {
+        Long id = arrivalService.createArrival(buildReqVO("ARR-A"));
+
+        ArrivalSaveReqVO updateReqVO = buildReqVO("ARR-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("单据备注调整");
         arrivalService.updateArrival(updateReqVO);
-        // 校验是否更新正确
-        ArrivalDO arrival = arrivalMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, arrival);
+
+        assertEquals("单据备注调整", arrivalMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateArrival_notExists() {
-        // 准备参数
-        ArrivalSaveReqVO updateReqVO = randomPojo(ArrivalSaveReqVO.class);
+    void testUpdateArrival_duplicateNoRejected() {
+        arrivalService.createArrival(buildReqVO("ARR-A"));
+        Long secondId = arrivalService.createArrival(buildReqVO("ARR-B"));
 
-        // 调用, 并断言异常
+        ArrivalSaveReqVO updateReqVO = buildReqVO("ARR-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> arrivalService.updateArrival(updateReqVO), ARRIVAL_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateArrival_notExists() {
+        ArrivalSaveReqVO updateReqVO = buildReqVO("ARR-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> arrivalService.updateArrival(updateReqVO), ARRIVAL_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteArrival_success() {
-        // mock 数据
-        ArrivalDO dbArrival = randomPojo(ArrivalDO.class);
-        arrivalMapper.insert(dbArrival);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbArrival.getId();
+    void testDeleteArrival_notExists() {
+        assertServiceException(() -> arrivalService.deleteArrival(randomLongId()), ARRIVAL_NOT_EXISTS);
+    }
 
-        // 调用
-        arrivalService.deleteArrival(id);
-       // 校验数据不存在了
-       assertNull(arrivalMapper.selectById(id));
+    private ArrivalLineSaveReqVO buildLineReqVO(Long parentId, Integer lineNo) {
+        ArrivalLineSaveReqVO reqVO = new ArrivalLineSaveReqVO();
+        reqVO.setArrivalId(parentId);
+        reqVO.setLineNo(lineNo);
+        reqVO.setMatId(1L);
+        reqVO.setArrivalQty(new BigDecimal("100"));
+        reqVO.setUomId(1L);
+        reqVO.setNeedQc(false);
+        reqVO.setStatus(WmsArrivalLineStatusEnum.PENDING.name());
+        reqVO.setRemark("单测明细");
+        return reqVO;
     }
 
     @Test
-    public void testDeleteArrival_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testCreateArrivalLine_duplicateLineNoRejected() {
+        Long parentId = arrivalService.createArrival(buildReqVO("ARR-A"));
+        arrivalService.createArrivalLine(buildLineReqVO(parentId, 10));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> arrivalService.deleteArrival(id), ARRIVAL_NOT_EXISTS);
+        // 同一单据下行号唯一，唯一索引对应的前置校验
+        assertServiceException(() -> arrivalService.createArrivalLine(buildLineReqVO(parentId, 10)),
+                ARRIVAL_LINE_NO_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetArrivalPage() {
-       // mock 数据
-       ArrivalDO dbArrival = randomPojo(ArrivalDO.class, o -> { // 等会查询到
-           o.setArrivalNo(null);
-           o.setSourceType(null);
-           o.setSourceNo(null);
-           o.setSupplierId(null);
-           o.setSupplierCode(null);
-           o.setSupplierName(null);
-           o.setInvOrgId(null);
-           o.setPlantId(null);
-           o.setWhId(null);
-           o.setExpectDate(null);
-           o.setArrivalTime(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       arrivalMapper.insert(dbArrival);
-       // 测试 arrivalNo 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setArrivalNo(null)));
-       // 测试 sourceType 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setSourceType(null)));
-       // 测试 sourceNo 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setSourceNo(null)));
-       // 测试 supplierId 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setSupplierId(null)));
-       // 测试 supplierCode 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setSupplierCode(null)));
-       // 测试 supplierName 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setSupplierName(null)));
-       // 测试 invOrgId 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setInvOrgId(null)));
-       // 测试 plantId 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setPlantId(null)));
-       // 测试 whId 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setWhId(null)));
-       // 测试 expectDate 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setExpectDate(null)));
-       // 测试 arrivalTime 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setArrivalTime(null)));
-       // 测试 status 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       arrivalMapper.insert(cloneIgnoreId(dbArrival, o -> o.setCreateTime(null)));
-       // 准备参数
-       ArrivalPageReqVO reqVO = new ArrivalPageReqVO();
-       reqVO.setArrivalNo(null);
-       reqVO.setSourceType(null);
-       reqVO.setSourceNo(null);
-       reqVO.setSupplierId(null);
-       reqVO.setSupplierCode(null);
-       reqVO.setSupplierName(null);
-       reqVO.setInvOrgId(null);
-       reqVO.setPlantId(null);
-       reqVO.setWhId(null);
-       reqVO.setExpectDate(new java.time.LocalDate[]{java.time.LocalDate.of(2023, 2, 1), java.time.LocalDate.of(2023, 2, 28)});
-       reqVO.setArrivalTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testCreateArrivalLine_snapshotFilled() {
+        Long parentId = arrivalService.createArrival(buildReqVO("ARR-A"));
+        Long lineId = arrivalService.createArrivalLine(buildLineReqVO(parentId, 10));
 
-       // 调用
-       PageResult<ArrivalRespVO> pageResult = arrivalService.getArrivalPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbArrival, pageResult.getList().get(0));
+        // 物料与单位快照写入时落库，列表查询不再回查 mdm
+        ArrivalLineDO line = arrivalLineMapper.selectById(lineId);
+        assertNotNull(line);
+        assertEquals("M-001", line.getMatCode());
+        assertEquals("物料A", line.getMatName());
+        assertEquals("PCS", line.getUomCode());
+    }
+
+    @Test
+    void testDeleteArrival_cascadeLines() {
+        Long parentId = arrivalService.createArrival(buildReqVO("ARR-A"));
+        arrivalService.createArrivalLine(buildLineReqVO(parentId, 10));
+
+        arrivalService.deleteArrival(parentId);
+
+        // 主单删除必须级联清理明细，否则留下孤儿数据
+        assertNull(arrivalMapper.selectById(parentId));
+        assertEquals(0, arrivalLineMapper.selectCount("arrival_id", parentId));
     }
 
 }

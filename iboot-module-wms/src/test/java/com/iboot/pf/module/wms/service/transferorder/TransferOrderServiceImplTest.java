@@ -1,185 +1,188 @@
 package com.iboot.pf.module.wms.service.transferorder;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
+import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.transferorder.TransferOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.transferorder.TransferOrderMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderLineSaveReqVO;
+import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
+import com.iboot.pf.module.wms.dal.mysql.transferorderline.TransferOrderLineMapper;
+import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsTransferTypeEnum;
+import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import java.math.BigDecimal;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_LINE_NO_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link TransferOrderServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 移库调拨单 Service 测试：覆盖单号自动分配、单号唯一、存在性校验、子表行号唯一与快照补全、主单删除级联。
  */
 @Import(TransferOrderServiceImpl.class)
-public class TransferOrderServiceImplTest extends BaseDbUnitTest {
+class TransferOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private TransferOrderServiceImpl transferOrderService;
-
+    private TransferOrderService transferOrderService;
     @Resource
     private TransferOrderMapper transferOrderMapper;
+    @Resource
+    private TransferOrderLineMapper transferOrderLineMapper;
 
-    @Test
-    public void testCreateTransferOrder_success() {
-        // 准备参数
-        TransferOrderSaveReqVO createReqVO = randomPojo(TransferOrderSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
+    @MockitoBean
+    private WmsSnapshotService snapshotService;
 
-        // 调用
-        Long transferOrderId = transferOrderService.createTransferOrder(createReqVO);
-        // 断言
-        assertNotNull(transferOrderId);
-        // 校验记录的属性是否正确
-        TransferOrderDO transferOrder = transferOrderMapper.selectById(transferOrderId);
-        assertPojoEquals(createReqVO, transferOrder, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "TR0001" : invocation.getArgument(1));
+        // 物料与单位快照来自 mdm 门面，单测只验证字段被写入
+        MaterialRespDTO material = new MaterialRespDTO();
+        material.setCode("M-001");
+        material.setName("物料A");
+        when(snapshotService.requireMaterial(any())).thenReturn(material);
+        when(snapshotService.requireUomCode(any())).thenReturn("PCS");
+    }
+
+    private TransferOrderSaveReqVO buildReqVO(String transferNo) {
+        TransferOrderSaveReqVO reqVO = new TransferOrderSaveReqVO();
+        reqVO.setTransferNo(transferNo);
+        reqVO.setTransferType(WmsTransferTypeEnum.LOC_TRANSFER.name());
+        reqVO.setFromInvOrgId(1L);
+        reqVO.setToInvOrgId(1L);
+        reqVO.setFromWhId(1L);
+        reqVO.setToWhId(2L);
+        reqVO.setFromProjectId(0L);
+        reqVO.setToProjectId(0L);
+        reqVO.setHookMode(WmsHookModeEnum.NONE.name());
+        reqVO.setStatus(WmsOrderStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateTransferOrder_success() {
-        // mock 数据
-        TransferOrderDO dbTransferOrder = randomPojo(TransferOrderDO.class);
-        transferOrderMapper.insert(dbTransferOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        TransferOrderSaveReqVO updateReqVO = randomPojo(TransferOrderSaveReqVO.class, o -> {
-            o.setId(dbTransferOrder.getId()); // 设置更新的 ID
-        });
+    void testCreateTransferOrder_blankNoFilledByRule() {
+        Long id = transferOrderService.createTransferOrder(buildReqVO(null));
 
-        // 调用
+        TransferOrderDO entity = transferOrderMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("TR0001", entity.getTransferNo());
+    }
+
+    @Test
+    void testCreateTransferOrder_duplicateNoRejected() {
+        transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> transferOrderService.createTransferOrder(buildReqVO("TR0-A")), TRANSFER_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateTransferOrder_keepOwnNo() {
+        Long id = transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+
+        TransferOrderSaveReqVO updateReqVO = buildReqVO("TR0-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("单据备注调整");
         transferOrderService.updateTransferOrder(updateReqVO);
-        // 校验是否更新正确
-        TransferOrderDO transferOrder = transferOrderMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, transferOrder);
+
+        assertEquals("单据备注调整", transferOrderMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateTransferOrder_notExists() {
-        // 准备参数
-        TransferOrderSaveReqVO updateReqVO = randomPojo(TransferOrderSaveReqVO.class);
+    void testUpdateTransferOrder_duplicateNoRejected() {
+        transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+        Long secondId = transferOrderService.createTransferOrder(buildReqVO("TR0-B"));
 
-        // 调用, 并断言异常
+        TransferOrderSaveReqVO updateReqVO = buildReqVO("TR0-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> transferOrderService.updateTransferOrder(updateReqVO), TRANSFER_ORDER_NO_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateTransferOrder_notExists() {
+        TransferOrderSaveReqVO updateReqVO = buildReqVO("TR0-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> transferOrderService.updateTransferOrder(updateReqVO), TRANSFER_ORDER_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteTransferOrder_success() {
-        // mock 数据
-        TransferOrderDO dbTransferOrder = randomPojo(TransferOrderDO.class);
-        transferOrderMapper.insert(dbTransferOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbTransferOrder.getId();
+    void testDeleteTransferOrder_notExists() {
+        assertServiceException(() -> transferOrderService.deleteTransferOrder(randomLongId()), TRANSFER_ORDER_NOT_EXISTS);
+    }
 
-        // 调用
-        transferOrderService.deleteTransferOrder(id);
-       // 校验数据不存在了
-       assertNull(transferOrderMapper.selectById(id));
+    private TransferOrderLineSaveReqVO buildLineReqVO(Long parentId, Integer lineNo) {
+        TransferOrderLineSaveReqVO reqVO = new TransferOrderLineSaveReqVO();
+        reqVO.setOrderId(parentId);
+        reqVO.setLineNo(lineNo);
+        reqVO.setMatId(1L);
+        reqVO.setUomId(1L);
+        reqVO.setFromLocId(1L);
+        reqVO.setToLocId(2L);
+        reqVO.setQualityStatusFrom(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setQualityStatusTo(WmsQualityStatusEnum.QUALIFIED.name());
+        reqVO.setPlanQty(new BigDecimal("100"));
+        reqVO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测明细");
+        return reqVO;
     }
 
     @Test
-    public void testDeleteTransferOrder_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testCreateTransferOrderLine_duplicateLineNoRejected() {
+        Long parentId = transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+        transferOrderService.createTransferOrderLine(buildLineReqVO(parentId, 10));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> transferOrderService.deleteTransferOrder(id), TRANSFER_ORDER_NOT_EXISTS);
+        // 同一单据下行号唯一，唯一索引对应的前置校验
+        assertServiceException(() -> transferOrderService.createTransferOrderLine(buildLineReqVO(parentId, 10)),
+                TRANSFER_ORDER_LINE_NO_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetTransferOrderPage() {
-       // mock 数据
-       TransferOrderDO dbTransferOrder = randomPojo(TransferOrderDO.class, o -> { // 等会查询到
-           o.setTransferNo(null);
-           o.setTransferType(null);
-           o.setSourceType(null);
-           o.setSourceBizNo(null);
-           o.setFromInvOrgId(null);
-           o.setToInvOrgId(null);
-           o.setFromWhId(null);
-           o.setToWhId(null);
-           o.setFromProjectId(null);
-           o.setToProjectId(null);
-           o.setHookMode(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       transferOrderMapper.insert(dbTransferOrder);
-       // 测试 transferNo 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setTransferNo(null)));
-       // 测试 transferType 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setTransferType(null)));
-       // 测试 sourceType 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setSourceType(null)));
-       // 测试 sourceBizNo 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setSourceBizNo(null)));
-       // 测试 fromInvOrgId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setFromInvOrgId(null)));
-       // 测试 toInvOrgId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setToInvOrgId(null)));
-       // 测试 fromWhId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setFromWhId(null)));
-       // 测试 toWhId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setToWhId(null)));
-       // 测试 fromProjectId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setFromProjectId(null)));
-       // 测试 toProjectId 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setToProjectId(null)));
-       // 测试 hookMode 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setHookMode(null)));
-       // 测试 status 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setIdempotencyKey(null)));
-       // 测试 remark 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       transferOrderMapper.insert(cloneIgnoreId(dbTransferOrder, o -> o.setCreateTime(null)));
-       // 准备参数
-       TransferOrderPageReqVO reqVO = new TransferOrderPageReqVO();
-       reqVO.setTransferNo(null);
-       reqVO.setTransferType(null);
-       reqVO.setSourceType(null);
-       reqVO.setSourceBizNo(null);
-       reqVO.setFromInvOrgId(null);
-       reqVO.setToInvOrgId(null);
-       reqVO.setFromWhId(null);
-       reqVO.setToWhId(null);
-       reqVO.setFromProjectId(null);
-       reqVO.setToProjectId(null);
-       reqVO.setHookMode(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testCreateTransferOrderLine_snapshotFilled() {
+        Long parentId = transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+        Long lineId = transferOrderService.createTransferOrderLine(buildLineReqVO(parentId, 10));
 
-       // 调用
-       PageResult<TransferOrderRespVO> pageResult = transferOrderService.getTransferOrderPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbTransferOrder, pageResult.getList().get(0));
+        // 物料与单位快照写入时落库，列表查询不再回查 mdm
+        TransferOrderLineDO line = transferOrderLineMapper.selectById(lineId);
+        assertNotNull(line);
+        assertEquals("M-001", line.getMatCode());
+        assertEquals("物料A", line.getMatName());
+        assertEquals("PCS", line.getUomCode());
+    }
+
+    @Test
+    void testDeleteTransferOrder_cascadeLines() {
+        Long parentId = transferOrderService.createTransferOrder(buildReqVO("TR0-A"));
+        transferOrderService.createTransferOrderLine(buildLineReqVO(parentId, 10));
+
+        transferOrderService.deleteTransferOrder(parentId);
+
+        // 主单删除必须级联清理明细，否则留下孤儿数据
+        assertNull(transferOrderMapper.selectById(parentId));
+        assertEquals(0, transferOrderLineMapper.selectCount("order_id", parentId));
     }
 
 }

@@ -1,159 +1,125 @@
 package com.iboot.pf.module.wms.service.strategy;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.wms.controller.admin.strategy.vo.*;
+import com.iboot.pf.module.wms.controller.admin.strategy.vo.StrategySaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.strategy.WmsStrategyDO;
 import com.iboot.pf.module.wms.dal.mysql.strategy.WmsStrategyMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.enums.WmsStrategyStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsStrategyTypeEnum;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.STRATEGY_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.STRATEGY_CODE_DUPLICATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link WmsStrategyServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 仓储策略 Service 测试：覆盖编码自动分配、业务唯一性、存在性校验与删除。
  */
 @Import(WmsStrategyServiceImpl.class)
-public class WmsStrategyServiceImplTest extends BaseDbUnitTest {
+class WmsStrategyServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private WmsStrategyServiceImpl strategyService;
-
+    private WmsStrategyService wmsStrategyService;
     @Resource
-    private WmsStrategyMapper strategyMapper;
+    private WmsStrategyMapper wmsStrategyMapper;
 
-    @Test
-    public void testCreateStrategy_success() {
-        // 准备参数
-        StrategySaveReqVO createReqVO = randomPojo(StrategySaveReqVO.class).setId(null);
+    @MockitoBean
+    private WmsCodeService codeService;
 
-        // 调用
-        Long strategyId = strategyService.createStrategy(createReqVO);
-        // 断言
-        assertNotNull(strategyId);
-        // 校验记录的属性是否正确
-        WmsStrategyDO strategy = strategyMapper.selectById(strategyId);
-        assertPojoEquals(createReqVO, strategy, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "WST0001" : invocation.getArgument(1));
+    }
+
+    private StrategySaveReqVO buildReqVO(String code) {
+        StrategySaveReqVO reqVO = new StrategySaveReqVO();
+        reqVO.setCode(code);
+        reqVO.setName("默认上架策略");
+        reqVO.setStrategyType(WmsStrategyTypeEnum.PUTAWAY.name());
+        reqVO.setWhId(1L);
+        reqVO.setVersionNo("V1");
+        reqVO.setConfigJson("{}");
+        reqVO.setPriority(10);
+        reqVO.setStatus(WmsStrategyStatusEnum.ENABLED.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateStrategy_success() {
-        // mock 数据
-        WmsStrategyDO dbStrategy = randomPojo(WmsStrategyDO.class);
-        strategyMapper.insert(dbStrategy);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        StrategySaveReqVO updateReqVO = randomPojo(StrategySaveReqVO.class, o -> {
-            o.setId(dbStrategy.getId()); // 设置更新的 ID
-        });
+    void testCreateStrategy_blankCodeFilledByRule() {
+        Long id = wmsStrategyService.createStrategy(buildReqVO(null));
 
-        // 调用
-        strategyService.updateStrategy(updateReqVO);
-        // 校验是否更新正确
-        WmsStrategyDO strategy = strategyMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, strategy);
+        WmsStrategyDO entity = wmsStrategyMapper.selectById(id);
+        assertNotNull(entity);
+        assertEquals("WST0001", entity.getCode());
     }
 
     @Test
-    public void testUpdateStrategy_notExists() {
-        // 准备参数
-        StrategySaveReqVO updateReqVO = randomPojo(StrategySaveReqVO.class);
+    void testCreateStrategy_duplicateRejected() {
+        wmsStrategyService.createStrategy(buildReqVO("WST-A"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> strategyService.updateStrategy(updateReqVO), STRATEGY_NOT_EXISTS);
+        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
+        assertServiceException(() -> wmsStrategyService.createStrategy(buildReqVO("WST-A")), STRATEGY_CODE_DUPLICATE);
     }
 
     @Test
-    public void testDeleteStrategy_success() {
-        // mock 数据
-        WmsStrategyDO dbStrategy = randomPojo(WmsStrategyDO.class);
-        strategyMapper.insert(dbStrategy);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbStrategy.getId();
+    void testUpdateStrategy_keepOwnCode() {
+        Long id = wmsStrategyService.createStrategy(buildReqVO("WST-A"));
 
-        // 调用
-        strategyService.deleteStrategy(id);
-       // 校验数据不存在了
-       assertNull(strategyMapper.selectById(id));
+        // 改自己时业务编码没变，不应该撞到自己
+        StrategySaveReqVO updateReqVO = buildReqVO("WST-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("规则调整");
+        wmsStrategyService.updateStrategy(updateReqVO);
+
+        assertEquals("规则调整", wmsStrategyMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testDeleteStrategy_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testUpdateStrategy_duplicateRejected() {
+        wmsStrategyService.createStrategy(buildReqVO("WST-A"));
+        Long secondId = wmsStrategyService.createStrategy(buildReqVO("WST-B"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> strategyService.deleteStrategy(id), STRATEGY_NOT_EXISTS);
+        StrategySaveReqVO updateReqVO = buildReqVO("WST-A");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> wmsStrategyService.updateStrategy(updateReqVO), STRATEGY_CODE_DUPLICATE);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetStrategyPage() {
-       // mock 数据
-       WmsStrategyDO dbStrategy = randomPojo(WmsStrategyDO.class, o -> { // 等会查询到
-           o.setCode(null);
-           o.setName(null);
-           o.setStrategyType(null);
-           o.setWhId(null);
-           o.setVersionNo(null);
-           o.setConfigJson(null);
-           o.setPriority(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       strategyMapper.insert(dbStrategy);
-       // 测试 code 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setCode(null)));
-       // 测试 name 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setName(null)));
-       // 测试 strategyType 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setStrategyType(null)));
-       // 测试 whId 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setWhId(null)));
-       // 测试 versionNo 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setVersionNo(null)));
-       // 测试 configJson 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setConfigJson(null)));
-       // 测试 priority 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setPriority(null)));
-       // 测试 status 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       strategyMapper.insert(cloneIgnoreId(dbStrategy, o -> o.setCreateTime(null)));
-       // 准备参数
-       StrategyPageReqVO reqVO = new StrategyPageReqVO();
-       reqVO.setCode(null);
-       reqVO.setName(null);
-       reqVO.setStrategyType(null);
-       reqVO.setWhId(null);
-       reqVO.setVersionNo(null);
-       reqVO.setConfigJson(null);
-       reqVO.setPriority(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testUpdateStrategy_notExists() {
+        StrategySaveReqVO updateReqVO = buildReqVO("WST-A");
+        updateReqVO.setId(randomLongId());
 
-       // 调用
-       PageResult<StrategyRespVO> pageResult = strategyService.getStrategyPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbStrategy, pageResult.getList().get(0));
+        assertServiceException(() -> wmsStrategyService.updateStrategy(updateReqVO), STRATEGY_NOT_EXISTS);
+    }
+
+    @Test
+    void testDeleteStrategy_success() {
+        Long id = wmsStrategyService.createStrategy(buildReqVO("WST-A"));
+
+        wmsStrategyService.deleteStrategy(id);
+
+        assertNull(wmsStrategyMapper.selectById(id));
+    }
+
+    @Test
+    void testDeleteStrategy_notExists() {
+        assertServiceException(() -> wmsStrategyService.deleteStrategy(randomLongId()), STRATEGY_NOT_EXISTS);
     }
 
 }
