@@ -1,12 +1,15 @@
 package com.iboot.pf.module.wms.enums;
 
+import com.iboot.pf.framework.common.core.ArrayValuable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.Arrays;
 
 /** 库存流水收发方向。 */
 @Getter
 @AllArgsConstructor
-public enum WmsIoTypeEnum {
+public enum WmsIoTypeEnum implements ArrayValuable<String> {
 
     /** 入：现存数量增加。 */
     IN("入"),
@@ -17,6 +20,13 @@ public enum WmsIoTypeEnum {
     /** 状态变更：现存数量不变。 */
     STATUS("状态变更");
 
+    public static final String[] ARRAYS = Arrays.stream(values()).map(Enum::name).toArray(String[]::new);
+
     private final String name;
+
+    @Override
+    public String[] array() {
+        return ARRAYS;
+    }
 
 }

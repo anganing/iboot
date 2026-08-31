@@ -1,12 +1,15 @@
 package com.iboot.pf.module.wms.enums;
 
+import com.iboot.pf.framework.common.core.ArrayValuable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.Arrays;
 
 /** 库存冻结状态。 */
 @Getter
 @AllArgsConstructor
-public enum WmsLockStatusEnum {
+public enum WmsLockStatusEnum implements ArrayValuable<String> {
 
     /** 生效：全额冻结。 */
     ACTIVE("生效"),
@@ -17,6 +20,13 @@ public enum WmsLockStatusEnum {
     /** 已取消。 */
     CANCELLED("已取消");
 
+    public static final String[] ARRAYS = Arrays.stream(values()).map(Enum::name).toArray(String[]::new);
+
     private final String name;
+
+    @Override
+    public String[] array() {
+        return ARRAYS;
+    }
 
 }

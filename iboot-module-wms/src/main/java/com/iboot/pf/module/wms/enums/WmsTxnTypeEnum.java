@@ -1,12 +1,15 @@
 package com.iboot.pf.module.wms.enums;
 
+import com.iboot.pf.framework.common.core.ArrayValuable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.Arrays;
 
 /** 库存事务类型。 */
 @Getter
 @AllArgsConstructor
-public enum WmsTxnTypeEnum {
+public enum WmsTxnTypeEnum implements ArrayValuable<String> {
 
     /** 入库收货。 */
     RECEIPT("入库收货", WmsIoTypeEnum.IN),
@@ -27,9 +30,16 @@ public enum WmsTxnTypeEnum {
     /** 盘点调整：默认按盘盈处理，盘亏必须显式传 ioType=OUT。 */
     ADJUST("盘点调整", WmsIoTypeEnum.IN);
 
+    public static final String[] ARRAYS = Arrays.stream(values()).map(Enum::name).toArray(String[]::new);
+
     private final String name;
 
     /** 默认收发方向，过账时按事务类型推导，避免调用方传错。 */
     private final WmsIoTypeEnum ioType;
+
+    @Override
+    public String[] array() {
+        return ARRAYS;
+    }
 
 }

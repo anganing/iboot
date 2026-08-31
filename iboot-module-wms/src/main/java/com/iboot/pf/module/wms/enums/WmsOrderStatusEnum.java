@@ -1,8 +1,11 @@
 package com.iboot.pf.module.wms.enums;
 
 import cn.hutool.core.util.ObjUtil;
+import com.iboot.pf.framework.common.core.ArrayValuable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.Arrays;
 
 /**
  * WMS 单据状态。
@@ -20,7 +23,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum WmsOrderStatusEnum {
+public enum WmsOrderStatusEnum implements ArrayValuable<String> {
 
     /** 新建。 */
     DRAFT("新建"),
@@ -49,7 +52,14 @@ public enum WmsOrderStatusEnum {
     /** 异常。 */
     EXCEPTION("异常");
 
+    public static final String[] ARRAYS = Arrays.stream(values()).map(Enum::name).toArray(String[]::new);
+
     private final String name;
+
+    @Override
+    public String[] array() {
+        return ARRAYS;
+    }
 
     /** 是否新建：只有新建状态允许取消。 */
     public static boolean isDraft(String status) {
