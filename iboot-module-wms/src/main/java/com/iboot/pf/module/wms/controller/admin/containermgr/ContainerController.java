@@ -72,7 +72,7 @@ public class ContainerController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-容器主档")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:container:query')")
     public CommonResult<ContainerRespVO> getContainer(@RequestParam("id") Long id) {
         return success(containerService.getContainer(id));

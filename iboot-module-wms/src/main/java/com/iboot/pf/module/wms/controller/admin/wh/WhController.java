@@ -72,7 +72,7 @@ public class WhController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-仓库")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:wh:query')")
     public CommonResult<WhRespVO> getWh(@RequestParam("id") Long id) {
         return success(whService.getWh(id));

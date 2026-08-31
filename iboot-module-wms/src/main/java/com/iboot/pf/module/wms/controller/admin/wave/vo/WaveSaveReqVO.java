@@ -7,24 +7,28 @@ import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import com.iboot.pf.module.wms.dal.dataobject.waveline.WaveLineDO;
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.module.wms.enums.WmsWaveStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsWaveTypeEnum;
 
 @Schema(description = "管理后台 - WMS-出库波次新增/修改 Request VO")
 @Data
 public class WaveSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "30246")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long id;
 
     @Schema(description = "波次编号", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "波次编号不能为空")
     private String waveNo;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "9063")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "仓库编号不能为空")
     private Long whId;
 
-    @Schema(description = "波次类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @Schema(description = "波次类型", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "波次类型不能为空")
+    @InEnum(WmsWaveTypeEnum.class)
     private String waveType;
 
     @Schema(description = "计划开始时间")
@@ -33,11 +37,12 @@ public class WaveSaveReqVO {
     @Schema(description = "计划结束时间")
     private LocalDateTime planEndTime;
 
-    @Schema(description = "状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotEmpty(message = "状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "状态不能为空")
+    @InEnum(WmsWaveStatusEnum.class)
     private String status;
 
-    @Schema(description = "备注", example = "你说的对")
+    @Schema(description = "备注")
     private String remark;
 
 }

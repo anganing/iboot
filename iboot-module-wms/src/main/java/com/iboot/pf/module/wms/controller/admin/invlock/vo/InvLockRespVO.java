@@ -7,13 +7,16 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-库存冻结记录 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class InvLockRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "14156")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -21,48 +24,50 @@ public class InvLockRespVO {
     @ExcelProperty("冻结编号")
     private String lockNo;
 
-    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("来源业务类型")
+    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "来源业务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.SOURCE_BIZ_TYPE)
     private String bizType;
 
     @Schema(description = "来源业务单号", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("来源业务单号")
     private String bizNo;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "22240")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "10149")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "4201")
+    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库位编号")
     private Long locId;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "8353")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("物料编号")
     private Long matId;
 
-    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "15271")
+    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("批次编号")
     private Long batchId;
 
-    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "13301")
+    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("容器编号，0表示散件")
     private Long containerId;
 
-    @Schema(description = "项目编号，0表示无项目", requiredMode = Schema.RequiredMode.REQUIRED, example = "19623")
+    @Schema(description = "项目编号，0表示无项目", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目编号，0表示无项目")
     private Long projectId;
 
-    @Schema(description = "项目任务编号，0表示无项目任务", requiredMode = Schema.RequiredMode.REQUIRED, example = "25767")
+    @Schema(description = "项目任务编号，0表示无项目任务", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目任务编号，0表示无项目任务")
     private Long projectTaskId;
 
-    @Schema(description = "质量状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("质量状态")
+    @Schema(description = "质量状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "质量状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.QUALITY_STATUS)
     private String qualityStatus;
 
     @Schema(description = "冻结数量，基准单位", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -73,19 +78,20 @@ public class InvLockRespVO {
     @ExcelProperty("已解冻数量")
     private BigDecimal releasedQty;
 
-    @Schema(description = "冻结原因", requiredMode = Schema.RequiredMode.REQUIRED, example = "不香")
+    @Schema(description = "冻结原因", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("冻结原因")
     private String reason;
 
-    @Schema(description = "状态：ACTIVE、PARTIAL、RELEASED、CANCELLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("状态：ACTIVE、PARTIAL、RELEASED、CANCELLED")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.LOCK_STATUS)
     private String status;
 
     @Schema(description = "冻结幂等键", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("冻结幂等键")
     private String idempotencyKey;
 
-    @Schema(description = "备注", example = "你说的对")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

@@ -7,13 +7,16 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-库存流水 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class InvTxnRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "23788")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -21,12 +24,14 @@ public class InvTxnRespVO {
     @ExcelProperty("库存事务编号")
     private String txnNo;
 
-    @Schema(description = "事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("事务类型：RECEIPT、ISSUE、TRANSFER、RESERVE、RELEASE、FREEZE、UNFREEZE、QUALITY_CHANGE、ADJUST")
+    @Schema(description = "事务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "事务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.TXN_TYPE)
     private String txnType;
 
-    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("来源业务类型")
+    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "来源业务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.SOURCE_BIZ_TYPE)
     private String bizType;
 
     @Schema(description = "来源业务单号", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -37,43 +42,44 @@ public class InvTxnRespVO {
     @ExcelProperty("来源业务行号")
     private String bizLineNo;
 
-    @Schema(description = "收发方向：IN、OUT、MOVE、STATUS", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("收发方向：IN、OUT、MOVE、STATUS")
+    @Schema(description = "收发方向", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "收发方向", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.IO_TYPE)
     private String ioType;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1936")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
-    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "25362")
+    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("工厂编号")
     private Long plantId;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "16756")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "来源库位编号，0表示无来源库位", requiredMode = Schema.RequiredMode.REQUIRED, example = "27072")
+    @Schema(description = "来源库位编号，0表示无来源库位", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("来源库位编号，0表示无来源库位")
     private Long fromLocId;
 
-    @Schema(description = "目标库位编号，0表示无目标库位", requiredMode = Schema.RequiredMode.REQUIRED, example = "7656")
+    @Schema(description = "目标库位编号，0表示无目标库位", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("目标库位编号，0表示无目标库位")
     private Long toLocId;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "18046")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("物料编号")
     private Long matId;
 
-    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "3534")
+    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("批次编号")
     private Long batchId;
 
-    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "12402")
+    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("容器编号，0表示散件")
     private Long containerId;
 
-    @Schema(description = "基准计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "17728")
+    @Schema(description = "基准计量单位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("基准计量单位编号")
     private Long uomId;
 
@@ -90,11 +96,13 @@ public class InvTxnRespVO {
     private BigDecimal afterQty;
 
     @Schema(description = "变更前质量状态")
-    @ExcelProperty("变更前质量状态")
+    @ExcelProperty(value = "变更前质量状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.QUALITY_STATUS)
     private String qualityStatusFrom;
 
     @Schema(description = "变更后质量状态")
-    @ExcelProperty("变更后质量状态")
+    @ExcelProperty(value = "变更后质量状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.QUALITY_STATUS)
     private String qualityStatusTo;
 
     @Schema(description = "变更前项目编号，0表示无项目", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -117,7 +125,7 @@ public class InvTxnRespVO {
     @ExcelProperty("物料编码快照")
     private String matCode;
 
-    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "李四")
+    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("物料名称快照")
     private String matName;
 
@@ -141,7 +149,7 @@ public class InvTxnRespVO {
     @ExcelProperty("过账幂等键")
     private String idempotencyKey;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

@@ -50,7 +50,7 @@ public class BatchImportExcelVO {
     @ExcelProperty("失效日期")
     private LocalDate expiryDate;
 
-    @ExcelProperty("状态：0-启用，1-停用")
+    @ExcelProperty("状态")
     private Integer status;
 
     @ExcelProperty("备注")

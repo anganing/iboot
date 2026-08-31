@@ -72,7 +72,7 @@ public class LocController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-库位")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:loc:query')")
     public CommonResult<LocRespVO> getLoc(@RequestParam("id") Long id) {
         return success(locService.getLoc(id));

@@ -27,16 +27,16 @@ public class WhImportExcelVO {
     @ExcelProperty("仓库名称")
     private String name;
 
-    @ExcelProperty("仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓")
+    @ExcelProperty("仓库类型")
     private String whType;
 
-    @ExcelProperty("管理方式：MANUAL、WCS、AGV、MIXED")
+    @ExcelProperty("管理方式")
     private String managedBy;
 
     @ExcelProperty("外部设备系统编码")
     private String externalSystemCode;
 
-    @ExcelProperty("状态：0-启用，1-停用")
+    @ExcelProperty("状态")
     private Integer status;
 
     @ExcelProperty("备注")

@@ -7,13 +7,16 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-库存预留 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class InvReservationRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "26628")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -21,8 +24,9 @@ public class InvReservationRespVO {
     @ExcelProperty("预留编号")
     private String reservationNo;
 
-    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("来源业务类型")
+    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "来源业务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.SOURCE_BIZ_TYPE)
     private String bizType;
 
     @Schema(description = "来源业务单号", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -33,40 +37,41 @@ public class InvReservationRespVO {
     @ExcelProperty("来源业务行号")
     private String bizLineNo;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "18730")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1837")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "19891")
+    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库位编号")
     private Long locId;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "11298")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("物料编号")
     private Long matId;
 
-    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "6680")
+    @Schema(description = "批次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("批次编号")
     private Long batchId;
 
-    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "17048")
+    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("容器编号，0表示散件")
     private Long containerId;
 
-    @Schema(description = "项目编号，0表示无项目", requiredMode = Schema.RequiredMode.REQUIRED, example = "15707")
+    @Schema(description = "项目编号，0表示无项目", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目编号，0表示无项目")
     private Long projectId;
 
-    @Schema(description = "项目任务编号，0表示无项目任务", requiredMode = Schema.RequiredMode.REQUIRED, example = "19010")
+    @Schema(description = "项目任务编号，0表示无项目任务", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目任务编号，0表示无项目任务")
     private Long projectTaskId;
 
-    @Schema(description = "质量状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("质量状态")
+    @Schema(description = "质量状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "质量状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.QUALITY_STATUS)
     private String qualityStatus;
 
     @Schema(description = "预留数量，基准单位", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -77,8 +82,9 @@ public class InvReservationRespVO {
     @ExcelProperty("已释放或已核销数量")
     private BigDecimal releasedQty;
 
-    @Schema(description = "状态：ACTIVE、PARTIAL、RELEASED、CONSUMED、CANCELLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：ACTIVE、PARTIAL、RELEASED、CONSUMED、CANCELLED")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.RESERVATION_STATUS)
     private String status;
 
     @Schema(description = "预留失效时间")
@@ -89,7 +95,7 @@ public class InvReservationRespVO {
     @ExcelProperty("预留幂等键")
     private String idempotencyKey;
 
-    @Schema(description = "备注", example = "你说的对")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

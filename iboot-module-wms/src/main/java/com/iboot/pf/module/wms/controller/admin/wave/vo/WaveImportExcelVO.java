@@ -32,7 +32,7 @@ public class WaveImportExcelVO {
     @ExcelProperty("计划结束时间")
     private LocalDateTime planEndTime;
 
-    @ExcelProperty("状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("备注")

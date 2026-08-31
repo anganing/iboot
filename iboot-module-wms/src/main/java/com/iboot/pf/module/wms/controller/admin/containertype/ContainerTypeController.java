@@ -72,7 +72,7 @@ public class ContainerTypeController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-容器类型")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:container-type:query')")
     public CommonResult<ContainerTypeRespVO> getContainerType(@RequestParam("id") Long id) {
         return success(containerTypeService.getContainerType(id));

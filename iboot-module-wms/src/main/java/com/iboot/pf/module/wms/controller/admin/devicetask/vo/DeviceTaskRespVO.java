@@ -6,13 +6,16 @@ import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-设备搬运任务 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class DeviceTaskRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "32657")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -24,39 +27,42 @@ public class DeviceTaskRespVO {
     @ExcelProperty("外部设备任务号")
     private String externalTaskNo;
 
-    @Schema(description = "任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN")
+    @Schema(description = "任务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "任务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.DEVICE_TASK_TYPE)
     private String taskType;
 
-    @Schema(description = "设备类型：WCS、AGV、RGV", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("设备类型：WCS、AGV、RGV")
+    @Schema(description = "设备类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "设备类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.DEVICE_TYPE)
     private String deviceType;
 
-    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("来源业务类型")
+    @Schema(description = "来源业务类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "来源业务类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.SOURCE_BIZ_TYPE)
     private String sourceBizType;
 
     @Schema(description = "来源业务单号", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("来源业务单号")
     private String sourceBizNo;
 
-    @Schema(description = "来源业务明细编号", example = "31759")
+    @Schema(description = "来源业务明细编号", example = "1")
     @ExcelProperty("来源业务明细编号")
     private Long sourceLineId;
 
-    @Schema(description = "容器编号，0表示无容器", requiredMode = Schema.RequiredMode.REQUIRED, example = "32170")
+    @Schema(description = "容器编号，0表示无容器", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("容器编号，0表示无容器")
     private Long containerId;
 
-    @Schema(description = "来源库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "8253")
+    @Schema(description = "来源库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("来源库位编号")
     private Long fromLocId;
 
-    @Schema(description = "目标库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "27764")
+    @Schema(description = "目标库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("目标库位编号")
     private Long toLocId;
 
-    @Schema(description = "设备回传实际库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "32596")
+    @Schema(description = "设备回传实际库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("设备回传实际库位编号")
     private Long actualLocId;
 
@@ -64,16 +70,19 @@ public class DeviceTaskRespVO {
     @ExcelProperty("外部设备系统编码")
     private String externalSystemCode;
 
-    @Schema(description = "下发状态：PENDING、SENT、FAILED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("下发状态：PENDING、SENT、FAILED")
+    @Schema(description = "下发状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "下发状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.DISPATCH_STATUS)
     private String dispatchStatus;
 
-    @Schema(description = "执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION")
+    @Schema(description = "执行状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "执行状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.DEVICE_TASK_STATUS)
     private String status;
 
-    @Schema(description = "库存过账状态：PENDING、POSTED、FAILED", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("库存过账状态：PENDING、POSTED、FAILED")
+    @Schema(description = "库存过账状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "库存过账状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.POST_STATUS)
     private String postStatus;
 
     @Schema(description = "下发业务快照")
@@ -96,7 +105,7 @@ public class DeviceTaskRespVO {
     @ExcelProperty("乐观锁版本")
     private Integer version;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 
@@ -104,5 +113,20 @@ public class DeviceTaskRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
+    @Schema(description = "搬运容器编号")
+    @ExcelProperty("搬运容器编号")
+    private String containerNo;
+
+    @Schema(description = "来源库位编码")
+    @ExcelProperty("来源库位编码")
+    private String fromLocCode;
+
+    @Schema(description = "目标库位编码")
+    @ExcelProperty("目标库位编码")
+    private String toLocCode;
+
+    @Schema(description = "实际库位编码")
+    @ExcelProperty("实际库位编码")
+    private String actualLocCode;
 
 }

@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
 import com.iboot.pf.module.wms.service.countorder.CountOrderService;
 
 @Tag(name = "管理后台 - WMS-盘点单")
@@ -73,7 +72,7 @@ public class CountOrderController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-盘点单")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:count-order:query')")
     public CommonResult<CountOrderRespVO> getCountOrder(@RequestParam("id") Long id) {
         return success(countOrderService.getCountOrder(id));
@@ -120,25 +119,23 @@ public class CountOrderController {
 
     @GetMapping("/count-order-line/page")
     @Operation(summary = "获得WMS-盘点明细分页")
-    @Parameter(name = "orderId", description = "盘点单编号")
     @PreAuthorize("@ss.hasPermission('wms:count-order:query')")
-    public CommonResult<PageResult<CountOrderLineDO>> getCountOrderLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("orderId") Long orderId) {
-        return success(countOrderService.getCountOrderLinePage(pageReqVO, orderId));
+    public CommonResult<PageResult<CountOrderLineRespVO>> getCountOrderLinePage(@Valid CountOrderLinePageReqVO pageReqVO) {
+        return success(countOrderService.getCountOrderLinePage(pageReqVO));
     }
 
     @PostMapping("/count-order-line/create")
     @Operation(summary = "创建WMS-盘点明细")
     @PreAuthorize("@ss.hasPermission('wms:count-order:create')")
-    public CommonResult<Long> createCountOrderLine(@Valid @RequestBody CountOrderLineDO countOrderLine) {
-        return success(countOrderService.createCountOrderLine(countOrderLine));
+    public CommonResult<Long> createCountOrderLine(@Valid @RequestBody CountOrderLineSaveReqVO createReqVO) {
+        return success(countOrderService.createCountOrderLine(createReqVO));
     }
 
     @PutMapping("/count-order-line/update")
     @Operation(summary = "更新WMS-盘点明细")
     @PreAuthorize("@ss.hasPermission('wms:count-order:update')")
-    public CommonResult<Boolean> updateCountOrderLine(@Valid @RequestBody CountOrderLineDO countOrderLine) {
-        countOrderService.updateCountOrderLine(countOrderLine);
+    public CommonResult<Boolean> updateCountOrderLine(@Valid @RequestBody CountOrderLineSaveReqVO updateReqVO) {
+        countOrderService.updateCountOrderLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class CountOrderController {
 	@Operation(summary = "获得WMS-盘点明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:count-order:query')")
-	public CommonResult<CountOrderLineDO> getCountOrderLine(@RequestParam("id") Long id) {
+	public CommonResult<CountOrderLineRespVO> getCountOrderLine(@RequestParam("id") Long id) {
 	    return success(countOrderService.getCountOrderLine(id));
 	}
 

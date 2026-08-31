@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
 import com.iboot.pf.module.wms.service.inordermgr.InOrderService;
 
 @Tag(name = "管理后台 - WMS-入库单")
@@ -73,7 +72,7 @@ public class InOrderController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-入库单")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:in-order:query')")
     public CommonResult<InOrderRespVO> getInOrder(@RequestParam("id") Long id) {
         return success(inOrderService.getInOrder(id));
@@ -120,25 +119,23 @@ public class InOrderController {
 
     @GetMapping("/in-order-line/page")
     @Operation(summary = "获得WMS-入库单明细分页")
-    @Parameter(name = "orderId", description = "入库单编号")
     @PreAuthorize("@ss.hasPermission('wms:in-order:query')")
-    public CommonResult<PageResult<InOrderLineDO>> getInOrderLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("orderId") Long orderId) {
-        return success(inOrderService.getInOrderLinePage(pageReqVO, orderId));
+    public CommonResult<PageResult<InOrderLineRespVO>> getInOrderLinePage(@Valid InOrderLinePageReqVO pageReqVO) {
+        return success(inOrderService.getInOrderLinePage(pageReqVO));
     }
 
     @PostMapping("/in-order-line/create")
     @Operation(summary = "创建WMS-入库单明细")
     @PreAuthorize("@ss.hasPermission('wms:in-order:create')")
-    public CommonResult<Long> createInOrderLine(@Valid @RequestBody InOrderLineDO inOrderLine) {
-        return success(inOrderService.createInOrderLine(inOrderLine));
+    public CommonResult<Long> createInOrderLine(@Valid @RequestBody InOrderLineSaveReqVO createReqVO) {
+        return success(inOrderService.createInOrderLine(createReqVO));
     }
 
     @PutMapping("/in-order-line/update")
     @Operation(summary = "更新WMS-入库单明细")
     @PreAuthorize("@ss.hasPermission('wms:in-order:update')")
-    public CommonResult<Boolean> updateInOrderLine(@Valid @RequestBody InOrderLineDO inOrderLine) {
-        inOrderService.updateInOrderLine(inOrderLine);
+    public CommonResult<Boolean> updateInOrderLine(@Valid @RequestBody InOrderLineSaveReqVO updateReqVO) {
+        inOrderService.updateInOrderLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class InOrderController {
 	@Operation(summary = "获得WMS-入库单明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:in-order:query')")
-	public CommonResult<InOrderLineDO> getInOrderLine(@RequestParam("id") Long id) {
+	public CommonResult<InOrderLineRespVO> getInOrderLine(@RequestParam("id") Long id) {
 	    return success(inOrderService.getInOrderLine(id));
 	}
 

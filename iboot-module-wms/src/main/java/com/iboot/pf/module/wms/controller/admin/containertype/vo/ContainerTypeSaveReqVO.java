@@ -5,19 +5,21 @@ import lombok.*;
 import java.util.*;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 
 @Schema(description = "管理后台 - WMS-容器类型新增/修改 Request VO")
 @Data
 public class ContainerTypeSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "13691")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long id;
 
     @Schema(description = "容器类型编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "容器类型编码不能为空")
     private String code;
 
-    @Schema(description = "容器类型名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "赵六")
+    @Schema(description = "容器类型名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "容器类型名称不能为空")
     private String name;
 
@@ -36,11 +38,12 @@ public class ContainerTypeSaveReqVO {
     @Schema(description = "最大容积")
     private BigDecimal maxVolume;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotNull(message = "状态：0-启用，1-停用不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @NotNull(message = "状态不能为空")
+    @InEnum(CommonStatusEnum.class)
     private Integer status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
     private String remark;
 
 }

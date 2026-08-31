@@ -38,7 +38,7 @@ public class ContainerTypeImportExcelVO {
     @ExcelProperty("最大容积")
     private BigDecimal maxVolume;
 
-    @ExcelProperty("状态：0-启用，1-停用")
+    @ExcelProperty("状态")
     private Integer status;
 
     @ExcelProperty("备注")

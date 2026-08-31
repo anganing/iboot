@@ -44,7 +44,7 @@ public class ContainerImportExcelVO {
     @ExcelProperty("实际毛重")
     private BigDecimal grossWeight;
 
-    @ExcelProperty("状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("乐观锁版本")

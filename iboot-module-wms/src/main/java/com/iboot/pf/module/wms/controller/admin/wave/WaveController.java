@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.wave.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.waveline.WaveLineDO;
 import com.iboot.pf.module.wms.service.wave.WaveService;
 
 @Tag(name = "管理后台 - WMS-出库波次")
@@ -73,7 +72,7 @@ public class WaveController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-出库波次")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:wave:query')")
     public CommonResult<WaveRespVO> getWave(@RequestParam("id") Long id) {
         return success(waveService.getWave(id));
@@ -120,25 +119,23 @@ public class WaveController {
 
     @GetMapping("/wave-line/page")
     @Operation(summary = "获得WMS-波次明细分页")
-    @Parameter(name = "waveId", description = "波次编号")
     @PreAuthorize("@ss.hasPermission('wms:wave:query')")
-    public CommonResult<PageResult<WaveLineDO>> getWaveLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("waveId") Long waveId) {
-        return success(waveService.getWaveLinePage(pageReqVO, waveId));
+    public CommonResult<PageResult<WaveLineRespVO>> getWaveLinePage(@Valid WaveLinePageReqVO pageReqVO) {
+        return success(waveService.getWaveLinePage(pageReqVO));
     }
 
     @PostMapping("/wave-line/create")
     @Operation(summary = "创建WMS-波次明细")
     @PreAuthorize("@ss.hasPermission('wms:wave:create')")
-    public CommonResult<Long> createWaveLine(@Valid @RequestBody WaveLineDO waveLine) {
-        return success(waveService.createWaveLine(waveLine));
+    public CommonResult<Long> createWaveLine(@Valid @RequestBody WaveLineSaveReqVO createReqVO) {
+        return success(waveService.createWaveLine(createReqVO));
     }
 
     @PutMapping("/wave-line/update")
     @Operation(summary = "更新WMS-波次明细")
     @PreAuthorize("@ss.hasPermission('wms:wave:update')")
-    public CommonResult<Boolean> updateWaveLine(@Valid @RequestBody WaveLineDO waveLine) {
-        waveService.updateWaveLine(waveLine);
+    public CommonResult<Boolean> updateWaveLine(@Valid @RequestBody WaveLineSaveReqVO updateReqVO) {
+        waveService.updateWaveLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class WaveController {
 	@Operation(summary = "获得WMS-波次明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:wave:query')")
-	public CommonResult<WaveLineDO> getWaveLine(@RequestParam("id") Long id) {
+	public CommonResult<WaveLineRespVO> getWaveLine(@RequestParam("id") Long id) {
 	    return success(waveService.getWaveLine(id));
 	}
 

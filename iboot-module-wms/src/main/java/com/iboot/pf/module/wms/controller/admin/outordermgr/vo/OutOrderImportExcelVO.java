@@ -18,7 +18,7 @@ public class OutOrderImportExcelVO {
     @ExcelProperty("出库单号")
     private String outNo;
 
-    @ExcelProperty("出库业务类型：PROD_ISSUE_OUT、SALES_DELIVERY_OUT、PO_RETURN_OUT、SCRAP_OUT、TRANSFER_OUT、COUNT_LOSS_OUT、OTHER_OUT")
+    @ExcelProperty("出库业务类型")
     private String bizType;
 
     @ExcelProperty("直接来源类型")
@@ -87,10 +87,10 @@ public class OutOrderImportExcelVO {
     @ExcelProperty("拣选策略编号")
     private Long pickStrategyId;
 
-    @ExcelProperty("外部设备触发方式：NONE、WCS、AGV")
+    @ExcelProperty("外部设备触发方式")
     private String hookMode;
 
-    @ExcelProperty("状态：DRAFT、SUBMITTED、READY、TASK_CREATED、IN_PROGRESS、DONE、CANCELLED、EXCEPTION")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("创建幂等键")

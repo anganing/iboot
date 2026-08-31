@@ -72,7 +72,7 @@ public class InvReservationController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-库存预留")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:inv-reservation:query')")
     public CommonResult<InvReservationRespVO> getInvReservation(@RequestParam("id") Long id) {
         return success(invReservationService.getInvReservation(id));

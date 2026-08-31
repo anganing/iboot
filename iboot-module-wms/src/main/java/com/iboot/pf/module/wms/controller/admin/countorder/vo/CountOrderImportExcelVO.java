@@ -20,7 +20,7 @@ public class CountOrderImportExcelVO {
     @ExcelProperty("盘点单号")
     private String countNo;
 
-    @ExcelProperty("盘点类型：FULL、SAMPLE、ABC_CYCLE、DYNAMIC")
+    @ExcelProperty("盘点类型")
     private String countType;
 
     @ExcelProperty("库存组织编号")
@@ -41,7 +41,7 @@ public class CountOrderImportExcelVO {
     @ExcelProperty("是否盲盘")
     private Boolean blindCountFlag;
 
-    @ExcelProperty("状态：DRAFT、FROZEN、COUNTING、DIFF_CONFIRMED、DONE、CANCELLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("创建幂等键")

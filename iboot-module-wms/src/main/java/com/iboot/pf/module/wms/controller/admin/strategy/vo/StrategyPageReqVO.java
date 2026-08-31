@@ -16,29 +16,17 @@ public class StrategyPageReqVO extends PageParam {
     @Schema(description = "策略编码")
     private String code;
 
-    @Schema(description = "策略名称", example = "芋艿")
+    @Schema(description = "策略名称")
     private String name;
 
-    @Schema(description = "策略类型：PUTAWAY、PICK、REPLENISH", example = "1")
+    @Schema(description = "策略类型", example = "PUTAWAY")
     private String strategyType;
 
-    @Schema(description = "适用仓库编号，0表示全局", example = "4541")
+    @Schema(description = "适用仓库编号，0表示全局", example = "1")
     private Long whId;
 
-    @Schema(description = "策略版本号")
-    private String versionNo;
-
-    @Schema(description = "策略条件与排序规则配置")
-    private String configJson;
-
-    @Schema(description = "优先级，数值越大越优先")
-    private Integer priority;
-
-    @Schema(description = "状态：DRAFT、ENABLED、DISABLED", example = "2")
+    @Schema(description = "状态", example = "ENABLED")
     private String status;
-
-    @Schema(description = "备注", example = "随便")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

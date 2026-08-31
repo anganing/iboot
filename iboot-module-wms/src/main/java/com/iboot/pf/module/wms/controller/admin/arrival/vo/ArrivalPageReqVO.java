@@ -18,43 +18,20 @@ public class ArrivalPageReqVO extends PageParam {
     @Schema(description = "到货登记单号")
     private String arrivalNo;
 
-    @Schema(description = "来源类型：PURCHASE_ORDER、ASN、SALES_RETURN、OTHER", example = "1")
+    @Schema(description = "来源类型", example = "PURCHASE_ORDER")
     private String sourceType;
 
     @Schema(description = "来源单号")
     private String sourceNo;
 
-    @Schema(description = "供应商编号", example = "19938")
+    @Schema(description = "供应商编号", example = "1")
     private Long supplierId;
 
-    @Schema(description = "供应商编码快照")
-    private String supplierCode;
-
-    @Schema(description = "供应商名称快照", example = "李四")
-    private String supplierName;
-
-    @Schema(description = "库存组织编号", example = "7601")
-    private Long invOrgId;
-
-    @Schema(description = "工厂编号", example = "20682")
-    private Long plantId;
-
-    @Schema(description = "目标仓库编号", example = "28154")
+    @Schema(description = "目标仓库编号", example = "1")
     private Long whId;
 
-    @Schema(description = "预计到货日期")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDate[] expectDate;
-
-    @Schema(description = "实际到货时间")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDateTime[] arrivalTime;
-
-    @Schema(description = "状态：DRAFT、ARRIVED、QC_PENDING、DONE、CANCELLED", example = "1")
+    @Schema(description = "状态", example = "DRAFT")
     private String status;
-
-    @Schema(description = "备注", example = "你猜")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

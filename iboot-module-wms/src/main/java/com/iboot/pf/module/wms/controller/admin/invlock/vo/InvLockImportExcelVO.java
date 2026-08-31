@@ -62,7 +62,7 @@ public class InvLockImportExcelVO {
     @ExcelProperty("冻结原因")
     private String reason;
 
-    @ExcelProperty("状态：ACTIVE、PARTIAL、RELEASED、CANCELLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("冻结幂等键")

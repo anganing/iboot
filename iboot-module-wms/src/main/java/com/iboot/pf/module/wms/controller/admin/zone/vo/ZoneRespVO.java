@@ -6,17 +6,21 @@ import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
+import com.iboot.pf.module.system.enums.DictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-库区 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class ZoneRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "14009")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "32765")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
@@ -24,12 +28,13 @@ public class ZoneRespVO {
     @ExcelProperty("库区编码")
     private String code;
 
-    @Schema(description = "库区名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "张三")
+    @Schema(description = "库区名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("库区名称")
     private String name;
 
-    @Schema(description = "库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING")
+    @Schema(description = "库区类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "库区类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.ZONE_TYPE)
     private String zoneType;
 
     @Schema(description = "是否允许混放物料", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -44,11 +49,12 @@ public class ZoneRespVO {
     @ExcelProperty("温区要求")
     private String tempRange;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("状态：0-启用，1-停用")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(DictTypeConstants.COMMON_STATUS)
     private Integer status;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

@@ -1,49 +1,61 @@
 package com.iboot.pf.module.wms.controller.admin.wh.vo;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.module.wms.enums.WmsManagedByEnum;
+import com.iboot.pf.module.wms.enums.WmsWhTypeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import java.util.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 
 @Schema(description = "管理后台 - WMS-仓库新增/修改 Request VO")
 @Data
 public class WhSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "10993")
+    @Schema(description = "主键", example = "1")
     private Long id;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "8586")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "库存组织编号不能为空")
     private Long invOrgId;
 
-    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "21479")
+    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "工厂编号不能为空")
     private Long plantId;
 
-    @Schema(description = "仓库编码", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "仓库编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "WH001")
     @NotEmpty(message = "仓库编码不能为空")
+    @Size(max = 64, message = "仓库编码长度不能超过 64")
     private String code;
 
-    @Schema(description = "仓库名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "赵六")
+    @Schema(description = "仓库名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "仓库名称不能为空")
+    @Size(max = 128, message = "仓库名称长度不能超过 128")
     private String name;
 
-    @Schema(description = "仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @NotEmpty(message = "仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓不能为空")
+    @Schema(description = "仓库类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "ASRS")
+    @NotEmpty(message = "仓库类型不能为空")
+    @InEnum(WmsWhTypeEnum.class)
     private String whType;
 
-    @Schema(description = "管理方式：MANUAL、WCS、AGV、MIXED", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "管理方式：MANUAL、WCS、AGV、MIXED不能为空")
+    @Schema(description = "管理方式", requiredMode = Schema.RequiredMode.REQUIRED, example = "MANUAL")
+    @NotEmpty(message = "管理方式不能为空")
+    @InEnum(WmsManagedByEnum.class)
     private String managedBy;
 
-    @Schema(description = "外部设备系统编码")
+    @Schema(description = "外部设备系统编码，对接 WCS/AGV 时填写", example = "WCS-01")
+    @Size(max = 64, message = "外部设备系统编码长度不能超过 64")
     private String externalSystemCode;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotNull(message = "状态：0-启用，1-停用不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @NotNull(message = "状态不能为空")
+    @InEnum(CommonStatusEnum.class)
     private Integer status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
+    @Size(max = 500, message = "备注长度不能超过 500")
     private String remark;
 
 }

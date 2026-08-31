@@ -63,7 +63,7 @@ public class InvReservationImportExcelVO {
     @ExcelProperty("已释放或已核销数量")
     private BigDecimal releasedQty;
 
-    @ExcelProperty("状态：ACTIVE、PARTIAL、RELEASED、CONSUMED、CANCELLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("预留失效时间")

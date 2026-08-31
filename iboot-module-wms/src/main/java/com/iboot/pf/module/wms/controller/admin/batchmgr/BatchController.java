@@ -72,7 +72,7 @@ public class BatchController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-批次主档")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:batch:query')")
     public CommonResult<BatchRespVO> getBatch(@RequestParam("id") Long id) {
         return success(batchService.getBatch(id));

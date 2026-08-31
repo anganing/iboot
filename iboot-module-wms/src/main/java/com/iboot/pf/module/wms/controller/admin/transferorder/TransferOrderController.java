@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
 import com.iboot.pf.module.wms.service.transferorder.TransferOrderService;
 
 @Tag(name = "管理后台 - WMS-库存转移调拨单")
@@ -73,7 +72,7 @@ public class TransferOrderController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-库存转移调拨单")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:transfer-order:query')")
     public CommonResult<TransferOrderRespVO> getTransferOrder(@RequestParam("id") Long id) {
         return success(transferOrderService.getTransferOrder(id));
@@ -120,25 +119,23 @@ public class TransferOrderController {
 
     @GetMapping("/transfer-order-line/page")
     @Operation(summary = "获得WMS-库存转移调拨明细分页")
-    @Parameter(name = "orderId", description = "转移调拨单编号")
     @PreAuthorize("@ss.hasPermission('wms:transfer-order:query')")
-    public CommonResult<PageResult<TransferOrderLineDO>> getTransferOrderLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("orderId") Long orderId) {
-        return success(transferOrderService.getTransferOrderLinePage(pageReqVO, orderId));
+    public CommonResult<PageResult<TransferOrderLineRespVO>> getTransferOrderLinePage(@Valid TransferOrderLinePageReqVO pageReqVO) {
+        return success(transferOrderService.getTransferOrderLinePage(pageReqVO));
     }
 
     @PostMapping("/transfer-order-line/create")
     @Operation(summary = "创建WMS-库存转移调拨明细")
     @PreAuthorize("@ss.hasPermission('wms:transfer-order:create')")
-    public CommonResult<Long> createTransferOrderLine(@Valid @RequestBody TransferOrderLineDO transferOrderLine) {
-        return success(transferOrderService.createTransferOrderLine(transferOrderLine));
+    public CommonResult<Long> createTransferOrderLine(@Valid @RequestBody TransferOrderLineSaveReqVO createReqVO) {
+        return success(transferOrderService.createTransferOrderLine(createReqVO));
     }
 
     @PutMapping("/transfer-order-line/update")
     @Operation(summary = "更新WMS-库存转移调拨明细")
     @PreAuthorize("@ss.hasPermission('wms:transfer-order:update')")
-    public CommonResult<Boolean> updateTransferOrderLine(@Valid @RequestBody TransferOrderLineDO transferOrderLine) {
-        transferOrderService.updateTransferOrderLine(transferOrderLine);
+    public CommonResult<Boolean> updateTransferOrderLine(@Valid @RequestBody TransferOrderLineSaveReqVO updateReqVO) {
+        transferOrderService.updateTransferOrderLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class TransferOrderController {
 	@Operation(summary = "获得WMS-库存转移调拨明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:transfer-order:query')")
-	public CommonResult<TransferOrderLineDO> getTransferOrderLine(@RequestParam("id") Long id) {
+	public CommonResult<TransferOrderLineRespVO> getTransferOrderLine(@RequestParam("id") Long id) {
 	    return success(transferOrderService.getTransferOrderLine(id));
 	}
 

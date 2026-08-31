@@ -21,7 +21,7 @@ public class StrategyImportExcelVO {
     @ExcelProperty("策略名称")
     private String name;
 
-    @ExcelProperty("策略类型：PUTAWAY、PICK、REPLENISH")
+    @ExcelProperty("策略类型")
     private String strategyType;
 
     @ExcelProperty("适用仓库编号，0表示全局")
@@ -36,7 +36,7 @@ public class StrategyImportExcelVO {
     @ExcelProperty("优先级，数值越大越优先")
     private Integer priority;
 
-    @ExcelProperty("状态：DRAFT、ENABLED、DISABLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("备注")

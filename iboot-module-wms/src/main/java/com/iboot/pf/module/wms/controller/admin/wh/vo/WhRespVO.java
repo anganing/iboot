@@ -6,21 +6,25 @@ import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
+import com.iboot.pf.module.system.enums.DictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-仓库 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class WhRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "10993")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "8586")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
-    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "21479")
+    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("工厂编号")
     private Long plantId;
 
@@ -28,27 +32,30 @@ public class WhRespVO {
     @ExcelProperty("仓库编码")
     private String code;
 
-    @Schema(description = "仓库名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "赵六")
+    @Schema(description = "仓库名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("仓库名称")
     private String name;
 
-    @Schema(description = "仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓")
+    @Schema(description = "仓库类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "仓库类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.WH_TYPE)
     private String whType;
 
-    @Schema(description = "管理方式：MANUAL、WCS、AGV、MIXED", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ExcelProperty("管理方式：MANUAL、WCS、AGV、MIXED")
+    @Schema(description = "管理方式", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "管理方式", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.MANAGED_BY)
     private String managedBy;
 
     @Schema(description = "外部设备系统编码")
     @ExcelProperty("外部设备系统编码")
     private String externalSystemCode;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：0-启用，1-停用")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(DictTypeConstants.COMMON_STATUS)
     private Integer status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 
@@ -56,5 +63,20 @@ public class WhRespVO {
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;
 
+    @Schema(description = "库存组织编码")
+    @ExcelProperty("库存组织编码")
+    private String invOrgCode;
+
+    @Schema(description = "库存组织名称")
+    @ExcelProperty("库存组织名称")
+    private String invOrgName;
+
+    @Schema(description = "工厂编码")
+    @ExcelProperty("工厂编码")
+    private String plantCode;
+
+    @Schema(description = "工厂名称")
+    @ExcelProperty("工厂名称")
+    private String plantName;
 
 }

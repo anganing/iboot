@@ -13,32 +13,29 @@ import static com.iboot.pf.framework.common.util.date.DateUtils.FORMAT_YEAR_MONT
 @Data
 public class WhPageReqVO extends PageParam {
 
-    @Schema(description = "库存组织编号", example = "8586")
+    @Schema(description = "库存组织编号", example = "1")
     private Long invOrgId;
 
-    @Schema(description = "工厂编号", example = "21479")
+    @Schema(description = "工厂编号", example = "1")
     private Long plantId;
 
     @Schema(description = "仓库编码")
     private String code;
 
-    @Schema(description = "仓库名称", example = "赵六")
+    @Schema(description = "仓库名称")
     private String name;
 
-    @Schema(description = "仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓", example = "1")
+    @Schema(description = "仓库类型", example = "ASRS")
     private String whType;
 
-    @Schema(description = "管理方式：MANUAL、WCS、AGV、MIXED")
+    @Schema(description = "管理方式", example = "MANUAL")
     private String managedBy;
 
     @Schema(description = "外部设备系统编码")
     private String externalSystemCode;
 
-    @Schema(description = "状态：0-启用，1-停用", example = "2")
+    @Schema(description = "状态", example = "0")
     private Integer status;
-
-    @Schema(description = "备注", example = "随便")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

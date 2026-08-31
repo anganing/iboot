@@ -7,58 +7,63 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-多维库存余额 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class InvBalanceRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "17435")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
-    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "29559")
+    @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库存组织编号")
     private Long invOrgId;
 
-    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1418")
+    @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("工厂编号")
     private Long plantId;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "7799")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "27100")
+    @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库位编号")
     private Long locId;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "16866")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("物料编号")
     private Long matId;
 
-    @Schema(description = "批次编号；无批次物料挂默认批次", requiredMode = Schema.RequiredMode.REQUIRED, example = "12889")
+    @Schema(description = "批次编号；无批次物料挂默认批次", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("批次编号；无批次物料挂默认批次")
     private Long batchId;
 
-    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "18354")
+    @Schema(description = "容器编号，0表示散件", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("容器编号，0表示散件")
     private Long containerId;
 
-    @Schema(description = "项目编号，0表示无项目归属", requiredMode = Schema.RequiredMode.REQUIRED, example = "18162")
+    @Schema(description = "项目编号，0表示无项目归属", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目编号，0表示无项目归属")
     private Long projectId;
 
-    @Schema(description = "项目任务编号，0表示无项目任务归属", requiredMode = Schema.RequiredMode.REQUIRED, example = "8693")
+    @Schema(description = "项目任务编号，0表示无项目任务归属", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("项目任务编号，0表示无项目任务归属")
     private Long projectTaskId;
 
-    @Schema(description = "库存范围：COMMON、PROJECT_DEDICATED", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ExcelProperty("库存范围：COMMON、PROJECT_DEDICATED")
+    @Schema(description = "库存范围", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "库存范围", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.STOCK_SCOPE)
     private String stockScope;
 
-    @Schema(description = "质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @ExcelProperty("质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN")
+    @Schema(description = "质量状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "质量状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.QUALITY_STATUS)
     private String qualityStatus;
 
     @Schema(description = "现存数量，基准单位", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -77,7 +82,7 @@ public class InvBalanceRespVO {
     @ExcelProperty("物料编码快照")
     private String matCode;
 
-    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "赵六")
+    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("物料名称快照")
     private String matName;
 
@@ -105,7 +110,7 @@ public class InvBalanceRespVO {
     @ExcelProperty("乐观锁版本")
     private Integer version;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

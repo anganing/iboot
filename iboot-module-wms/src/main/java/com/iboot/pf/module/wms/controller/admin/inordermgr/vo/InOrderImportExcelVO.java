@@ -18,7 +18,7 @@ public class InOrderImportExcelVO {
     @ExcelProperty("入库单号")
     private String inNo;
 
-    @ExcelProperty("入库业务类型：PO_IN、PROD_FINISH_IN、REWORK_FINISH_IN、SALES_RETURN_IN、PROD_RETURN_IN、TRANSFER_IN、COUNT_GAIN_IN、OTHER_IN")
+    @ExcelProperty("入库业务类型")
     private String bizType;
 
     @ExcelProperty("直接来源类型")
@@ -90,10 +90,10 @@ public class InOrderImportExcelVO {
     @ExcelProperty("入库质量状态")
     private String qualityStatus;
 
-    @ExcelProperty("外部设备触发方式：NONE、WCS、AGV")
+    @ExcelProperty("外部设备触发方式")
     private String hookMode;
 
-    @ExcelProperty("状态：DRAFT、SUBMITTED、QC_PENDING、READY、TASK_CREATED、IN_PROGRESS、DONE、CANCELLED、EXCEPTION")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("创建幂等键")

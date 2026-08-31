@@ -17,29 +17,11 @@ public class ContainerTypePageReqVO extends PageParam {
     @Schema(description = "容器类型编码")
     private String code;
 
-    @Schema(description = "容器类型名称", example = "赵六")
+    @Schema(description = "容器类型名称")
     private String name;
 
-    @Schema(description = "标准长度，单位毫米")
-    private BigDecimal stdLength;
-
-    @Schema(description = "标准宽度，单位毫米")
-    private BigDecimal stdWidth;
-
-    @Schema(description = "标准高度，单位毫米")
-    private BigDecimal stdHeight;
-
-    @Schema(description = "最大承重")
-    private BigDecimal maxWeight;
-
-    @Schema(description = "最大容积")
-    private BigDecimal maxVolume;
-
-    @Schema(description = "状态：0-启用，1-停用", example = "2")
+    @Schema(description = "状态", example = "0")
     private Integer status;
-
-    @Schema(description = "备注", example = "随便")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

@@ -24,7 +24,7 @@ public class ZoneImportExcelVO {
     @ExcelProperty("库区名称")
     private String name;
 
-    @ExcelProperty("库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING")
+    @ExcelProperty("库区类型")
     private String zoneType;
 
     @ExcelProperty("是否允许混放物料")
@@ -36,7 +36,7 @@ public class ZoneImportExcelVO {
     @ExcelProperty("温区要求")
     private String tempRange;
 
-    @ExcelProperty("状态：0-启用，1-停用")
+    @ExcelProperty("状态")
     private Integer status;
 
     @ExcelProperty("备注")

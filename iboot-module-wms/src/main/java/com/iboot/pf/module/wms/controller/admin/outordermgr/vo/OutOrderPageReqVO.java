@@ -16,89 +16,23 @@ public class OutOrderPageReqVO extends PageParam {
     @Schema(description = "出库单号")
     private String outNo;
 
-    @Schema(description = "出库业务类型：PROD_ISSUE_OUT、SALES_DELIVERY_OUT、PO_RETURN_OUT、SCRAP_OUT、TRANSFER_OUT、COUNT_LOSS_OUT、OTHER_OUT", example = "2")
+    @Schema(description = "出库业务类型", example = "PO_IN")
     private String bizType;
-
-    @Schema(description = "直接来源类型", example = "1")
-    private String sourceType;
 
     @Schema(description = "直接来源业务单号")
     private String sourceBizNo;
 
-    @Schema(description = "直接来源明细编号", example = "25991")
-    private Long sourceLineId;
-
-    @Schema(description = "原始来源类型", example = "1")
-    private String originType;
-
-    @Schema(description = "原始来源单号")
-    private String originNo;
-
-    @Schema(description = "客户编号", example = "21374")
+    @Schema(description = "客户编号", example = "1")
     private Long customerId;
 
-    @Schema(description = "供应商编号", example = "9944")
-    private Long supplierId;
-
-    @Schema(description = "生产工单号快照")
-    private String prodOrderNo;
-
-    @Schema(description = "作业工单号快照")
-    private String workOrderNo;
-
-    @Schema(description = "工序任务编号", example = "23912")
-    private Long opTaskId;
-
-    @Schema(description = "领退补料申请单号")
-    private String materialReqNo;
-
-    @Schema(description = "转移或调拨单号")
-    private String transferNo;
-
-    @Schema(description = "盘点单号")
-    private String countOrderNo;
-
-    @Schema(description = "来源库存组织编号", example = "18418")
-    private Long invOrgId;
-
-    @Schema(description = "来源工厂编号", example = "11271")
-    private Long plantId;
-
-    @Schema(description = "项目编号，0表示无项目", example = "3537")
+    @Schema(description = "项目编号，0表示无项目", example = "1")
     private Long projectId;
 
-    @Schema(description = "项目任务编号，0表示无项目任务", example = "24854")
-    private Long projectTaskId;
-
-    @Schema(description = "来源仓库编号", example = "28281")
+    @Schema(description = "来源仓库编号", example = "1")
     private Long whId;
 
-    @Schema(description = "来源仓库编码快照")
-    private String whCode;
-
-    @Schema(description = "目标库存组织编号，0表示非调拨", example = "2380")
-    private Long toInvOrgId;
-
-    @Schema(description = "目标仓库编号，0表示非调拨", example = "24608")
-    private Long toWhId;
-
-    @Schema(description = "拣选策略编号", example = "31437")
-    private Long pickStrategyId;
-
-    @Schema(description = "外部设备触发方式：NONE、WCS、AGV")
-    private String hookMode;
-
-    @Schema(description = "状态：DRAFT、SUBMITTED、READY、TASK_CREATED、IN_PROGRESS、DONE、CANCELLED、EXCEPTION", example = "1")
+    @Schema(description = "状态", example = "DRAFT")
     private String status;
-
-    @Schema(description = "创建幂等键")
-    private String idempotencyKey;
-
-    @Schema(description = "低频扩展属性")
-    private String bizAttrsJson;
-
-    @Schema(description = "备注或人工原因", example = "随便")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

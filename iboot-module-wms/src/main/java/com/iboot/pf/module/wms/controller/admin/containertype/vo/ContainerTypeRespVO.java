@@ -7,13 +7,17 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
+import com.iboot.pf.module.system.enums.DictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-容器类型 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class ContainerTypeRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "13691")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -21,7 +25,7 @@ public class ContainerTypeRespVO {
     @ExcelProperty("容器类型编码")
     private String code;
 
-    @Schema(description = "容器类型名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "赵六")
+    @Schema(description = "容器类型名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("容器类型名称")
     private String name;
 
@@ -45,11 +49,12 @@ public class ContainerTypeRespVO {
     @ExcelProperty("最大容积")
     private BigDecimal maxVolume;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：0-启用，1-停用")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(DictTypeConstants.COMMON_STATUS)
     private Integer status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

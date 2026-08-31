@@ -15,14 +15,8 @@ import static com.iboot.pf.framework.common.util.date.DateUtils.FORMAT_YEAR_MONT
 @Data
 public class BatchPageReqVO extends PageParam {
 
-    @Schema(description = "物料编号", example = "31665")
+    @Schema(description = "物料编号", example = "1")
     private Long matId;
-
-    @Schema(description = "物料编码快照")
-    private String matCode;
-
-    @Schema(description = "物料名称快照", example = "李四")
-    private String matName;
 
     @Schema(description = "批次号；无批次物料使用默认批次")
     private String lotNo;
@@ -30,31 +24,14 @@ public class BatchPageReqVO extends PageParam {
     @Schema(description = "序列号；SN物料以数量为1的批次承载")
     private String snNo;
 
-    @Schema(description = "供应商编号", example = "6991")
+    @Schema(description = "供应商编号", example = "1")
     private Long supplierId;
-
-    @Schema(description = "供应商编码快照")
-    private String supplierCode;
 
     @Schema(description = "供应商批次号")
     private String supplierLotNo;
 
-    @Schema(description = "炉批号")
-    private String furnaceLotNo;
-
-    @Schema(description = "生产日期")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDate[] produceDate;
-
-    @Schema(description = "失效日期")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDate[] expiryDate;
-
-    @Schema(description = "状态：0-启用，1-停用", example = "2")
+    @Schema(description = "状态", example = "0")
     private Integer status;
-
-    @Schema(description = "备注", example = "你猜")
-    private String remark;
 
     @Schema(description = "创建时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

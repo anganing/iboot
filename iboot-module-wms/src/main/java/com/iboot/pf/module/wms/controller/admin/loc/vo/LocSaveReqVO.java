@@ -5,19 +5,23 @@ import lombok.*;
 import java.util.*;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.module.wms.enums.WmsDimensionCheckModeEnum;
+import com.iboot.pf.module.wms.enums.WmsLocStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsLocTypeEnum;
 
 @Schema(description = "管理后台 - WMS-库位新增/修改 Request VO")
 @Data
 public class LocSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "26755")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long id;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "21277")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "仓库编号不能为空")
     private Long whId;
 
-    @Schema(description = "库区编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1961")
+    @Schema(description = "库区编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "库区编号不能为空")
     private Long zoneId;
 
@@ -25,8 +29,9 @@ public class LocSaveReqVO {
     @NotEmpty(message = "库位编码不能为空")
     private String code;
 
-    @Schema(description = "库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotEmpty(message = "库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX不能为空")
+    @Schema(description = "库位类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "库位类型不能为空")
+    @InEnum(WmsLocTypeEnum.class)
     private String locType;
 
     @Schema(description = "巷道号")
@@ -62,15 +67,17 @@ public class LocSaveReqVO {
     @Schema(description = "最大容器数量")
     private Integer maxContainerQty;
 
-    @Schema(description = "尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM不能为空")
+    @Schema(description = "尺寸校验模式", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "尺寸校验模式不能为空")
+    @InEnum(WmsDimensionCheckModeEnum.class)
     private String dimensionCheckMode;
 
-    @Schema(description = "状态：EMPTY、OCCUPIED、LOCKED、DISABLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotEmpty(message = "状态：EMPTY、OCCUPIED、LOCKED、DISABLED不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "状态不能为空")
+    @InEnum(WmsLocStatusEnum.class)
     private String status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
     private String remark;
 
 }

@@ -8,17 +8,21 @@ import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
+import com.iboot.pf.module.system.enums.DictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-批次主档 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class BatchRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "23696")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "31665")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("物料编号")
     private Long matId;
 
@@ -26,7 +30,7 @@ public class BatchRespVO {
     @ExcelProperty("物料编码快照")
     private String matCode;
 
-    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "李四")
+    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("物料名称快照")
     private String matName;
 
@@ -38,7 +42,7 @@ public class BatchRespVO {
     @ExcelProperty("序列号；SN物料以数量为1的批次承载")
     private String snNo;
 
-    @Schema(description = "供应商编号", example = "6991")
+    @Schema(description = "供应商编号", example = "1")
     @ExcelProperty("供应商编号")
     private Long supplierId;
 
@@ -62,11 +66,12 @@ public class BatchRespVO {
     @ExcelProperty("失效日期")
     private LocalDate expiryDate;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：0-启用，1-停用")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(DictTypeConstants.COMMON_STATUS)
     private Integer status;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

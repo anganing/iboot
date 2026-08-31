@@ -72,7 +72,7 @@ public class InvLockController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-库存冻结记录")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:inv-lock:query')")
     public CommonResult<InvLockRespVO> getInvLock(@RequestParam("id") Long id) {
         return success(invLockService.getInvLock(id));

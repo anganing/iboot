@@ -71,7 +71,7 @@ public class StrategyController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-仓储策略")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:strategy:query')")
     public CommonResult<StrategyRespVO> getStrategy(@RequestParam("id") Long id) {
         return success(wmsStrategyService.getStrategy(id));

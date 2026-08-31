@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
 import com.iboot.pf.module.wms.service.outordermgr.OutOrderService;
 
 @Tag(name = "管理后台 - WMS-出库单")
@@ -73,7 +72,7 @@ public class OutOrderController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-出库单")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:out-order:query')")
     public CommonResult<OutOrderRespVO> getOutOrder(@RequestParam("id") Long id) {
         return success(outOrderService.getOutOrder(id));
@@ -120,25 +119,23 @@ public class OutOrderController {
 
     @GetMapping("/out-order-line/page")
     @Operation(summary = "获得WMS-出库单明细分页")
-    @Parameter(name = "orderId", description = "出库单编号")
     @PreAuthorize("@ss.hasPermission('wms:out-order:query')")
-    public CommonResult<PageResult<OutOrderLineDO>> getOutOrderLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("orderId") Long orderId) {
-        return success(outOrderService.getOutOrderLinePage(pageReqVO, orderId));
+    public CommonResult<PageResult<OutOrderLineRespVO>> getOutOrderLinePage(@Valid OutOrderLinePageReqVO pageReqVO) {
+        return success(outOrderService.getOutOrderLinePage(pageReqVO));
     }
 
     @PostMapping("/out-order-line/create")
     @Operation(summary = "创建WMS-出库单明细")
     @PreAuthorize("@ss.hasPermission('wms:out-order:create')")
-    public CommonResult<Long> createOutOrderLine(@Valid @RequestBody OutOrderLineDO outOrderLine) {
-        return success(outOrderService.createOutOrderLine(outOrderLine));
+    public CommonResult<Long> createOutOrderLine(@Valid @RequestBody OutOrderLineSaveReqVO createReqVO) {
+        return success(outOrderService.createOutOrderLine(createReqVO));
     }
 
     @PutMapping("/out-order-line/update")
     @Operation(summary = "更新WMS-出库单明细")
     @PreAuthorize("@ss.hasPermission('wms:out-order:update')")
-    public CommonResult<Boolean> updateOutOrderLine(@Valid @RequestBody OutOrderLineDO outOrderLine) {
-        outOrderService.updateOutOrderLine(outOrderLine);
+    public CommonResult<Boolean> updateOutOrderLine(@Valid @RequestBody OutOrderLineSaveReqVO updateReqVO) {
+        outOrderService.updateOutOrderLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class OutOrderController {
 	@Operation(summary = "获得WMS-出库单明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:out-order:query')")
-	public CommonResult<OutOrderLineDO> getOutOrderLine(@RequestParam("id") Long id) {
+	public CommonResult<OutOrderLineRespVO> getOutOrderLine(@RequestParam("id") Long id) {
 	    return success(outOrderService.getOutOrderLine(id));
 	}
 

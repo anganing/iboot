@@ -21,7 +21,7 @@ public class ArrivalImportExcelVO {
     @ExcelProperty("到货登记单号")
     private String arrivalNo;
 
-    @ExcelProperty("来源类型：PURCHASE_ORDER、ASN、SALES_RETURN、OTHER")
+    @ExcelProperty("来源类型")
     private String sourceType;
 
     @ExcelProperty("来源单号")
@@ -51,7 +51,7 @@ public class ArrivalImportExcelVO {
     @ExcelProperty("实际到货时间")
     private LocalDateTime arrivalTime;
 
-    @ExcelProperty("状态：DRAFT、ARRIVED、QC_PENDING、DONE、CANCELLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("备注")

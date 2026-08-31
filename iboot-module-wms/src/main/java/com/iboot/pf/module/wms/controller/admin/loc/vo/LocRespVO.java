@@ -7,21 +7,24 @@ import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-库位 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class LocRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "26755")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "21277")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "库区编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1961")
+    @Schema(description = "库区编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("库区编号")
     private Long zoneId;
 
@@ -29,8 +32,9 @@ public class LocRespVO {
     @ExcelProperty("库位编码")
     private String code;
 
-    @Schema(description = "库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX")
+    @Schema(description = "库位类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "库位类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.LOC_TYPE)
     private String locType;
 
     @Schema(description = "巷道号")
@@ -77,15 +81,17 @@ public class LocRespVO {
     @ExcelProperty("最大容器数量")
     private Integer maxContainerQty;
 
-    @Schema(description = "尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ExcelProperty("尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM")
+    @Schema(description = "尺寸校验模式", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "尺寸校验模式", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.DIMENSION_CHECK_MODE)
     private String dimensionCheckMode;
 
-    @Schema(description = "状态：EMPTY、OCCUPIED、LOCKED、DISABLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：EMPTY、OCCUPIED、LOCKED、DISABLED")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.LOC_STATUS)
     private String status;
 
-    @Schema(description = "备注", example = "随便")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

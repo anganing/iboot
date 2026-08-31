@@ -18,7 +18,7 @@ public class TransferOrderImportExcelVO {
     @ExcelProperty("转移或调拨单号")
     private String transferNo;
 
-    @ExcelProperty("转移类型：LOC_TRANSFER、WH_TRANSFER、INV_ORG_TRANSFER、PROJECT_TRANSFER、QUALITY_TRANSFER")
+    @ExcelProperty("转移类型")
     private String transferType;
 
     @ExcelProperty("来源业务类型")
@@ -45,10 +45,10 @@ public class TransferOrderImportExcelVO {
     @ExcelProperty("目标项目编号，0表示公共库存")
     private Long toProjectId;
 
-    @ExcelProperty("外部设备触发方式：NONE、WCS、AGV")
+    @ExcelProperty("外部设备触发方式")
     private String hookMode;
 
-    @ExcelProperty("状态：DRAFT、SUBMITTED、APPROVED、IN_PROGRESS、DONE、CANCELLED、EXCEPTION")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("创建幂等键")

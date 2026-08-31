@@ -6,15 +6,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.util.*;
 import jakarta.validation.constraints.*;
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 
 @Schema(description = "管理后台 - WMS-批次主档新增/修改 Request VO")
 @Data
 public class BatchSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "23696")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long id;
 
-    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "31665")
+    @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "物料编号不能为空")
     private Long matId;
 
@@ -22,7 +24,7 @@ public class BatchSaveReqVO {
     @NotEmpty(message = "物料编码快照不能为空")
     private String matCode;
 
-    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "李四")
+    @Schema(description = "物料名称快照", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "物料名称快照不能为空")
     private String matName;
 
@@ -33,7 +35,7 @@ public class BatchSaveReqVO {
     @Schema(description = "序列号；SN物料以数量为1的批次承载")
     private String snNo;
 
-    @Schema(description = "供应商编号", example = "6991")
+    @Schema(description = "供应商编号", example = "1")
     private Long supplierId;
 
     @Schema(description = "供应商编码快照")
@@ -51,11 +53,12 @@ public class BatchSaveReqVO {
     @Schema(description = "失效日期")
     private LocalDate expiryDate;
 
-    @Schema(description = "状态：0-启用，1-停用", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotNull(message = "状态：0-启用，1-停用不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @NotNull(message = "状态不能为空")
+    @InEnum(CommonStatusEnum.class)
     private Integer status;
 
-    @Schema(description = "备注", example = "你猜")
+    @Schema(description = "备注")
     private String remark;
 
 }

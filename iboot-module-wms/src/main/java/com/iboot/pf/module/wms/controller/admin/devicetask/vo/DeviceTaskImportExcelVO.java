@@ -23,10 +23,10 @@ public class DeviceTaskImportExcelVO {
     @ExcelProperty("外部设备任务号")
     private String externalTaskNo;
 
-    @ExcelProperty("任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN")
+    @ExcelProperty("任务类型")
     private String taskType;
 
-    @ExcelProperty("设备类型：WCS、AGV、RGV")
+    @ExcelProperty("设备类型")
     private String deviceType;
 
     @ExcelProperty("来源业务类型")
@@ -53,13 +53,13 @@ public class DeviceTaskImportExcelVO {
     @ExcelProperty("外部设备系统编码")
     private String externalSystemCode;
 
-    @ExcelProperty("下发状态：PENDING、SENT、FAILED")
+    @ExcelProperty("下发状态")
     private String dispatchStatus;
 
-    @ExcelProperty("执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION")
+    @ExcelProperty("执行状态")
     private String status;
 
-    @ExcelProperty("库存过账状态：PENDING、POSTED、FAILED")
+    @ExcelProperty("库存过账状态")
     private String postStatus;
 
     @ExcelProperty("下发业务快照")

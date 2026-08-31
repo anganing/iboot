@@ -26,7 +26,6 @@ import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
 
 import com.iboot.pf.module.wms.controller.admin.arrival.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.arrivalline.ArrivalLineDO;
 import com.iboot.pf.module.wms.service.arrival.ArrivalService;
 
 @Tag(name = "管理后台 - WMS-到货登记")
@@ -73,7 +72,7 @@ public class ArrivalController {
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-到货登记")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('wms:arrival:query')")
     public CommonResult<ArrivalRespVO> getArrival(@RequestParam("id") Long id) {
         return success(arrivalService.getArrival(id));
@@ -120,25 +119,23 @@ public class ArrivalController {
 
     @GetMapping("/arrival-line/page")
     @Operation(summary = "获得WMS-到货登记明细分页")
-    @Parameter(name = "arrivalId", description = "到货登记编号")
     @PreAuthorize("@ss.hasPermission('wms:arrival:query')")
-    public CommonResult<PageResult<ArrivalLineDO>> getArrivalLinePage(PageParam pageReqVO,
-                                                                                        @RequestParam("arrivalId") Long arrivalId) {
-        return success(arrivalService.getArrivalLinePage(pageReqVO, arrivalId));
+    public CommonResult<PageResult<ArrivalLineRespVO>> getArrivalLinePage(@Valid ArrivalLinePageReqVO pageReqVO) {
+        return success(arrivalService.getArrivalLinePage(pageReqVO));
     }
 
     @PostMapping("/arrival-line/create")
     @Operation(summary = "创建WMS-到货登记明细")
     @PreAuthorize("@ss.hasPermission('wms:arrival:create')")
-    public CommonResult<Long> createArrivalLine(@Valid @RequestBody ArrivalLineDO arrivalLine) {
-        return success(arrivalService.createArrivalLine(arrivalLine));
+    public CommonResult<Long> createArrivalLine(@Valid @RequestBody ArrivalLineSaveReqVO createReqVO) {
+        return success(arrivalService.createArrivalLine(createReqVO));
     }
 
     @PutMapping("/arrival-line/update")
     @Operation(summary = "更新WMS-到货登记明细")
     @PreAuthorize("@ss.hasPermission('wms:arrival:update')")
-    public CommonResult<Boolean> updateArrivalLine(@Valid @RequestBody ArrivalLineDO arrivalLine) {
-        arrivalService.updateArrivalLine(arrivalLine);
+    public CommonResult<Boolean> updateArrivalLine(@Valid @RequestBody ArrivalLineSaveReqVO updateReqVO) {
+        arrivalService.updateArrivalLine(updateReqVO);
         return success(true);
     }
 
@@ -164,7 +161,7 @@ public class ArrivalController {
 	@Operation(summary = "获得WMS-到货登记明细")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('wms:arrival:query')")
-	public CommonResult<ArrivalLineDO> getArrivalLine(@RequestParam("id") Long id) {
+	public CommonResult<ArrivalLineRespVO> getArrivalLine(@RequestParam("id") Long id) {
 	    return success(arrivalService.getArrivalLine(id));
 	}
 

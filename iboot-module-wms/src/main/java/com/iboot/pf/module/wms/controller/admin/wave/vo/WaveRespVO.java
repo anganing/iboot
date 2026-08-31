@@ -6,13 +6,16 @@ import java.util.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import cn.idev.excel.annotation.*;
+import com.iboot.pf.framework.excel.core.annotations.DictFormat;
+import com.iboot.pf.framework.excel.core.convert.DictConvert;
+import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
 
 @Schema(description = "管理后台 - WMS-出库波次 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class WaveRespVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "30246")
+    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("主键")
     private Long id;
 
@@ -20,12 +23,13 @@ public class WaveRespVO {
     @ExcelProperty("波次编号")
     private String waveNo;
 
-    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "9063")
+    @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("仓库编号")
     private Long whId;
 
-    @Schema(description = "波次类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("波次类型")
+    @Schema(description = "波次类型", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "波次类型", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.WAVE_TYPE)
     private String waveType;
 
     @Schema(description = "计划开始时间")
@@ -36,11 +40,12 @@ public class WaveRespVO {
     @ExcelProperty("计划结束时间")
     private LocalDateTime planEndTime;
 
-    @Schema(description = "状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @ExcelProperty("状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty(value = "状态", converter = DictConvert.class)
+    @DictFormat(WmsDictTypeConstants.WAVE_STATUS)
     private String status;
 
-    @Schema(description = "备注", example = "你说的对")
+    @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
 

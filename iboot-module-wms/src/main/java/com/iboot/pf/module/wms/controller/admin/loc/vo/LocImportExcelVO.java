@@ -26,7 +26,7 @@ public class LocImportExcelVO {
     @ExcelProperty("库位编码")
     private String code;
 
-    @ExcelProperty("库位类型：ASRS_CELL、FLAT_AREA、RACK_BIN、LINE_SIDE、BLACK_BOX")
+    @ExcelProperty("库位类型")
     private String locType;
 
     @ExcelProperty("巷道号")
@@ -62,10 +62,10 @@ public class LocImportExcelVO {
     @ExcelProperty("最大容器数量")
     private Integer maxContainerQty;
 
-    @ExcelProperty("尺寸校验模式：NONE、HEIGHT_ONLY、FULL_DIM")
+    @ExcelProperty("尺寸校验模式")
     private String dimensionCheckMode;
 
-    @ExcelProperty("状态：EMPTY、OCCUPIED、LOCKED、DISABLED")
+    @ExcelProperty("状态")
     private String status;
 
     @ExcelProperty("备注")
