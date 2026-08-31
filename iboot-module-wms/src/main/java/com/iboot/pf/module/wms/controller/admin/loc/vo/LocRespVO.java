@@ -53,7 +53,7 @@ public class LocRespVO {
     @ExcelProperty("层号")
     private String levelNo;
 
-    @Schema(description = "纵深号")
+    @Schema(description = "纵深号：双深货架专用，1-外侧靠巷道靠堆垛机，2-里侧远离堆垛机；单深货位为空", example = "1")
     @ExcelProperty("纵深号")
     private Integer depthNo;
 

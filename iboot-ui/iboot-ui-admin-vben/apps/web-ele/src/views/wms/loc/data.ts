@@ -93,6 +93,7 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'depthNo',
       label: '纵深号',
       component: 'InputNumber',
+      help: '双深货架专用：1 为外侧货位，靠巷道、靠近堆垛机，可直接存取；2 为里侧货位，远离堆垛机，需先移走外侧货物。单深货位留空',
       componentProps: {
         class: '!w-full',
         controlsPosition: 'right',
@@ -275,6 +276,16 @@ export function useGridColumns(): VxeTableGridOptions<WmsLocApi.Loc>['columns'] 
         [row.aisleNo, row.rowNo, row.colNo, row.levelNo]
           .filter(Boolean)
           .join('-') || '-',
+    },
+    {
+      field: 'depthNo',
+      title: '纵深号',
+      titlePrefix: {
+        content:
+          '双深货架的存取深度：1 为外侧货位，靠巷道、靠近堆垛机，可直接存取；2 为里侧货位，远离堆垛机，需先移走外侧货物。单深货位为空',
+      },
+      minWidth: 90,
+      formatter: ({ row }) => row.depthNo ?? '-',
     },
     { field: 'maxWeight', title: '最大承重', minWidth: 110 },
     { field: 'maxContainerQty', title: '最大容器数', minWidth: 110 },
