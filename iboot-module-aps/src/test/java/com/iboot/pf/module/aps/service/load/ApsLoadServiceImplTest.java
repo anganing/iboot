@@ -1,163 +1,157 @@
 package com.iboot.pf.module.aps.service.load;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.aps.controller.admin.load.vo.*;
+import com.iboot.pf.module.aps.api.load.dto.RefreshLoadReqDTO;
 import com.iboot.pf.module.aps.dal.dataobject.load.ApsLoadDO;
+import com.iboot.pf.module.aps.dal.dataobject.projection.ApsResourceProjectionDO;
+import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
 import com.iboot.pf.module.aps.dal.mysql.load.ApsLoadMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.aps.dal.mysql.projection.ApsResourceProjectionMapper;
+import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
+import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
+import com.iboot.pf.module.aps.enums.ApsTaskStatusEnum;
+import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
+import com.iboot.pf.module.aps.service.command.ApsCommandServiceImpl;
+import com.iboot.pf.module.aps.service.version.ApsVersionService;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.LOAD_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link ApsLoadServiceImpl} 的单元测试类
+ * 资源负荷 Service 测试。
  *
- * @author iboot
+ * <p>覆盖“按资源 + 日期汇总任务占用、对比日历可用分钟得出负荷率与超负荷”，
+ * 以及可用分钟为 0（当天没排班）时负荷率记 0、重复刷新不产生重复行。
  */
-@Import(ApsLoadServiceImpl.class)
-public class ApsLoadServiceImplTest extends BaseDbUnitTest {
+@Import({ApsLoadServiceImpl.class, ApsCommandServiceImpl.class})
+class ApsLoadServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long VERSION_ID = 100L;
+    private static final Long SCENARIO_ID = 10L;
+    private static final Long RES_ID = 200L;
+    private static final LocalDate WORK_DATE = LocalDate.of(2026, 8, 1);
 
     @Resource
-    private ApsLoadServiceImpl loadService;
-
+    private ApsLoadService loadService;
     @Resource
     private ApsLoadMapper loadMapper;
+    @Resource
+    private ApsTaskMapper taskMapper;
+    @Resource
+    private ApsResourceProjectionMapper resourceProjectionMapper;
 
-    @Test
-    public void testCreateLoad_success() {
-        // 准备参数
-        LoadSaveReqVO createReqVO = randomPojo(LoadSaveReqVO.class).setId(null);
+    @MockitoBean
+    private ApsVersionService versionService;
 
-        // 调用
-        Long loadId = loadService.createLoad(createReqVO);
-        // 断言
-        assertNotNull(loadId);
-        // 校验记录的属性是否正确
-        ApsLoadDO load = loadMapper.selectById(loadId);
-        assertPojoEquals(createReqVO, load, "id");
+    @BeforeEach
+    void mockVersion() {
+        when(versionService.getVersionDO(anyLong())).thenReturn(ApsVersionDO.builder()
+                .id(VERSION_ID).scenarioId(SCENARIO_ID).versionNo(1)
+                .status(ApsVersionStatusEnum.SOLVED.name()).version(0).build());
+    }
+
+    private void insertTask(String taskNo, LocalDateTime startTime, int durationMinutes) {
+        taskMapper.insert(ApsTaskDO.builder()
+                .versionId(VERSION_ID).taskNo(taskNo)
+                .prodOrderId(1L).prodOrderNo("MO001").workOrderId(0L).opTaskId(randomLongId()).routeOpId(1L)
+                .opCode("OP010").opName("粗车").plantId(1L).workshopId(1L).projectId(0L).projectTaskId(0L)
+                .resId(RES_ID).resCode("RES-A")
+                .startTime(startTime).endTime(startTime.plusMinutes(durationMinutes))
+                .durationMinutes(durationMinutes).sequenceNo(1).lockedFlag(false)
+                .status(ApsTaskStatusEnum.PLANNED.name())
+                .build());
+    }
+
+    private void insertDailyCapacity(int availableMinutes) {
+        resourceProjectionMapper.insert(ApsResourceProjectionDO.builder()
+                .scenarioId(SCENARIO_ID).sourceResId(RES_ID).resCode("RES-A").resName("加工中心A")
+                .resType("EQUIPMENT").plantId(1L).workshopId(1L).wcId(1L)
+                .workDate(WORK_DATE).shiftId(0L).availableMinutes(availableMinutes)
+                .sourceUpdateTime(LocalDateTime.now()).snapshotTime(LocalDateTime.now())
+                .build());
+    }
+
+    private RefreshLoadReqDTO buildCommand(String idempotencyKey) {
+        RefreshLoadReqDTO reqDTO = new RefreshLoadReqDTO();
+        reqDTO.setIdempotencyKey(idempotencyKey);
+        reqDTO.setSourceModule(ApsSourceModuleEnum.UI.name());
+        reqDTO.setSourceBizNo(String.valueOf(VERSION_ID));
+        reqDTO.setVersionId(VERSION_ID);
+        return reqDTO;
     }
 
     @Test
-    public void testUpdateLoad_success() {
-        // mock 数据
-        ApsLoadDO dbLoad = randomPojo(ApsLoadDO.class);
-        loadMapper.insert(dbLoad);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        LoadSaveReqVO updateReqVO = randomPojo(LoadSaveReqVO.class, o -> {
-            o.setId(dbLoad.getId()); // 设置更新的 ID
-        });
+    void testRefreshLoad_sumTaskMinutesByResourceAndDay() {
+        insertTask("T001", LocalDateTime.of(2026, 8, 1, 8, 0), 120);
+        insertTask("T002", LocalDateTime.of(2026, 8, 1, 13, 0), 180);
+        insertDailyCapacity(480);
 
-        // 调用
-        loadService.updateLoad(updateReqVO);
-        // 校验是否更新正确
-        ApsLoadDO load = loadMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, load);
+        loadService.refreshLoad(buildCommand("UI:REFRESH_LOAD:1"));
+
+        List<ApsLoadDO> rows = loadMapper.selectListByVersionId(VERSION_ID);
+        assertEquals(1, rows.size());
+        ApsLoadDO row = rows.get(0);
+        assertEquals(300, row.getLoadMinutes());
+        assertEquals(480, row.getCapacityMinutes());
+        assertEquals(0, row.getOverloadMinutes());
+        assertEquals(0, new BigDecimal("0.6250").compareTo(row.getLoadRate()));
     }
 
     @Test
-    public void testUpdateLoad_notExists() {
-        // 准备参数
-        LoadSaveReqVO updateReqVO = randomPojo(LoadSaveReqVO.class);
+    void testRefreshLoad_overloadWhenExceedCapacity() {
+        insertTask("T001", LocalDateTime.of(2026, 8, 1, 8, 0), 600);
+        insertDailyCapacity(480);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> loadService.updateLoad(updateReqVO), LOAD_NOT_EXISTS);
+        loadService.refreshLoad(buildCommand("UI:REFRESH_LOAD:1"));
+
+        ApsLoadDO row = loadMapper.selectListByVersionId(VERSION_ID).get(0);
+        assertEquals(120, row.getOverloadMinutes());
+        assertEquals(0, new BigDecimal("1.2500").compareTo(row.getLoadRate()));
     }
 
     @Test
-    public void testDeleteLoad_success() {
-        // mock 数据
-        ApsLoadDO dbLoad = randomPojo(ApsLoadDO.class);
-        loadMapper.insert(dbLoad);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbLoad.getId();
+    void testRefreshLoad_zeroCapacityKeepsRateZero() {
+        insertTask("T001", LocalDateTime.of(2026, 8, 1, 8, 0), 120);
 
-        // 调用
-        loadService.deleteLoad(id);
-       // 校验数据不存在了
-       assertNull(loadMapper.selectById(id));
+        // 当天没有日历记录：可用分钟为 0，除零没有业务含义，负荷率记 0
+        loadService.refreshLoad(buildCommand("UI:REFRESH_LOAD:1"));
+
+        ApsLoadDO row = loadMapper.selectListByVersionId(VERSION_ID).get(0);
+        assertEquals(0, row.getCapacityMinutes());
+        assertEquals(120, row.getOverloadMinutes());
+        assertEquals(0, BigDecimal.ZERO.compareTo(row.getLoadRate()));
     }
 
     @Test
-    public void testDeleteLoad_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testRefreshLoad_rebuildWithoutDuplicate() {
+        insertTask("T001", LocalDateTime.of(2026, 8, 1, 8, 0), 120);
+        insertDailyCapacity(480);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> loadService.deleteLoad(id), LOAD_NOT_EXISTS);
+        loadService.refreshLoad(buildCommand("UI:REFRESH_LOAD:1"));
+        loadService.refreshLoad(buildCommand("UI:REFRESH_LOAD:2"));
+
+        // 整表重建走物理删除，重复刷新不会撞唯一索引也不会留下重复行
+        assertEquals(1, loadMapper.selectListByVersionId(VERSION_ID).size());
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetLoadPage() {
-       // mock 数据
-       ApsLoadDO dbLoad = randomPojo(ApsLoadDO.class, o -> { // 等会查询到
-           o.setVersionId(null);
-           o.setResId(null);
-           o.setResCode(null);
-           o.setResName(null);
-           o.setWorkDate(null);
-           o.setLoadMinutes(null);
-           o.setCapacityMinutes(null);
-           o.setLoadRate(null);
-           o.setOverloadMinutes(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       loadMapper.insert(dbLoad);
-       // 测试 versionId 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setVersionId(null)));
-       // 测试 resId 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setResId(null)));
-       // 测试 resCode 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setResCode(null)));
-       // 测试 resName 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setResName(null)));
-       // 测试 workDate 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setWorkDate(null)));
-       // 测试 loadMinutes 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setLoadMinutes(null)));
-       // 测试 capacityMinutes 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setCapacityMinutes(null)));
-       // 测试 loadRate 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setLoadRate(null)));
-       // 测试 overloadMinutes 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setOverloadMinutes(null)));
-       // 测试 remark 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       loadMapper.insert(cloneIgnoreId(dbLoad, o -> o.setCreateTime(null)));
-       // 准备参数
-       LoadPageReqVO reqVO = new LoadPageReqVO();
-       reqVO.setVersionId(null);
-       reqVO.setResId(null);
-       reqVO.setResCode(null);
-       reqVO.setResName(null);
-       reqVO.setWorkDate(new java.time.LocalDate[]{java.time.LocalDate.of(2023, 2, 1), java.time.LocalDate.of(2023, 2, 28)});
-       reqVO.setLoadMinutes(null);
-       reqVO.setCapacityMinutes(null);
-       reqVO.setLoadRate(null);
-       reqVO.setOverloadMinutes(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-
-       // 调用
-       PageResult<LoadRespVO> pageResult = loadService.getLoadPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbLoad, pageResult.getList().get(0));
+    void testGetLoad_notExists() {
+        assertServiceException(() -> loadService.getLoad(randomLongId()), LOAD_NOT_EXISTS);
     }
 
 }
