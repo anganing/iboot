@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mdm.api.resource;
 
 import cn.hutool.core.collection.CollUtil;
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.util.collection.CollectionUtils;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
@@ -61,6 +62,16 @@ public class ResourceApiImpl implements ResourceApi {
     public Map<Long, ResourceRespDTO> getResourceMap(Collection<Long> ids) {
         List<ResourceRespDTO> list = getResourceList(ids);
         return CollectionUtils.convertMap(list, ResourceRespDTO::getId);
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public List<ResourceRespDTO> getResourceListByPlantId(Long plantId) {
+        // 停用资源不参与排程，直接在门面这层过滤，调用方不必再判断状态
+        List<ResDO> res = resService.getResListByPlantId(plantId).stream()
+                .filter(item -> CommonStatusEnum.isEnable(item.getStatus()))
+                .toList();
+        return BeanUtils.toBean(res, ResourceRespDTO.class);
     }
 
     @Override

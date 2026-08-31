@@ -67,4 +67,12 @@ public interface ResService {
      */
     List<ResDO> getResList(Collection<Long> ids);
 
+    /**
+     * 按工厂获得生产资源列表
+     *
+     * @param plantId 工厂编号
+     * @return 生产资源列表
+     */
+    List<ResDO> getResListByPlantId(Long plantId);
+
 }

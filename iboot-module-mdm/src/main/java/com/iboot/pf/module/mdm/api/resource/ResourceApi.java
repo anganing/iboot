@@ -44,6 +44,16 @@ public interface ResourceApi {
     Map<Long, ResourceRespDTO> getResourceMap(Collection<Long> ids);
 
     /**
+     * 按工厂查询启用中的生产资源
+     *
+     * <p>APS 刷新资源投影时用它圈定排程范围，避免 APS 反查 mdm 的表。
+     *
+     * @param plantId 工厂编号
+     * @return 资源列表；仅返回启用记录
+     */
+    List<ResourceRespDTO> getResourceListByPlantId(Long plantId);
+
+    /**
      * 按资源编号与日期区间（闭区间）批量查询资源日历
      *
      * @param resIds 资源编号集合

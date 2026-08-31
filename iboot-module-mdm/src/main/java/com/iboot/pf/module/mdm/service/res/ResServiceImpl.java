@@ -113,4 +113,12 @@ public class ResServiceImpl implements ResService {
         return resMapper.selectByIds(ids);
     }
 
+    @Override
+    public List<ResDO> getResListByPlantId(Long plantId) {
+        if (plantId == null) {
+            return List.of();
+        }
+        return resMapper.selectList(ResDO::getPlantId, plantId);
+    }
+
 }
