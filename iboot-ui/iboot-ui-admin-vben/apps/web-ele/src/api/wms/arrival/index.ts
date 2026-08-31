@@ -1,49 +1,52 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsArrivalApi {
   /** 到货明细信息 */
   export interface ArrivalLine {
-            id: number; // 主键
-            arrivalId?: number; // 到货登记编号
-            lineNo?: number; // 行号
-            sourceLineNo: string; // 来源单据行号
-            matId?: number; // 物料编号
-            matCode?: string; // 物料编码快照
-            matName?: string; // 物料名称快照
-            matSpec: string; // 物料规格快照
-            lotNo: string; // 到货批次号
-            supplierLotNo: string; // 供应商批次号
-            arrivalQty?: number; // 到货数量
-            uomId?: number; // 计量单位编号
-            uomCode?: string; // 计量单位编码快照
-            needQc?: boolean; // 是否需要质检
-            iqcMode: string; // 来料检验模式：PRE_INBOUND、POST_INBOUND_PENDING
-            qcTaskId: number; // 质检任务编号
-            qualifiedQty?: number; // 合格数量
-            rejectedQty?: number; // 不合格数量
-            status?: string; // 状态：PENDING、QC_PENDING、READY、DONE、CANCELLED
-            remark: string; // 备注
+    id: number; // 主键
+    arrivalId?: number; // 到货登记编号
+    lineNo?: number; // 行号
+    sourceLineNo?: string; // 来源单据行号
+    matId?: number; // 物料编号
+    matCode?: string; // 物料编码快照
+    matName?: string; // 物料名称快照
+    matSpec?: string; // 物料规格快照
+    lotNo?: string; // 到货批次号
+    supplierLotNo?: string; // 供应商批次号
+    arrivalQty?: number; // 到货数量
+    uomId?: number; // 计量单位编号
+    uomCode?: string; // 计量单位编码快照
+    needQc?: boolean; // 是否需要质检
+    iqcMode?: string; // 来料检验模式
+    qcTaskId?: number; // 质检任务编号
+    qualifiedQty?: number; // 合格数量
+    rejectedQty?: number; // 不合格数量
+    status?: string; // 明细状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
   }
 
   /** 到货登记信息 */
   export interface Arrival {
     id: number; // 主键
     arrivalNo?: string; // 到货登记单号
-    sourceType?: string; // 来源类型：PURCHASE_ORDER、ASN、SALES_RETURN、OTHER
+    sourceType?: string; // 来源类型
     sourceNo?: string; // 来源单号
-    supplierId: number; // 供应商编号
-    supplierCode: string; // 供应商编码快照
-    supplierName: string; // 供应商名称快照
+    supplierId?: number; // 供应商编号
+    supplierCode?: string; // 供应商编码快照
+    supplierName?: string; // 供应商名称快照
     invOrgId?: number; // 库存组织编号
     plantId?: number; // 工厂编号
     whId?: number; // 目标仓库编号
-    expectDate: string | Dayjs; // 预计到货日期
-    arrivalTime: string | Dayjs; // 实际到货时间
-    status?: string; // 状态：DRAFT、ARRIVED、QC_PENDING、DONE、CANCELLED
-    remark: string; // 备注
+    expectDate?: string; // 预计到货日期
+    arrivalTime?: string; // 实际到货时间
+    status?: string; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 目标仓库编码
+    whName?: string; // 目标仓库名称
   }
 }
 
@@ -137,4 +140,4 @@ export function getArrivalLine(id: number) {
     `/wms/arrival/arrival-line/get?id=${id}`,
   );
 }
-
+

@@ -1,5 +1,4 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
@@ -10,7 +9,7 @@ export namespace WmsInvReservationApi {
     reservationNo?: string; // 预留编号
     bizType?: string; // 来源业务类型
     bizNo?: string; // 来源业务单号
-    bizLineNo: string; // 来源业务行号
+    bizLineNo?: string; // 来源业务行号
     invOrgId?: number; // 库存组织编号
     whId?: number; // 仓库编号
     locId?: number; // 库位编号
@@ -22,10 +21,13 @@ export namespace WmsInvReservationApi {
     qualityStatus?: string; // 质量状态
     qty?: number; // 预留数量，基准单位
     releasedQty?: number; // 已释放或已核销数量
-    status?: string; // 状态：ACTIVE、PARTIAL、RELEASED、CONSUMED、CANCELLED
-    expireTime: string | Dayjs; // 预留失效时间
+    status?: string; // 状态
+    expireTime?: string; // 预留失效时间
     idempotencyKey?: string; // 预留幂等键
-    remark: string; // 备注
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 仓库编码
+    whName?: string; // 仓库名称
   }
 }
 
@@ -81,4 +83,4 @@ export function importInvReservation(file: File) {
   return requestClient.upload('/wms/inv-reservation/import', { file });
 }
 
-
+

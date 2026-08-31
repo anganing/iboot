@@ -5,50 +5,53 @@ import { requestClient } from '#/api/request';
 export namespace WmsOutOrderApi {
   /** 出库明细信息 */
   export interface OutOrderLine {
-            id: number; // 主键
-            orderId?: number; // 出库单编号
-            lineNo?: number; // 行号
-            sourceLineId: number; // 来源明细编号
-            sourceLineNo: string; // 来源明细行号
-            matId?: number; // 物料编号
-            matCode?: string; // 物料编码快照
-            matName?: string; // 物料名称快照
-            matSpec: string; // 物料规格快照
-            batchId: number; // 指定或分配的批次编号
-            lotNo: string; // 批次号快照
-            uomId?: number; // 计量单位编号
-            uomCode?: string; // 计量单位编码快照
-            fromLocId: number; // 来源库位编号
-            fromLocCode: string; // 来源库位编码快照
-            toLocId: number; // 目标库位编号
-            qualityStatus?: string; // 要求的库存质量状态
-            planQty?: number; // 计划出库数量
-            allocatedQty?: number; // 已分配数量
-            pickedQty?: number; // 已拣选数量
-            postedQty?: number; // 已过账数量
-            containerId: number; // 容器编号
-            status?: string; // 明细状态
-            remark: string; // 备注
+    id: number; // 主键
+    orderId?: number; // 出库单编号
+    lineNo?: number; // 行号
+    sourceLineId?: number; // 来源明细编号
+    sourceLineNo?: string; // 来源明细行号
+    matId?: number; // 物料编号
+    matCode?: string; // 物料编码快照
+    matName?: string; // 物料名称快照
+    matSpec?: string; // 物料规格快照
+    batchId?: number; // 指定或分配的批次编号
+    lotNo?: string; // 批次号快照
+    uomId?: number; // 计量单位编号
+    uomCode?: string; // 计量单位编码快照
+    fromLocId?: number; // 来源库位编号
+    fromLocCode?: string; // 来源库位编码快照
+    toLocId?: number; // 目标库位编号
+    toLocCode?: string; // 目标库位编码
+    containerId?: number; // 容器编号
+    containerNo?: string; // 容器编号快照
+    qualityStatus?: string; // 要求的库存质量状态
+    planQty?: number; // 计划出库数量
+    allocatedQty?: number; // 已分配数量
+    pickedQty?: number; // 已拣选数量
+    postedQty?: number; // 已过账数量
+    status?: string; // 明细状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
   }
 
   /** 出库单信息 */
   export interface OutOrder {
     id: number; // 主键
     outNo?: string; // 出库单号
-    bizType?: string; // 出库业务类型：PROD_ISSUE_OUT、SALES_DELIVERY_OUT、PO_RETURN_OUT、SCRAP_OUT、TRANSFER_OUT、COUNT_LOSS_OUT、OTHER_OUT
-    sourceType: string; // 直接来源类型
-    sourceBizNo: string; // 直接来源业务单号
-    sourceLineId: number; // 直接来源明细编号
-    originType: string; // 原始来源类型
-    originNo: string; // 原始来源单号
-    customerId: number; // 客户编号
-    supplierId: number; // 供应商编号
-    prodOrderNo: string; // 生产工单号快照
-    workOrderNo: string; // 作业工单号快照
-    opTaskId: number; // 工序任务编号
-    materialReqNo: string; // 领退补料申请单号
-    transferNo: string; // 转移或调拨单号
-    countOrderNo: string; // 盘点单号
+    bizType?: string; // 出库业务类型
+    sourceType?: string; // 直接来源类型
+    sourceBizNo?: string; // 直接来源业务单号
+    sourceLineId?: number; // 直接来源明细编号
+    originType?: string; // 原始来源类型
+    originNo?: string; // 原始来源单号
+    customerId?: number; // 客户编号
+    supplierId?: number; // 供应商编号
+    prodOrderNo?: string; // 生产工单号快照
+    workOrderNo?: string; // 作业工单号快照
+    opTaskId?: number; // 工序任务编号
+    materialReqNo?: string; // 领退补料申请单号
+    transferNo?: string; // 转移或调拨单号
+    countOrderNo?: string; // 盘点单号
     invOrgId?: number; // 来源库存组织编号
     plantId?: number; // 来源工厂编号
     projectId?: number; // 项目编号，0表示无项目
@@ -57,12 +60,14 @@ export namespace WmsOutOrderApi {
     whCode?: string; // 来源仓库编码快照
     toInvOrgId?: number; // 目标库存组织编号，0表示非调拨
     toWhId?: number; // 目标仓库编号，0表示非调拨
-    pickStrategyId: number; // 拣选策略编号
-    hookMode?: string; // 外部设备触发方式：NONE、WCS、AGV
-    status?: string; // 状态：DRAFT、SUBMITTED、READY、TASK_CREATED、IN_PROGRESS、DONE、CANCELLED、EXCEPTION
-    idempotencyKey: string; // 创建幂等键
-    bizAttrsJson: string; // 低频扩展属性
-    remark: string; // 备注或人工原因
+    pickStrategyId?: number; // 拣选策略编号
+    hookMode?: string; // 外部设备触发方式
+    status?: string; // 状态
+    idempotencyKey?: string; // 创建幂等键
+    bizAttrsJson?: string; // 低频扩展属性
+    remark?: string; // 备注或人工原因
+    createTime?: string; // 创建时间
+    whName?: string; // 来源仓库名称
   }
 }
 
@@ -156,4 +161,4 @@ export function getOutOrderLine(id: number) {
     `/wms/out-order/out-order-line/get?id=${id}`,
   );
 }
-
+

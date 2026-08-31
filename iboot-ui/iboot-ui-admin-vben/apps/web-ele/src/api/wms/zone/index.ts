@@ -9,12 +9,15 @@ export namespace WmsZoneApi {
     whId?: number; // 仓库编号
     code?: string; // 库区编码
     name?: string; // 库区名称
-    zoneType?: string; // 库区类型：RAW、WIP、FG、QC、RETURN、SCRAP、RECEIVING、SHIPPING
+    zoneType?: string; // 库区类型
     allowMixedMat?: boolean; // 是否允许混放物料
     allowMixedLot?: boolean; // 是否允许混放批次
-    tempRange: string; // 温区要求
-    status?: number; // 状态：0-启用，1-停用
-    remark: string; // 备注
+    tempRange?: string; // 温区要求
+    status?: number; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 仓库编码
+    whName?: string; // 仓库名称
   }
 }
 
@@ -70,4 +73,4 @@ export function importZone(file: File) {
   return requestClient.upload('/wms/zone/import', { file });
 }
 
-
+

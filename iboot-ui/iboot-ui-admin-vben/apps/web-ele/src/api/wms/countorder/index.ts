@@ -1,48 +1,54 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsCountOrderApi {
   /** 盘点明细信息 */
   export interface CountOrderLine {
-            id: number; // 主键
-            orderId?: number; // 盘点单编号
-            lineNo?: number; // 行号
-            balanceId?: number; // 库存余额编号
-            matId?: number; // 物料编号
-            matCode?: string; // 物料编码快照
-            matName?: string; // 物料名称快照
-            batchId?: number; // 批次编号
-            lotNo?: string; // 批次号快照
-            locId?: number; // 库位编号
-            locCode?: string; // 库位编码快照
-            containerId?: number; // 容器编号，0表示散件
-            qualityStatus?: string; // 质量状态
-            projectId?: number; // 项目编号，0表示无项目
-            projectTaskId?: number; // 项目任务编号，0表示无项目任务
-            bookQty?: number; // 账面数量
-            actualQty: number; // 实盘数量
-            diffQty: number; // 差异数量
-            adjustBizNo: string; // 差异调整入出库单号
-            status?: string; // 明细状态：PENDING、COUNTED、DIFF、ADJUSTED
-            remark: string; // 备注
+    id: number; // 主键
+    orderId?: number; // 盘点单编号
+    lineNo?: number; // 行号
+    balanceId?: number; // 库存余额编号
+    matId?: number; // 物料编号
+    matCode?: string; // 物料编码快照
+    matName?: string; // 物料名称快照
+    batchId?: number; // 批次编号
+    lotNo?: string; // 批次号快照
+    locId?: number; // 库位编号
+    locCode?: string; // 库位编码快照
+    containerId?: number; // 容器编号，0表示散件
+    containerNo?: string; // 容器编号快照
+    qualityStatus?: string; // 质量状态
+    projectId?: number; // 项目编号，0表示无项目
+    projectTaskId?: number; // 项目任务编号，0表示无项目任务
+    bookQty?: number; // 账面数量
+    actualQty?: number; // 实盘数量
+    diffQty?: number; // 差异数量
+    adjustBizNo?: string; // 差异调整入出库单号
+    status?: string; // 明细状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
   }
 
   /** 盘点单信息 */
   export interface CountOrder {
     id: number; // 主键
     countNo?: string; // 盘点单号
-    countType?: string; // 盘点类型：FULL、SAMPLE、ABC_CYCLE、DYNAMIC
+    countType?: string; // 盘点类型
     invOrgId?: number; // 库存组织编号
     whId?: number; // 仓库编号
     zoneId?: number; // 库区编号，0表示全部库区
     projectId?: number; // 项目编号，0表示不限项目
-    snapshotTime?: string | Dayjs; // 账面快照时间
+    snapshotTime?: string; // 账面快照时间
     blindCountFlag?: boolean; // 是否盲盘
-    status?: string; // 状态：DRAFT、FROZEN、COUNTING、DIFF_CONFIRMED、DONE、CANCELLED
-    idempotencyKey: string; // 创建幂等键
-    remark: string; // 备注
+    status?: string; // 状态
+    idempotencyKey?: string; // 创建幂等键
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 仓库编码
+    whName?: string; // 仓库名称
+    zoneCode?: string; // 库区编号，0表示全部库区编码
+    zoneName?: string; // 库区编号，0表示全部库区名称
   }
 }
 
@@ -136,4 +142,4 @@ export function getCountOrderLine(id: number) {
     `/wms/count-order/count-order-line/get?id=${id}`,
   );
 }
-
+

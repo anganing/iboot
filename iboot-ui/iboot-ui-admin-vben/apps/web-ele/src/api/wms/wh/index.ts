@@ -10,11 +10,16 @@ export namespace WmsWhApi {
     plantId?: number; // 工厂编号
     code?: string; // 仓库编码
     name?: string; // 仓库名称
-    whType?: string; // 仓库类型：ASRS-立库，FLAT-平库，LINE_SIDE-线边仓，VIRTUAL-虚拟仓，QC-质检仓，IN_TRANSIT-在途仓
-    managedBy?: string; // 管理方式：MANUAL、WCS、AGV、MIXED
-    externalSystemCode: string; // 外部设备系统编码
-    status?: number; // 状态：0-启用，1-停用
-    remark: string; // 备注
+    whType?: string; // 仓库类型
+    managedBy?: string; // 管理方式
+    externalSystemCode?: string; // 外部设备系统编码
+    status?: number; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    invOrgCode?: string; // 库存组织编码
+    invOrgName?: string; // 库存组织名称
+    plantCode?: string; // 工厂编码
+    plantName?: string; // 工厂名称
   }
 }
 
@@ -70,4 +75,4 @@ export function importWh(file: File) {
   return requestClient.upload('/wms/wh/import', { file });
 }
 
-
+

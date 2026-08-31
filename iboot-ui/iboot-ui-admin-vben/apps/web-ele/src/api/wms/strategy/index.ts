@@ -8,13 +8,16 @@ export namespace WmsStrategyApi {
     id: number; // 主键
     code?: string; // 策略编码
     name?: string; // 策略名称
-    strategyType?: string; // 策略类型：PUTAWAY、PICK、REPLENISH
+    strategyType?: string; // 策略类型
     whId?: number; // 适用仓库编号，0表示全局
     versionNo?: string; // 策略版本号
     configJson?: string; // 策略条件与排序规则配置
     priority?: number; // 优先级，数值越大越优先
-    status?: string; // 状态：DRAFT、ENABLED、DISABLED
-    remark: string; // 备注
+    status?: string; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 适用仓库编号，0表示全局编码
+    whName?: string; // 适用仓库编号，0表示全局名称
   }
 }
 
@@ -70,4 +73,4 @@ export function importStrategy(file: File) {
   return requestClient.upload('/wms/strategy/import', { file });
 }
 
-
+

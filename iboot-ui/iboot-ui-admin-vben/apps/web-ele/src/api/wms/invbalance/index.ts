@@ -15,20 +15,22 @@ export namespace WmsInvBalanceApi {
     containerId?: number; // 容器编号，0表示散件
     projectId?: number; // 项目编号，0表示无项目归属
     projectTaskId?: number; // 项目任务编号，0表示无项目任务归属
-    stockScope?: string; // 库存范围：COMMON、PROJECT_DEDICATED
-    qualityStatus?: string; // 质量状态：QUALIFIED、QC_PENDING、REJECTED、FROZEN
+    stockScope?: string; // 库存范围
+    qualityStatus?: string; // 质量状态
     qtyOnhand?: number; // 现存数量，基准单位
     qtyReserved?: number; // 预留数量，基准单位
     qtyFrozen?: number; // 冻结数量，基准单位
     matCode?: string; // 物料编码快照
     matName?: string; // 物料名称快照
-    matSpec: string; // 物料规格快照
+    matSpec?: string; // 物料规格快照
     uomCode?: string; // 基准单位编码快照
     lotNo?: string; // 批次号快照
     whCode?: string; // 仓库编码快照
     locCode?: string; // 库位编码快照
     version?: number; // 乐观锁版本
-    remark: string; // 备注
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whName?: string; // 仓库名称
   }
 }
 
@@ -47,41 +49,9 @@ export function getInvBalance(id: number) {
   );
 }
 
-/** 新增库存余额 */
-export function createInvBalance(data: WmsInvBalanceApi.InvBalance) {
-  return requestClient.post('/wms/inv-balance/create', data);
-}
-
-/** 修改库存余额 */
-export function updateInvBalance(data: WmsInvBalanceApi.InvBalance) {
-  return requestClient.put('/wms/inv-balance/update', data);
-}
-
-/** 删除库存余额 */
-export function deleteInvBalance(id: number) {
-  return requestClient.delete(`/wms/inv-balance/delete?id=${id}`);
-}
-
-/** 批量删除库存余额 */
-export function deleteInvBalanceList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/inv-balance/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出库存余额 */
 export function exportInvBalance(params: any) {
   return requestClient.download('/wms/inv-balance/export-excel', { params });
 }
 
-/** 下载库存余额导入模板 */
-export function importInvBalanceTemplate() {
-  return requestClient.download('/wms/inv-balance/get-import-template');
-}
 
-/** 导入库存余额 */
-export function importInvBalance(file: File) {
-  return requestClient.upload('/wms/inv-balance/import', { file });
-}
-
-

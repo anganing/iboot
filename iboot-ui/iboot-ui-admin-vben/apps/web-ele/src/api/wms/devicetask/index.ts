@@ -1,5 +1,4 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
@@ -8,26 +7,31 @@ export namespace WmsDeviceTaskApi {
   export interface DeviceTask {
     id: number; // 主键
     taskNo?: string; // 本地设备任务号
-    externalTaskNo: string; // 外部设备任务号
-    taskType?: string; // 任务类型：PUTAWAY、PICK、TRANSFER、DELIVERY、RETURN
-    deviceType?: string; // 设备类型：WCS、AGV、RGV
+    externalTaskNo?: string; // 外部设备任务号
+    taskType?: string; // 任务类型
+    deviceType?: string; // 设备类型
     sourceBizType?: string; // 来源业务类型
     sourceBizNo?: string; // 来源业务单号
-    sourceLineId: number; // 来源业务明细编号
+    sourceLineId?: number; // 来源业务明细编号
     containerId?: number; // 容器编号，0表示无容器
     fromLocId?: number; // 来源库位编号
     toLocId?: number; // 目标库位编号
     actualLocId?: number; // 设备回传实际库位编号
     externalSystemCode?: string; // 外部设备系统编码
-    dispatchStatus?: string; // 下发状态：PENDING、SENT、FAILED
-    status?: string; // 执行状态：CREATED、RUNNING、DONE、CANCELLED、EXCEPTION
-    postStatus?: string; // 库存过账状态：PENDING、POSTED、FAILED
-    requestSnapshotJson: string; // 下发业务快照
-    callbackSnapshotJson: string; // 完成回调快照
+    dispatchStatus?: string; // 下发状态
+    status?: string; // 执行状态
+    postStatus?: string; // 库存过账状态
+    requestSnapshotJson?: string; // 下发业务快照
+    callbackSnapshotJson?: string; // 完成回调快照
     idempotencyKey?: string; // 业务幂等键
-    completedTime: string | Dayjs; // 设备完成时间
+    completedTime?: string; // 设备完成时间
     version?: number; // 乐观锁版本
-    remark: string; // 备注
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    containerNo?: string; // 搬运容器编号
+    fromLocCode?: string; // 来源库位编码
+    toLocCode?: string; // 目标库位编码
+    actualLocCode?: string; // 实际库位编码
   }
 }
 
@@ -83,4 +87,4 @@ export function importDeviceTask(file: File) {
   return requestClient.upload('/wms/device-task/import', { file });
 }
 
-
+

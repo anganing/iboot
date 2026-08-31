@@ -11,13 +11,19 @@ export namespace WmsContainerApi {
     invOrgId?: number; // 库存组织编号
     whId?: number; // 当前仓库编号
     locId?: number; // 当前库位编号，0表示未落位
-    length: number; // 实际长度，单位毫米
-    width: number; // 实际宽度，单位毫米
-    height: number; // 实际高度，单位毫米
-    grossWeight: number; // 实际毛重
-    status?: string; // 状态：EMPTY、LOADED、IN_TRANSIT、STORED、CLOSED
+    length?: number; // 实际长度，单位毫米
+    width?: number; // 实际宽度，单位毫米
+    height?: number; // 实际高度，单位毫米
+    grossWeight?: number; // 实际毛重
+    status?: string; // 状态
     version?: number; // 乐观锁版本
-    remark: string; // 备注
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 当前仓库编码
+    whName?: string; // 当前仓库名称
+    typeCode?: string; // 容器类型编码
+    typeName?: string; // 容器类型名称
+    locCode?: string; // 当前库位编码
   }
 }
 
@@ -73,4 +79,4 @@ export function importContainer(file: File) {
   return requestClient.upload('/wms/container/import', { file });
 }
 
-
+

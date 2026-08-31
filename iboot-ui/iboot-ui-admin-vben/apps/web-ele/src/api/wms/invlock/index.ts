@@ -21,9 +21,12 @@ export namespace WmsInvLockApi {
     qty?: number; // 冻结数量，基准单位
     releasedQty?: number; // 已解冻数量
     reason?: string; // 冻结原因
-    status?: string; // 状态：ACTIVE、PARTIAL、RELEASED、CANCELLED
+    status?: string; // 状态
     idempotencyKey?: string; // 冻结幂等键
-    remark: string; // 备注
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 仓库编码
+    whName?: string; // 仓库名称
   }
 }
 
@@ -79,4 +82,4 @@ export function importInvLock(file: File) {
   return requestClient.upload('/wms/inv-lock/import', { file });
 }
 
-
+

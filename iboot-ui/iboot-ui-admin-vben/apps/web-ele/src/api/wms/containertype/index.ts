@@ -8,13 +8,14 @@ export namespace WmsContainerTypeApi {
     id: number; // 主键
     code?: string; // 容器类型编码
     name?: string; // 容器类型名称
-    stdLength: number; // 标准长度，单位毫米
-    stdWidth: number; // 标准宽度，单位毫米
-    stdHeight: number; // 标准高度，单位毫米
-    maxWeight: number; // 最大承重
-    maxVolume: number; // 最大容积
-    status?: number; // 状态：0-启用，1-停用
-    remark: string; // 备注
+    stdLength?: number; // 标准长度，单位毫米
+    stdWidth?: number; // 标准宽度，单位毫米
+    stdHeight?: number; // 标准高度，单位毫米
+    maxWeight?: number; // 最大承重
+    maxVolume?: number; // 最大容积
+    status?: number; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
   }
 }
 
@@ -70,4 +71,4 @@ export function importContainerType(file: File) {
   return requestClient.upload('/wms/container-type/import', { file });
 }
 
-
+

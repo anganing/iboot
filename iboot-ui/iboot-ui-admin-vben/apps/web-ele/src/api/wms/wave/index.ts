@@ -1,19 +1,24 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace WmsWaveApi {
   /** 波次明细信息 */
   export interface WaveLine {
-            id: number; // 主键
-            waveId?: number; // 波次编号
-            lineNo?: number; // 行号
-            outOrderId?: number; // 出库单编号
-            outOrderLineId?: number; // 出库单明细编号
-            priority?: number; // 波次内优先级，数值越大越优先
-            status?: string; // 明细状态
-            remark: string; // 备注
+    id: number; // 主键
+    waveId?: number; // 波次编号
+    lineNo?: number; // 行号
+    outOrderId?: number; // 出库单编号
+    outOrderNo?: string; // 出库单号
+    outOrderLineId?: number; // 出库单明细编号
+    outOrderLineNo?: number; // 出库单明细行号
+    matCode?: string; // 出库明细物料编码
+    matName?: string; // 出库明细物料名称
+    planQty?: number; // 出库明细计划数量
+    priority?: number; // 波次内优先级，数值越大越优先
+    status?: string; // 明细状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
   }
 
   /** 出库波次信息 */
@@ -22,10 +27,13 @@ export namespace WmsWaveApi {
     waveNo?: string; // 波次编号
     whId?: number; // 仓库编号
     waveType?: string; // 波次类型
-    planStartTime: string | Dayjs; // 计划开始时间
-    planEndTime: string | Dayjs; // 计划结束时间
-    status?: string; // 状态：DRAFT、RELEASED、PICKING、DONE、CANCELLED
-    remark: string; // 备注
+    planStartTime?: string; // 计划开始时间
+    planEndTime?: string; // 计划结束时间
+    status?: string; // 状态
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+    whCode?: string; // 仓库编码
+    whName?: string; // 仓库名称
   }
 }
 
@@ -119,4 +127,4 @@ export function getWaveLine(id: number) {
     `/wms/wave/wave-line/get?id=${id}`,
   );
 }
-
+

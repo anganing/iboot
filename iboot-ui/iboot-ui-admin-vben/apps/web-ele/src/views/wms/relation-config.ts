@@ -161,27 +161,43 @@ export const OUT_ORDER_RELATION_PROPS = {
   valueField: 'id',
 };
 
-export const ARRIVAL_RELATION_PROPS = {
+/**
+ * 出库明细选择器。
+ *
+ * <p>明细必须限定在某一张出库单下，调用方通过 {@code extraParams: { orderId }} 传入父键，
+ * 避免用户从别的单据里挑明细。
+ */
+export const OUT_ORDER_LINE_RELATION_PROPS = {
   columns: [
-    { field: 'arrivalNo', label: '到货单号', minWidth: 160 },
-    { field: 'supplierName', label: '供应商', minWidth: 160 },
+    { field: 'lineNo', label: '行号', minWidth: 80 },
+    { field: 'matCode', label: '物料编码', minWidth: 140 },
+    { field: 'matName', label: '物料名称', minWidth: 160 },
+    { field: 'planQty', label: '计划数量', minWidth: 110 },
+    { field: 'fromLocCode', label: '来源库位', minWidth: 130 },
   ],
-  detailUri: '/wms/arrival/get?id={id}',
-  dialogTitle: '选择到货登记',
-  displayFields: ['arrivalNo'],
-  pageUri: '/wms/arrival/page',
-  placeholder: '请选择到货登记',
-  queryFields: [{ field: 'arrivalNo', label: '到货单号' }],
+  detailUri: '/wms/out-order/out-order-line/get?id={id}',
+  dialogTitle: '选择出库明细',
+  displayFields: ['lineNo', 'matCode'],
+  pageUri: '/wms/out-order/out-order-line/page',
+  placeholder: '请选择出库明细',
+  queryFields: [
+    { field: 'lotNo', label: '批次号' },
+  ],
   valueField: 'id',
 };
 
-export const INV_BALANCE_RELATION_PROPS = {
+/**
+ * 库存余额选择器（盘点明细用）。
+ *
+ * <p>盘点行必须落在具体一条余额上，账面数量与盘点维度都由它带出来。
+ */
+export const INV_BALANCE_LINE_RELATION_PROPS = {
   columns: [
     { field: 'matCode', label: '物料编码', minWidth: 140 },
     { field: 'matName', label: '物料名称', minWidth: 160 },
-    { field: 'lotNo', label: '批次号', minWidth: 140 },
-    { field: 'locCode', label: '库位编码', minWidth: 140 },
-    { field: 'qtyOnhand', label: '现存数量', minWidth: 120 },
+    { field: 'lotNo', label: '批次号', minWidth: 130 },
+    { field: 'locCode', label: '库位编码', minWidth: 130 },
+    { field: 'qtyOnhand', label: '现存数量', minWidth: 110 },
   ],
   detailUri: '/wms/inv-balance/get?id={id}',
   dialogTitle: '选择库存余额',
@@ -193,5 +209,19 @@ export const INV_BALANCE_RELATION_PROPS = {
     { field: 'lotNo', label: '批次号' },
     { field: 'locCode', label: '库位编码' },
   ],
+  valueField: 'id',
+};
+
+export const ARRIVAL_RELATION_PROPS = {
+  columns: [
+    { field: 'arrivalNo', label: '到货单号', minWidth: 160 },
+    { field: 'supplierName', label: '供应商', minWidth: 160 },
+  ],
+  detailUri: '/wms/arrival/get?id={id}',
+  dialogTitle: '选择到货登记',
+  displayFields: ['arrivalNo'],
+  pageUri: '/wms/arrival/page',
+  placeholder: '请选择到货登记',
+  queryFields: [{ field: 'arrivalNo', label: '到货单号' }],
   valueField: 'id',
 };
