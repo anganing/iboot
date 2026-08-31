@@ -1,20 +1,27 @@
 package com.iboot.pf.module.mes.dal.dataobject.defect;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
 
 /**
  * MES-缺陷记录 DO
  *
+ * <p>附件放在独立子表 {@code mes_defect_file}，主表不留 file_* 列。
+ *
  * @author iboot
  */
 @TableName("mes_defect")
-@KeySequence("mes_defect_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_defect_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -33,19 +40,25 @@ public class DefectDO extends BaseDO {
      */
     private Long taskId;
     /**
-     * 关联检验结果编号
+     * 关联检验结果编号，0 表示未关联具体检验项
      */
     private Long resultId;
     /**
-     * 缺陷编码
+     * 缺陷代码编号，来自 mdm_defect_code
+     */
+    private Long defectCodeId;
+    /**
+     * 缺陷编码快照
      */
     private String defectCode;
     /**
-     * 缺陷名称
+     * 缺陷名称快照
      */
     private String defectName;
     /**
-     * 缺陷等级：CRITICAL、MAJOR、MINOR
+     * 缺陷等级快照
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDefectLevelEnum}
      */
     private String defectLevel;
     /**
@@ -61,13 +74,8 @@ public class DefectDO extends BaseDO {
      */
     private String location;
     /**
-     * 缺陷附件地址列表
-     */
-    private String attachmentUrls;
-    /**
      * 备注
      */
     private String remark;
 
-
-}
+}

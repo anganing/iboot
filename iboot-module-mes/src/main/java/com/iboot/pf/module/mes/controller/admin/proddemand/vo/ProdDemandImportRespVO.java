@@ -20,4 +20,4 @@ public class ProdDemandImportRespVO {
     @Schema(description = "导入失败的数据集合，key 为行号，value 为失败原因", requiredMode = Schema.RequiredMode.REQUIRED)
     private Map<Integer, String> failureRows;
 
-}
+}

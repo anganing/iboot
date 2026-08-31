@@ -1,70 +1,33 @@
 package com.iboot.pf.module.mes.service.wiptxn;
 
-import java.util.*;
-import jakarta.validation.*;
-import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.*;
-import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
+import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.WipTxnPageReqVO;
+import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.WipTxnRespVO;
 
 /**
  * MES-在制流转流水 Service 接口
+ *
+ * <p>账表只读：流水是开工、报工、流转、跳序、完工留下的证据链，
+ * 放开人工新增修改删除等于允许篡改在制履历，所以这里只有查询方法。
  *
  * @author iboot
  */
 public interface WipTxnService {
 
     /**
-     * 创建MES-在制流转流水
-     *
-     * @param createReqVO 创建信息
-     * @return 编号
-     */
-    Long createWipTxn(@Valid WipTxnSaveReqVO createReqVO);
-
-    /**
-     * 导入MES-在制流转流水
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    WipTxnImportRespVO importWipTxnList(List<WipTxnImportExcelVO> importList);
-
-    /**
-     * 更新MES-在制流转流水
-     *
-     * @param updateReqVO 更新信息
-     */
-    void updateWipTxn(@Valid WipTxnSaveReqVO updateReqVO);
-
-    /**
-     * 删除MES-在制流转流水
+     * 获得在制流转流水
      *
      * @param id 编号
-     */
-    void deleteWipTxn(Long id);
-
-    /**
-    * 批量删除MES-在制流转流水
-    *
-    * @param ids 编号
-    */
-    void deleteWipTxnListByIds(List<Long> ids);
-
-    /**
-     * 获得MES-在制流转流水
-     *
-     * @param id 编号
-     * @return MES-在制流转流水
+     * @return 在制流转流水
      */
     WipTxnRespVO getWipTxn(Long id);
 
     /**
-     * 获得MES-在制流转流水分页
+     * 获得在制流转流水分页
      *
      * @param pageReqVO 分页查询
-     * @return MES-在制流转流水分页
+     * @return 在制流转流水分页
      */
     PageResult<WipTxnRespVO> getWipTxnPage(WipTxnPageReqVO pageReqVO);
 
-}
+}

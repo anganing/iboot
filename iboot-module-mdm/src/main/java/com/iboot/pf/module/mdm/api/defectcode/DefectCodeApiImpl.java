@@ -1,15 +1,19 @@
 package com.iboot.pf.module.mdm.api.defectcode;
 
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.framework.common.util.collection.CollectionUtils;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.mdm.api.defectcode.dto.DefectCodeRespDTO;
 import com.iboot.pf.module.mdm.dal.dataobject.defectcode.DefectCodeDO;
+import com.iboot.pf.module.mdm.dal.mysql.defectcode.DefectCodeMapper;
 import com.iboot.pf.module.mdm.service.defectcode.DefectCodeService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,12 +28,25 @@ public class DefectCodeApiImpl implements DefectCodeApi {
 
     @Resource
     private DefectCodeService defectCodeService;
+    @Resource
+    private DefectCodeMapper defectCodeMapper;
 
     @Override
     @DataPermission(enable = false)
     public List<DefectCodeRespDTO> getDefectCodeList() {
         List<DefectCodeDO> all = defectCodeService.getDefectCodeList();
         return BeanUtils.toBean(all, DefectCodeRespDTO.class);
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public Map<Long, DefectCodeRespDTO> getDefectCodeMap(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        // 一次 IN 查询，避免调用方 N+1
+        List<DefectCodeDO> list = defectCodeMapper.selectByIds(ids);
+        return CollectionUtils.convertMap(BeanUtils.toBean(list, DefectCodeRespDTO.class), DefectCodeRespDTO::getId);
     }
 
     @Override

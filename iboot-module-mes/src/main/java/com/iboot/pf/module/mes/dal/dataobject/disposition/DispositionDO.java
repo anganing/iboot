@@ -1,13 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.disposition;
 
-import lombok.*;
-import java.util.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
-import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
  * MES-不合格品处置单 DO
@@ -15,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_disposition")
-@KeySequence("mes_disposition_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_disposition_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -30,7 +35,7 @@ public class DispositionDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 不合格处置单号
+     * 不合格处置单号，由 infra 编码规则 MES_DISPOSITION_NO 分配
      */
     private String dispositionNo;
     /**
@@ -38,15 +43,19 @@ public class DispositionDO extends BaseDO {
      */
     private Long taskId;
     /**
-     * 处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS
+     * 处置类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDispositionTypeEnum}
      */
     private String dispositionType;
     /**
-     * 处置数量
+     * 处置数量，不能超过质检任务的不合格数量
      */
     private BigDecimal qty;
     /**
      * 联动目标业务类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesBizTypeEnum}
      */
     private String targetBizType;
     /**
@@ -54,7 +63,7 @@ public class DispositionDO extends BaseDO {
      */
     private String targetBizNo;
     /**
-     * 审批人员编号
+     * 审批人员编号，0 表示尚未审批，来自 system_users
      */
     private Long approvedBy;
     /**
@@ -62,11 +71,13 @@ public class DispositionDO extends BaseDO {
      */
     private LocalDateTime approveTime;
     /**
-     * 状态：DRAFT、SUBMITTED、APPROVED、EXECUTING、DONE、REJECTED、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDispositionStatusEnum}
      */
     private String status;
     /**
-     * 处置幂等键
+     * 处置幂等键，唯一索引防止重复处置
      */
     private String idempotencyKey;
     /**
@@ -74,5 +85,4 @@ public class DispositionDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

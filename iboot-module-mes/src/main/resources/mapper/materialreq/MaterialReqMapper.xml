@@ -2,16 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.iboot.pf.module.mes.dal.mysql.materialreq.MaterialReqMapper">
 
+    <!-- 模块内关联走 JOIN；仓库、项目名称由 Service 调 wms 与 mdm 门面补全 -->
     <sql id="selectColumns">
         t.*
-        , prod_order.order_no AS prod_order_order_no
-        , work_order.work_order_no AS work_order_work_order_no
-        , op_task.task_no AS op_task_task_no
+        , work_order.work_order_no AS work_order_no
+        , op_task.task_no AS op_task_no
     </sql>
 
     <sql id="joinTables">
         FROM mes_material_req t
-        LEFT JOIN mes_prod_order prod_order ON prod_order.id = t.prod_order_id AND prod_order.deleted = 0
         LEFT JOIN mes_work_order work_order ON work_order.id = t.work_order_id AND work_order.deleted = 0
         LEFT JOIN mes_op_task op_task ON op_task.id = t.op_task_id AND op_task.deleted = 0
     </sql>
@@ -20,10 +19,16 @@
         <where>
             t.deleted = 0
             <if test="req.reqNo != null and req.reqNo != ''">
-                AND t.req_no = #{req.reqNo}
+                AND t.req_no LIKE CONCAT('%', #{req.reqNo}, '%')
+            </if>
+            <if test="req.prodOrderId != null">
+                AND t.prod_order_id = #{req.prodOrderId}
             </if>
             <if test="req.prodOrderNo != null and req.prodOrderNo != ''">
-                AND t.prod_order_no = #{req.prodOrderNo}
+                AND t.prod_order_no LIKE CONCAT('%', #{req.prodOrderNo}, '%')
+            </if>
+            <if test="req.workOrderId != null">
+                AND t.work_order_id = #{req.workOrderId}
             </if>
             <if test="req.reqType != null and req.reqType != ''">
                 AND t.req_type = #{req.reqType}
@@ -37,28 +42,20 @@
             <if test="req.projectId != null">
                 AND t.project_id = #{req.projectId}
             </if>
-            <if test="req.projectTaskId != null">
-                AND t.project_task_id = #{req.projectTaskId}
-            </if>
             <if test="req.wmsBizNo != null and req.wmsBizNo != ''">
-                AND t.wms_biz_no = #{req.wmsBizNo}
+                AND t.wms_biz_no LIKE CONCAT('%', #{req.wmsBizNo}, '%')
             </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
-                AND t.idempotency_key = #{req.idempotencyKey}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>
 
-    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.materialreq.vo.MaterialReqRespVO">
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.mes.controller.admin.materialreq.vo.MaterialReqRespVO">
         SELECT
         <include refid="selectColumns"/>
         <include refid="joinTables"/>
@@ -66,7 +63,8 @@
         ORDER BY t.id DESC
     </select>
 
-    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.materialreq.vo.MaterialReqRespVO">
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.mes.controller.admin.materialreq.vo.MaterialReqRespVO">
         SELECT
         <include refid="selectColumns"/>
         <include refid="joinTables"/>

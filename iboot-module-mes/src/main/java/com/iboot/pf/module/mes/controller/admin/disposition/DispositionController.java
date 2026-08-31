@@ -1,33 +1,42 @@
 package com.iboot.pf.module.mes.controller.admin.disposition;
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import jakarta.annotation.Resource;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.security.access.prepost.PreAuthorize;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Operation;
-
-import jakarta.validation.constraints.*;
-import jakarta.validation.*;
-import jakarta.servlet.http.*;
-import java.util.*;
-import java.io.IOException;
-
+import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
+import com.iboot.pf.framework.common.pojo.CommonResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.CommonResult;
+import com.iboot.pf.framework.excel.core.util.ExcelUtils;
+import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionPageReqVO;
+import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionRespVO;
+import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionSaveReqVO;
+import com.iboot.pf.module.mes.service.disposition.DispositionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.util.List;
+
+import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
 import static com.iboot.pf.framework.common.pojo.CommonResult.success;
 
-import com.iboot.pf.framework.excel.core.util.ExcelUtils;
-
-import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
-import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
-
-import com.iboot.pf.module.mes.controller.admin.disposition.vo.*;
-import com.iboot.pf.module.mes.service.disposition.DispositionService;
-
+/**
+ * 不合格品处置单管理端接口。
+ *
+ * <p>处置单由质检结论触发，涉及审批与跨模块联动，不提供 Excel 导入。
+ */
 @Tag(name = "管理后台 - MES-不合格品处置单")
 @RestController
 @RequestMapping("/mes/disposition")
@@ -38,14 +47,14 @@ public class DispositionController {
     private DispositionService dispositionService;
 
     @PostMapping("/create")
-    @Operation(summary = "创建MES-不合格品处置单")
+    @Operation(summary = "创建不合格品处置单")
     @PreAuthorize("@ss.hasPermission('mes:disposition:create')")
     public CommonResult<Long> createDisposition(@Valid @RequestBody DispositionSaveReqVO createReqVO) {
         return success(dispositionService.createDisposition(createReqVO));
     }
 
     @PutMapping("/update")
-    @Operation(summary = "更新MES-不合格品处置单")
+    @Operation(summary = "更新不合格品处置单")
     @PreAuthorize("@ss.hasPermission('mes:disposition:update')")
     public CommonResult<Boolean> updateDisposition(@Valid @RequestBody DispositionSaveReqVO updateReqVO) {
         dispositionService.updateDisposition(updateReqVO);
@@ -53,8 +62,8 @@ public class DispositionController {
     }
 
     @DeleteMapping("/delete")
-    @Operation(summary = "删除MES-不合格品处置单")
-    @Parameter(name = "id", description = "编号", required = true)
+    @Operation(summary = "删除不合格品处置单")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('mes:disposition:delete')")
     public CommonResult<Boolean> deleteDisposition(@RequestParam("id") Long id) {
         dispositionService.deleteDisposition(id);
@@ -62,57 +71,39 @@ public class DispositionController {
     }
 
     @DeleteMapping("/delete-list")
-    @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除MES-不合格品处置单")
-                @PreAuthorize("@ss.hasPermission('mes:disposition:delete')")
+    @Operation(summary = "批量删除不合格品处置单")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('mes:disposition:delete')")
     public CommonResult<Boolean> deleteDispositionList(@RequestParam("ids") List<Long> ids) {
         dispositionService.deleteDispositionListByIds(ids);
         return success(true);
     }
 
     @GetMapping("/get")
-    @Operation(summary = "获得MES-不合格品处置单")
-    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @Operation(summary = "获得不合格品处置单")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('mes:disposition:query')")
     public CommonResult<DispositionRespVO> getDisposition(@RequestParam("id") Long id) {
         return success(dispositionService.getDisposition(id));
     }
 
     @GetMapping("/page")
-    @Operation(summary = "获得MES-不合格品处置单分页")
+    @Operation(summary = "获得不合格品处置单分页")
     @PreAuthorize("@ss.hasPermission('mes:disposition:query')")
-    public CommonResult<PageResult<DispositionRespVO>> getDispositionPage(@Valid DispositionPageReqVO pageReqVO) {
+    public CommonResult<PageResult<DispositionRespVO>> getDispositionPage(
+            @Valid DispositionPageReqVO pageReqVO) {
         return success(dispositionService.getDispositionPage(pageReqVO));
     }
 
     @GetMapping("/export-excel")
-    @Operation(summary = "导出MES-不合格品处置单 Excel")
+    @Operation(summary = "导出不合格品处置单 Excel")
     @PreAuthorize("@ss.hasPermission('mes:disposition:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportDispositionExcel(@Valid DispositionPageReqVO pageReqVO,
-              HttpServletResponse response) throws IOException {
+                                       HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<DispositionRespVO> list = dispositionService.getDispositionPage(pageReqVO).getList();
-        // 导出 Excel
-        ExcelUtils.write(response, "MES-不合格品处置单.xls", "数据", DispositionRespVO.class,
-                        list);
-    }
-
-    @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入MES-不合格品处置单模板")
-    @PreAuthorize("@ss.hasPermission('mes:disposition:import')")
-    public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "MES-不合格品处置单导入模板.xls", "数据",
-                DispositionImportExcelVO.class, Collections.emptyList());
-    }
-
-    @PostMapping("/import")
-    @Operation(summary = "导入MES-不合格品处置单")
-    @Parameter(name = "file", description = "Excel 文件", required = true)
-    @PreAuthorize("@ss.hasPermission('mes:disposition:import')")
-    public CommonResult<DispositionImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {
-        List<DispositionImportExcelVO> list = ExcelUtils.read(file, DispositionImportExcelVO.class);
-        return success(dispositionService.importDispositionList(list));
+        ExcelUtils.write(response, "MES-不合格品处置单.xls", "数据", DispositionRespVO.class, list);
     }
 
 }

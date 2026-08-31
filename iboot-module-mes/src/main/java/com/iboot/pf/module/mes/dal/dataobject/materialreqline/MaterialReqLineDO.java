@@ -1,13 +1,17 @@
 package com.iboot.pf.module.mes.dal.dataobject.materialreqline;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
 
 /**
  * MES-领退补料申请明细 DO
@@ -15,7 +19,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_material_req_line")
-@KeySequence("mes_material_req_line_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_material_req_line_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -34,15 +38,15 @@ public class MaterialReqLineDO extends BaseDO {
      */
     private Long reqId;
     /**
-     * 行号
+     * 行号，同一申请下唯一
      */
     private Integer lineNo;
     /**
-     * 路线工序用料编号
+     * 路线工序用料编号，0 表示非 BOM 用料，来自 mdm_route_op_mat
      */
     private Long routeOpMatId;
     /**
-     * 物料编号
+     * 物料编号，来自 mdm_mat
      */
     private Long matId;
     /**
@@ -62,11 +66,11 @@ public class MaterialReqLineDO extends BaseDO {
      */
     private BigDecimal qty;
     /**
-     * WMS已处理数量
+     * WMS 已处理数量，由 WMS 回写
      */
     private BigDecimal processedQty;
     /**
-     * 计量单位编号
+     * 计量单位编号，来自 mdm_uom
      */
     private Long uomId;
     /**
@@ -74,7 +78,7 @@ public class MaterialReqLineDO extends BaseDO {
      */
     private String uomCode;
     /**
-     * 指定退料批次编号
+     * 指定退料批次编号，0 表示不指定批次，来自 wms_batch
      */
     private Long batchId;
     /**
@@ -87,6 +91,8 @@ public class MaterialReqLineDO extends BaseDO {
     private Boolean mustIssueBeforeStart;
     /**
      * 明细状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesMaterialReqLineStatusEnum}
      */
     private String status;
     /**

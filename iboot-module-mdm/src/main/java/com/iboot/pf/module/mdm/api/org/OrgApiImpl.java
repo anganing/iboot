@@ -13,6 +13,8 @@ import com.iboot.pf.module.mdm.dal.dataobject.wc.WcDO;
 import com.iboot.pf.module.mdm.dal.dataobject.workshop.WorkshopDO;
 import com.iboot.pf.module.mdm.dal.mysql.invorg.InvOrgMapper;
 import com.iboot.pf.module.mdm.dal.mysql.plant.PlantMapper;
+import com.iboot.pf.module.mdm.dal.mysql.wc.WcMapper;
+import com.iboot.pf.module.mdm.dal.mysql.workshop.WorkshopMapper;
 import com.iboot.pf.module.mdm.service.invorg.InvOrgService;
 import com.iboot.pf.module.mdm.service.plant.PlantService;
 import com.iboot.pf.module.mdm.service.wc.WcService;
@@ -45,6 +47,10 @@ public class OrgApiImpl implements OrgApi {
     private InvOrgMapper invOrgMapper;
     @Resource
     private PlantMapper plantMapper;
+    @Resource
+    private WorkshopMapper workshopMapper;
+    @Resource
+    private WcMapper wcMapper;
 
     @Override
     @DataPermission(enable = false)
@@ -90,9 +96,29 @@ public class OrgApiImpl implements OrgApi {
 
     @Override
     @DataPermission(enable = false)
+    public Map<Long, WorkshopRespDTO> getWorkshopMap(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<WorkshopDO> list = workshopMapper.selectByIds(ids);
+        return CollectionUtils.convertMap(BeanUtils.toBean(list, WorkshopRespDTO.class), WorkshopRespDTO::getId);
+    }
+
+    @Override
+    @DataPermission(enable = false)
     public List<WcRespDTO> getWcList() {
         List<WcDO> list = wcService.getWcList();
         return BeanUtils.toBean(list, WcRespDTO.class);
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public Map<Long, WcRespDTO> getWcMap(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<WcDO> list = wcMapper.selectByIds(ids);
+        return CollectionUtils.convertMap(BeanUtils.toBean(list, WcRespDTO.class), WcRespDTO::getId);
     }
 
 }

@@ -2,41 +2,42 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.iboot.pf.module.mes.dal.mysql.rgvtask.RgvTaskMapper">
 
+    <!-- 模块内关联走 JOIN；工位名称由 Service 调 mdm 资源门面补全 -->
     <sql id="selectColumns">
         t.*
-        , work_order.work_order_no AS work_order_work_order_no
-        , op_task.task_no AS op_task_task_no
+        , work_order.work_order_no AS work_order_no
+        , op_task.task_no AS op_task_no
+        , target_op_task.task_no AS target_op_task_no
     </sql>
 
     <sql id="joinTables">
         FROM mes_rgv_task t
         LEFT JOIN mes_work_order work_order ON work_order.id = t.work_order_id AND work_order.deleted = 0
         LEFT JOIN mes_op_task op_task ON op_task.id = t.op_task_id AND op_task.deleted = 0
+        LEFT JOIN mes_op_task target_op_task ON target_op_task.id = t.target_op_task_id
+            AND target_op_task.deleted = 0
     </sql>
 
     <sql id="whereConditions">
         <where>
             t.deleted = 0
             <if test="req.taskNo != null and req.taskNo != ''">
-                AND t.task_no = #{req.taskNo}
+                AND t.task_no LIKE CONCAT('%', #{req.taskNo}, '%')
             </if>
             <if test="req.externalTaskNo != null and req.externalTaskNo != ''">
-                AND t.external_task_no = #{req.externalTaskNo}
+                AND t.external_task_no LIKE CONCAT('%', #{req.externalTaskNo}, '%')
             </if>
             <if test="req.taskType != null and req.taskType != ''">
                 AND t.task_type = #{req.taskType}
             </if>
-            <if test="req.targetOpTaskId != null">
-                AND t.target_op_task_id = #{req.targetOpTaskId}
+            <if test="req.workOrderId != null">
+                AND t.work_order_id = #{req.workOrderId}
             </if>
-            <if test="req.fromStationId != null">
-                AND t.from_station_id = #{req.fromStationId}
-            </if>
-            <if test="req.toStationId != null">
-                AND t.to_station_id = #{req.toStationId}
+            <if test="req.opTaskId != null">
+                AND t.op_task_id = #{req.opTaskId}
             </if>
             <if test="req.carrierNo != null and req.carrierNo != ''">
-                AND t.carrier_no = #{req.carrierNo}
+                AND t.carrier_no LIKE CONCAT('%', #{req.carrierNo}, '%')
             </if>
             <if test="req.externalSystemCode != null and req.externalSystemCode != ''">
                 AND t.external_system_code = #{req.externalSystemCode}
@@ -47,20 +48,8 @@
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>
-            <if test="req.idempotencyKey != null and req.idempotencyKey != ''">
-                AND t.idempotency_key = #{req.idempotencyKey}
-            </if>
-            <if test="req.completedTime != null">
-                AND t.completed_time = #{req.completedTime}
-            </if>
-            <if test="req.version != null">
-                AND t.version = #{req.version}
-            </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>

@@ -1,25 +1,28 @@
 package com.iboot.pf.module.mes.dal.dataobject.kitsnapshot;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * MES-齐套检查快照 DO
  *
+ * <p>账表：由齐套检查动作写入，记录检查那一刻的库存口径，不接受人工新增修改删除。
+ *
  * @author iboot
  */
 @TableName("mes_kit_snapshot")
-@KeySequence("mes_kit_snapshot_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_kit_snapshot_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -34,11 +37,13 @@ public class KitSnapshotDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 齐套检查编号
+     * 齐套检查编号，由 infra 编码规则 MES_KIT_CHECK_NO 分配
      */
     private String checkNo;
     /**
-     * 检查范围：PROD_ORDER、WORK_ORDER、OP_TASK
+     * 检查范围
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesKitCheckScopeEnum}
      */
     private String checkScope;
     /**
@@ -46,19 +51,19 @@ public class KitSnapshotDO extends BaseDO {
      */
     private Long prodOrderId;
     /**
-     * 作业工单编号，0表示整单检查
+     * 作业工单编号，0 表示整单检查
      */
     private Long workOrderId;
     /**
-     * 工序任务编号，0表示非工序检查
+     * 工序任务编号，0 表示非工序检查
      */
     private Long opTaskId;
     /**
-     * 检查明细行号
+     * 检查明细行号，与检查编号组成唯一索引
      */
     private Integer lineNo;
     /**
-     * 需求物料编号
+     * 需求物料编号，来自 mdm_mat
      */
     private Long matId;
     /**
@@ -90,11 +95,13 @@ public class KitSnapshotDO extends BaseDO {
      */
     private BigDecimal shortQty;
     /**
-     * 实际采用替代料编号，0表示未采用
+     * 实际采用替代料编号，0 表示未采用
      */
     private Long altMatId;
     /**
-     * 检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE
+     * 检查结果
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesKitStatusEnum}
      */
     private String result;
     /**
@@ -106,5 +113,4 @@ public class KitSnapshotDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

@@ -1,19 +1,19 @@
 package com.iboot.pf.module.mes.dal.mysql.wiptxn;
 
-import java.util.*;
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
+import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.WipTxnPageReqVO;
+import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.WipTxnRespVO;
 import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import com.iboot.pf.module.mes.controller.admin.wiptxn.vo.*;
 
 /**
  * MES-在制流转流水 Mapper
+ *
+ * <p>账表只读，只提供查询方法。
  *
  * @author iboot
  */

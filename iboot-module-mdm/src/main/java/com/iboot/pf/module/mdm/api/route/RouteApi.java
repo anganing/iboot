@@ -9,6 +9,7 @@ import com.iboot.pf.module.mdm.api.route.dto.RouteRespDTO;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 工艺路线 API 接口
@@ -54,6 +55,16 @@ public interface RouteApi {
      * @return 工序列表；无工序返回空列表
      */
     List<RouteOpRespDTO> getRouteOpList(Long routeId);
+
+    /**
+     * 按路线工序编号集合批量查询路线工序 Map，供批量补全
+     *
+     * <p>MES 工序任务锁定 routeOpId，创建任务时要从这里取工序顺序、并行组、关键工序标记。
+     *
+     * @param routeOpIds 路线工序编号集合
+     * @return 路线工序编号 -> 路线工序；缺失编号不产生键
+     */
+    Map<Long, RouteOpRespDTO> getRouteOpMap(Collection<Long> routeOpIds);
 
     /**
      * 按路线工序编号批量查询工序用料

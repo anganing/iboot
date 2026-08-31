@@ -1,13 +1,17 @@
 package com.iboot.pf.module.mes.dal.dataobject.dispatchtask;
 
-import lombok.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.time.LocalDateTime;
 
 /**
  * MES-派工任务 DO
@@ -15,7 +19,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_dispatch_task")
-@KeySequence("mes_dispatch_task_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_dispatch_task_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -30,7 +34,7 @@ public class DispatchTaskDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 派工单号
+     * 派工单号，由 infra 编码规则 MES_DISPATCH_NO 分配
      */
     private String dispatchNo;
     /**
@@ -38,19 +42,19 @@ public class DispatchTaskDO extends BaseDO {
      */
     private Long opTaskId;
     /**
-     * 作业人员编号
+     * 作业人员编号，0 表示派给班组，来自 system_users
      */
     private Long operatorId;
     /**
-     * 作业班组编号
+     * 作业班组编号，0 表示派给个人，来自 mdm_team
      */
     private Long teamId;
     /**
-     * 生产资源编号
+     * 生产资源编号，来自 mdm_res
      */
     private Long resId;
     /**
-     * 班次编号
+     * 班次编号，0 表示不区分班次，来自 mdm_shift
      */
     private Long shiftId;
     /**
@@ -62,7 +66,9 @@ public class DispatchTaskDO extends BaseDO {
      */
     private LocalDateTime plannedEndTime;
     /**
-     * 状态：PENDING、ACCEPTED、RUNNING、DONE、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDispatchTaskStatusEnum}
      */
     private String status;
     /**
@@ -70,5 +76,4 @@ public class DispatchTaskDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

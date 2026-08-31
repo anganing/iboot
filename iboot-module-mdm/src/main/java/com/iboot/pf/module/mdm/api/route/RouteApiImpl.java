@@ -17,6 +17,7 @@ import com.iboot.pf.module.mdm.dal.dataobject.esop.RouteOpEsopFileDO;
 import com.iboot.pf.module.mdm.dal.dataobject.route.RouteDO;
 import com.iboot.pf.module.mdm.dal.dataobject.routeop.RouteOpDO;
 import com.iboot.pf.module.mdm.dal.dataobject.routeopmat.RouteOpMatDO;
+import com.iboot.pf.module.mdm.dal.mysql.route.RouteOpMapper;
 import com.iboot.pf.module.mdm.service.esop.RouteOpEsopService;
 import com.iboot.pf.module.mdm.service.route.RouteService;
 import jakarta.annotation.Resource;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +46,8 @@ public class RouteApiImpl implements RouteApi {
     private MaterialApi materialApi;
     @Resource
     private FileApi fileApi;
+    @Resource
+    private RouteOpMapper routeOpMapper;
 
     @Override
     @DataPermission(enable = false)
@@ -77,6 +81,17 @@ public class RouteApiImpl implements RouteApi {
     public List<RouteOpRespDTO> getRouteOpList(Long routeId) {
         List<RouteOpDO> ops = routeService.getRouteOpList(routeId);
         return BeanUtils.toBean(ops, RouteOpRespDTO.class);
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public Map<Long, RouteOpRespDTO> getRouteOpMap(Collection<Long> routeOpIds) {
+        if (CollUtil.isEmpty(routeOpIds)) {
+            return Collections.emptyMap();
+        }
+        // 一次 IN 查询，避免调用方 N+1
+        List<RouteOpDO> ops = routeOpMapper.selectByIds(routeOpIds);
+        return CollectionUtils.convertMap(BeanUtils.toBean(ops, RouteOpRespDTO.class), RouteOpRespDTO::getId);
     }
 
     @Override

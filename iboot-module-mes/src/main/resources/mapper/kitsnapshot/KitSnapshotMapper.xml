@@ -2,11 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.iboot.pf.module.mes.dal.mysql.kitsnapshot.KitSnapshotMapper">
 
+    <!-- 模块内关联走 JOIN；替代料名称由 Service 调 mdm 物料门面补全 -->
     <sql id="selectColumns">
         t.*
-        , prod_order.order_no AS prod_order_order_no
-        , work_order.work_order_no AS work_order_work_order_no
-        , op_task.task_no AS op_task_task_no
+        , prod_order.order_no AS prod_order_no
+        , work_order.work_order_no AS work_order_no
+        , op_task.task_no AS op_task_no
     </sql>
 
     <sql id="joinTables">
@@ -20,65 +21,52 @@
         <where>
             t.deleted = 0
             <if test="req.checkNo != null and req.checkNo != ''">
-                AND t.check_no = #{req.checkNo}
+                AND t.check_no LIKE CONCAT('%', #{req.checkNo}, '%')
             </if>
             <if test="req.checkScope != null and req.checkScope != ''">
                 AND t.check_scope = #{req.checkScope}
             </if>
-            <if test="req.lineNo != null">
-                AND t.line_no = #{req.lineNo}
+            <if test="req.prodOrderId != null">
+                AND t.prod_order_id = #{req.prodOrderId}
+            </if>
+            <if test="req.workOrderId != null">
+                AND t.work_order_id = #{req.workOrderId}
+            </if>
+            <if test="req.opTaskId != null">
+                AND t.op_task_id = #{req.opTaskId}
             </if>
             <if test="req.matId != null">
                 AND t.mat_id = #{req.matId}
             </if>
             <if test="req.matCode != null and req.matCode != ''">
-                AND t.mat_code = #{req.matCode}
+                AND t.mat_code LIKE CONCAT('%', #{req.matCode}, '%')
             </if>
             <if test="req.matName != null and req.matName != ''">
                 AND t.mat_name LIKE CONCAT('%', #{req.matName}, '%')
             </if>
-            <if test="req.reqQty != null">
-                AND t.req_qty = #{req.reqQty}
-            </if>
-            <if test="req.availQty != null">
-                AND t.avail_qty = #{req.availQty}
-            </if>
-            <if test="req.reservedQty != null">
-                AND t.reserved_qty = #{req.reservedQty}
-            </if>
-            <if test="req.issuedQty != null">
-                AND t.issued_qty = #{req.issuedQty}
-            </if>
-            <if test="req.shortQty != null">
-                AND t.short_qty = #{req.shortQty}
-            </if>
-            <if test="req.altMatId != null">
-                AND t.alt_mat_id = #{req.altMatId}
-            </if>
             <if test="req.result != null and req.result != ''">
                 AND t.result = #{req.result}
             </if>
-            <if test="req.checkTime != null">
-                AND t.check_time = #{req.checkTime}
+            <if test="req.checkTime != null and req.checkTime.length == 2">
+                AND t.check_time BETWEEN #{req.checkTime[0]} AND #{req.checkTime[1]}
             </if>
-            <if test="req.remark != null and req.remark != ''">
-                AND t.remark = #{req.remark}
-            </if>
-            <if test="req.createTime != null">
-                AND t.create_time = #{req.createTime}
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
             </if>
         </where>
     </sql>
 
-    <select id="selectJoinPage" resultType="com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO">
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO">
         SELECT
         <include refid="selectColumns"/>
         <include refid="joinTables"/>
         <include refid="whereConditions"/>
-        ORDER BY t.id DESC
+        ORDER BY t.check_time DESC, t.line_no ASC
     </select>
 
-    <select id="selectJoinById" resultType="com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO">
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO">
         SELECT
         <include refid="selectColumns"/>
         <include refid="joinTables"/>

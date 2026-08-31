@@ -1,13 +1,17 @@
 package com.iboot.pf.module.mes.dal.dataobject.qcitem;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
 
 /**
  * MES-检验项目 DO
@@ -15,7 +19,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_qc_item")
-@KeySequence("mes_qc_item_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_qc_item_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -34,7 +38,7 @@ public class QcItemDO extends BaseDO {
      */
     private Long planId;
     /**
-     * 检验项编码
+     * 检验项编码，同一方案下唯一
      */
     private String itemCode;
     /**
@@ -42,7 +46,9 @@ public class QcItemDO extends BaseDO {
      */
     private String itemName;
     /**
-     * 检验项类型：NUMERIC、TEXT、BOOLEAN
+     * 检验项类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcItemTypeEnum}
      */
     private String itemType;
     /**
@@ -54,11 +60,11 @@ public class QcItemDO extends BaseDO {
      */
     private String stdValue;
     /**
-     * 数值上限
+     * 数值上限，仅数值型检验项取值
      */
     private BigDecimal upperLimit;
     /**
-     * 数值下限
+     * 数值下限，仅数值型检验项取值
      */
     private BigDecimal lowerLimit;
     /**
@@ -70,7 +76,9 @@ public class QcItemDO extends BaseDO {
      */
     private Integer sortNo;
     /**
-     * 状态：0-启用，1-停用
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.framework.common.enums.CommonStatusEnum}
      */
     private Integer status;
     /**
@@ -78,5 +86,4 @@ public class QcItemDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

@@ -268,6 +268,42 @@ const IM_DICT = {
 
 /** ========== MES - 制造执行模块 ========== */
 const MES_DICT = {
+  // ---------- 制造执行核心域（生产需求、工单、工序任务、质检、在制） ----------
+  MES_DEMAND_SOURCE_TYPE: 'mes_demand_source_type', // MES 生产需求来源类型
+  MES_DEMAND_STATUS: 'mes_demand_status', // MES 生产需求状态
+  MES_PROD_ORDER_STATUS: 'mes_prod_order_status', // MES 生产工单状态
+  MES_WORK_ORDER_STATUS: 'mes_work_order_status', // MES 作业工单状态
+  MES_OP_TASK_STATUS: 'mes_op_task_status', // MES 工序任务状态
+  MES_OP_EXEC_MODE: 'mes_op_exec_mode', // MES 工序执行模式
+  MES_QC_MODE: 'mes_qc_mode', // MES 检验模式
+  MES_SKIP_POLICY: 'mes_skip_policy', // MES 跳序策略
+  MES_KIT_STATUS: 'mes_kit_status', // MES 齐套状态
+  MES_KIT_CHECK_SCOPE: 'mes_kit_check_scope', // MES 齐套检查范围
+  MES_MATERIAL_REQ_TYPE: 'mes_material_req_type', // MES 领退补料申请类型
+  MES_MATERIAL_REQ_STATUS: 'mes_material_req_status', // MES 领退补料申请状态
+  MES_MATERIAL_REQ_LINE_STATUS: 'mes_material_req_line_status', // MES 领退补料明细状态
+  MES_PROD_REPORT_STATUS: 'mes_prod_report_status', // MES 生产报工状态
+  MES_REWORK_STATUS: 'mes_rework_status', // MES 返工任务状态
+  MES_QC_TRIGGER_POINT: 'mes_qc_trigger_point', // MES 质检触发点
+  MES_QC_OBJECT_TYPE: 'mes_qc_object_type', // MES 检验对象类型
+  MES_QC_TASK_STATUS: 'mes_qc_task_status', // MES 质检任务状态
+  MES_QC_CONCLUSION: 'mes_qc_conclusion', // MES 质检结论
+  MES_QC_ITEM_CONCLUSION: 'mes_qc_item_conclusion', // MES 单项检验结论
+  MES_QC_ITEM_TYPE: 'mes_qc_item_type', // MES 检验项类型
+  MES_QC_PLAN_STATUS: 'mes_qc_plan_status', // MES 检验方案状态
+  MES_QC_SAMPLE_TYPE: 'mes_qc_sample_type', // MES 抽样类型
+  MES_DISPOSITION_TYPE: 'mes_disposition_type', // MES 不合格品处置类型
+  MES_DISPOSITION_STATUS: 'mes_disposition_status', // MES 不合格品处置单状态
+  MES_DISPATCH_TASK_STATUS: 'mes_dispatch_task_status', // MES 派工任务状态
+  MES_SKIP_APPROVE_STATUS: 'mes_skip_approve_status', // MES 跳序审批状态
+  MES_SKIP_RECORD_STATUS: 'mes_skip_record_status', // MES 跳过记录状态
+  MES_SKIP_REASON_TYPE: 'mes_skip_reason_type', // MES 跳序原因类型
+  MES_RGV_TASK_TYPE: 'mes_rgv_task_type', // MES RGV 任务类型
+  MES_RGV_DISPATCH_STATUS: 'mes_rgv_dispatch_status', // MES RGV 下发状态
+  MES_RGV_TASK_STATUS: 'mes_rgv_task_status', // MES RGV 执行状态
+  MES_WIP_TXN_TYPE: 'mes_wip_txn_type', // MES 在制事务类型
+  MES_BIZ_TYPE: 'mes_biz_type', // MES 业务单据类型
+  // ---------- 历史遗留字典 ----------
   MES_MD_ITEM_OR_PRODUCT: 'mes_md_item_or_product', // MES 物料/产品标识
   MES_MD_AUTO_CODE_CYCLE_METHOD: 'mes_md_auto_code_cycle_method', // MES 编码规则循环方式
   MES_MD_AUTO_CODE_PADDED_METHOD: 'mes_md_auto_code_padded_method', // MES 编码规则补齐方式

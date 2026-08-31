@@ -1,12 +1,17 @@
 package com.iboot.pf.module.mes.dal.dataobject.qcplan;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
 
 /**
  * MES-检验方案 DO
@@ -14,7 +19,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_qc_plan")
-@KeySequence("mes_qc_plan_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_qc_plan_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -29,7 +34,7 @@ public class QcPlanDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 检验方案编码
+     * 检验方案编码，由 infra 编码规则 MES_QC_PLAN_CODE 分配
      */
     private String code;
     /**
@@ -37,11 +42,13 @@ public class QcPlanDO extends BaseDO {
      */
     private String name;
     /**
-     * 方案版本号
+     * 方案版本号，与编码组成唯一索引
      */
     private String versionNo;
     /**
-     * 抽样类型：FULL、FIXED_QTY、PERCENT、AQL
+     * 抽样类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcSampleTypeEnum}
      */
     private String sampleType;
     /**
@@ -49,7 +56,7 @@ public class QcPlanDO extends BaseDO {
      */
     private BigDecimal sampleValue;
     /**
-     * AQL接收质量限
+     * AQL 接收质量限
      */
     private String aql;
     /**
@@ -57,7 +64,9 @@ public class QcPlanDO extends BaseDO {
      */
     private String acceptanceRule;
     /**
-     * 状态：DRAFT、PUBLISHED、DISABLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum}
      */
     private String status;
     /**
@@ -65,5 +74,4 @@ public class QcPlanDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

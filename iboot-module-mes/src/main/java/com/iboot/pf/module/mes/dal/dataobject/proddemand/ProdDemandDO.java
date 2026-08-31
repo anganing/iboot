@@ -1,13 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.proddemand;
 
-import lombok.*;
-import java.util.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
-import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
 
 /**
  * MES-生产需求 DO
@@ -15,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_prod_demand")
-@KeySequence("mes_prod_demand_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_prod_demand_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -30,11 +35,13 @@ public class ProdDemandDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 生产需求编号
+     * 生产需求编号，由 infra 编码规则 MES_DEMAND_NO 分配
      */
     private String demandNo;
     /**
-     * 来源类型：MANUAL、EXCEL、ERP、APS
+     * 来源类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDemandSourceTypeEnum}
      */
     private String sourceType;
     /**
@@ -42,19 +49,19 @@ public class ProdDemandDO extends BaseDO {
      */
     private String sourceNo;
     /**
-     * 工厂编号
+     * 工厂编号，来自 mdm_plant
      */
     private Long plantId;
     /**
-     * 项目编号，0表示无项目
+     * 项目编号，0 表示无项目
      */
     private Long projectId;
     /**
-     * 项目任务编号，0表示无项目任务
+     * 项目任务编号，0 表示无项目任务
      */
     private Long projectTaskId;
     /**
-     * 需求物料编号
+     * 需求物料编号，来自 mdm_mat
      */
     private Long matId;
     /**
@@ -74,7 +81,7 @@ public class ProdDemandDO extends BaseDO {
      */
     private BigDecimal qty;
     /**
-     * 计量单位编号
+     * 计量单位编号，来自 mdm_uom
      */
     private Long uomId;
     /**
@@ -90,11 +97,13 @@ public class ProdDemandDO extends BaseDO {
      */
     private Integer priority;
     /**
-     * 状态：DRAFT、CONFIRMED、PLANNED、RELEASED、DONE、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesDemandStatusEnum}
      */
     private String status;
     /**
-     * 创建幂等键
+     * 创建幂等键，唯一索引保证外部系统重复下发不产生重复需求
      */
     private String idempotencyKey;
     /**
@@ -102,5 +111,4 @@ public class ProdDemandDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

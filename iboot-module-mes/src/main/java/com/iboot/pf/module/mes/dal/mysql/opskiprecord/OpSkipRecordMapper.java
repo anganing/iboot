@@ -1,16 +1,14 @@
 package com.iboot.pf.module.mes.dal.mysql.opskiprecord;
 
-import java.util.*;
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
+import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordPageReqVO;
+import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordRespVO;
 import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.*;
 
 /**
  * MES-工序跳过记录 Mapper
@@ -29,5 +27,10 @@ public interface OpSkipRecordMapper extends BaseMapperX<OpSkipRecordDO> {
     OpSkipRecordRespVO selectJoinById(@Param("id") Long id);
 
     IPage<OpSkipRecordRespVO> selectJoinPage(IPage<OpSkipRecordRespVO> page, @Param("req") OpSkipRecordPageReqVO reqVO);
+
+    /** 统计某工序任务下的跳过记录数。 */
+    default Long selectCountByOpTaskId(Long opTaskId) {
+        return selectCount(OpSkipRecordDO::getOpTaskId, opTaskId);
+    }
 
 }

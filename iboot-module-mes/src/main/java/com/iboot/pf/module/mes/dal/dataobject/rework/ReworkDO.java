@@ -1,12 +1,17 @@
 package com.iboot.pf.module.mes.dal.dataobject.rework;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
 
 /**
  * MES-返工任务 DO
@@ -14,7 +19,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_rework")
-@KeySequence("mes_rework_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_rework_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -29,19 +34,19 @@ public class ReworkDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 返工任务编号
+     * 返工任务编号，由 infra 编码规则 MES_REWORK_NO 分配
      */
     private String reworkNo;
     /**
-     * 来源质检任务编号
+     * 来源质检任务编号，0 表示手工发起
      */
     private Long sourceQcTaskId;
     /**
-     * 生产工单编号
+     * 生产工单编号，由工序任务反查带出
      */
     private Long prodOrderId;
     /**
-     * 作业工单编号
+     * 作业工单编号，由工序任务反查带出
      */
     private Long workOrderId;
     /**
@@ -53,15 +58,17 @@ public class ReworkDO extends BaseDO {
      */
     private BigDecimal qty;
     /**
-     * 返工工艺路线编号
+     * 返工工艺路线编号，来自 mdm_route
      */
     private Long routeId;
     /**
-     * 返工工艺路线版本
+     * 返工工艺路线版本快照
      */
     private String routeVersion;
     /**
-     * 状态：DRAFT、RELEASED、RUNNING、QC_PENDING、DONE、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesReworkStatusEnum}
      */
     private String status;
     /**
@@ -69,5 +76,4 @@ public class ReworkDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

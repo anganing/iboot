@@ -1,14 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.qcresult;
 
-import lombok.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * MES-检验结果 DO
@@ -16,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_qc_result")
-@KeySequence("mes_qc_result_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_qc_result_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -39,7 +43,7 @@ public class QcResultDO extends BaseDO {
      */
     private Long itemId;
     /**
-     * 样本序号
+     * 样本序号，与任务、检验项组成唯一索引
      */
     private Integer sampleNo;
     /**
@@ -55,11 +59,11 @@ public class QcResultDO extends BaseDO {
      */
     private String actualValue;
     /**
-     * 是否合格
+     * 是否合格，与项目结论必须一致
      */
     private Boolean passFlag;
     /**
-     * 检验员编号
+     * 检验员编号，来自 system_users
      */
     private Long inspectorId;
     /**
@@ -75,7 +79,9 @@ public class QcResultDO extends BaseDO {
      */
     private BigDecimal qtyRejected;
     /**
-     * 项目结论：PASS、FAIL
+     * 项目结论
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcItemConclusionEnum}
      */
     private String conclusion;
     /**
@@ -83,5 +89,4 @@ public class QcResultDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

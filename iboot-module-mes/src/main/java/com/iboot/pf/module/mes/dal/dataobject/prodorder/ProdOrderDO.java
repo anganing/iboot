@@ -1,18 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.prodorder;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * MES-生产工单 DO
@@ -20,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_prod_order")
-@KeySequence("mes_prod_order_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_prod_order_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -35,31 +35,31 @@ public class ProdOrderDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 生产工单号
+     * 生产工单号，由 infra 编码规则 MES_PROD_ORDER_NO 分配
      */
     private String orderNo;
     /**
-     * 生产需求编号
+     * 生产需求编号，0 表示手工建单
      */
     private Long demandId;
     /**
-     * 工厂编号
+     * 工厂编号，来自 mdm_plant
      */
     private Long plantId;
     /**
-     * 车间编号
+     * 车间编号，来自 mdm_workshop
      */
     private Long workshopId;
     /**
-     * 项目编号，0表示无项目
+     * 项目编号，0 表示无项目
      */
     private Long projectId;
     /**
-     * 项目任务编号，0表示无项目任务
+     * 项目任务编号，0 表示无项目任务
      */
     private Long projectTaskId;
     /**
-     * 生产物料编号
+     * 生产物料编号，来自 mdm_mat
      */
     private Long matId;
     /**
@@ -79,15 +79,15 @@ public class ProdOrderDO extends BaseDO {
      */
     private BigDecimal qty;
     /**
-     * 已完成数量
+     * 已完成数量，由报工推进
      */
     private BigDecimal completedQty;
     /**
-     * 累计报废数量
+     * 累计报废数量，由报工推进
      */
     private BigDecimal scrapQty;
     /**
-     * 计量单位编号
+     * 计量单位编号，来自 mdm_uom
      */
     private Long uomId;
     /**
@@ -95,19 +95,19 @@ public class ProdOrderDO extends BaseDO {
      */
     private String uomCode;
     /**
-     * 锁定的BOM编号
+     * 锁定的 BOM 编号，来自 mdm_bom
      */
     private Long bomId;
     /**
-     * 锁定的BOM版本
+     * 锁定的 BOM 版本快照
      */
     private String bomVersion;
     /**
-     * 锁定的工艺路线编号
+     * 锁定的工艺路线编号，来自 mdm_route
      */
     private Long routeId;
     /**
-     * 锁定的工艺路线版本
+     * 锁定的工艺路线版本快照
      */
     private String routeVersion;
     /**
@@ -115,31 +115,35 @@ public class ProdOrderDO extends BaseDO {
      */
     private LocalDateTime dueDate;
     /**
-     * 优先级
+     * 优先级，数值越大越优先
      */
     private Integer priority;
     /**
-     * 齐套状态：UNCHECKED、FULL_KIT、PARTIAL_KIT、SHORTAGE
+     * 齐套状态，由齐套检查写入
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesKitStatusEnum}
      */
     private String kitStatus;
     /**
-     * 状态：DRAFT、RELEASED、READY、RUNNING、HOLD、DONE、CLOSED、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum}
      */
     private String status;
     /**
-     * 下达时间
+     * 下达时间，由下达动作写入
      */
     private LocalDateTime releaseTime;
     /**
-     * 实际开始时间
+     * 实际开始时间，由首道工序开工写入
      */
     private LocalDateTime actualStartTime;
     /**
-     * 实际结束时间
+     * 实际结束时间，由末道工序完工写入
      */
     private LocalDateTime actualEndTime;
     /**
-     * 乐观锁版本
+     * 乐观锁版本，并发推进数量时由数据库保证不丢更新
      */
     private Integer version;
     /**
@@ -147,5 +151,4 @@ public class ProdOrderDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

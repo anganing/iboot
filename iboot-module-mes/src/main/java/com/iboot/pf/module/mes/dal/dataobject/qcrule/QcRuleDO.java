@@ -1,11 +1,15 @@
 package com.iboot.pf.module.mes.dal.dataobject.qcrule;
 
-import lombok.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * MES-质检触发规则 DO
@@ -13,7 +17,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_qc_rule")
-@KeySequence("mes_qc_rule_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_qc_rule_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -28,7 +32,7 @@ public class QcRuleDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 质检规则编码
+     * 质检规则编码，由 infra 编码规则 MES_QC_RULE_CODE 分配
      */
     private String code;
     /**
@@ -36,39 +40,45 @@ public class QcRuleDO extends BaseDO {
      */
     private String name;
     /**
-     * 触发点：IQC、IPQC、FQC、OQC、FAI
+     * 触发点
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum}
      */
     private String triggerPoint;
     /**
-     * 检验对象类型：MATERIAL、BATCH、OP_TASK、PROD_ORDER、OUT_ORDER
+     * 检验对象类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum}
      */
     private String objectType;
     /**
-     * 指定物料编号，0表示不限
+     * 指定物料编号，0 表示不限
      */
     private Long matId;
     /**
-     * 指定物料分类编号，0表示不限
+     * 指定物料分类编号，0 表示不限
      */
     private Long matCatId;
     /**
-     * 指定工序编号，0表示不限
+     * 指定工序编号，0 表示不限
      */
     private Long opId;
     /**
-     * 指定工作中心编号，0表示不限
+     * 指定工作中心编号，0 表示不限
      */
     private Long wcId;
     /**
-     * 指定供应商编号，0表示不限
+     * 指定供应商编号，0 表示不限
      */
     private Long supplierId;
     /**
-     * 检验方案编号
+     * 检验方案编号，只能引用已发布的方案
      */
     private Long qcPlanId;
     /**
-     * 检验模式：PRE_INBOUND、POST_INBOUND_PENDING、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE
+     * 检验模式
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesQcModeEnum}
      */
     private String qcMode;
     /**
@@ -76,7 +86,9 @@ public class QcRuleDO extends BaseDO {
      */
     private Integer priority;
     /**
-     * 状态：0-启用，1-停用
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.framework.common.enums.CommonStatusEnum}
      */
     private Integer status;
     /**
@@ -84,5 +96,4 @@ public class QcRuleDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

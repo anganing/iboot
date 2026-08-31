@@ -1,17 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.prodreport;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * MES-生产报工记录 DO
@@ -19,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_prod_report")
-@KeySequence("mes_prod_report_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_prod_report_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -34,15 +35,15 @@ public class ProdReportDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 报工单号
+     * 报工单号，由 infra 编码规则 MES_PROD_REPORT_NO 分配
      */
     private String reportNo;
     /**
-     * 生产工单编号
+     * 生产工单编号，由工序任务反查带出
      */
     private Long prodOrderId;
     /**
-     * 作业工单编号
+     * 作业工单编号，由工序任务反查带出
      */
     private Long workOrderId;
     /**
@@ -50,15 +51,15 @@ public class ProdReportDO extends BaseDO {
      */
     private Long opTaskId;
     /**
-     * 报工作业人员编号
+     * 报工作业人员编号，来自 system_users
      */
     private Long workerId;
     /**
-     * 生产资源编号
+     * 生产资源编号，0 表示未指定，来自 mdm_res
      */
     private Long resId;
     /**
-     * 班次编号
+     * 班次编号，0 表示不区分班次，来自 mdm_shift
      */
     private Long shiftId;
     /**
@@ -86,11 +87,13 @@ public class ProdReportDO extends BaseDO {
      */
     private LocalDateTime reportTime;
     /**
-     * 状态：DRAFT、SUBMITTED、QC_PENDING、CONFIRMED、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesProdReportStatusEnum}
      */
     private String status;
     /**
-     * 报工幂等键
+     * 报工幂等键，唯一索引防止扫码端重复提交
      */
     private String idempotencyKey;
     /**
@@ -98,5 +101,4 @@ public class ProdReportDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

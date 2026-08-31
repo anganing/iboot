@@ -1,11 +1,15 @@
 package com.iboot.pf.module.mes.dal.dataobject.materialreq;
 
-import lombok.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * MES-领退补料申请 DO
@@ -13,7 +17,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_material_req")
-@KeySequence("mes_material_req_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_material_req_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -28,7 +32,7 @@ public class MaterialReqDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 领退补料申请单号
+     * 领退补料申请单号，由 infra 编码规则 MES_MATERIAL_REQ_NO 分配
      */
     private String reqNo;
     /**
@@ -40,43 +44,47 @@ public class MaterialReqDO extends BaseDO {
      */
     private String prodOrderNo;
     /**
-     * 作业工单编号，0表示工单级申请
+     * 作业工单编号，0 表示工单级申请
      */
     private Long workOrderId;
     /**
-     * 工序任务编号，0表示非工序级申请
+     * 工序任务编号，0 表示非工序级申请
      */
     private Long opTaskId;
     /**
-     * 申请类型：ISSUE、RETURN、SUPPLEMENT
+     * 申请类型
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesMaterialReqTypeEnum}
      */
     private String reqType;
     /**
-     * 库存组织编号
+     * 库存组织编号，来自 mdm_inv_org
      */
     private Long invOrgId;
     /**
-     * 目标仓库或来源仓库编号
+     * 目标仓库或来源仓库编号，来自 wms_wh
      */
     private Long whId;
     /**
-     * 项目编号，0表示无项目
+     * 项目编号，0 表示无项目，从生产工单继承
      */
     private Long projectId;
     /**
-     * 项目任务编号，0表示无项目任务
+     * 项目任务编号，0 表示无项目任务，从生产工单继承
      */
     private Long projectTaskId;
     /**
-     * WMS生成的出入库单号
+     * WMS 生成的出入库单号，由 WMS 回写
      */
     private String wmsBizNo;
     /**
-     * 状态：DRAFT、SUBMITTED、WMS_PROCESSING、PARTIAL、DONE、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesMaterialReqStatusEnum}
      */
     private String status;
     /**
-     * 创建幂等键
+     * 创建幂等键，唯一索引防止重复申请
      */
     private String idempotencyKey;
     /**
@@ -84,5 +92,4 @@ public class MaterialReqDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

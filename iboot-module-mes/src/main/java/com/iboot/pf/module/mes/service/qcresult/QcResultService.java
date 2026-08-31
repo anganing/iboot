@@ -1,11 +1,13 @@
 package com.iboot.pf.module.mes.service.qcresult;
 
-import java.util.*;
-import jakarta.validation.*;
-import com.iboot.pf.module.mes.controller.admin.qcresult.vo.*;
-import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultPageReqVO;
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultRespVO;
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
+import jakarta.validation.Valid;
+
+import java.util.List;
 
 /**
  * MES-检验结果 Service 接口
@@ -15,7 +17,7 @@ import com.iboot.pf.framework.common.pojo.PageParam;
 public interface QcResultService {
 
     /**
-     * 创建MES-检验结果
+     * 创建检验结果
      *
      * @param createReqVO 创建信息
      * @return 编号
@@ -23,48 +25,48 @@ public interface QcResultService {
     Long createQcResult(@Valid QcResultSaveReqVO createReqVO);
 
     /**
-     * 导入MES-检验结果
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    QcResultImportRespVO importQcResultList(List<QcResultImportExcelVO> importList);
-
-    /**
-     * 更新MES-检验结果
+     * 更新检验结果
      *
      * @param updateReqVO 更新信息
      */
     void updateQcResult(@Valid QcResultSaveReqVO updateReqVO);
 
     /**
-     * 删除MES-检验结果
+     * 删除检验结果
      *
      * @param id 编号
      */
     void deleteQcResult(Long id);
 
     /**
-    * 批量删除MES-检验结果
-    *
-    * @param ids 编号
-    */
+     * 批量删除检验结果
+     *
+     * @param ids 编号
+     */
     void deleteQcResultListByIds(List<Long> ids);
 
     /**
-     * 获得MES-检验结果
+     * 获得检验结果
      *
      * @param id 编号
-     * @return MES-检验结果
+     * @return 检验结果
      */
     QcResultRespVO getQcResult(Long id);
 
     /**
-     * 获得MES-检验结果分页
+     * 获得检验结果分页
      *
      * @param pageReqVO 分页查询
-     * @return MES-检验结果分页
+     * @return 检验结果分页
      */
     PageResult<QcResultRespVO> getQcResultPage(QcResultPageReqVO pageReqVO);
 
-}
+    /**
+     * 校验检验结果存在并返回，供缺陷记录引用时使用
+     *
+     * @param id 编号
+     * @return 检验结果
+     */
+    QcResultDO validateQcResultExists(Long id);
+
+}

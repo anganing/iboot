@@ -1,90 +1,61 @@
 package com.iboot.pf.module.mes.controller.admin.optask.vo;
 
+import com.iboot.pf.framework.common.validation.InEnum;
+import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import java.util.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
 import java.math.BigDecimal;
-import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
+/**
+ * 工序任务新增/修改 Request VO。
+ *
+ * <p>不出现在表单里的字段：作业工单号、工序编码与名称、工序顺序、并行组、关键工序标记、执行模式
+ * 都由后端从作业工单与路线工序带出；完成与报废数量由报工推进；实际时间由业务动作写入；
+ * 前后序任务编号由工序链生成时维护。
+ */
 @Schema(description = "管理后台 - MES-工序任务新增/修改 Request VO")
 @Data
 public class OpTaskSaveReqVO {
 
-    @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "264")
+    @Schema(description = "主键", example = "1")
     private Long id;
 
-    @Schema(description = "工序任务号", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "工序任务号不能为空")
+    @Schema(description = "工序任务号，留空由编码规则分配")
+    @Size(max = 64, message = "工序任务号长度不能超过 64")
     private String taskNo;
 
-    @Schema(description = "作业工单编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "24770")
+    @Schema(description = "作业工单编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "作业工单编号不能为空")
     private Long workOrderId;
 
-    @Schema(description = "作业工单号快照", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "作业工单号快照不能为空")
-    private String workOrderNo;
-
-    @Schema(description = "锁定的路线工序编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "24505")
-    @NotNull(message = "锁定的路线工序编号不能为空")
+    @Schema(description = "锁定的路线工序编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @NotNull(message = "路线工序编号不能为空")
     private Long routeOpId;
 
-    @Schema(description = "标准工序编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "6706")
-    @NotNull(message = "标准工序编号不能为空")
-    private Long opId;
-
-    @Schema(description = "工序编码快照", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "工序编码快照不能为空")
-    private String opCode;
-
-    @Schema(description = "工序名称快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "芋艿")
-    @NotEmpty(message = "工序名称快照不能为空")
-    private String opName;
-
-    @Schema(description = "工序顺序号", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "工序顺序号不能为空")
-    private Integer seq;
-
-    @Schema(description = "并行工序组")
-    private String parallelGroup;
-
-    @Schema(description = "前序工序任务编号", example = "1542")
-    private Long prevTaskId;
-
-    @Schema(description = "后序工序任务编号", example = "26398")
-    private Long nextTaskId;
-
-    @Schema(description = "执行模式：SEQUENTIAL、PARALLEL、OPTIONAL", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "执行模式：SEQUENTIAL、PARALLEL、OPTIONAL不能为空")
-    private String execMode;
-
-    @Schema(description = "质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE不能为空")
+    @Schema(description = "质检模式", requiredMode = Schema.RequiredMode.REQUIRED, example = "NONE")
+    @NotEmpty(message = "质检模式不能为空")
+    @InEnum(MesQcModeEnum.class)
     private String qcMode;
 
-    @Schema(description = "跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED不能为空")
+    @Schema(description = "跳序策略", requiredMode = Schema.RequiredMode.REQUIRED, example = "NOT_ALLOWED")
+    @NotEmpty(message = "跳序策略不能为空")
+    @InEnum(MesSkipPolicyEnum.class)
     private String skipPolicy;
 
-    @Schema(description = "是否关键工序", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "是否关键工序不能为空")
-    private Boolean keyFlag;
-
-    @Schema(description = "计划数量", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "计划数量", requiredMode = Schema.RequiredMode.REQUIRED, example = "100")
     @NotNull(message = "计划数量不能为空")
+    @DecimalMin(value = "0", inclusive = false, message = "计划数量必须大于零")
     private BigDecimal plannedQty;
 
-    @Schema(description = "合格完成数量", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "合格完成数量不能为空")
-    private BigDecimal completedQty;
-
-    @Schema(description = "报废数量", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "报废数量不能为空")
-    private BigDecimal scrapQty;
-
-    @Schema(description = "当前分配资源编号", example = "25539")
+    @Schema(description = "分配资源编号，0 表示未分配", example = "1")
     private Long resId;
 
     @Schema(description = "计划开始时间")
@@ -93,21 +64,13 @@ public class OpTaskSaveReqVO {
     @Schema(description = "计划结束时间")
     private LocalDateTime plannedEndTime;
 
-    @Schema(description = "实际开始时间")
-    private LocalDateTime actualStartTime;
-
-    @Schema(description = "实际结束时间")
-    private LocalDateTime actualEndTime;
-
-    @Schema(description = "状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @NotEmpty(message = "状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED不能为空")
+    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "PENDING")
+    @NotEmpty(message = "状态不能为空")
+    @InEnum(MesOpTaskStatusEnum.class)
     private String status;
 
-    @Schema(description = "乐观锁版本", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "乐观锁版本不能为空")
-    private Integer version;
-
-    @Schema(description = "备注", example = "你说的对")
+    @Schema(description = "备注")
+    @Size(max = 500, message = "备注长度不能超过 500")
     private String remark;
 
 }

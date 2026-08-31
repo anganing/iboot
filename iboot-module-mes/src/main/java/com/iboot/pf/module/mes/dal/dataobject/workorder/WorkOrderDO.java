@@ -1,17 +1,18 @@
 package com.iboot.pf.module.mes.dal.dataobject.workorder;
 
-import lombok.*;
-import java.util.*;
-import java.math.BigDecimal;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.KeySequence;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * MES-作业工单 DO
@@ -19,7 +20,7 @@ import com.iboot.pf.framework.mybatis.core.dataobject.BaseDO;
  * @author iboot
  */
 @TableName("mes_work_order")
-@KeySequence("mes_work_order_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
+@KeySequence("mes_work_order_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -34,7 +35,7 @@ public class WorkOrderDO extends BaseDO {
     @TableId
     private Long id;
     /**
-     * 作业工单号
+     * 作业工单号，由 infra 编码规则 MES_WORK_ORDER_NO 分配
      */
     private String workOrderNo;
     /**
@@ -46,23 +47,23 @@ public class WorkOrderDO extends BaseDO {
      */
     private String prodOrderNo;
     /**
-     * 工厂编号
+     * 工厂编号，来自 mdm_plant
      */
     private Long plantId;
     /**
-     * 车间编号
+     * 车间编号，来自 mdm_workshop
      */
     private Long workshopId;
     /**
-     * 工作中心编号
+     * 工作中心编号，来自 mdm_wc
      */
     private Long wcId;
     /**
-     * 项目编号，0表示无项目
+     * 项目编号，0 表示无项目
      */
     private Long projectId;
     /**
-     * 项目任务编号，0表示无项目任务
+     * 项目任务编号，0 表示无项目任务
      */
     private Long projectTaskId;
     /**
@@ -70,7 +71,7 @@ public class WorkOrderDO extends BaseDO {
      */
     private BigDecimal plannedQty;
     /**
-     * 已完成数量
+     * 已完成数量，由工序任务完工推进
      */
     private BigDecimal completedQty;
     /**
@@ -82,19 +83,23 @@ public class WorkOrderDO extends BaseDO {
      */
     private LocalDateTime plannedEndTime;
     /**
-     * 实际开始时间
+     * 实际开始时间，由首道工序开工写入
      */
     private LocalDateTime actualStartTime;
     /**
-     * 实际结束时间
+     * 实际结束时间，由末道工序完工写入
      */
     private LocalDateTime actualEndTime;
     /**
-     * 齐套状态
+     * 齐套状态，由齐套检查写入
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesKitStatusEnum}
      */
     private String kitStatus;
     /**
-     * 状态：PENDING、READY、RUNNING、HOLD、DONE、CANCELLED
+     * 状态
+     *
+     * 枚举 {@link com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum}
      */
     private String status;
     /**
@@ -106,5 +111,4 @@ public class WorkOrderDO extends BaseDO {
      */
     private String remark;
 
-
-}
+}

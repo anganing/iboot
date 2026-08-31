@@ -56,10 +56,26 @@ public interface OrgApi {
     List<WorkshopRespDTO> getWorkshopList();
 
     /**
+     * 按编号批量获得车间，一次 SQL 查完，供其他模块补全展示名称
+     *
+     * @param ids 车间编号集合
+     * @return 编号与车间的映射
+     */
+    Map<Long, WorkshopRespDTO> getWorkshopMap(Collection<Long> ids);
+
+    /**
      * 获得全部工作中心（含停用）
      *
      * @return 工作中心列表
      */
     List<WcRespDTO> getWcList();
+
+    /**
+     * 按编号批量获得工作中心，一次 SQL 查完，供其他模块补全展示名称
+     *
+     * @param ids 工作中心编号集合
+     * @return 编号与工作中心的映射
+     */
+    Map<Long, WcRespDTO> getWcMap(Collection<Long> ids);
 
 }
