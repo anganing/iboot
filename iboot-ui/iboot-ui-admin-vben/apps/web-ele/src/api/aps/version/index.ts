@@ -23,6 +23,37 @@ export namespace ApsVersionApi {
     remark?: string; // 备注
     createTime?: string; // 创建时间
   }
+
+  /** 生成排程版本参数 */
+  export interface GenerateReq {
+    scenarioId: number; // 排程场景编号
+    strategyId?: number; // 排程策略编号，留空则用场景上引用的策略
+    remark?: string; // 备注
+  }
+
+  /** 求解进度日志 */
+  export interface SolveProgressLog {
+    status?: string; // 进度状态
+    content?: string; // 日志内容
+    occurTime?: string; // 发生时间
+  }
+
+  /** 求解进度，与 WebSocket 推送的结构一致 */
+  export interface SolveProgress {
+    versionId?: number; // 排程版本编号
+    scenarioId?: number; // 排程场景编号
+    status?: string; // 进度状态：PREPARING、SOLVING、SAVING、SUCCESS、FAILED、CANCELLED
+    ratio?: number; // 进度百分比
+    step?: number; // 当前步骤
+    totalStep?: number; // 总步骤数
+    score?: string; // 当前最优得分
+    hardScore?: number; // 硬约束得分
+    softScore?: number; // 软约束得分
+    message?: string; // 最近一条进度说明
+    startTime?: string; // 求解开始时间
+    occurTime?: string; // 最近一次更新时间
+    logs?: SolveProgressLog[]; // 进度日志
+  }
 }
 
 /** 查询排程版本分页 */
@@ -36,6 +67,23 @@ export function getVersionPage(params: PageParam) {
 /** 查询排程版本详情 */
 export function getVersion(id: number) {
   return requestClient.get<ApsVersionApi.Version>(`/aps/version/get?id=${id}`);
+}
+
+/** 生成排程版本并提交求解，返回新版本编号 */
+export function generateVersion(data: ApsVersionApi.GenerateReq) {
+  return requestClient.post<number>('/aps/version/generate', data);
+}
+
+/** 取消排程求解 */
+export function cancelSolve(versionId: number) {
+  return requestClient.put(`/aps/version/cancel-solve?versionId=${versionId}`);
+}
+
+/** 查询求解进度，用于页面刷新或断线重连后补齐已发生的进度 */
+export function getSolveProgress(versionId: number) {
+  return requestClient.get<ApsVersionApi.SolveProgress>(
+    `/aps/version/solve-progress?versionId=${versionId}`,
+  );
 }
 
 /** 确认排程版本 */

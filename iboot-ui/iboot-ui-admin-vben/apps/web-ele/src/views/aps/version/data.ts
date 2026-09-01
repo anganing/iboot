@@ -11,7 +11,10 @@ import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-import { APS_SCENARIO_RELATION_PROPS } from '../relation-config';
+import {
+  APS_SCENARIO_RELATION_PROPS,
+  APS_STRATEGY_RELATION_PROPS,
+} from '../relation-config';
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -118,9 +121,41 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
     },
     {
       title: '操作',
-      width: 180,
+      width: 240,
       fixed: 'right',
       slots: { default: 'actions' },
+    },
+  ];
+}
+
+/** 生成排程版本的表单 */
+export function useGenerateFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'scenarioId',
+      label: '排程场景',
+      component: markRaw(RelationSelect),
+      componentProps: APS_SCENARIO_RELATION_PROPS,
+      rules: 'selectRequired',
+    },
+    {
+      fieldName: 'strategyId',
+      label: '排程策略',
+      component: markRaw(RelationSelect),
+      componentProps: APS_STRATEGY_RELATION_PROPS,
+      // 留空沿用场景上引用的策略，避免每次生成都要重复选一次
+      help: '留空则使用场景上引用的策略',
+    },
+    {
+      fieldName: 'remark',
+      label: '备注',
+      component: 'Textarea',
+      componentProps: {
+        maxlength: 500,
+        rows: 3,
+        showWordLimit: true,
+        placeholder: '请输入备注',
+      },
     },
   ];
 }

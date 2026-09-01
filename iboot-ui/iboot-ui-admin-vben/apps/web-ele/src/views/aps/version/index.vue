@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsVersionApi } from '#/api/aps/version';
 
-import { Page } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -17,10 +17,41 @@ import {
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import GenerateForm from './modules/generate-form.vue';
+import SolveProgressDrawer from './modules/solve-progress-drawer.vue';
+
+const [GenerateModal, generateModalApi] = useVbenModal({
+  connectedComponent: GenerateForm,
+  destroyOnClose: true,
+});
+
+const [ProgressDrawer, progressDrawerApi] = useVbenDrawer({
+  connectedComponent: SolveProgressDrawer,
+  destroyOnClose: true,
+});
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
+}
+
+/** 打开生成排程弹窗，把搜索栏里已选的场景带进去 */
+async function handleGenerate() {
+  const formValues = (await gridApi.formApi.getValues()) as {
+    scenarioId?: number;
+  };
+  generateModalApi.setData({ scenarioId: formValues?.scenarioId }).open();
+}
+
+/** 提交成功后立刻打开进度抽屉：求解是异步的，不看进度就只能盯着列表刷 */
+function handleGenerated(versionId: number) {
+  handleRefresh();
+  progressDrawerApi.setData({ versionId }).open();
+}
+
+/** 查看某个版本的求解进度，支持刷新页面后回来接着看 */
+function handleViewProgress(row: ApsVersionApi.Version) {
+  progressDrawerApi.setData({ versionId: row.id }).open();
 }
 
 /** 确认排程版本 */
@@ -86,10 +117,19 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
+    <GenerateModal @success="handleGenerated" />
+    <ProgressDrawer @finished="handleRefresh" />
     <Grid table-title="排程版本列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
+            {
+              label: '生成排程',
+              type: 'primary',
+              icon: ACTION_ICON.ADD,
+              auth: ['aps:version:update'],
+              onClick: handleGenerate,
+            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
@@ -103,6 +143,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
       <template #actions="{ row }">
         <TableAction
           :actions="[
+            {
+              label: '进度',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['aps:version:query'],
+              onClick: handleViewProgress.bind(null, row),
+            },
             {
               label: '确认',
               type: 'primary',
