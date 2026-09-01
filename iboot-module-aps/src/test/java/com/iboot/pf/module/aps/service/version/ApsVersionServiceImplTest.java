@@ -12,6 +12,7 @@ import com.iboot.pf.module.aps.enums.ApsScenarioStatusEnum;
 import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
 import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandServiceImpl;
+import com.iboot.pf.module.aps.service.release.ApsScheduleReleaseService;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.VERSION_PUBLISHED
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.VERSION_STATUS_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * 排程版本 Service 测试。
@@ -48,6 +51,9 @@ class ApsVersionServiceImplTest extends BaseDbUnitTest {
 
     @MockitoBean
     private ApsRelationFiller relationFiller;
+    /** 下达要打 MES 门面，单测里只验证被调用一次，真实回写由 mes 侧的单测覆盖。 */
+    @MockitoBean
+    private ApsScheduleReleaseService releaseService;
 
     private Long insertScenario(String code, String status) {
         ApsScenarioDO scenario = ApsScenarioDO.builder()
@@ -173,6 +179,19 @@ class ApsVersionServiceImplTest extends BaseDbUnitTest {
         versionService.publishVersion(buildStatusCommand("UI:PUBLISH:1", versionId));
 
         assertEquals(ApsVersionStatusEnum.PUBLISHED.name(), versionMapper.selectById(versionId).getStatus());
+        // 幂等键拦住了第二次，计划不会被重复下达
+        verify(releaseService, times(1)).release(versionId);
+    }
+
+    @Test
+    void testPublishVersion_releasesScheduleToMes() {
+        Long scenarioId = insertScenario("APS-SC-A", ApsScenarioStatusEnum.READY.name());
+        Long versionId = insertVersion(scenarioId, 1, ApsVersionStatusEnum.CONFIRMED);
+
+        versionService.publishVersion(buildStatusCommand("UI:PUBLISH:1", versionId));
+
+        // 发布即下达：计划必须回写到 MES，否则排程结果只躺在 aps_task 里，车间拿不到
+        verify(releaseService).release(versionId);
     }
 
     @Test

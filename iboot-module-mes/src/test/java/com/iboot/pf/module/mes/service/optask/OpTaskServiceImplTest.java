@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mes.service.optask;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskSaveReqVO;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
@@ -215,6 +217,70 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
         assertEquals(1, list.size());
         assertEquals("OPT-A", list.get(0).getTaskNo());
         assertEquals("OP010", list.get(0).getOpCode());
+    }
+
+    @Test
+    void testApplySchedule_writesResourceAndPlannedTime() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+
+        int affected = opTaskService.applySchedule(buildApplyReqVO(id, 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0)));
+
+        assertEquals(1, affected);
+        OpTaskDO opTask = opTaskMapper.selectById(id);
+        assertEquals(900L, opTask.getResId());
+        assertEquals(LocalDateTime.of(2026, 9, 10, 8, 0), opTask.getPlannedStartTime());
+        assertEquals(LocalDateTime.of(2026, 9, 10, 16, 0), opTask.getPlannedEndTime());
+        // 计划回写不动数量与状态，它们由派工与报工推进
+        assertEquals(0, opTask.getCompletedQty().compareTo(BigDecimal.ZERO));
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), opTask.getStatus());
+    }
+
+    @Test
+    void testApplySchedule_skipsStartedTask() {
+        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
+        createReqVO.setStatus(MesOpTaskStatusEnum.RUNNING.name());
+        Long running = opTaskService.createOpTask(createReqVO);
+        Long pending = opTaskService.createOpTask(buildReqVO("OPT-B", 32L));
+
+        ApplyScheduleReqDTO reqDTO = buildApplyReqVO(running, 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0));
+        reqDTO.getItems().add(buildItem(pending, 901L,
+                LocalDateTime.of(2026, 9, 11, 8, 0), LocalDateTime.of(2026, 9, 11, 12, 0)));
+
+        // 加工中的工序不允许被新计划挪走，跳过属于正常结果，不让整批失败
+        assertEquals(1, opTaskService.applySchedule(reqDTO));
+        assertNull(opTaskMapper.selectById(running).getPlannedStartTime());
+        assertEquals(901L, opTaskMapper.selectById(pending).getResId());
+    }
+
+    @Test
+    void testApplySchedule_unknownTaskIgnored() {
+        // 版本里的任务在 MES 侧已被删除，回写时找不到对应行，不该抛异常
+        assertEquals(0, opTaskService.applySchedule(buildApplyReqVO(randomLongId(), 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0))));
+    }
+
+    private ApplyScheduleReqDTO buildApplyReqVO(Long opTaskId, Long resId, LocalDateTime startTime,
+                                                LocalDateTime endTime) {
+        ApplyScheduleReqDTO reqDTO = new ApplyScheduleReqDTO();
+        reqDTO.setIdempotencyKey("APS:RELEASE_SCHEDULE:1");
+        reqDTO.setSourceModule("APS");
+        reqDTO.setSourceBizNo("1");
+        List<ApplyScheduleReqDTO.Item> items = new java.util.ArrayList<>();
+        items.add(buildItem(opTaskId, resId, startTime, endTime));
+        reqDTO.setItems(items);
+        return reqDTO;
+    }
+
+    private ApplyScheduleReqDTO.Item buildItem(Long opTaskId, Long resId, LocalDateTime startTime,
+                                               LocalDateTime endTime) {
+        ApplyScheduleReqDTO.Item item = new ApplyScheduleReqDTO.Item();
+        item.setOpTaskId(opTaskId);
+        item.setResId(resId);
+        item.setPlannedStartTime(startTime);
+        item.setPlannedEndTime(endTime);
+        return item;
     }
 
 }

@@ -5,6 +5,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.api.op.dto.OpRespDTO;
 import com.iboot.pf.module.mdm.api.route.dto.RouteOpRespDTO;
+import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskSaveReqVO;
@@ -26,9 +27,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -234,6 +239,43 @@ public class OpTaskServiceImpl implements OpTaskService {
     /** 跨模块可读字段补全，放在 Service 以便 Excel 导出复用。 */
     private void fillRelationNames(List<OpTaskRespVO> list) {
         relationFiller.fillResName(list, OpTaskRespVO::getResId, OpTaskRespVO::setResName);
+    }
+
+    /**
+     * 回写排程结果。
+     *
+     * <p>只更新资源与计划起止时间三个字段，用 {@code updateBatch} 一次落库；数量、状态、实际时间、
+     * 乐观锁版本都不动，它们由 MES 自己的派工与报工动作推进。
+     *
+     * <p>跳过而不是报错的两类工序：已开工之后的（车间在做，挪走等于让现场按两份计划干活）、
+     * 已完工/已跳过/已取消的（终态，改计划没有意义）。跳过属于正常业务结果，不是异常，
+     * 所以返回实际生效条数让调用方知道差异，而不是让整批回写失败。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int applySchedule(ApplyScheduleReqDTO reqDTO) {
+        Map<Long, ApplyScheduleReqDTO.Item> itemMap = reqDTO.getItems().stream()
+                .collect(Collectors.toMap(ApplyScheduleReqDTO.Item::getOpTaskId, Function.identity(),
+                        (left, right) -> right));
+        List<OpTaskDO> existedTasks = opTaskMapper.selectByIds(itemMap.keySet());
+        List<OpTaskDO> updates = new ArrayList<>();
+        for (OpTaskDO existed : existedTasks) {
+            if (!MesOpTaskStatusEnum.isNotStarted(existed.getStatus())) {
+                continue;
+            }
+            ApplyScheduleReqDTO.Item item = itemMap.get(existed.getId());
+            updates.add(OpTaskDO.builder()
+                    .id(existed.getId())
+                    .resId(item.getResId())
+                    .plannedStartTime(item.getPlannedStartTime())
+                    .plannedEndTime(item.getPlannedEndTime())
+                    .build());
+        }
+        if (CollUtil.isEmpty(updates)) {
+            return 0;
+        }
+        opTaskMapper.updateBatch(updates);
+        return updates.size();
     }
 
 }

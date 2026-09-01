@@ -16,6 +16,7 @@ import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.aps.enums.ApsScenarioStatusEnum;
 import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandService;
+import com.iboot.pf.module.aps.service.release.ApsScheduleReleaseService;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,8 @@ public class ApsVersionServiceImpl implements ApsVersionService {
     private ApsRelationFiller relationFiller;
     @Resource
     private ApsCommandService commandService;
+    @Resource
+    private ApsScheduleReleaseService releaseService;
 
     @Override
     public VersionRespVO getVersion(Long id) {
@@ -116,6 +119,8 @@ public class ApsVersionServiceImpl implements ApsVersionService {
                             ApsVersionStatusEnum.PUBLISHED.name())
                     .forEach(old -> updateStatus(old, ApsVersionStatusEnum.REPLACED, null));
             updateStatus(target, ApsVersionStatusEnum.PUBLISHED, reqDTO.getOperatorId());
+            // 发布即下达：把计划回写到 MES 工序任务，同事务，失败则整个发布回滚
+            releaseService.release(target.getId());
         });
     }
 
@@ -135,6 +140,8 @@ public class ApsVersionServiceImpl implements ApsVersionService {
             }
             updateStatus(old, ApsVersionStatusEnum.REPLACED, null);
             updateStatus(next, ApsVersionStatusEnum.PUBLISHED, reqDTO.getOperatorId());
+            // 替换同样是"这份计划从此生效"，必须一起下达，否则 MES 还按旧版本干活
+            releaseService.release(next.getId());
         });
     }
 

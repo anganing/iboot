@@ -5,6 +5,7 @@ import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.FinishReq;
 import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.StatusReq;
 import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
 import com.iboot.pf.module.mes.api.optask.dto.OpTaskRespDTO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.service.optask.OpTaskService;
@@ -41,6 +42,13 @@ public class OpTaskApiImpl implements OpTaskApi {
             return List.of();
         }
         return convertWithProdOrder(opTaskService.getOpTaskListByRouteOpIds(ids));
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public int applySchedule(ApplyScheduleReqDTO reqDTO) {
+        // 关掉数据权限：调用方是 APS 的发布动作，不带用户上下文，按登录用户过滤会一条都更不到
+        return opTaskService.applySchedule(reqDTO);
     }
 
     @Override public void startOpTask(StatusReq reqDTO) { throw new UnsupportedOperationException("工序开工命令尚未接入领域规则"); }

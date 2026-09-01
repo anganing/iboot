@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mes.service.optask;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskSaveReqVO;
@@ -70,5 +71,13 @@ public interface OpTaskService {
 
     /** 按编号批量查询工序任务，供模块内使用。 */
     List<OpTaskDO> getOpTaskList(Collection<Long> ids);
+
+    /**
+     * 回写排程结果：批量更新工序任务的资源与计划起止时间
+     *
+     * @param reqDTO 回写命令
+     * @return 实际生效的工序条数
+     */
+    int applySchedule(@Valid ApplyScheduleReqDTO reqDTO);
 
 }
