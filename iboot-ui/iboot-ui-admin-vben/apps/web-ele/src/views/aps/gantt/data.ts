@@ -1,4 +1,6 @@
-import type { ITimelineScale } from '@visactor/vtable-gantt/es/ts-types';
+// vtable-gantt 的 package.json exports 只声明了 "." 一个入口，深路径导入在
+// moduleResolution: bundler 下无法解析，类型只能从顶层 TYPES 命名空间取
+import type { TYPES } from '@visactor/vtable-gantt';
 
 import type { ApsTaskApi } from '#/api/aps/task';
 
@@ -42,15 +44,17 @@ export function getColWidth(granularity: GanttGranularity): number {
  * <p>每档都配两层：上层给日期上下文，下层给最小粒度。只配一层的话小时视图里全是 0~23，
  * 横滚两屏就分不清是哪一天了。
  */
-export function getScales(granularity: GanttGranularity): ITimelineScale[] {
-  const day: ITimelineScale = {
+export function getScales(
+  granularity: GanttGranularity,
+): TYPES.ITimelineScale[] {
+  const day: TYPES.ITimelineScale = {
     unit: 'day',
     step: 1,
     style: SCALE_STYLE,
     format: ({ startDate }) =>
       `${startDate.getMonth() + 1}/${startDate.getDate()}`,
   };
-  const month: ITimelineScale = {
+  const month: TYPES.ITimelineScale = {
     unit: 'month',
     step: 1,
     style: SCALE_STYLE,

@@ -21,7 +21,8 @@ export namespace MdmResCalendarApi {
 
   /** 批量排班请求 */
   export interface BatchSaveReq {
-    resIds: number[]; // 资源编号列表
+    // 资源主键是雪花 ID，超出 JS 安全整数后后端会序列化成字符串，两种形态都要接受
+    resIds: Array<number | string>; // 资源编号列表
     dateFrom: string; // 工作日期开始
     dateTo: string; // 工作日期结束
     weekdays?: number[]; // 参与排班的星期，1 表示周一、7 表示周日；为空表示每天都排

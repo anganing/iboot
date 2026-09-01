@@ -171,7 +171,8 @@ export function generateResCalendars(data: {
   calendarId: number;
   dateFrom: string;
   dateTo: string;
-  resIds: number[];
+  // 资源主键是雪花 ID，超出 JS 安全整数后后端会序列化成字符串，两种形态都要接受
+  resIds: Array<number | string>;
 }) {
   return requestClient.post<number>('/mdm/calendar/generate', data);
 }
