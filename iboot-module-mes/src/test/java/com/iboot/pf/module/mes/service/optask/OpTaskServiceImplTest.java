@@ -1,236 +1,220 @@
 package com.iboot.pf.module.mes.service.optask;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
-import com.iboot.pf.module.mes.controller.admin.optask.vo.*;
-import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
+import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.dispatchtask.DispatchTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
-import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
+import com.iboot.pf.module.mes.dal.mysql.dispatchtask.DispatchTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesOpExecModeEnum;
+import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
+import com.iboot.pf.module.mes.service.MesTestFixtures;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
+import com.iboot.pf.module.mes.service.workorder.WorkOrderService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_HAS_DISPATCH;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_ROUTE_OP_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link OpTaskServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 工序任务 Service 测试：工序快照从路线工序带出、执行模式按并行组推导、同工单同路线工序唯一、已派工禁删。
  */
 @Import(OpTaskServiceImpl.class)
-public class OpTaskServiceImplTest extends BaseDbUnitTest {
+class OpTaskServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private OpTaskServiceImpl opTaskService;
-
+    private OpTaskService opTaskService;
     @Resource
     private OpTaskMapper opTaskMapper;
+    @Resource
+    private WorkOrderMapper workOrderMapper;
+    @Resource
+    private DispatchTaskMapper dispatchTaskMapper;
 
-    @Test
-    public void testCreateOpTask_success() {
-        // 准备参数
-        OpTaskSaveReqVO createReqVO = randomPojo(OpTaskSaveReqVO.class).setId(null);
+    @MockitoBean
+    private WorkOrderService workOrderService;
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long opTaskId = opTaskService.createOpTask(createReqVO);
-        // 断言
-        assertNotNull(opTaskId);
-        // 校验记录的属性是否正确
-        OpTaskDO opTask = opTaskMapper.selectById(opTaskId);
-        assertPojoEquals(createReqVO, opTask, "id");
+    private Long workOrderId;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "OPT0001" : invocation.getArgument(1));
+        // 路线工序与标准工序都在 mdm，通过门面取快照
+        when(snapshotService.requireRouteOp(any())).thenReturn(MesTestFixtures.routeOp());
+        when(snapshotService.requireOp(any())).thenReturn(MesTestFixtures.op());
+        WorkOrderDO workOrder = new WorkOrderDO().setWorkOrderNo("WO-0001").setProdOrderId(1L);
+        workOrderMapper.insert(workOrder);
+        workOrderId = workOrder.getId();
+    }
+
+    private OpTaskSaveReqVO buildReqVO(String taskNo, Long routeOpId) {
+        OpTaskSaveReqVO reqVO = new OpTaskSaveReqVO();
+        reqVO.setTaskNo(taskNo);
+        reqVO.setWorkOrderId(workOrderId);
+        reqVO.setRouteOpId(routeOpId);
+        reqVO.setQcMode(MesQcModeEnum.NONE.name());
+        reqVO.setSkipPolicy(MesSkipPolicyEnum.NOT_ALLOWED.name());
+        reqVO.setPlannedQty(new BigDecimal("100"));
+        reqVO.setResId(MesConstants.NONE_ID);
+        reqVO.setStatus(MesOpTaskStatusEnum.PENDING.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateOpTask_success() {
-        // mock 数据
-        OpTaskDO dbOpTask = randomPojo(OpTaskDO.class);
-        opTaskMapper.insert(dbOpTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        OpTaskSaveReqVO updateReqVO = randomPojo(OpTaskSaveReqVO.class, o -> {
-            o.setId(dbOpTask.getId()); // 设置更新的 ID
-        });
+    void testCreateOpTask_snapshotFromRouteOp() {
+        Long id = opTaskService.createOpTask(buildReqVO(null, 31L));
 
-        // 调用
+        OpTaskDO opTask = opTaskMapper.selectById(id);
+        assertNotNull(opTask);
+        assertEquals("OPT0001", opTask.getTaskNo());
+        // 工序编码、名称、顺序、关键标记都是主数据快照，前端不提交
+        assertEquals("WO-0001", opTask.getWorkOrderNo());
+        assertEquals("OP010", opTask.getOpCode());
+        assertEquals("定子绕线", opTask.getOpName());
+        assertEquals(10, opTask.getSeq());
+        assertTrue(opTask.getKeyFlag());
+        // 无并行组时推导为顺序执行
+        assertEquals(MesOpExecModeEnum.SEQUENTIAL.name(), opTask.getExecMode());
+        assertEquals(0, opTask.getCompletedQty().compareTo(BigDecimal.ZERO));
+        assertEquals(MesConstants.NONE_ID, opTask.getPrevTaskId());
+    }
+
+    @Test
+    void testCreateOpTask_workOrderNotExists() {
+        OpTaskSaveReqVO reqVO = buildReqVO("OPT-A", 31L);
+        reqVO.setWorkOrderId(randomLongId());
+
+        assertServiceException(() -> opTaskService.createOpTask(reqVO), WORK_ORDER_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateOpTask_duplicateRouteOpRejected() {
+        opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+
+        // 同一作业工单下一道路线工序只能生成一个任务
+        assertServiceException(() -> opTaskService.createOpTask(buildReqVO("OPT-B", 31L)),
+                OP_TASK_ROUTE_OP_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateOpTask_keepTaskNoAndProgress() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+
+        OpTaskSaveReqVO updateReqVO = buildReqVO("OPT-CHANGED", 31L);
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("计划调整");
         opTaskService.updateOpTask(updateReqVO);
-        // 校验是否更新正确
-        OpTaskDO opTask = opTaskMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, opTask);
+
+        OpTaskDO opTask = opTaskMapper.selectById(id);
+        assertEquals("OPT-A", opTask.getTaskNo());
+        assertEquals("计划调整", opTask.getRemark());
     }
 
     @Test
-    public void testUpdateOpTask_notExists() {
-        // 准备参数
-        OpTaskSaveReqVO updateReqVO = randomPojo(OpTaskSaveReqVO.class);
+    void testUpdateOpTask_finalStatusRejected() {
+        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
+        createReqVO.setStatus(MesOpTaskStatusEnum.DONE.name());
+        Long id = opTaskService.createOpTask(createReqVO);
 
-        // 调用, 并断言异常
+        OpTaskSaveReqVO updateReqVO = buildReqVO("OPT-A", 31L);
+        updateReqVO.setId(id);
+        assertServiceException(() -> opTaskService.updateOpTask(updateReqVO), OP_TASK_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateOpTask_notExists() {
+        OpTaskSaveReqVO updateReqVO = buildReqVO("OPT-A", 31L);
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> opTaskService.updateOpTask(updateReqVO), OP_TASK_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteOpTask_success() {
-        // mock 数据
-        OpTaskDO dbOpTask = randomPojo(OpTaskDO.class);
-        opTaskMapper.insert(dbOpTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbOpTask.getId();
+    void testDeleteOpTask_success() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
 
-        // 调用
         opTaskService.deleteOpTask(id);
-       // 校验数据不存在了
-       assertNull(opTaskMapper.selectById(id));
+
+        assertNull(opTaskMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteOpTask_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteOpTask_runningRejected() {
+        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
+        createReqVO.setStatus(MesOpTaskStatusEnum.RUNNING.name());
+        Long id = opTaskService.createOpTask(createReqVO);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> opTaskService.deleteOpTask(id), OP_TASK_NOT_EXISTS);
+        assertServiceException(() -> opTaskService.deleteOpTask(id), OP_TASK_STATUS_INVALID);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetOpTaskPage() {
-       // mock 数据
-       OpTaskDO dbOpTask = randomPojo(OpTaskDO.class, o -> { // 等会查询到
-           o.setTaskNo(null);
-           o.setWorkOrderId(null);
-           o.setWorkOrderNo(null);
-           o.setRouteOpId(null);
-           o.setOpId(null);
-           o.setOpCode(null);
-           o.setOpName(null);
-           o.setSeq(null);
-           o.setParallelGroup(null);
-           o.setPrevTaskId(null);
-           o.setNextTaskId(null);
-           o.setExecMode(null);
-           o.setQcMode(null);
-           o.setSkipPolicy(null);
-           o.setKeyFlag(null);
-           o.setPlannedQty(null);
-           o.setCompletedQty(null);
-           o.setScrapQty(null);
-           o.setResId(null);
-           o.setPlannedStartTime(null);
-           o.setPlannedEndTime(null);
-           o.setActualStartTime(null);
-           o.setActualEndTime(null);
-           o.setStatus(null);
-           o.setVersion(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       opTaskMapper.insert(dbOpTask);
-       // 测试 taskNo 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setTaskNo(null)));
-       // 测试 workOrderId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setWorkOrderId(null)));
-       // 测试 workOrderNo 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setWorkOrderNo(null)));
-       // 测试 routeOpId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setRouteOpId(null)));
-       // 测试 opId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setOpId(null)));
-       // 测试 opCode 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setOpCode(null)));
-       // 测试 opName 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setOpName(null)));
-       // 测试 seq 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setSeq(null)));
-       // 测试 parallelGroup 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setParallelGroup(null)));
-       // 测试 prevTaskId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setPrevTaskId(null)));
-       // 测试 nextTaskId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setNextTaskId(null)));
-       // 测试 execMode 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setExecMode(null)));
-       // 测试 qcMode 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setQcMode(null)));
-       // 测试 skipPolicy 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setSkipPolicy(null)));
-       // 测试 keyFlag 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setKeyFlag(null)));
-       // 测试 plannedQty 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setPlannedQty(null)));
-       // 测试 completedQty 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setCompletedQty(null)));
-       // 测试 scrapQty 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setScrapQty(null)));
-       // 测试 resId 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setResId(null)));
-       // 测试 plannedStartTime 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setPlannedStartTime(null)));
-       // 测试 plannedEndTime 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setPlannedEndTime(null)));
-       // 测试 actualStartTime 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setActualStartTime(null)));
-       // 测试 actualEndTime 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setActualEndTime(null)));
-       // 测试 status 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setStatus(null)));
-       // 测试 version 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setVersion(null)));
-       // 测试 remark 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       opTaskMapper.insert(cloneIgnoreId(dbOpTask, o -> o.setCreateTime(null)));
-       // 准备参数
-       OpTaskPageReqVO reqVO = new OpTaskPageReqVO();
-       reqVO.setTaskNo(null);
-       reqVO.setWorkOrderId(null);
-       reqVO.setWorkOrderNo(null);
-       reqVO.setRouteOpId(null);
-       reqVO.setOpId(null);
-       reqVO.setOpCode(null);
-       reqVO.setOpName(null);
-       reqVO.setSeq(null);
-       reqVO.setParallelGroup(null);
-       reqVO.setPrevTaskId(null);
-       reqVO.setNextTaskId(null);
-       reqVO.setExecMode(null);
-       reqVO.setQcMode(null);
-       reqVO.setSkipPolicy(null);
-       reqVO.setKeyFlag(null);
-       reqVO.setPlannedQty(null);
-       reqVO.setCompletedQty(null);
-       reqVO.setScrapQty(null);
-       reqVO.setResId(null);
-       reqVO.setPlannedStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setPlannedEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setActualStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setActualEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setStatus(null);
-       reqVO.setVersion(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteOpTask_hasDispatchRejected() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        dispatchTaskMapper.insert(new DispatchTaskDO().setOpTaskId(id).setDispatchNo("DSP-0001"));
 
-       // 调用
-       PageResult<OpTaskRespVO> pageResult = opTaskService.getOpTaskPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbOpTask, pageResult.getList().get(0));
+        assertServiceException(() -> opTaskService.deleteOpTask(id), OP_TASK_HAS_DISPATCH);
+    }
+
+    @Test
+    void testDeleteOpTaskList_hasDispatchRejected() {
+        Long first = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        Long second = opTaskService.createOpTask(buildReqVO("OPT-B", 32L));
+        dispatchTaskMapper.insert(new DispatchTaskDO().setOpTaskId(second).setDispatchNo("DSP-0001"));
+
+        assertServiceException(() -> opTaskService.deleteOpTaskListByIds(List.of(first, second)),
+                OP_TASK_HAS_DISPATCH);
+        assertNotNull(opTaskMapper.selectById(first));
+    }
+
+    @Test
+    void testGetOpTaskPage() {
+        opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+
+        OpTaskPageReqVO reqVO = new OpTaskPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<OpTaskRespVO> list = opTaskService.getOpTaskPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("OPT-A", list.get(0).getTaskNo());
+        assertEquals("OP010", list.get(0).getOpCode());
     }
 
 }

@@ -1,204 +1,115 @@
 package com.iboot.pf.module.mes.service.kitsnapshot;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
-import com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO;
-import com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.*;
+import com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO;
 import com.iboot.pf.module.mes.dal.dataobject.kitsnapshot.KitSnapshotDO;
-import com.iboot.pf.module.mes.controller.admin.kitsnapshot.vo.KitSnapshotRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.kitsnapshot.KitSnapshotMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesKitCheckScopeEnum;
+import com.iboot.pf.module.mes.enums.MesKitStatusEnum;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * {@link KitSnapshotServiceImpl} 的单元测试类
+ * 齐套检查快照 Service 测试。
  *
- * @author iboot
+ * <p>快照是齐套检查过账写入的账表，只提供查询与导出，所以这里只覆盖查询与模块内 JOIN 出的可读字段。
  */
 @Import(KitSnapshotServiceImpl.class)
-public class KitSnapshotServiceImplTest extends BaseDbUnitTest {
+class KitSnapshotServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private KitSnapshotServiceImpl kitSnapshotService;
-
+    private KitSnapshotService kitSnapshotService;
     @Resource
     private KitSnapshotMapper kitSnapshotMapper;
+    @Resource
+    private ProdOrderMapper prodOrderMapper;
 
-    @Test
-    public void testCreateKitSnapshot_success() {
-        // 准备参数
-        KitSnapshotSaveReqVO createReqVO = randomPojo(KitSnapshotSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long kitSnapshotId = kitSnapshotService.createKitSnapshot(createReqVO);
-        // 断言
-        assertNotNull(kitSnapshotId);
-        // 校验记录的属性是否正确
-        KitSnapshotDO kitSnapshot = kitSnapshotMapper.selectById(kitSnapshotId);
-        assertPojoEquals(createReqVO, kitSnapshot, "id");
+    /** 造一条齐套快照，附带一张生产工单用于验证 JOIN 出的单号。 */
+    private KitSnapshotDO insertSnapshot(String checkNo) {
+        ProdOrderDO prodOrder = new ProdOrderDO().setOrderNo("PO-0001");
+        prodOrderMapper.insert(prodOrder);
+        KitSnapshotDO snapshot = new KitSnapshotDO()
+                .setCheckNo(checkNo)
+                .setCheckScope(MesKitCheckScopeEnum.PROD_ORDER.name())
+                .setProdOrderId(prodOrder.getId())
+                .setWorkOrderId(MesConstants.NONE_ID)
+                .setOpTaskId(MesConstants.NONE_ID)
+                .setLineNo(MesConstants.FIRST_LINE_NO)
+                .setMatId(1L)
+                .setMatCode("MAT-001")
+                .setMatName("定子铁芯")
+                .setReqQty(new BigDecimal("100"))
+                .setAvailQty(new BigDecimal("60"))
+                .setReservedQty(BigDecimal.ZERO)
+                .setIssuedQty(BigDecimal.ZERO)
+                .setShortQty(new BigDecimal("40"))
+                .setAltMatId(MesConstants.NONE_ID)
+                .setResult(MesKitStatusEnum.SHORTAGE.name())
+                .setCheckTime(LocalDateTime.now());
+        kitSnapshotMapper.insert(snapshot);
+        return snapshot;
     }
 
     @Test
-    public void testUpdateKitSnapshot_success() {
-        // mock 数据
-        KitSnapshotDO dbKitSnapshot = randomPojo(KitSnapshotDO.class);
-        kitSnapshotMapper.insert(dbKitSnapshot);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        KitSnapshotSaveReqVO updateReqVO = randomPojo(KitSnapshotSaveReqVO.class, o -> {
-            o.setId(dbKitSnapshot.getId()); // 设置更新的 ID
-        });
+    void testGetKitSnapshot_joinProdOrderNo() {
+        KitSnapshotDO snapshot = insertSnapshot("KC-0001");
 
-        // 调用
-        kitSnapshotService.updateKitSnapshot(updateReqVO);
-        // 校验是否更新正确
-        KitSnapshotDO kitSnapshot = kitSnapshotMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, kitSnapshot);
+        KitSnapshotRespVO respVO = kitSnapshotService.getKitSnapshot(snapshot.getId());
+
+        assertNotNull(respVO);
+        assertEquals("KC-0001", respVO.getCheckNo());
+        // 生产工单号由模块内 JOIN 出来，列表不显示裸 ID
+        assertEquals("PO-0001", respVO.getProdOrderNo());
+        assertEquals(MesKitStatusEnum.SHORTAGE.name(), respVO.getResult());
     }
 
     @Test
-    public void testUpdateKitSnapshot_notExists() {
-        // 准备参数
-        KitSnapshotSaveReqVO updateReqVO = randomPojo(KitSnapshotSaveReqVO.class);
-
-        // 调用, 并断言异常
-        assertServiceException(() -> kitSnapshotService.updateKitSnapshot(updateReqVO), KIT_SNAPSHOT_NOT_EXISTS);
+    void testGetKitSnapshot_notExists() {
+        assertNull(kitSnapshotService.getKitSnapshot(999L));
     }
 
     @Test
-    public void testDeleteKitSnapshot_success() {
-        // mock 数据
-        KitSnapshotDO dbKitSnapshot = randomPojo(KitSnapshotDO.class);
-        kitSnapshotMapper.insert(dbKitSnapshot);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbKitSnapshot.getId();
+    void testGetKitSnapshotPage_filterByResult() {
+        insertSnapshot("KC-0001");
 
-        // 调用
-        kitSnapshotService.deleteKitSnapshot(id);
-       // 校验数据不存在了
-       assertNull(kitSnapshotMapper.selectById(id));
+        KitSnapshotPageReqVO reqVO = new KitSnapshotPageReqVO();
+        reqVO.setResult(MesKitStatusEnum.SHORTAGE.name());
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<KitSnapshotRespVO> list = kitSnapshotService.getKitSnapshotPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("KC-0001", list.get(0).getCheckNo());
     }
 
     @Test
-    public void testDeleteKitSnapshot_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testGetKitSnapshotPage_resultNotMatch() {
+        insertSnapshot("KC-0001");
 
-        // 调用, 并断言异常
-        assertServiceException(() -> kitSnapshotService.deleteKitSnapshot(id), KIT_SNAPSHOT_NOT_EXISTS);
-    }
+        KitSnapshotPageReqVO reqVO = new KitSnapshotPageReqVO();
+        reqVO.setResult(MesKitStatusEnum.FULL_KIT.name());
+        reqVO.setPageSize(PAGE_SIZE_NONE);
 
-    @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetKitSnapshotPage() {
-       // mock 数据
-       KitSnapshotDO dbKitSnapshot = randomPojo(KitSnapshotDO.class, o -> { // 等会查询到
-           o.setCheckNo(null);
-           o.setCheckScope(null);
-           o.setProdOrderId(null);
-           o.setWorkOrderId(null);
-           o.setOpTaskId(null);
-           o.setLineNo(null);
-           o.setMatId(null);
-           o.setMatCode(null);
-           o.setMatName(null);
-           o.setReqQty(null);
-           o.setAvailQty(null);
-           o.setReservedQty(null);
-           o.setIssuedQty(null);
-           o.setShortQty(null);
-           o.setAltMatId(null);
-           o.setResult(null);
-           o.setCheckTime(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       kitSnapshotMapper.insert(dbKitSnapshot);
-       // 测试 checkNo 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setCheckNo(null)));
-       // 测试 checkScope 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setCheckScope(null)));
-       // 测试 prodOrderId 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setProdOrderId(null)));
-       // 测试 workOrderId 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setWorkOrderId(null)));
-       // 测试 opTaskId 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setOpTaskId(null)));
-       // 测试 lineNo 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setLineNo(null)));
-       // 测试 matId 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setMatId(null)));
-       // 测试 matCode 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setMatCode(null)));
-       // 测试 matName 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setMatName(null)));
-       // 测试 reqQty 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setReqQty(null)));
-       // 测试 availQty 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setAvailQty(null)));
-       // 测试 reservedQty 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setReservedQty(null)));
-       // 测试 issuedQty 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setIssuedQty(null)));
-       // 测试 shortQty 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setShortQty(null)));
-       // 测试 altMatId 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setAltMatId(null)));
-       // 测试 result 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setResult(null)));
-       // 测试 checkTime 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setCheckTime(null)));
-       // 测试 remark 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       kitSnapshotMapper.insert(cloneIgnoreId(dbKitSnapshot, o -> o.setCreateTime(null)));
-       // 准备参数
-       KitSnapshotPageReqVO reqVO = new KitSnapshotPageReqVO();
-       reqVO.setCheckNo(null);
-       reqVO.setCheckScope(null);
-       reqVO.setProdOrderId(null);
-       reqVO.setWorkOrderId(null);
-       reqVO.setOpTaskId(null);
-       reqVO.setLineNo(null);
-       reqVO.setMatId(null);
-       reqVO.setMatCode(null);
-       reqVO.setMatName(null);
-       reqVO.setReqQty(null);
-       reqVO.setAvailQty(null);
-       reqVO.setReservedQty(null);
-       reqVO.setIssuedQty(null);
-       reqVO.setShortQty(null);
-       reqVO.setAltMatId(null);
-       reqVO.setResult(null);
-       reqVO.setCheckTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-
-       // 调用
-       PageResult<KitSnapshotRespVO> pageResult = kitSnapshotService.getKitSnapshotPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbKitSnapshot, pageResult.getList().get(0));
+        // 不分页查询不会执行 count，所以断言列表长度而不是 total
+        assertEquals(0, kitSnapshotService.getKitSnapshotPage(reqVO).getList().size());
     }
 
 }

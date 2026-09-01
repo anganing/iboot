@@ -1,204 +1,207 @@
 package com.iboot.pf.module.mes.service.workorder;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.workorder.vo.WorkOrderPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.workorder.vo.WorkOrderRespVO;
-import com.iboot.pf.module.mes.controller.admin.workorder.vo.*;
-import com.iboot.pf.module.mes.controller.admin.workorder.vo.WorkOrderRespVO;
+import com.iboot.pf.module.mes.controller.admin.workorder.vo.WorkOrderSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
-import com.iboot.pf.module.mes.controller.admin.workorder.vo.WorkOrderRespVO;
+import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesKitStatusEnum;
+import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
+import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_HAS_OP_TASK;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_STATUS_INVALID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link WorkOrderServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 作业工单 Service 测试：单号自动分配、组织维度从生产工单继承、进度归零、待处理才可删、已有工序任务禁删。
  */
 @Import(WorkOrderServiceImpl.class)
-public class WorkOrderServiceImplTest extends BaseDbUnitTest {
+class WorkOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private WorkOrderServiceImpl workOrderService;
-
+    private WorkOrderService workOrderService;
     @Resource
     private WorkOrderMapper workOrderMapper;
+    @Resource
+    private ProdOrderMapper prodOrderMapper;
+    @Resource
+    private OpTaskMapper opTaskMapper;
 
-    @Test
-    public void testCreateWorkOrder_success() {
-        // 准备参数
-        WorkOrderSaveReqVO createReqVO = randomPojo(WorkOrderSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long workOrderId = workOrderService.createWorkOrder(createReqVO);
-        // 断言
-        assertNotNull(workOrderId);
-        // 校验记录的属性是否正确
-        WorkOrderDO workOrder = workOrderMapper.selectById(workOrderId);
-        assertPojoEquals(createReqVO, workOrder, "id");
+    private Long prodOrderId;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "WO0001" : invocation.getArgument(1));
+        prodOrderId = insertProdOrder(MesProdOrderStatusEnum.RELEASED.name());
+    }
+
+    /** 生产工单是作业工单的父单，组织维度都从它继承。 */
+    private Long insertProdOrder(String status) {
+        ProdOrderDO prodOrder = new ProdOrderDO()
+                .setOrderNo("PO-0001")
+                .setPlantId(1L)
+                .setWorkshopId(2L)
+                .setProjectId(MesConstants.NONE_ID)
+                .setProjectTaskId(MesConstants.NONE_ID)
+                .setStatus(status);
+        prodOrderMapper.insert(prodOrder);
+        return prodOrder.getId();
+    }
+
+    private WorkOrderSaveReqVO buildReqVO(String workOrderNo) {
+        WorkOrderSaveReqVO reqVO = new WorkOrderSaveReqVO();
+        reqVO.setWorkOrderNo(workOrderNo);
+        reqVO.setProdOrderId(prodOrderId);
+        reqVO.setWcId(3L);
+        reqVO.setPlannedQty(new BigDecimal("100"));
+        reqVO.setStatus(MesWorkOrderStatusEnum.PENDING.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateWorkOrder_success() {
-        // mock 数据
-        WorkOrderDO dbWorkOrder = randomPojo(WorkOrderDO.class);
-        workOrderMapper.insert(dbWorkOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        WorkOrderSaveReqVO updateReqVO = randomPojo(WorkOrderSaveReqVO.class, o -> {
-            o.setId(dbWorkOrder.getId()); // 设置更新的 ID
-        });
+    void testCreateWorkOrder_inheritFromProdOrder() {
+        Long id = workOrderService.createWorkOrder(buildReqVO(null));
 
-        // 调用
+        WorkOrderDO workOrder = workOrderMapper.selectById(id);
+        assertNotNull(workOrder);
+        assertEquals("WO0001", workOrder.getWorkOrderNo());
+        // 工厂、车间、单号快照从生产工单继承，让前端各填一遍只会制造不一致
+        assertEquals("PO-0001", workOrder.getProdOrderNo());
+        assertEquals(1L, workOrder.getPlantId());
+        assertEquals(2L, workOrder.getWorkshopId());
+        assertEquals(0, workOrder.getCompletedQty().compareTo(BigDecimal.ZERO));
+        assertEquals(MesKitStatusEnum.UNCHECKED.name(), workOrder.getKitStatus());
+    }
+
+    @Test
+    void testCreateWorkOrder_prodOrderNotExists() {
+        WorkOrderSaveReqVO reqVO = buildReqVO("WO-A");
+        reqVO.setProdOrderId(randomLongId());
+
+        assertServiceException(() -> workOrderService.createWorkOrder(reqVO), PROD_ORDER_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateWorkOrder_prodOrderFinalRejected() {
+        WorkOrderSaveReqVO reqVO = buildReqVO("WO-A");
+        reqVO.setProdOrderId(insertProdOrder(MesProdOrderStatusEnum.CLOSED.name()));
+
+        // 已关闭的生产工单不允许再开作业工单
+        assertServiceException(() -> workOrderService.createWorkOrder(reqVO), PROD_ORDER_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateWorkOrder_keepWorkOrderNo() {
+        Long id = workOrderService.createWorkOrder(buildReqVO("WO-A"));
+
+        WorkOrderSaveReqVO updateReqVO = buildReqVO("WO-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("计划调整");
         workOrderService.updateWorkOrder(updateReqVO);
-        // 校验是否更新正确
-        WorkOrderDO workOrder = workOrderMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, workOrder);
+
+        WorkOrderDO workOrder = workOrderMapper.selectById(id);
+        assertEquals("WO-A", workOrder.getWorkOrderNo());
+        assertEquals("计划调整", workOrder.getRemark());
     }
 
     @Test
-    public void testUpdateWorkOrder_notExists() {
-        // 准备参数
-        WorkOrderSaveReqVO updateReqVO = randomPojo(WorkOrderSaveReqVO.class);
+    void testUpdateWorkOrder_finalStatusRejected() {
+        WorkOrderSaveReqVO createReqVO = buildReqVO("WO-A");
+        createReqVO.setStatus(MesWorkOrderStatusEnum.DONE.name());
+        Long id = workOrderService.createWorkOrder(createReqVO);
 
-        // 调用, 并断言异常
+        WorkOrderSaveReqVO updateReqVO = buildReqVO("WO-A");
+        updateReqVO.setId(id);
+        assertServiceException(() -> workOrderService.updateWorkOrder(updateReqVO), WORK_ORDER_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateWorkOrder_notExists() {
+        WorkOrderSaveReqVO updateReqVO = buildReqVO("WO-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> workOrderService.updateWorkOrder(updateReqVO), WORK_ORDER_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteWorkOrder_success() {
-        // mock 数据
-        WorkOrderDO dbWorkOrder = randomPojo(WorkOrderDO.class);
-        workOrderMapper.insert(dbWorkOrder);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbWorkOrder.getId();
+    void testDeleteWorkOrder_success() {
+        Long id = workOrderService.createWorkOrder(buildReqVO("WO-A"));
 
-        // 调用
         workOrderService.deleteWorkOrder(id);
-       // 校验数据不存在了
-       assertNull(workOrderMapper.selectById(id));
+
+        assertNull(workOrderMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteWorkOrder_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteWorkOrder_hasOpTaskRejected() {
+        Long id = workOrderService.createWorkOrder(buildReqVO("WO-A"));
+        opTaskMapper.insert(new OpTaskDO().setWorkOrderId(id).setTaskNo("OPT-0001").setRouteOpId(31L));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> workOrderService.deleteWorkOrder(id), WORK_ORDER_NOT_EXISTS);
+        assertServiceException(() -> workOrderService.deleteWorkOrder(id), WORK_ORDER_HAS_OP_TASK);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetWorkOrderPage() {
-       // mock 数据
-       WorkOrderDO dbWorkOrder = randomPojo(WorkOrderDO.class, o -> { // 等会查询到
-           o.setWorkOrderNo(null);
-           o.setProdOrderId(null);
-           o.setProdOrderNo(null);
-           o.setPlantId(null);
-           o.setWorkshopId(null);
-           o.setWcId(null);
-           o.setProjectId(null);
-           o.setProjectTaskId(null);
-           o.setPlannedQty(null);
-           o.setCompletedQty(null);
-           o.setPlannedStartTime(null);
-           o.setPlannedEndTime(null);
-           o.setActualStartTime(null);
-           o.setActualEndTime(null);
-           o.setKitStatus(null);
-           o.setStatus(null);
-           o.setVersion(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       workOrderMapper.insert(dbWorkOrder);
-       // 测试 workOrderNo 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setWorkOrderNo(null)));
-       // 测试 prodOrderId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setProdOrderId(null)));
-       // 测试 prodOrderNo 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setProdOrderNo(null)));
-       // 测试 plantId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setPlantId(null)));
-       // 测试 workshopId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setWorkshopId(null)));
-       // 测试 wcId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setWcId(null)));
-       // 测试 projectId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setProjectId(null)));
-       // 测试 projectTaskId 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setProjectTaskId(null)));
-       // 测试 plannedQty 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setPlannedQty(null)));
-       // 测试 completedQty 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setCompletedQty(null)));
-       // 测试 plannedStartTime 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setPlannedStartTime(null)));
-       // 测试 plannedEndTime 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setPlannedEndTime(null)));
-       // 测试 actualStartTime 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setActualStartTime(null)));
-       // 测试 actualEndTime 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setActualEndTime(null)));
-       // 测试 kitStatus 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setKitStatus(null)));
-       // 测试 status 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setStatus(null)));
-       // 测试 version 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setVersion(null)));
-       // 测试 remark 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       workOrderMapper.insert(cloneIgnoreId(dbWorkOrder, o -> o.setCreateTime(null)));
-       // 准备参数
-       WorkOrderPageReqVO reqVO = new WorkOrderPageReqVO();
-       reqVO.setWorkOrderNo(null);
-       reqVO.setProdOrderId(null);
-       reqVO.setProdOrderNo(null);
-       reqVO.setPlantId(null);
-       reqVO.setWorkshopId(null);
-       reqVO.setWcId(null);
-       reqVO.setProjectId(null);
-       reqVO.setProjectTaskId(null);
-       reqVO.setPlannedQty(null);
-       reqVO.setCompletedQty(null);
-       reqVO.setPlannedStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setPlannedEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setActualStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setActualEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setKitStatus(null);
-       reqVO.setStatus(null);
-       reqVO.setVersion(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteWorkOrderList_hasOpTaskRejected() {
+        Long first = workOrderService.createWorkOrder(buildReqVO("WO-A"));
+        Long second = workOrderService.createWorkOrder(buildReqVO("WO-B"));
+        opTaskMapper.insert(new OpTaskDO().setWorkOrderId(second).setTaskNo("OPT-0001").setRouteOpId(31L));
 
-       // 调用
-       PageResult<WorkOrderRespVO> pageResult = workOrderService.getWorkOrderPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbWorkOrder, pageResult.getList().get(0));
+        assertServiceException(() -> workOrderService.deleteWorkOrderListByIds(List.of(first, second)),
+                WORK_ORDER_HAS_OP_TASK);
+        assertNotNull(workOrderMapper.selectById(first));
+    }
+
+    @Test
+    void testGetWorkOrderPage() {
+        workOrderService.createWorkOrder(buildReqVO("WO-A"));
+
+        WorkOrderPageReqVO reqVO = new WorkOrderPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<WorkOrderRespVO> list = workOrderService.getWorkOrderPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("WO-A", list.get(0).getWorkOrderNo());
+        // 生产工单号由模块内 JOIN 出来，前端不做二次拼接
+        assertEquals("PO-0001", list.get(0).getProdOrderNo());
     }
 
 }

@@ -1,172 +1,210 @@
 package com.iboot.pf.module.mes.service.opskiprecord;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordRespVO;
-import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.*;
-import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordRespVO;
+import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
-import com.iboot.pf.module.mes.controller.admin.opskiprecord.vo.OpSkipRecordRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.mysql.opskiprecord.OpSkipRecordMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesSkipApproveStatusEnum;
+import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
+import com.iboot.pf.module.mes.enums.MesSkipReasonTypeEnum;
+import com.iboot.pf.module.mes.enums.MesSkipRecordStatusEnum;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_APPROVER_REQUIRED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_APPROVE_REQUIRED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_NOT_ALLOWED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_RECORD_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * {@link OpSkipRecordServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 工序跳过记录 Service 测试：按工序任务的跳序策略裁决、审批人必填、需审批策略未批准不能生效。
  */
 @Import(OpSkipRecordServiceImpl.class)
-public class OpSkipRecordServiceImplTest extends BaseDbUnitTest {
+class OpSkipRecordServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private OpSkipRecordServiceImpl opSkipRecordService;
-
+    private OpSkipRecordService opSkipRecordService;
     @Resource
     private OpSkipRecordMapper opSkipRecordMapper;
+    @Resource
+    private OpTaskMapper opTaskMapper;
 
-    @Test
-    public void testCreateOpSkipRecord_success() {
-        // 准备参数
-        OpSkipRecordSaveReqVO createReqVO = randomPojo(OpSkipRecordSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long opSkipRecordId = opSkipRecordService.createOpSkipRecord(createReqVO);
-        // 断言
-        assertNotNull(opSkipRecordId);
-        // 校验记录的属性是否正确
-        OpSkipRecordDO opSkipRecord = opSkipRecordMapper.selectById(opSkipRecordId);
-        assertPojoEquals(createReqVO, opSkipRecord, "id");
+    private Long reasonOnlyTaskId;
+    private Long notAllowedTaskId;
+    private Long approvalRequiredTaskId;
+
+    @BeforeEach
+    void prepareOpTasks() {
+        reasonOnlyTaskId = insertOpTask("OPT-REASON", MesSkipPolicyEnum.ALLOW_WITH_REASON.name());
+        notAllowedTaskId = insertOpTask("OPT-DENY", MesSkipPolicyEnum.NOT_ALLOWED.name());
+        approvalRequiredTaskId = insertOpTask("OPT-APPROVE", MesSkipPolicyEnum.APPROVAL_REQUIRED.name());
+    }
+
+    /** 跳序策略挂在工序任务上，是这里所有规则的判定依据。 */
+    private Long insertOpTask(String taskNo, String skipPolicy) {
+        OpTaskDO opTask = new OpTaskDO()
+                .setTaskNo(taskNo)
+                .setWorkOrderId(1L)
+                .setRouteOpId(31L)
+                .setSkipPolicy(skipPolicy);
+        opTaskMapper.insert(opTask);
+        return opTask.getId();
+    }
+
+    private OpSkipRecordSaveReqVO buildReqVO(Long opTaskId) {
+        OpSkipRecordSaveReqVO reqVO = new OpSkipRecordSaveReqVO();
+        reqVO.setOpTaskId(opTaskId);
+        reqVO.setSkipReasonType(MesSkipReasonTypeEnum.NOT_APPLICABLE.name());
+        reqVO.setSkipReason("该型号不需要该道工序");
+        reqVO.setOperatorId(1L);
+        reqVO.setApprovedBy(MesConstants.NONE_ID);
+        reqVO.setApproveStatus(MesSkipApproveStatusEnum.NOT_REQUIRED.name());
+        reqVO.setStatus(MesSkipRecordStatusEnum.PENDING.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateOpSkipRecord_success() {
-        // mock 数据
-        OpSkipRecordDO dbOpSkipRecord = randomPojo(OpSkipRecordDO.class);
-        opSkipRecordMapper.insert(dbOpSkipRecord);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        OpSkipRecordSaveReqVO updateReqVO = randomPojo(OpSkipRecordSaveReqVO.class, o -> {
-            o.setId(dbOpSkipRecord.getId()); // 设置更新的 ID
-        });
+    void testCreateOpSkipRecord_skipTimeAutoFilled() {
+        Long id = opSkipRecordService.createOpSkipRecord(buildReqVO(reasonOnlyTaskId));
 
-        // 调用
+        OpSkipRecordDO record = opSkipRecordMapper.selectById(id);
+        assertNotNull(record);
+        // 跳过时间留空取当前时间，否则事后查不到什么时候跳的
+        assertNotNull(record.getSkipTime());
+    }
+
+    @Test
+    void testCreateOpSkipRecord_opTaskNotExists() {
+        assertServiceException(() -> opSkipRecordService.createOpSkipRecord(buildReqVO(randomLongId())),
+                OP_TASK_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateOpSkipRecord_policyNotAllowed() {
+        assertServiceException(() -> opSkipRecordService.createOpSkipRecord(buildReqVO(notAllowedTaskId)),
+                OP_SKIP_NOT_ALLOWED);
+    }
+
+    @Test
+    void testCreateOpSkipRecord_approverRequiredWhenDecided() {
+        OpSkipRecordSaveReqVO reqVO = buildReqVO(approvalRequiredTaskId);
+        reqVO.setApproveStatus(MesSkipApproveStatusEnum.APPROVED.name());
+
+        assertServiceException(() -> opSkipRecordService.createOpSkipRecord(reqVO), OP_SKIP_APPROVER_REQUIRED);
+    }
+
+    @Test
+    void testCreateOpSkipRecord_effectiveNeedsApproval() {
+        OpSkipRecordSaveReqVO reqVO = buildReqVO(approvalRequiredTaskId);
+        reqVO.setStatus(MesSkipRecordStatusEnum.EFFECTIVE.name());
+        reqVO.setApproveStatus(MesSkipApproveStatusEnum.PENDING.name());
+
+        // 需审批策略下未批准就生效等于绕过管控
+        assertServiceException(() -> opSkipRecordService.createOpSkipRecord(reqVO), OP_SKIP_APPROVE_REQUIRED);
+    }
+
+    @Test
+    void testCreateOpSkipRecord_approvedEffectiveAccepted() {
+        OpSkipRecordSaveReqVO reqVO = buildReqVO(approvalRequiredTaskId);
+        reqVO.setStatus(MesSkipRecordStatusEnum.EFFECTIVE.name());
+        reqVO.setApproveStatus(MesSkipApproveStatusEnum.APPROVED.name());
+        reqVO.setApprovedBy(2L);
+
+        assertNotNull(opSkipRecordService.createOpSkipRecord(reqVO));
+    }
+
+    @Test
+    void testUpdateOpSkipRecord_effectiveOnlyRemark() {
+        OpSkipRecordSaveReqVO createReqVO = buildReqVO(approvalRequiredTaskId);
+        createReqVO.setStatus(MesSkipRecordStatusEnum.EFFECTIVE.name());
+        createReqVO.setApproveStatus(MesSkipApproveStatusEnum.APPROVED.name());
+        createReqVO.setApprovedBy(2L);
+        Long id = opSkipRecordService.createOpSkipRecord(createReqVO);
+
+        OpSkipRecordSaveReqVO updateReqVO = buildReqVO(reasonOnlyTaskId);
+        updateReqVO.setId(id);
+        updateReqVO.setEffectRemark("已通知后段工序");
+        updateReqVO.setRemark("补充说明");
         opSkipRecordService.updateOpSkipRecord(updateReqVO);
-        // 校验是否更新正确
-        OpSkipRecordDO opSkipRecord = opSkipRecordMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, opSkipRecord);
+
+        OpSkipRecordDO record = opSkipRecordMapper.selectById(id);
+        // 已生效的记录已经把工序置为已跳过，只放行影响说明与备注
+        assertEquals("已通知后段工序", record.getEffectRemark());
+        assertEquals("补充说明", record.getRemark());
+        assertEquals(approvalRequiredTaskId, record.getOpTaskId());
     }
 
     @Test
-    public void testUpdateOpSkipRecord_notExists() {
-        // 准备参数
-        OpSkipRecordSaveReqVO updateReqVO = randomPojo(OpSkipRecordSaveReqVO.class);
+    void testUpdateOpSkipRecord_notExists() {
+        OpSkipRecordSaveReqVO updateReqVO = buildReqVO(reasonOnlyTaskId);
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
-        assertServiceException(() -> opSkipRecordService.updateOpSkipRecord(updateReqVO), OP_SKIP_RECORD_NOT_EXISTS);
+        assertServiceException(() -> opSkipRecordService.updateOpSkipRecord(updateReqVO),
+                OP_SKIP_RECORD_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteOpSkipRecord_success() {
-        // mock 数据
-        OpSkipRecordDO dbOpSkipRecord = randomPojo(OpSkipRecordDO.class);
-        opSkipRecordMapper.insert(dbOpSkipRecord);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbOpSkipRecord.getId();
+    void testDeleteOpSkipRecord_success() {
+        Long id = opSkipRecordService.createOpSkipRecord(buildReqVO(reasonOnlyTaskId));
 
-        // 调用
         opSkipRecordService.deleteOpSkipRecord(id);
-       // 校验数据不存在了
-       assertNull(opSkipRecordMapper.selectById(id));
+
+        assertNull(opSkipRecordMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteOpSkipRecord_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteOpSkipRecordList_success() {
+        Long first = opSkipRecordService.createOpSkipRecord(buildReqVO(reasonOnlyTaskId));
+        Long second = opSkipRecordService.createOpSkipRecord(buildReqVO(reasonOnlyTaskId));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> opSkipRecordService.deleteOpSkipRecord(id), OP_SKIP_RECORD_NOT_EXISTS);
+        opSkipRecordService.deleteOpSkipRecordListByIds(List.of(first, second));
+
+        assertNull(opSkipRecordMapper.selectById(first));
+        assertNull(opSkipRecordMapper.selectById(second));
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetOpSkipRecordPage() {
-       // mock 数据
-       OpSkipRecordDO dbOpSkipRecord = randomPojo(OpSkipRecordDO.class, o -> { // 等会查询到
-           o.setOpTaskId(null);
-           o.setSkipReasonType(null);
-           o.setSkipReason(null);
-           o.setOperatorId(null);
-           o.setApprovedBy(null);
-           o.setApproveStatus(null);
-           o.setSkipTime(null);
-           o.setEffectRemark(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       opSkipRecordMapper.insert(dbOpSkipRecord);
-       // 测试 opTaskId 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setOpTaskId(null)));
-       // 测试 skipReasonType 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setSkipReasonType(null)));
-       // 测试 skipReason 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setSkipReason(null)));
-       // 测试 operatorId 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setOperatorId(null)));
-       // 测试 approvedBy 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setApprovedBy(null)));
-       // 测试 approveStatus 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setApproveStatus(null)));
-       // 测试 skipTime 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setSkipTime(null)));
-       // 测试 effectRemark 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setEffectRemark(null)));
-       // 测试 status 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       opSkipRecordMapper.insert(cloneIgnoreId(dbOpSkipRecord, o -> o.setCreateTime(null)));
-       // 准备参数
-       OpSkipRecordPageReqVO reqVO = new OpSkipRecordPageReqVO();
-       reqVO.setOpTaskId(null);
-       reqVO.setSkipReasonType(null);
-       reqVO.setSkipReason(null);
-       reqVO.setOperatorId(null);
-       reqVO.setApprovedBy(null);
-       reqVO.setApproveStatus(null);
-       reqVO.setSkipTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setEffectRemark(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteOpSkipRecord_notExists() {
+        assertServiceException(() -> opSkipRecordService.deleteOpSkipRecord(randomLongId()),
+                OP_SKIP_RECORD_NOT_EXISTS);
+    }
 
-       // 调用
-       PageResult<OpSkipRecordRespVO> pageResult = opSkipRecordService.getOpSkipRecordPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbOpSkipRecord, pageResult.getList().get(0));
+    @Test
+    void testGetOpSkipRecordPage() {
+        opSkipRecordService.createOpSkipRecord(buildReqVO(reasonOnlyTaskId));
+
+        OpSkipRecordPageReqVO reqVO = new OpSkipRecordPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<OpSkipRecordRespVO> list = opSkipRecordService.getOpSkipRecordPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        // 工序任务号由模块内 JOIN 出来
+        assertEquals("OPT-REASON", list.get(0).getOpTaskNo());
     }
 
 }

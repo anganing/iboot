@@ -1,196 +1,244 @@
 package com.iboot.pf.module.mes.service.rgvtask;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.RgvTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.RgvTaskRespVO;
-import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.*;
-import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.RgvTaskRespVO;
+import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.RgvTaskSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.rgvtask.RgvTaskDO;
-import com.iboot.pf.module.mes.controller.admin.rgvtask.vo.RgvTaskRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
+import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.rgvtask.RgvTaskMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesRgvDispatchStatusEnum;
+import com.iboot.pf.module.mes.enums.MesRgvTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesRgvTaskTypeEnum;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.IDEMPOTENCY_KEY_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.RGV_TASK_EXTERNAL_NO_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.RGV_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.RGV_TASK_SAME_STATION;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.RGV_TASK_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link RgvTaskServiceImpl} 的单元测试类
- *
- * @author iboot
+ * RGV 流转任务 Service 测试：起终点不能相同、外部任务号按系统唯一、已下发禁改起终点与禁删、幂等键唯一。
  */
 @Import(RgvTaskServiceImpl.class)
-public class RgvTaskServiceImplTest extends BaseDbUnitTest {
+class RgvTaskServiceImplTest extends BaseDbUnitTest {
+
+    private static final String EXTERNAL_SYSTEM = "WCS-A";
 
     @Resource
-    private RgvTaskServiceImpl rgvTaskService;
-
+    private RgvTaskService rgvTaskService;
     @Resource
     private RgvTaskMapper rgvTaskMapper;
+    @Resource
+    private WorkOrderMapper workOrderMapper;
+    @Resource
+    private OpTaskMapper opTaskMapper;
 
-    @Test
-    public void testCreateRgvTask_success() {
-        // 准备参数
-        RgvTaskSaveReqVO createReqVO = randomPojo(RgvTaskSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long rgvTaskId = rgvTaskService.createRgvTask(createReqVO);
-        // 断言
-        assertNotNull(rgvTaskId);
-        // 校验记录的属性是否正确
-        RgvTaskDO rgvTask = rgvTaskMapper.selectById(rgvTaskId);
-        assertPojoEquals(createReqVO, rgvTask, "id");
+    private Long workOrderId;
+    private Long opTaskId;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "RGV0001" : invocation.getArgument(1));
+        WorkOrderDO workOrder = new WorkOrderDO().setWorkOrderNo("WO-0001").setProdOrderId(1L);
+        workOrderMapper.insert(workOrder);
+        workOrderId = workOrder.getId();
+        OpTaskDO opTask = new OpTaskDO().setTaskNo("OPT-0001").setWorkOrderId(workOrderId).setRouteOpId(31L);
+        opTaskMapper.insert(opTask);
+        opTaskId = opTask.getId();
+    }
+
+    private RgvTaskSaveReqVO buildReqVO(String taskNo, String externalTaskNo) {
+        RgvTaskSaveReqVO reqVO = new RgvTaskSaveReqVO();
+        reqVO.setTaskNo(taskNo);
+        reqVO.setExternalTaskNo(externalTaskNo);
+        reqVO.setTaskType(MesRgvTaskTypeEnum.STATION_TRANSFER.name());
+        reqVO.setWorkOrderId(workOrderId);
+        reqVO.setOpTaskId(opTaskId);
+        reqVO.setTargetOpTaskId(MesConstants.NONE_ID);
+        reqVO.setFromStationId(1L);
+        reqVO.setToStationId(2L);
+        reqVO.setCarrierNo("TRAY-001");
+        reqVO.setExternalSystemCode(EXTERNAL_SYSTEM);
+        reqVO.setDispatchStatus(MesRgvDispatchStatusEnum.PENDING.name());
+        reqVO.setStatus(MesRgvTaskStatusEnum.CREATED.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateRgvTask_success() {
-        // mock 数据
-        RgvTaskDO dbRgvTask = randomPojo(RgvTaskDO.class);
-        rgvTaskMapper.insert(dbRgvTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        RgvTaskSaveReqVO updateReqVO = randomPojo(RgvTaskSaveReqVO.class, o -> {
-            o.setId(dbRgvTask.getId()); // 设置更新的 ID
-        });
+    void testCreateRgvTask_blankNoFilledByRule() {
+        Long id = rgvTaskService.createRgvTask(buildReqVO(null, "EXT-001"));
 
-        // 调用
+        RgvTaskDO rgvTask = rgvTaskMapper.selectById(id);
+        assertNotNull(rgvTask);
+        assertEquals("RGV0001", rgvTask.getTaskNo());
+        assertEquals(MesConstants.INIT_VERSION, rgvTask.getVersion());
+    }
+
+    @Test
+    void testCreateRgvTask_workOrderNotExists() {
+        RgvTaskSaveReqVO reqVO = buildReqVO("RGV-A", "EXT-001");
+        reqVO.setWorkOrderId(randomLongId());
+
+        assertServiceException(() -> rgvTaskService.createRgvTask(reqVO), WORK_ORDER_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateRgvTask_opTaskNotExists() {
+        RgvTaskSaveReqVO reqVO = buildReqVO("RGV-A", "EXT-001");
+        reqVO.setOpTaskId(randomLongId());
+
+        assertServiceException(() -> rgvTaskService.createRgvTask(reqVO), OP_TASK_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateRgvTask_sameStationRejected() {
+        RgvTaskSaveReqVO reqVO = buildReqVO("RGV-A", "EXT-001");
+        reqVO.setToStationId(reqVO.getFromStationId());
+
+        assertServiceException(() -> rgvTaskService.createRgvTask(reqVO), RGV_TASK_SAME_STATION);
+    }
+
+    @Test
+    void testCreateRgvTask_duplicateExternalNoRejected() {
+        rgvTaskService.createRgvTask(buildReqVO("RGV-A", "EXT-001"));
+
+        assertServiceException(() -> rgvTaskService.createRgvTask(buildReqVO("RGV-B", "EXT-001")),
+                RGV_TASK_EXTERNAL_NO_DUPLICATE);
+    }
+
+    @Test
+    void testCreateRgvTask_sameExternalNoDifferentSystemAccepted() {
+        rgvTaskService.createRgvTask(buildReqVO("RGV-A", "EXT-001"));
+
+        RgvTaskSaveReqVO other = buildReqVO("RGV-B", "EXT-001");
+        other.setExternalSystemCode("WCS-B");
+        // 唯一键是外部系统 + 外部任务号，不同系统各自编号不冲突
+        assertNotNull(rgvTaskService.createRgvTask(other));
+    }
+
+    @Test
+    void testCreateRgvTask_duplicateIdempotencyKeyRejected() {
+        RgvTaskSaveReqVO first = buildReqVO("RGV-A", "EXT-001");
+        first.setIdempotencyKey("OPT-0001:MOVE");
+        rgvTaskService.createRgvTask(first);
+
+        RgvTaskSaveReqVO second = buildReqVO("RGV-B", "EXT-002");
+        second.setIdempotencyKey("OPT-0001:MOVE");
+        assertServiceException(() -> rgvTaskService.createRgvTask(second), IDEMPOTENCY_KEY_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateRgvTask_sentStationChangeRejected() {
+        RgvTaskSaveReqVO createReqVO = buildReqVO("RGV-A", "EXT-001");
+        createReqVO.setDispatchStatus(MesRgvDispatchStatusEnum.SENT.name());
+        Long id = rgvTaskService.createRgvTask(createReqVO);
+
+        RgvTaskSaveReqVO updateReqVO = buildReqVO("RGV-A", "EXT-001");
+        updateReqVO.setId(id);
+        updateReqVO.setToStationId(3L);
+        // 已下发的任务改搬运终点会与外部调度系统不一致
+        assertServiceException(() -> rgvTaskService.updateRgvTask(updateReqVO), RGV_TASK_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateRgvTask_sentRemarkAllowed() {
+        RgvTaskSaveReqVO createReqVO = buildReqVO("RGV-A", "EXT-001");
+        createReqVO.setDispatchStatus(MesRgvDispatchStatusEnum.SENT.name());
+        Long id = rgvTaskService.createRgvTask(createReqVO);
+
+        RgvTaskSaveReqVO updateReqVO = buildReqVO("RGV-A", "EXT-001");
+        updateReqVO.setId(id);
+        updateReqVO.setDispatchStatus(MesRgvDispatchStatusEnum.SENT.name());
+        updateReqVO.setRemark("补充调度说明");
         rgvTaskService.updateRgvTask(updateReqVO);
-        // 校验是否更新正确
-        RgvTaskDO rgvTask = rgvTaskMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, rgvTask);
+
+        assertEquals("补充调度说明", rgvTaskMapper.selectById(id).getRemark());
     }
 
     @Test
-    public void testUpdateRgvTask_notExists() {
-        // 准备参数
-        RgvTaskSaveReqVO updateReqVO = randomPojo(RgvTaskSaveReqVO.class);
+    void testUpdateRgvTask_notExists() {
+        RgvTaskSaveReqVO updateReqVO = buildReqVO("RGV-A", "EXT-001");
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
         assertServiceException(() -> rgvTaskService.updateRgvTask(updateReqVO), RGV_TASK_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteRgvTask_success() {
-        // mock 数据
-        RgvTaskDO dbRgvTask = randomPojo(RgvTaskDO.class);
-        rgvTaskMapper.insert(dbRgvTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbRgvTask.getId();
+    void testDeleteRgvTask_success() {
+        Long id = rgvTaskService.createRgvTask(buildReqVO("RGV-A", "EXT-001"));
 
-        // 调用
         rgvTaskService.deleteRgvTask(id);
-       // 校验数据不存在了
-       assertNull(rgvTaskMapper.selectById(id));
+
+        assertNull(rgvTaskMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteRgvTask_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteRgvTask_sentRejected() {
+        RgvTaskSaveReqVO createReqVO = buildReqVO("RGV-A", "EXT-001");
+        createReqVO.setDispatchStatus(MesRgvDispatchStatusEnum.SENT.name());
+        Long id = rgvTaskService.createRgvTask(createReqVO);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> rgvTaskService.deleteRgvTask(id), RGV_TASK_NOT_EXISTS);
+        assertServiceException(() -> rgvTaskService.deleteRgvTask(id), RGV_TASK_STATUS_INVALID);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetRgvTaskPage() {
-       // mock 数据
-       RgvTaskDO dbRgvTask = randomPojo(RgvTaskDO.class, o -> { // 等会查询到
-           o.setTaskNo(null);
-           o.setExternalTaskNo(null);
-           o.setTaskType(null);
-           o.setWorkOrderId(null);
-           o.setOpTaskId(null);
-           o.setTargetOpTaskId(null);
-           o.setFromStationId(null);
-           o.setToStationId(null);
-           o.setCarrierNo(null);
-           o.setExternalSystemCode(null);
-           o.setDispatchStatus(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setCompletedTime(null);
-           o.setVersion(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       rgvTaskMapper.insert(dbRgvTask);
-       // 测试 taskNo 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setTaskNo(null)));
-       // 测试 externalTaskNo 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setExternalTaskNo(null)));
-       // 测试 taskType 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setTaskType(null)));
-       // 测试 workOrderId 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setWorkOrderId(null)));
-       // 测试 opTaskId 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setOpTaskId(null)));
-       // 测试 targetOpTaskId 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setTargetOpTaskId(null)));
-       // 测试 fromStationId 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setFromStationId(null)));
-       // 测试 toStationId 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setToStationId(null)));
-       // 测试 carrierNo 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setCarrierNo(null)));
-       // 测试 externalSystemCode 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setExternalSystemCode(null)));
-       // 测试 dispatchStatus 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setDispatchStatus(null)));
-       // 测试 status 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setIdempotencyKey(null)));
-       // 测试 completedTime 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setCompletedTime(null)));
-       // 测试 version 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setVersion(null)));
-       // 测试 remark 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       rgvTaskMapper.insert(cloneIgnoreId(dbRgvTask, o -> o.setCreateTime(null)));
-       // 准备参数
-       RgvTaskPageReqVO reqVO = new RgvTaskPageReqVO();
-       reqVO.setTaskNo(null);
-       reqVO.setExternalTaskNo(null);
-       reqVO.setTaskType(null);
-       reqVO.setWorkOrderId(null);
-       reqVO.setOpTaskId(null);
-       reqVO.setTargetOpTaskId(null);
-       reqVO.setFromStationId(null);
-       reqVO.setToStationId(null);
-       reqVO.setCarrierNo(null);
-       reqVO.setExternalSystemCode(null);
-       reqVO.setDispatchStatus(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setCompletedTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setVersion(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteRgvTaskList_sentRejected() {
+        Long first = rgvTaskService.createRgvTask(buildReqVO("RGV-A", "EXT-001"));
+        RgvTaskSaveReqVO sent = buildReqVO("RGV-B", "EXT-002");
+        sent.setDispatchStatus(MesRgvDispatchStatusEnum.SENT.name());
+        Long second = rgvTaskService.createRgvTask(sent);
 
-       // 调用
-       PageResult<RgvTaskRespVO> pageResult = rgvTaskService.getRgvTaskPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbRgvTask, pageResult.getList().get(0));
+        assertServiceException(() -> rgvTaskService.deleteRgvTaskListByIds(List.of(first, second)),
+                RGV_TASK_STATUS_INVALID);
+        assertNotNull(rgvTaskMapper.selectById(first));
+    }
+
+    @Test
+    void testGetRgvTaskPage() {
+        rgvTaskService.createRgvTask(buildReqVO("RGV-A", "EXT-001"));
+
+        RgvTaskPageReqVO reqVO = new RgvTaskPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<RgvTaskRespVO> list = rgvTaskService.getRgvTaskPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("RGV-A", list.get(0).getTaskNo());
     }
 
 }

@@ -1,184 +1,208 @@
 package com.iboot.pf.module.mes.service.qcresult;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultRespVO;
-import com.iboot.pf.module.mes.controller.admin.qcresult.vo.*;
-import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultRespVO;
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.defect.DefectDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcitem.QcItemDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
-import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
+import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.enums.MesQcItemConclusionEnum;
+import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
+import com.iboot.pf.module.mes.service.qctask.QcTaskService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_CONCLUSION_CONFLICT;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_HAS_DEFECT;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_SAMPLE_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_TASK_DONE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link QcResultServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 检验结果 Service 测试：任务完成后禁改、检验项快照带出、结论与合格标记一致、样本序号唯一、已挂缺陷禁删。
  */
 @Import(QcResultServiceImpl.class)
-public class QcResultServiceImplTest extends BaseDbUnitTest {
+class QcResultServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long RUNNING_TASK = 1L;
+    private static final Long DONE_TASK = 2L;
 
     @Resource
-    private QcResultServiceImpl qcResultService;
-
+    private QcResultService qcResultService;
     @Resource
     private QcResultMapper qcResultMapper;
+    @Resource
+    private QcItemMapper qcItemMapper;
+    @Resource
+    private DefectMapper defectMapper;
 
-    @Test
-    public void testCreateQcResult_success() {
-        // 准备参数
-        QcResultSaveReqVO createReqVO = randomPojo(QcResultSaveReqVO.class).setId(null);
+    @MockitoBean
+    private QcTaskService qcTaskService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long qcResultId = qcResultService.createQcResult(createReqVO);
-        // 断言
-        assertNotNull(qcResultId);
-        // 校验记录的属性是否正确
-        QcResultDO qcResult = qcResultMapper.selectById(qcResultId);
-        assertPojoEquals(createReqVO, qcResult, "id");
+    private Long itemId;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(qcTaskService.validateQcTaskExists(eq(RUNNING_TASK))).thenReturn(new QcTaskDO()
+                .setId(RUNNING_TASK).setStatus(MesQcTaskStatusEnum.INSPECTING.name()));
+        when(qcTaskService.validateQcTaskExists(eq(DONE_TASK))).thenReturn(new QcTaskDO()
+                .setId(DONE_TASK).setStatus(MesQcTaskStatusEnum.DONE.name()));
+        QcItemDO qcItem = new QcItemDO().setPlanId(1L).setItemCode("IT-01").setItemName("外观检查");
+        qcItemMapper.insert(qcItem);
+        itemId = qcItem.getId();
+    }
+
+    private QcResultSaveReqVO buildReqVO(Long taskId, Integer sampleNo) {
+        QcResultSaveReqVO reqVO = new QcResultSaveReqVO();
+        reqVO.setTaskId(taskId);
+        reqVO.setItemId(itemId);
+        reqVO.setSampleNo(sampleNo);
+        reqVO.setActualValue("合格");
+        reqVO.setPassFlag(Boolean.TRUE);
+        reqVO.setInspectorId(1L);
+        reqVO.setQtyQualified(new BigDecimal("1"));
+        reqVO.setQtyRejected(BigDecimal.ZERO);
+        reqVO.setConclusion(MesQcItemConclusionEnum.PASS.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateQcResult_success() {
-        // mock 数据
-        QcResultDO dbQcResult = randomPojo(QcResultDO.class);
-        qcResultMapper.insert(dbQcResult);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        QcResultSaveReqVO updateReqVO = randomPojo(QcResultSaveReqVO.class, o -> {
-            o.setId(dbQcResult.getId()); // 设置更新的 ID
-        });
+    void testCreateQcResult_itemSnapshotFilled() {
+        Long id = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
 
-        // 调用
+        QcResultDO qcResult = qcResultMapper.selectById(id);
+        assertNotNull(qcResult);
+        // 检验项编码与名称是快照，由后端从检验项目带出
+        assertEquals("IT-01", qcResult.getItemCode());
+        assertEquals("外观检查", qcResult.getItemName());
+        // 检验时间留空取当前时间，避免流水没有时间戳
+        assertNotNull(qcResult.getInspectTime());
+    }
+
+    @Test
+    void testCreateQcResult_taskDoneRejected() {
+        assertServiceException(() -> qcResultService.createQcResult(buildReqVO(DONE_TASK, 1)), QC_RESULT_TASK_DONE);
+    }
+
+    @Test
+    void testCreateQcResult_itemNotExists() {
+        QcResultSaveReqVO reqVO = buildReqVO(RUNNING_TASK, 1);
+        reqVO.setItemId(randomLongId());
+
+        assertServiceException(() -> qcResultService.createQcResult(reqVO), QC_ITEM_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateQcResult_conclusionConflict() {
+        QcResultSaveReqVO reqVO = buildReqVO(RUNNING_TASK, 1);
+        reqVO.setPassFlag(Boolean.FALSE);
+        reqVO.setConclusion(MesQcItemConclusionEnum.PASS.name());
+
+        // 结论与合格标记互相矛盾时报表统计口径就乱了，必须拦住
+        assertServiceException(() -> qcResultService.createQcResult(reqVO), QC_RESULT_CONCLUSION_CONFLICT);
+    }
+
+    @Test
+    void testCreateQcResult_duplicateSampleRejected() {
+        qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+
+        assertServiceException(() -> qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1)),
+                QC_RESULT_SAMPLE_DUPLICATE);
+    }
+
+    @Test
+    void testCreateQcResult_differentSampleAccepted() {
+        qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+
+        assertNotNull(qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 2)));
+    }
+
+    @Test
+    void testUpdateQcResult_keepOwnSample() {
+        Long id = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+
+        QcResultSaveReqVO updateReqVO = buildReqVO(RUNNING_TASK, 1);
+        updateReqVO.setId(id);
+        updateReqVO.setActualValue("复检合格");
         qcResultService.updateQcResult(updateReqVO);
-        // 校验是否更新正确
-        QcResultDO qcResult = qcResultMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, qcResult);
+
+        assertEquals("复检合格", qcResultMapper.selectById(id).getActualValue());
     }
 
     @Test
-    public void testUpdateQcResult_notExists() {
-        // 准备参数
-        QcResultSaveReqVO updateReqVO = randomPojo(QcResultSaveReqVO.class);
+    void testUpdateQcResult_notExists() {
+        QcResultSaveReqVO updateReqVO = buildReqVO(RUNNING_TASK, 1);
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
         assertServiceException(() -> qcResultService.updateQcResult(updateReqVO), QC_RESULT_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteQcResult_success() {
-        // mock 数据
-        QcResultDO dbQcResult = randomPojo(QcResultDO.class);
-        qcResultMapper.insert(dbQcResult);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbQcResult.getId();
+    void testDeleteQcResult_success() {
+        Long id = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
 
-        // 调用
         qcResultService.deleteQcResult(id);
-       // 校验数据不存在了
-       assertNull(qcResultMapper.selectById(id));
+
+        assertNull(qcResultMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteQcResult_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteQcResult_hasDefectRejected() {
+        Long id = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+        defectMapper.insert(new DefectDO().setTaskId(RUNNING_TASK).setResultId(id).setDefectCode("DEF-001"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> qcResultService.deleteQcResult(id), QC_RESULT_NOT_EXISTS);
+        assertServiceException(() -> qcResultService.deleteQcResult(id), QC_RESULT_HAS_DEFECT);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetQcResultPage() {
-       // mock 数据
-       QcResultDO dbQcResult = randomPojo(QcResultDO.class, o -> { // 等会查询到
-           o.setTaskId(null);
-           o.setItemId(null);
-           o.setSampleNo(null);
-           o.setItemCode(null);
-           o.setItemName(null);
-           o.setActualValue(null);
-           o.setPassFlag(null);
-           o.setInspectorId(null);
-           o.setInspectTime(null);
-           o.setQtyQualified(null);
-           o.setQtyRejected(null);
-           o.setConclusion(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       qcResultMapper.insert(dbQcResult);
-       // 测试 taskId 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setTaskId(null)));
-       // 测试 itemId 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setItemId(null)));
-       // 测试 sampleNo 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setSampleNo(null)));
-       // 测试 itemCode 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setItemCode(null)));
-       // 测试 itemName 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setItemName(null)));
-       // 测试 actualValue 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setActualValue(null)));
-       // 测试 passFlag 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setPassFlag(null)));
-       // 测试 inspectorId 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setInspectorId(null)));
-       // 测试 inspectTime 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setInspectTime(null)));
-       // 测试 qtyQualified 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setQtyQualified(null)));
-       // 测试 qtyRejected 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setQtyRejected(null)));
-       // 测试 conclusion 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setConclusion(null)));
-       // 测试 remark 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       qcResultMapper.insert(cloneIgnoreId(dbQcResult, o -> o.setCreateTime(null)));
-       // 准备参数
-       QcResultPageReqVO reqVO = new QcResultPageReqVO();
-       reqVO.setTaskId(null);
-       reqVO.setItemId(null);
-       reqVO.setSampleNo(null);
-       reqVO.setItemCode(null);
-       reqVO.setItemName(null);
-       reqVO.setActualValue(null);
-       reqVO.setPassFlag(null);
-       reqVO.setInspectorId(null);
-       reqVO.setInspectTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setQtyQualified(null);
-       reqVO.setQtyRejected(null);
-       reqVO.setConclusion(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteQcResultList_hasDefectRejected() {
+        Long first = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+        Long second = qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 2));
+        defectMapper.insert(new DefectDO().setTaskId(RUNNING_TASK).setResultId(second).setDefectCode("DEF-001"));
 
-       // 调用
-       PageResult<QcResultRespVO> pageResult = qcResultService.getQcResultPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbQcResult, pageResult.getList().get(0));
+        assertServiceException(() -> qcResultService.deleteQcResultListByIds(List.of(first, second)),
+                QC_RESULT_HAS_DEFECT);
+        assertNotNull(qcResultMapper.selectById(first));
+    }
+
+    @Test
+    void testGetQcResultPage() {
+        qcResultService.createQcResult(buildReqVO(RUNNING_TASK, 1));
+
+        QcResultPageReqVO reqVO = new QcResultPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<QcResultRespVO> list = qcResultService.getQcResultPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("IT-01", list.get(0).getItemCode());
     }
 
 }

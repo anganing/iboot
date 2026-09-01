@@ -1,196 +1,226 @@
 package com.iboot.pf.module.mes.service.prodreport;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportRespVO;
-import com.iboot.pf.module.mes.controller.admin.prodreport.vo.*;
-import com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportRespVO;
+import com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodreport.ProdReportDO;
-import com.iboot.pf.module.mes.controller.admin.prodreport.vo.ProdReportRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
+import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.prodreport.ProdReportMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesProdReportStatusEnum;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.IDEMPOTENCY_KEY_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_QTY_EMPTY;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_TIME_INVALID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link ProdReportServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 生产报工 Service 测试：单据链从工序任务反查、数量不能全零、结束时间不早于开始时间、已确认禁改禁删、幂等键唯一。
  */
 @Import(ProdReportServiceImpl.class)
-public class ProdReportServiceImplTest extends BaseDbUnitTest {
+class ProdReportServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private ProdReportServiceImpl prodReportService;
-
+    private ProdReportService prodReportService;
     @Resource
     private ProdReportMapper prodReportMapper;
+    @Resource
+    private OpTaskMapper opTaskMapper;
+    @Resource
+    private WorkOrderMapper workOrderMapper;
 
-    @Test
-    public void testCreateProdReport_success() {
-        // 准备参数
-        ProdReportSaveReqVO createReqVO = randomPojo(ProdReportSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long prodReportId = prodReportService.createProdReport(createReqVO);
-        // 断言
-        assertNotNull(prodReportId);
-        // 校验记录的属性是否正确
-        ProdReportDO prodReport = prodReportMapper.selectById(prodReportId);
-        assertPojoEquals(createReqVO, prodReport, "id");
+    private Long opTaskId;
+    private Long workOrderId;
+    private static final Long PROD_ORDER_ID = 9L;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "RPT0001" : invocation.getArgument(1));
+        WorkOrderDO workOrder = new WorkOrderDO().setWorkOrderNo("WO-0001").setProdOrderId(PROD_ORDER_ID);
+        workOrderMapper.insert(workOrder);
+        workOrderId = workOrder.getId();
+        OpTaskDO opTask = new OpTaskDO().setTaskNo("OPT-0001").setWorkOrderId(workOrderId).setRouteOpId(31L);
+        opTaskMapper.insert(opTask);
+        opTaskId = opTask.getId();
+    }
+
+    private ProdReportSaveReqVO buildReqVO(String reportNo) {
+        ProdReportSaveReqVO reqVO = new ProdReportSaveReqVO();
+        reqVO.setReportNo(reportNo);
+        reqVO.setOpTaskId(opTaskId);
+        reqVO.setWorkerId(1L);
+        reqVO.setResId(MesConstants.NONE_ID);
+        reqVO.setShiftId(MesConstants.NONE_ID);
+        reqVO.setQtyGood(new BigDecimal("10"));
+        reqVO.setQtyScrap(BigDecimal.ZERO);
+        reqVO.setQtyRework(BigDecimal.ZERO);
+        reqVO.setStartTime(LocalDateTime.now().minusHours(2));
+        reqVO.setEndTime(LocalDateTime.now().minusHours(1));
+        reqVO.setStatus(MesProdReportStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateProdReport_success() {
-        // mock 数据
-        ProdReportDO dbProdReport = randomPojo(ProdReportDO.class);
-        prodReportMapper.insert(dbProdReport);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        ProdReportSaveReqVO updateReqVO = randomPojo(ProdReportSaveReqVO.class, o -> {
-            o.setId(dbProdReport.getId()); // 设置更新的 ID
-        });
+    void testCreateProdReport_inheritOrderChain() {
+        Long id = prodReportService.createProdReport(buildReqVO(null));
 
-        // 调用
+        ProdReportDO report = prodReportMapper.selectById(id);
+        assertNotNull(report);
+        assertEquals("RPT0001", report.getReportNo());
+        // 生产工单与作业工单从工序任务反查，前端只提交工序任务
+        assertEquals(workOrderId, report.getWorkOrderId());
+        assertEquals(PROD_ORDER_ID, report.getProdOrderId());
+        // 报工时间留空取当前时间
+        assertNotNull(report.getReportTime());
+    }
+
+    @Test
+    void testCreateProdReport_opTaskNotExists() {
+        ProdReportSaveReqVO reqVO = buildReqVO("RPT-A");
+        reqVO.setOpTaskId(randomLongId());
+
+        assertServiceException(() -> prodReportService.createProdReport(reqVO), OP_TASK_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateProdReport_allQtyZeroRejected() {
+        ProdReportSaveReqVO reqVO = buildReqVO("RPT-A");
+        reqVO.setQtyGood(BigDecimal.ZERO);
+
+        // 三个数量全为零这条报工没有意义
+        assertServiceException(() -> prodReportService.createProdReport(reqVO), PROD_REPORT_QTY_EMPTY);
+    }
+
+    @Test
+    void testCreateProdReport_endBeforeStartRejected() {
+        ProdReportSaveReqVO reqVO = buildReqVO("RPT-A");
+        reqVO.setEndTime(reqVO.getStartTime().minusMinutes(1));
+
+        assertServiceException(() -> prodReportService.createProdReport(reqVO), PROD_REPORT_TIME_INVALID);
+    }
+
+    @Test
+    void testCreateProdReport_duplicateIdempotencyKeyRejected() {
+        ProdReportSaveReqVO first = buildReqVO("RPT-A");
+        first.setIdempotencyKey("SCAN:OPT-0001:1");
+        prodReportService.createProdReport(first);
+
+        ProdReportSaveReqVO second = buildReqVO("RPT-B");
+        second.setIdempotencyKey("SCAN:OPT-0001:1");
+        assertServiceException(() -> prodReportService.createProdReport(second), IDEMPOTENCY_KEY_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateProdReport_keepReportNo() {
+        Long id = prodReportService.createProdReport(buildReqVO("RPT-A"));
+
+        ProdReportSaveReqVO updateReqVO = buildReqVO("RPT-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("数量修正");
         prodReportService.updateProdReport(updateReqVO);
-        // 校验是否更新正确
-        ProdReportDO prodReport = prodReportMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, prodReport);
+
+        ProdReportDO report = prodReportMapper.selectById(id);
+        assertEquals("RPT-A", report.getReportNo());
+        assertEquals("数量修正", report.getRemark());
     }
 
     @Test
-    public void testUpdateProdReport_notExists() {
-        // 准备参数
-        ProdReportSaveReqVO updateReqVO = randomPojo(ProdReportSaveReqVO.class);
+    void testUpdateProdReport_confirmedRejected() {
+        ProdReportSaveReqVO createReqVO = buildReqVO("RPT-A");
+        createReqVO.setStatus(MesProdReportStatusEnum.CONFIRMED.name());
+        Long id = prodReportService.createProdReport(createReqVO);
 
-        // 调用, 并断言异常
+        ProdReportSaveReqVO updateReqVO = buildReqVO("RPT-A");
+        updateReqVO.setId(id);
+        // 已确认的报工数量已推进到工序任务，不允许再改
+        assertServiceException(() -> prodReportService.updateProdReport(updateReqVO), PROD_REPORT_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateProdReport_notExists() {
+        ProdReportSaveReqVO updateReqVO = buildReqVO("RPT-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> prodReportService.updateProdReport(updateReqVO), PROD_REPORT_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteProdReport_success() {
-        // mock 数据
-        ProdReportDO dbProdReport = randomPojo(ProdReportDO.class);
-        prodReportMapper.insert(dbProdReport);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbProdReport.getId();
+    void testDeleteProdReport_success() {
+        Long id = prodReportService.createProdReport(buildReqVO("RPT-A"));
 
-        // 调用
         prodReportService.deleteProdReport(id);
-       // 校验数据不存在了
-       assertNull(prodReportMapper.selectById(id));
+
+        assertNull(prodReportMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteProdReport_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteProdReport_confirmedRejected() {
+        ProdReportSaveReqVO createReqVO = buildReqVO("RPT-A");
+        createReqVO.setStatus(MesProdReportStatusEnum.CONFIRMED.name());
+        Long id = prodReportService.createProdReport(createReqVO);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> prodReportService.deleteProdReport(id), PROD_REPORT_NOT_EXISTS);
+        assertServiceException(() -> prodReportService.deleteProdReport(id), PROD_REPORT_STATUS_INVALID);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetProdReportPage() {
-       // mock 数据
-       ProdReportDO dbProdReport = randomPojo(ProdReportDO.class, o -> { // 等会查询到
-           o.setReportNo(null);
-           o.setProdOrderId(null);
-           o.setWorkOrderId(null);
-           o.setOpTaskId(null);
-           o.setWorkerId(null);
-           o.setResId(null);
-           o.setShiftId(null);
-           o.setQtyGood(null);
-           o.setQtyScrap(null);
-           o.setQtyRework(null);
-           o.setStartTime(null);
-           o.setEndTime(null);
-           o.setReportTime(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       prodReportMapper.insert(dbProdReport);
-       // 测试 reportNo 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setReportNo(null)));
-       // 测试 prodOrderId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setProdOrderId(null)));
-       // 测试 workOrderId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setWorkOrderId(null)));
-       // 测试 opTaskId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setOpTaskId(null)));
-       // 测试 workerId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setWorkerId(null)));
-       // 测试 resId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setResId(null)));
-       // 测试 shiftId 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setShiftId(null)));
-       // 测试 qtyGood 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setQtyGood(null)));
-       // 测试 qtyScrap 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setQtyScrap(null)));
-       // 测试 qtyRework 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setQtyRework(null)));
-       // 测试 startTime 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setStartTime(null)));
-       // 测试 endTime 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setEndTime(null)));
-       // 测试 reportTime 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setReportTime(null)));
-       // 测试 status 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setIdempotencyKey(null)));
-       // 测试 remark 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       prodReportMapper.insert(cloneIgnoreId(dbProdReport, o -> o.setCreateTime(null)));
-       // 准备参数
-       ProdReportPageReqVO reqVO = new ProdReportPageReqVO();
-       reqVO.setReportNo(null);
-       reqVO.setProdOrderId(null);
-       reqVO.setWorkOrderId(null);
-       reqVO.setOpTaskId(null);
-       reqVO.setWorkerId(null);
-       reqVO.setResId(null);
-       reqVO.setShiftId(null);
-       reqVO.setQtyGood(null);
-       reqVO.setQtyScrap(null);
-       reqVO.setQtyRework(null);
-       reqVO.setStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setReportTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteProdReportList_confirmedRejected() {
+        Long first = prodReportService.createProdReport(buildReqVO("RPT-A"));
+        ProdReportSaveReqVO confirmed = buildReqVO("RPT-B");
+        confirmed.setStatus(MesProdReportStatusEnum.CONFIRMED.name());
+        Long second = prodReportService.createProdReport(confirmed);
 
-       // 调用
-       PageResult<ProdReportRespVO> pageResult = prodReportService.getProdReportPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbProdReport, pageResult.getList().get(0));
+        assertServiceException(() -> prodReportService.deleteProdReportListByIds(List.of(first, second)),
+                PROD_REPORT_STATUS_INVALID);
+        assertNotNull(prodReportMapper.selectById(first));
+    }
+
+    @Test
+    void testGetProdReportPage() {
+        prodReportService.createProdReport(buildReqVO("RPT-A"));
+
+        ProdReportPageReqVO reqVO = new ProdReportPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<ProdReportRespVO> list = prodReportService.getProdReportPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("RPT-A", list.get(0).getReportNo());
     }
 
 }

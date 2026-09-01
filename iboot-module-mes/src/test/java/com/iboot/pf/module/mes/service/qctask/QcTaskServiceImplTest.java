@@ -1,244 +1,224 @@
 package com.iboot.pf.module.mes.service.qctask;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskRespVO;
-import com.iboot.pf.module.mes.controller.admin.qctask.vo.*;
-import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskRespVO;
+import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
 import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
-import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskRespVO;
+import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
 import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
+import com.iboot.pf.module.mes.service.MesTestFixtures;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.qcplan.QcPlanService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.IDEMPOTENCY_KEY_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_HAS_RESULT;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_NOT_PUBLISHED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_SAMPLE_QTY_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_STATUS_INVALID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link QcTaskServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 质检任务 Service 测试：只能引用已发布方案、方案版本与物料快照锁定、抽样数量不超送检数量、已录结果禁删。
  */
 @Import(QcTaskServiceImpl.class)
-public class QcTaskServiceImplTest extends BaseDbUnitTest {
+class QcTaskServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long PUBLISHED_PLAN = 1L;
+    private static final Long DRAFT_PLAN = 2L;
 
     @Resource
-    private QcTaskServiceImpl qcTaskService;
-
+    private QcTaskService qcTaskService;
     @Resource
     private QcTaskMapper qcTaskMapper;
+    @Resource
+    private QcResultMapper qcResultMapper;
 
-    @Test
-    public void testCreateQcTask_success() {
-        // 准备参数
-        QcTaskSaveReqVO createReqVO = randomPojo(QcTaskSaveReqVO.class).setId(null);
+    @MockitoBean
+    private QcPlanService qcPlanService;
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long qcTaskId = qcTaskService.createQcTask(createReqVO);
-        // 断言
-        assertNotNull(qcTaskId);
-        // 校验记录的属性是否正确
-        QcTaskDO qcTask = qcTaskMapper.selectById(qcTaskId);
-        assertPojoEquals(createReqVO, qcTask, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "QCT0001" : invocation.getArgument(1));
+        when(qcPlanService.validateQcPlanExists(eq(PUBLISHED_PLAN))).thenReturn(new QcPlanDO()
+                .setId(PUBLISHED_PLAN).setVersionNo("V1.0").setStatus(MesQcPlanStatusEnum.PUBLISHED.name()));
+        when(qcPlanService.validateQcPlanExists(eq(DRAFT_PLAN))).thenReturn(new QcPlanDO()
+                .setId(DRAFT_PLAN).setVersionNo("V1.0").setStatus(MesQcPlanStatusEnum.DRAFT.name()));
+        when(snapshotService.requireMaterial(any())).thenReturn(MesTestFixtures.material());
+        when(snapshotService.requireUomCode(any())).thenReturn(MesTestFixtures.uomCode());
+        when(snapshotService.lotNoOrNull(any())).thenReturn(null);
+    }
+
+    private QcTaskSaveReqVO buildReqVO(String taskNo) {
+        QcTaskSaveReqVO reqVO = new QcTaskSaveReqVO();
+        reqVO.setTaskNo(taskNo);
+        reqVO.setRuleId(MesConstants.NONE_ID);
+        reqVO.setQcPlanId(PUBLISHED_PLAN);
+        reqVO.setTriggerPoint(MesQcTriggerPointEnum.IPQC.name());
+        reqVO.setBizType(MesBizTypeEnum.OP_TASK.name());
+        reqVO.setBizNo("OPT-0001");
+        reqVO.setBizLineId(MesConstants.NONE_ID);
+        reqVO.setMatId(1L);
+        reqVO.setBatchId(MesConstants.NONE_ID);
+        reqVO.setQty(new BigDecimal("100"));
+        reqVO.setSampleQty(new BigDecimal("10"));
+        reqVO.setUomId(1L);
+        reqVO.setAssignedInspectorId(MesConstants.NONE_ID);
+        reqVO.setStatus(MesQcTaskStatusEnum.CREATED.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateQcTask_success() {
-        // mock 数据
-        QcTaskDO dbQcTask = randomPojo(QcTaskDO.class);
-        qcTaskMapper.insert(dbQcTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        QcTaskSaveReqVO updateReqVO = randomPojo(QcTaskSaveReqVO.class, o -> {
-            o.setId(dbQcTask.getId()); // 设置更新的 ID
-        });
+    void testCreateQcTask_planVersionAndSnapshotLocked() {
+        Long id = qcTaskService.createQcTask(buildReqVO(null));
 
-        // 调用
+        QcTaskDO qcTask = qcTaskMapper.selectById(id);
+        assertNotNull(qcTask);
+        assertEquals("QCT0001", qcTask.getTaskNo());
+        // 方案版本在建单时锁定，方案升版不影响历史任务的判定口径
+        assertEquals("V1.0", qcTask.getQcPlanVersion());
+        assertEquals("MAT-001", qcTask.getMatCode());
+        assertEquals("PCS", qcTask.getUomCode());
+        // 合格与不合格数量由检验结果汇总，创建时归零
+        assertEquals(0, qcTask.getQtyQualified().compareTo(BigDecimal.ZERO));
+        assertEquals(0, qcTask.getQtyRejected().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void testCreateQcTask_draftPlanRejected() {
+        QcTaskSaveReqVO reqVO = buildReqVO("QCT-A");
+        reqVO.setQcPlanId(DRAFT_PLAN);
+
+        assertServiceException(() -> qcTaskService.createQcTask(reqVO), QC_TASK_PLAN_NOT_PUBLISHED);
+    }
+
+    @Test
+    void testCreateQcTask_sampleQtyExceeded() {
+        QcTaskSaveReqVO reqVO = buildReqVO("QCT-A");
+        reqVO.setSampleQty(new BigDecimal("101"));
+
+        assertServiceException(() -> qcTaskService.createQcTask(reqVO), QC_TASK_SAMPLE_QTY_INVALID);
+    }
+
+    @Test
+    void testCreateQcTask_duplicateIdempotencyKeyRejected() {
+        QcTaskSaveReqVO first = buildReqVO("QCT-A");
+        first.setIdempotencyKey("OPT-0001:IPQC");
+        qcTaskService.createQcTask(first);
+
+        QcTaskSaveReqVO second = buildReqVO("QCT-B");
+        second.setIdempotencyKey("OPT-0001:IPQC");
+        assertServiceException(() -> qcTaskService.createQcTask(second), IDEMPOTENCY_KEY_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateQcTask_keepTaskNoAndSummaryQty() {
+        Long id = qcTaskService.createQcTask(buildReqVO("QCT-A"));
+
+        QcTaskSaveReqVO updateReqVO = buildReqVO("QCT-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setStatus(MesQcTaskStatusEnum.ASSIGNED.name());
         qcTaskService.updateQcTask(updateReqVO);
-        // 校验是否更新正确
-        QcTaskDO qcTask = qcTaskMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, qcTask);
+
+        QcTaskDO qcTask = qcTaskMapper.selectById(id);
+        assertEquals("QCT-A", qcTask.getTaskNo());
+        assertEquals(MesQcTaskStatusEnum.ASSIGNED.name(), qcTask.getStatus());
+        assertEquals(0, qcTask.getQtyQualified().compareTo(BigDecimal.ZERO));
     }
 
     @Test
-    public void testUpdateQcTask_notExists() {
-        // 准备参数
-        QcTaskSaveReqVO updateReqVO = randomPojo(QcTaskSaveReqVO.class);
+    void testUpdateQcTask_doneRejected() {
+        QcTaskSaveReqVO createReqVO = buildReqVO("QCT-A");
+        createReqVO.setStatus(MesQcTaskStatusEnum.DONE.name());
+        Long id = qcTaskService.createQcTask(createReqVO);
 
-        // 调用, 并断言异常
+        QcTaskSaveReqVO updateReqVO = buildReqVO("QCT-A");
+        updateReqVO.setId(id);
+        assertServiceException(() -> qcTaskService.updateQcTask(updateReqVO), QC_TASK_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateQcTask_notExists() {
+        QcTaskSaveReqVO updateReqVO = buildReqVO("QCT-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> qcTaskService.updateQcTask(updateReqVO), QC_TASK_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteQcTask_success() {
-        // mock 数据
-        QcTaskDO dbQcTask = randomPojo(QcTaskDO.class);
-        qcTaskMapper.insert(dbQcTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbQcTask.getId();
+    void testDeleteQcTask_success() {
+        Long id = qcTaskService.createQcTask(buildReqVO("QCT-A"));
 
-        // 调用
         qcTaskService.deleteQcTask(id);
-       // 校验数据不存在了
-       assertNull(qcTaskMapper.selectById(id));
+
+        assertNull(qcTaskMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteQcTask_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteQcTask_hasResultRejected() {
+        Long id = qcTaskService.createQcTask(buildReqVO("QCT-A"));
+        qcResultMapper.insert(new QcResultDO().setTaskId(id).setItemId(1L).setSampleNo(1));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> qcTaskService.deleteQcTask(id), QC_TASK_NOT_EXISTS);
+        assertServiceException(() -> qcTaskService.deleteQcTask(id), QC_TASK_HAS_RESULT);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetQcTaskPage() {
-       // mock 数据
-       QcTaskDO dbQcTask = randomPojo(QcTaskDO.class, o -> { // 等会查询到
-           o.setTaskNo(null);
-           o.setRuleId(null);
-           o.setQcPlanId(null);
-           o.setQcPlanVersion(null);
-           o.setTriggerPoint(null);
-           o.setBizType(null);
-           o.setBizNo(null);
-           o.setBizLineId(null);
-           o.setMatId(null);
-           o.setMatCode(null);
-           o.setMatName(null);
-           o.setMatSpec(null);
-           o.setBatchId(null);
-           o.setLotNo(null);
-           o.setQty(null);
-           o.setSampleQty(null);
-           o.setUomId(null);
-           o.setUomCode(null);
-           o.setAssignedInspectorId(null);
-           o.setInspectStartTime(null);
-           o.setInspectEndTime(null);
-           o.setConclusion(null);
-           o.setQtyQualified(null);
-           o.setQtyRejected(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setVersion(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       qcTaskMapper.insert(dbQcTask);
-       // 测试 taskNo 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setTaskNo(null)));
-       // 测试 ruleId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setRuleId(null)));
-       // 测试 qcPlanId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setQcPlanId(null)));
-       // 测试 qcPlanVersion 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setQcPlanVersion(null)));
-       // 测试 triggerPoint 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setTriggerPoint(null)));
-       // 测试 bizType 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setBizType(null)));
-       // 测试 bizNo 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setBizNo(null)));
-       // 测试 bizLineId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setBizLineId(null)));
-       // 测试 matId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setMatId(null)));
-       // 测试 matCode 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setMatCode(null)));
-       // 测试 matName 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setMatName(null)));
-       // 测试 matSpec 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setMatSpec(null)));
-       // 测试 batchId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setBatchId(null)));
-       // 测试 lotNo 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setLotNo(null)));
-       // 测试 qty 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setQty(null)));
-       // 测试 sampleQty 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setSampleQty(null)));
-       // 测试 uomId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setUomId(null)));
-       // 测试 uomCode 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setUomCode(null)));
-       // 测试 assignedInspectorId 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setAssignedInspectorId(null)));
-       // 测试 inspectStartTime 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setInspectStartTime(null)));
-       // 测试 inspectEndTime 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setInspectEndTime(null)));
-       // 测试 conclusion 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setConclusion(null)));
-       // 测试 qtyQualified 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setQtyQualified(null)));
-       // 测试 qtyRejected 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setQtyRejected(null)));
-       // 测试 status 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setIdempotencyKey(null)));
-       // 测试 version 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setVersion(null)));
-       // 测试 remark 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       qcTaskMapper.insert(cloneIgnoreId(dbQcTask, o -> o.setCreateTime(null)));
-       // 准备参数
-       QcTaskPageReqVO reqVO = new QcTaskPageReqVO();
-       reqVO.setTaskNo(null);
-       reqVO.setRuleId(null);
-       reqVO.setQcPlanId(null);
-       reqVO.setQcPlanVersion(null);
-       reqVO.setTriggerPoint(null);
-       reqVO.setBizType(null);
-       reqVO.setBizNo(null);
-       reqVO.setBizLineId(null);
-       reqVO.setMatId(null);
-       reqVO.setMatCode(null);
-       reqVO.setMatName(null);
-       reqVO.setMatSpec(null);
-       reqVO.setBatchId(null);
-       reqVO.setLotNo(null);
-       reqVO.setQty(null);
-       reqVO.setSampleQty(null);
-       reqVO.setUomId(null);
-       reqVO.setUomCode(null);
-       reqVO.setAssignedInspectorId(null);
-       reqVO.setInspectStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setInspectEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setConclusion(null);
-       reqVO.setQtyQualified(null);
-       reqVO.setQtyRejected(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setVersion(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteQcTaskList_hasResultRejected() {
+        Long first = qcTaskService.createQcTask(buildReqVO("QCT-A"));
+        Long second = qcTaskService.createQcTask(buildReqVO("QCT-B"));
+        qcResultMapper.insert(new QcResultDO().setTaskId(second).setItemId(1L).setSampleNo(1));
 
-       // 调用
-       PageResult<QcTaskRespVO> pageResult = qcTaskService.getQcTaskPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbQcTask, pageResult.getList().get(0));
+        assertServiceException(() -> qcTaskService.deleteQcTaskListByIds(List.of(first, second)),
+                QC_TASK_HAS_RESULT);
+        assertNotNull(qcTaskMapper.selectById(first));
+    }
+
+    @Test
+    void testGetQcTaskPage() {
+        qcTaskService.createQcTask(buildReqVO("QCT-A"));
+
+        QcTaskPageReqVO reqVO = new QcTaskPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<QcTaskRespVO> list = qcTaskService.getQcTaskPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("QCT-A", list.get(0).getTaskNo());
     }
 
 }

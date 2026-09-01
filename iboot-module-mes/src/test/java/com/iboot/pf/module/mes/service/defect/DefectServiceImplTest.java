@@ -1,172 +1,229 @@
 package com.iboot.pf.module.mes.service.defect;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.infra.api.file.FileApi;
+import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectFileReqVO;
+import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectRespVO;
-import com.iboot.pf.module.mes.controller.admin.defect.vo.*;
-import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectRespVO;
+import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.defect.DefectDO;
-import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.defect.DefectFileDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
+import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectFileMapper;
 import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesDefectLevelEnum;
+import com.iboot.pf.module.mes.enums.MesFileTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
+import com.iboot.pf.module.mes.service.MesTestFixtures;
+import com.iboot.pf.module.mes.service.qctask.QcTaskService;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DEFECT_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DEFECT_RESULT_TASK_NOT_MATCH;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RESULT_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link DefectServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 缺陷记录 Service 测试：缺陷代码快照落库、检验结果归属校验、附件全量替换与去签名地址落库、删除级联清理附件。
  */
 @Import(DefectServiceImpl.class)
-public class DefectServiceImplTest extends BaseDbUnitTest {
+class DefectServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long TASK_ID = 1L;
+    private static final Long OTHER_TASK_ID = 2L;
 
     @Resource
-    private DefectServiceImpl defectService;
-
+    private DefectService defectService;
     @Resource
     private DefectMapper defectMapper;
+    @Resource
+    private DefectFileMapper defectFileMapper;
+    @Resource
+    private QcResultMapper qcResultMapper;
 
-    @Test
-    public void testCreateDefect_success() {
-        // 准备参数
-        DefectSaveReqVO createReqVO = randomPojo(DefectSaveReqVO.class).setId(null);
+    @MockitoBean
+    private QcTaskService qcTaskService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private FileApi fileApi;
 
-        // 调用
-        Long defectId = defectService.createDefect(createReqVO);
-        // 断言
-        assertNotNull(defectId);
-        // 校验记录的属性是否正确
-        DefectDO defect = defectMapper.selectById(defectId);
-        assertPojoEquals(createReqVO, defect, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(qcTaskService.validateQcTaskExists(any())).thenReturn(new QcTaskDO()
+                .setId(TASK_ID).setStatus(MesQcTaskStatusEnum.INSPECTING.name()));
+        when(snapshotService.requireDefectCode(any())).thenReturn(MesTestFixtures.defectCode());
+        // 库里存去签名地址，读取时重新签发，预签名 URL 只有 24 小时有效
+        when(fileApi.presignGetUrl(any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(0) + "?sign=fresh");
+    }
+
+    private DefectSaveReqVO buildReqVO(Long resultId) {
+        DefectSaveReqVO reqVO = new DefectSaveReqVO();
+        reqVO.setTaskId(TASK_ID);
+        reqVO.setResultId(resultId);
+        reqVO.setDefectCodeId(51L);
+        reqVO.setQty(new BigDecimal("2"));
+        reqVO.setDescription("绕线端部松动");
+        reqVO.setLocation("A 面第三槽");
+        reqVO.setRemark("单测数据");
+        return reqVO;
+    }
+
+    private DefectFileReqVO buildFile(String fileName, String fileUrl) {
+        DefectFileReqVO file = new DefectFileReqVO();
+        file.setFileName(fileName);
+        file.setFileUrl(fileUrl);
+        file.setFileId(1L);
+        return file;
     }
 
     @Test
-    public void testUpdateDefect_success() {
-        // mock 数据
-        DefectDO dbDefect = randomPojo(DefectDO.class);
-        defectMapper.insert(dbDefect);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        DefectSaveReqVO updateReqVO = randomPojo(DefectSaveReqVO.class, o -> {
-            o.setId(dbDefect.getId()); // 设置更新的 ID
-        });
+    void testCreateDefect_defectCodeSnapshotFilled() {
+        Long id = defectService.createDefect(buildReqVO(MesConstants.NONE_ID));
 
-        // 调用
+        DefectDO defect = defectMapper.selectById(id);
+        assertNotNull(defect);
+        // 编码、名称、等级都是 mdm 缺陷代码库的快照，前端只选缺陷代码
+        assertEquals("DEF-001", defect.getDefectCode());
+        assertEquals("绕线松动", defect.getDefectName());
+        assertEquals(MesDefectLevelEnum.MAJOR.name(), defect.getDefectLevel());
+    }
+
+    @Test
+    void testCreateDefect_resultNotExists() {
+        assertServiceException(() -> defectService.createDefect(buildReqVO(randomLongId())), QC_RESULT_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateDefect_resultTaskNotMatch() {
+        QcResultDO qcResult = new QcResultDO().setTaskId(OTHER_TASK_ID).setItemId(1L).setSampleNo(1);
+        qcResultMapper.insert(qcResult);
+
+        // 检验结果必须属于同一质检任务，否则缺陷追溯链是错的
+        assertServiceException(() -> defectService.createDefect(buildReqVO(qcResult.getId())),
+                DEFECT_RESULT_TASK_NOT_MATCH);
+    }
+
+    @Test
+    void testCreateDefect_withFiles() {
+        DefectSaveReqVO reqVO = buildReqVO(MesConstants.NONE_ID);
+        reqVO.setFiles(List.of(
+                buildFile("缺陷照片.jpg", "http://minio/mes/defect/1.jpg?sign=old"),
+                buildFile("检验报告.pdf", "http://minio/mes/defect/1.pdf")));
+
+        Long id = defectService.createDefect(reqVO);
+
+        List<DefectFileDO> files = defectFileMapper.selectListByDefectId(id);
+        assertEquals(2, files.size());
+        // 行号按入参下标重排，从 1 开始
+        assertEquals(MesConstants.FIRST_LINE_NO, files.get(0).getSeq());
+        // 落库存去签名地址，否则隔天就打不开
+        assertEquals("http://minio/mes/defect/1.jpg", files.get(0).getFileUrl());
+        // 文件类型按文件名判定
+        assertEquals(MesFileTypeEnum.IMAGE.name(), files.get(0).getFileType());
+    }
+
+    @Test
+    void testUpdateDefect_filesReplacedEntirely() {
+        DefectSaveReqVO createReqVO = buildReqVO(MesConstants.NONE_ID);
+        createReqVO.setFiles(List.of(buildFile("旧照片.jpg", "http://minio/mes/defect/old.jpg")));
+        Long id = defectService.createDefect(createReqVO);
+
+        DefectSaveReqVO updateReqVO = buildReqVO(MesConstants.NONE_ID);
+        updateReqVO.setId(id);
+        updateReqVO.setFiles(List.of(buildFile("新照片.jpg", "http://minio/mes/defect/new.jpg")));
         defectService.updateDefect(updateReqVO);
-        // 校验是否更新正确
-        DefectDO defect = defectMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, defect);
+
+        List<DefectFileDO> files = defectFileMapper.selectListByDefectId(id);
+        // 附件走全量替换，不做逐行 diff
+        assertEquals(1, files.size());
+        assertEquals("新照片.jpg", files.get(0).getFileName());
     }
 
     @Test
-    public void testUpdateDefect_notExists() {
-        // 准备参数
-        DefectSaveReqVO updateReqVO = randomPojo(DefectSaveReqVO.class);
+    void testUpdateDefect_notExists() {
+        DefectSaveReqVO updateReqVO = buildReqVO(MesConstants.NONE_ID);
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
         assertServiceException(() -> defectService.updateDefect(updateReqVO), DEFECT_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteDefect_success() {
-        // mock 数据
-        DefectDO dbDefect = randomPojo(DefectDO.class);
-        defectMapper.insert(dbDefect);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbDefect.getId();
+    void testDeleteDefect_cascadeFiles() {
+        DefectSaveReqVO createReqVO = buildReqVO(MesConstants.NONE_ID);
+        createReqVO.setFiles(List.of(buildFile("缺陷照片.jpg", "http://minio/mes/defect/1.jpg")));
+        Long id = defectService.createDefect(createReqVO);
 
-        // 调用
         defectService.deleteDefect(id);
-       // 校验数据不存在了
-       assertNull(defectMapper.selectById(id));
+
+        assertNull(defectMapper.selectById(id));
+        // 附件先删再删主记录，避免留下孤儿附件
+        assertTrue(defectFileMapper.selectListByDefectId(id).isEmpty());
     }
 
     @Test
-    public void testDeleteDefect_notExists() {
-        // 准备参数
-        Long id = randomLongId();
-
-        // 调用, 并断言异常
-        assertServiceException(() -> defectService.deleteDefect(id), DEFECT_NOT_EXISTS);
+    void testDeleteDefect_notExists() {
+        assertServiceException(() -> defectService.deleteDefect(randomLongId()), DEFECT_NOT_EXISTS);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetDefectPage() {
-       // mock 数据
-       DefectDO dbDefect = randomPojo(DefectDO.class, o -> { // 等会查询到
-           o.setTaskId(null);
-           o.setResultId(null);
-           o.setDefectCode(null);
-           o.setDefectName(null);
-           o.setDefectLevel(null);
-           o.setQty(null);
-           o.setDescription(null);
-           o.setLocation(null);
-           o.setAttachmentUrls(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       defectMapper.insert(dbDefect);
-       // 测试 taskId 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setTaskId(null)));
-       // 测试 resultId 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setResultId(null)));
-       // 测试 defectCode 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setDefectCode(null)));
-       // 测试 defectName 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setDefectName(null)));
-       // 测试 defectLevel 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setDefectLevel(null)));
-       // 测试 qty 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setQty(null)));
-       // 测试 description 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setDescription(null)));
-       // 测试 location 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setLocation(null)));
-       // 测试 attachmentUrls 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setAttachmentUrls(null)));
-       // 测试 remark 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       defectMapper.insert(cloneIgnoreId(dbDefect, o -> o.setCreateTime(null)));
-       // 准备参数
-       DefectPageReqVO reqVO = new DefectPageReqVO();
-       reqVO.setTaskId(null);
-       reqVO.setResultId(null);
-       reqVO.setDefectCode(null);
-       reqVO.setDefectName(null);
-       reqVO.setDefectLevel(null);
-       reqVO.setQty(null);
-       reqVO.setDescription(null);
-       reqVO.setLocation(null);
-       reqVO.setAttachmentUrls(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteDefectList_cascadeFiles() {
+        DefectSaveReqVO first = buildReqVO(MesConstants.NONE_ID);
+        first.setFiles(List.of(buildFile("a.jpg", "http://minio/a.jpg")));
+        Long firstId = defectService.createDefect(first);
+        Long secondId = defectService.createDefect(buildReqVO(MesConstants.NONE_ID));
 
-       // 调用
-       PageResult<DefectRespVO> pageResult = defectService.getDefectPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbDefect, pageResult.getList().get(0));
+        defectService.deleteDefectListByIds(List.of(firstId, secondId));
+
+        assertNull(defectMapper.selectById(firstId));
+        assertNull(defectMapper.selectById(secondId));
+        assertTrue(defectFileMapper.selectListByDefectId(firstId).isEmpty());
+    }
+
+    @Test
+    void testGetDefect_fileUrlResigned() {
+        DefectSaveReqVO createReqVO = buildReqVO(MesConstants.NONE_ID);
+        createReqVO.setFiles(List.of(buildFile("缺陷照片.jpg", "http://minio/mes/defect/1.jpg")));
+        Long id = defectService.createDefect(createReqVO);
+
+        DefectRespVO respVO = defectService.getDefect(id);
+
+        assertNotNull(respVO);
+        assertEquals(1, respVO.getFiles().size());
+        // 读取时重新签发，前端拿到的才是可访问地址
+        assertEquals("http://minio/mes/defect/1.jpg?sign=fresh", respVO.getFiles().get(0).getFileUrl());
+    }
+
+    @Test
+    void testGetDefectPage() {
+        defectService.createDefect(buildReqVO(MesConstants.NONE_ID));
+
+        DefectPageReqVO reqVO = new DefectPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<DefectRespVO> list = defectService.getDefectPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("DEF-001", list.get(0).getDefectCode());
     }
 
 }

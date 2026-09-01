@@ -1,204 +1,194 @@
 package com.iboot.pf.module.mes.service.proddemand;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.proddemand.vo.ProdDemandPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.proddemand.vo.ProdDemandRespVO;
-import com.iboot.pf.module.mes.controller.admin.proddemand.vo.*;
-import com.iboot.pf.module.mes.controller.admin.proddemand.vo.ProdDemandRespVO;
+import com.iboot.pf.module.mes.controller.admin.proddemand.vo.ProdDemandSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.proddemand.ProdDemandDO;
-import com.iboot.pf.module.mes.controller.admin.proddemand.vo.ProdDemandRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.proddemand.ProdDemandMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesDemandSourceTypeEnum;
+import com.iboot.pf.module.mes.enums.MesDemandStatusEnum;
+import com.iboot.pf.module.mes.service.MesTestFixtures;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesImportResolver;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.IDEMPOTENCY_KEY_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_HAS_PROD_ORDER;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_STATUS_INVALID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link ProdDemandServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 生产需求 Service 测试：编号自动分配、物料与单位快照落库、终态禁改、已生成工单禁删、幂等键唯一。
  */
 @Import(ProdDemandServiceImpl.class)
-public class ProdDemandServiceImplTest extends BaseDbUnitTest {
+class ProdDemandServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private ProdDemandServiceImpl prodDemandService;
-
+    private ProdDemandService prodDemandService;
     @Resource
     private ProdDemandMapper prodDemandMapper;
+    @Resource
+    private ProdOrderMapper prodOrderMapper;
 
-    @Test
-    public void testCreateProdDemand_success() {
-        // 准备参数
-        ProdDemandSaveReqVO createReqVO = randomPojo(ProdDemandSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
+    @MockitoBean
+    private MesImportResolver importResolver;
 
-        // 调用
-        Long prodDemandId = prodDemandService.createProdDemand(createReqVO);
-        // 断言
-        assertNotNull(prodDemandId);
-        // 校验记录的属性是否正确
-        ProdDemandDO prodDemand = prodDemandMapper.selectById(prodDemandId);
-        assertPojoEquals(createReqVO, prodDemand, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 编号由 infra 编码规则分配：调用方填了就沿用，没填才走规则
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "DMD0001" : invocation.getArgument(1));
+        // 物料与单位是 mdm 的数据，通过门面获取
+        when(snapshotService.requireMaterial(any())).thenReturn(MesTestFixtures.material());
+        when(snapshotService.requireUomCode(any())).thenReturn(MesTestFixtures.uomCode());
+    }
+
+    private ProdDemandSaveReqVO buildReqVO(String demandNo) {
+        ProdDemandSaveReqVO reqVO = new ProdDemandSaveReqVO();
+        reqVO.setDemandNo(demandNo);
+        reqVO.setSourceType(MesDemandSourceTypeEnum.MANUAL.name());
+        reqVO.setSourceNo("SO-0001");
+        reqVO.setPlantId(1L);
+        reqVO.setProjectId(MesConstants.NONE_ID);
+        reqVO.setProjectTaskId(MesConstants.NONE_ID);
+        reqVO.setMatId(1L);
+        reqVO.setQty(new BigDecimal("100"));
+        reqVO.setUomId(1L);
+        reqVO.setDueDate(LocalDateTime.now().plusDays(7));
+        reqVO.setPriority(0);
+        reqVO.setStatus(MesDemandStatusEnum.DRAFT.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateProdDemand_success() {
-        // mock 数据
-        ProdDemandDO dbProdDemand = randomPojo(ProdDemandDO.class);
-        prodDemandMapper.insert(dbProdDemand);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        ProdDemandSaveReqVO updateReqVO = randomPojo(ProdDemandSaveReqVO.class, o -> {
-            o.setId(dbProdDemand.getId()); // 设置更新的 ID
-        });
+    void testCreateProdDemand_blankNoFilledByRuleAndSnapshotFilled() {
+        Long id = prodDemandService.createProdDemand(buildReqVO(null));
 
-        // 调用
+        ProdDemandDO demand = prodDemandMapper.selectById(id);
+        assertNotNull(demand);
+        assertEquals("DMD0001", demand.getDemandNo());
+        // 物料与单位快照由后端补全，前端只提交编号
+        assertEquals("MAT-001", demand.getMatCode());
+        assertEquals("定子铁芯", demand.getMatName());
+        assertEquals("PCS", demand.getUomCode());
+    }
+
+    @Test
+    void testCreateProdDemand_duplicateIdempotencyKeyRejected() {
+        ProdDemandSaveReqVO first = buildReqVO("DMD-A");
+        first.setIdempotencyKey("ERP:SO-0001");
+        prodDemandService.createProdDemand(first);
+
+        ProdDemandSaveReqVO second = buildReqVO("DMD-B");
+        second.setIdempotencyKey("ERP:SO-0001");
+        assertServiceException(() -> prodDemandService.createProdDemand(second), IDEMPOTENCY_KEY_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateProdDemand_keepDemandNo() {
+        Long id = prodDemandService.createProdDemand(buildReqVO("DMD-A"));
+
+        ProdDemandSaveReqVO updateReqVO = buildReqVO("DMD-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("交期调整");
         prodDemandService.updateProdDemand(updateReqVO);
-        // 校验是否更新正确
-        ProdDemandDO prodDemand = prodDemandMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, prodDemand);
+
+        ProdDemandDO demand = prodDemandMapper.selectById(id);
+        // 编号由编码规则分配，更新时不允许被表单改掉
+        assertEquals("DMD-A", demand.getDemandNo());
+        assertEquals("交期调整", demand.getRemark());
     }
 
     @Test
-    public void testUpdateProdDemand_notExists() {
-        // 准备参数
-        ProdDemandSaveReqVO updateReqVO = randomPojo(ProdDemandSaveReqVO.class);
+    void testUpdateProdDemand_finalStatusRejected() {
+        ProdDemandSaveReqVO createReqVO = buildReqVO("DMD-A");
+        createReqVO.setStatus(MesDemandStatusEnum.DONE.name());
+        Long id = prodDemandService.createProdDemand(createReqVO);
 
-        // 调用, 并断言异常
+        ProdDemandSaveReqVO updateReqVO = buildReqVO("DMD-A");
+        updateReqVO.setId(id);
+        assertServiceException(() -> prodDemandService.updateProdDemand(updateReqVO), PROD_DEMAND_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateProdDemand_notExists() {
+        ProdDemandSaveReqVO updateReqVO = buildReqVO("DMD-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> prodDemandService.updateProdDemand(updateReqVO), PROD_DEMAND_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteProdDemand_success() {
-        // mock 数据
-        ProdDemandDO dbProdDemand = randomPojo(ProdDemandDO.class);
-        prodDemandMapper.insert(dbProdDemand);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbProdDemand.getId();
+    void testDeleteProdDemand_success() {
+        Long id = prodDemandService.createProdDemand(buildReqVO("DMD-A"));
 
-        // 调用
         prodDemandService.deleteProdDemand(id);
-       // 校验数据不存在了
-       assertNull(prodDemandMapper.selectById(id));
+
+        assertNull(prodDemandMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteProdDemand_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteProdDemand_hasProdOrderRejected() {
+        Long id = prodDemandService.createProdDemand(buildReqVO("DMD-A"));
+        prodOrderMapper.insert(new ProdOrderDO().setDemandId(id).setOrderNo("PO-0001"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> prodDemandService.deleteProdDemand(id), PROD_DEMAND_NOT_EXISTS);
+        assertServiceException(() -> prodDemandService.deleteProdDemand(id), PROD_DEMAND_HAS_PROD_ORDER);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetProdDemandPage() {
-       // mock 数据
-       ProdDemandDO dbProdDemand = randomPojo(ProdDemandDO.class, o -> { // 等会查询到
-           o.setDemandNo(null);
-           o.setSourceType(null);
-           o.setSourceNo(null);
-           o.setPlantId(null);
-           o.setProjectId(null);
-           o.setProjectTaskId(null);
-           o.setMatId(null);
-           o.setMatCode(null);
-           o.setMatName(null);
-           o.setMatSpec(null);
-           o.setQty(null);
-           o.setUomId(null);
-           o.setUomCode(null);
-           o.setDueDate(null);
-           o.setPriority(null);
-           o.setStatus(null);
-           o.setIdempotencyKey(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       prodDemandMapper.insert(dbProdDemand);
-       // 测试 demandNo 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setDemandNo(null)));
-       // 测试 sourceType 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setSourceType(null)));
-       // 测试 sourceNo 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setSourceNo(null)));
-       // 测试 plantId 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setPlantId(null)));
-       // 测试 projectId 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setProjectId(null)));
-       // 测试 projectTaskId 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setProjectTaskId(null)));
-       // 测试 matId 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setMatId(null)));
-       // 测试 matCode 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setMatCode(null)));
-       // 测试 matName 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setMatName(null)));
-       // 测试 matSpec 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setMatSpec(null)));
-       // 测试 qty 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setQty(null)));
-       // 测试 uomId 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setUomId(null)));
-       // 测试 uomCode 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setUomCode(null)));
-       // 测试 dueDate 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setDueDate(null)));
-       // 测试 priority 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setPriority(null)));
-       // 测试 status 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setStatus(null)));
-       // 测试 idempotencyKey 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setIdempotencyKey(null)));
-       // 测试 remark 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       prodDemandMapper.insert(cloneIgnoreId(dbProdDemand, o -> o.setCreateTime(null)));
-       // 准备参数
-       ProdDemandPageReqVO reqVO = new ProdDemandPageReqVO();
-       reqVO.setDemandNo(null);
-       reqVO.setSourceType(null);
-       reqVO.setSourceNo(null);
-       reqVO.setPlantId(null);
-       reqVO.setProjectId(null);
-       reqVO.setProjectTaskId(null);
-       reqVO.setMatId(null);
-       reqVO.setMatCode(null);
-       reqVO.setMatName(null);
-       reqVO.setMatSpec(null);
-       reqVO.setQty(null);
-       reqVO.setUomId(null);
-       reqVO.setUomCode(null);
-       reqVO.setDueDate(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setPriority(null);
-       reqVO.setStatus(null);
-       reqVO.setIdempotencyKey(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteProdDemandList_hasProdOrderRejected() {
+        Long first = prodDemandService.createProdDemand(buildReqVO("DMD-A"));
+        Long second = prodDemandService.createProdDemand(buildReqVO("DMD-B"));
+        prodOrderMapper.insert(new ProdOrderDO().setDemandId(second).setOrderNo("PO-0001"));
 
-       // 调用
-       PageResult<ProdDemandRespVO> pageResult = prodDemandService.getProdDemandPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbProdDemand, pageResult.getList().get(0));
+        // 批量删除同样逐条校验占用，否则会留下引用不到需求的工单
+        assertServiceException(() -> prodDemandService.deleteProdDemandListByIds(List.of(first, second)),
+                PROD_DEMAND_HAS_PROD_ORDER);
+        assertNotNull(prodDemandMapper.selectById(first));
+    }
+
+    @Test
+    void testGetProdDemandPage() {
+        prodDemandService.createProdDemand(buildReqVO("DMD-A"));
+
+        ProdDemandPageReqVO reqVO = new ProdDemandPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<ProdDemandRespVO> list = prodDemandService.getProdDemandPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("DMD-A", list.get(0).getDemandNo());
+        assertEquals("MAT-001", list.get(0).getMatCode());
     }
 
 }

@@ -1,180 +1,192 @@
 package com.iboot.pf.module.mes.service.qcitem;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.qcitem.vo.QcItemPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcitem.vo.QcItemRespVO;
-import com.iboot.pf.module.mes.controller.admin.qcitem.vo.*;
-import com.iboot.pf.module.mes.controller.admin.qcitem.vo.QcItemRespVO;
+import com.iboot.pf.module.mes.controller.admin.qcitem.vo.QcItemSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.qcitem.QcItemDO;
-import com.iboot.pf.module.mes.controller.admin.qcitem.vo.QcItemRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
 import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.enums.MesQcItemTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
+import com.iboot.pf.module.mes.service.qcplan.QcPlanService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_CODE_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_LIMIT_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_LIMIT_REQUIRED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_ITEM_PLAN_NOT_DRAFT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link QcItemServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 检验项目 Service 测试：只允许在草稿方案上维护、数值型上下限校验、同方案编码唯一。
  */
 @Import(QcItemServiceImpl.class)
-public class QcItemServiceImplTest extends BaseDbUnitTest {
+class QcItemServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long DRAFT_PLAN = 1L;
+    private static final Long PUBLISHED_PLAN = 2L;
 
     @Resource
-    private QcItemServiceImpl qcItemService;
-
+    private QcItemService qcItemService;
     @Resource
     private QcItemMapper qcItemMapper;
 
-    @Test
-    public void testCreateQcItem_success() {
-        // 准备参数
-        QcItemSaveReqVO createReqVO = randomPojo(QcItemSaveReqVO.class).setId(null);
+    @MockitoBean
+    private QcPlanService qcPlanService;
 
-        // 调用
-        Long qcItemId = qcItemService.createQcItem(createReqVO);
-        // 断言
-        assertNotNull(qcItemId);
-        // 校验记录的属性是否正确
-        QcItemDO qcItem = qcItemMapper.selectById(qcItemId);
-        assertPojoEquals(createReqVO, qcItem, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        // 检验方案的状态决定检验项能不能改，这里直接给出两种方案
+        when(qcPlanService.validateQcPlanExists(eq(DRAFT_PLAN)))
+                .thenReturn(new QcPlanDO().setId(DRAFT_PLAN).setStatus(MesQcPlanStatusEnum.DRAFT.name()));
+        when(qcPlanService.validateQcPlanExists(eq(PUBLISHED_PLAN)))
+                .thenReturn(new QcPlanDO().setId(PUBLISHED_PLAN).setStatus(MesQcPlanStatusEnum.PUBLISHED.name()));
+    }
+
+    private QcItemSaveReqVO buildReqVO(Long planId, String itemCode) {
+        QcItemSaveReqVO reqVO = new QcItemSaveReqVO();
+        reqVO.setPlanId(planId);
+        reqVO.setItemCode(itemCode);
+        reqVO.setItemName("外观检查");
+        reqVO.setItemType(MesQcItemTypeEnum.TEXT.name());
+        reqVO.setRequiredFlag(Boolean.TRUE);
+        reqVO.setSortNo(0);
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateQcItem_success() {
-        // mock 数据
-        QcItemDO dbQcItem = randomPojo(QcItemDO.class);
-        qcItemMapper.insert(dbQcItem);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        QcItemSaveReqVO updateReqVO = randomPojo(QcItemSaveReqVO.class, o -> {
-            o.setId(dbQcItem.getId()); // 设置更新的 ID
-        });
+    void testCreateQcItem_success() {
+        Long id = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
 
-        // 调用
+        QcItemDO qcItem = qcItemMapper.selectById(id);
+        assertNotNull(qcItem);
+        assertEquals("IT-01", qcItem.getItemCode());
+    }
+
+    @Test
+    void testCreateQcItem_publishedPlanRejected() {
+        // 已发布方案会被质检任务锁定引用，改检验项等于改历史任务的判定口径
+        assertServiceException(() -> qcItemService.createQcItem(buildReqVO(PUBLISHED_PLAN, "IT-01")),
+                QC_ITEM_PLAN_NOT_DRAFT);
+    }
+
+    @Test
+    void testCreateQcItem_numericLimitRequired() {
+        QcItemSaveReqVO reqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        reqVO.setItemType(MesQcItemTypeEnum.NUMERIC.name());
+
+        assertServiceException(() -> qcItemService.createQcItem(reqVO), QC_ITEM_LIMIT_REQUIRED);
+    }
+
+    @Test
+    void testCreateQcItem_numericLimitInverted() {
+        QcItemSaveReqVO reqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        reqVO.setItemType(MesQcItemTypeEnum.NUMERIC.name());
+        reqVO.setUpperLimit(new BigDecimal("1"));
+        reqVO.setLowerLimit(new BigDecimal("2"));
+
+        assertServiceException(() -> qcItemService.createQcItem(reqVO), QC_ITEM_LIMIT_INVALID);
+    }
+
+    @Test
+    void testCreateQcItem_numericWithLimitAccepted() {
+        QcItemSaveReqVO reqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        reqVO.setItemType(MesQcItemTypeEnum.NUMERIC.name());
+        reqVO.setUpperLimit(new BigDecimal("10.5"));
+        reqVO.setLowerLimit(new BigDecimal("9.5"));
+
+        assertNotNull(qcItemService.createQcItem(reqVO));
+    }
+
+    @Test
+    void testCreateQcItem_duplicateCodeRejected() {
+        qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
+
+        assertServiceException(() -> qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01")),
+                QC_ITEM_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateQcItem_keepOwnCode() {
+        Long id = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
+
+        // 改自己时编码没变，不应该撞到自己
+        QcItemSaveReqVO updateReqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        updateReqVO.setId(id);
+        updateReqVO.setItemName("外观检查改名");
         qcItemService.updateQcItem(updateReqVO);
-        // 校验是否更新正确
-        QcItemDO qcItem = qcItemMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, qcItem);
+
+        assertEquals("外观检查改名", qcItemMapper.selectById(id).getItemName());
     }
 
     @Test
-    public void testUpdateQcItem_notExists() {
-        // 准备参数
-        QcItemSaveReqVO updateReqVO = randomPojo(QcItemSaveReqVO.class);
+    void testUpdateQcItem_duplicateCodeRejected() {
+        qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
+        Long secondId = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-02"));
 
-        // 调用, 并断言异常
+        QcItemSaveReqVO updateReqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        updateReqVO.setId(secondId);
+        assertServiceException(() -> qcItemService.updateQcItem(updateReqVO), QC_ITEM_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateQcItem_notExists() {
+        QcItemSaveReqVO updateReqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> qcItemService.updateQcItem(updateReqVO), QC_ITEM_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteQcItem_success() {
-        // mock 数据
-        QcItemDO dbQcItem = randomPojo(QcItemDO.class);
-        qcItemMapper.insert(dbQcItem);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbQcItem.getId();
+    void testDeleteQcItem_success() {
+        Long id = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
 
-        // 调用
         qcItemService.deleteQcItem(id);
-       // 校验数据不存在了
-       assertNull(qcItemMapper.selectById(id));
+
+        assertNull(qcItemMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteQcItem_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteQcItemList_success() {
+        Long first = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
+        Long second = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-02"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> qcItemService.deleteQcItem(id), QC_ITEM_NOT_EXISTS);
+        qcItemService.deleteQcItemListByIds(List.of(first, second));
+
+        assertNull(qcItemMapper.selectById(first));
+        assertNull(qcItemMapper.selectById(second));
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetQcItemPage() {
-       // mock 数据
-       QcItemDO dbQcItem = randomPojo(QcItemDO.class, o -> { // 等会查询到
-           o.setPlanId(null);
-           o.setItemCode(null);
-           o.setItemName(null);
-           o.setItemType(null);
-           o.setUnit(null);
-           o.setStdValue(null);
-           o.setUpperLimit(null);
-           o.setLowerLimit(null);
-           o.setRequiredFlag(null);
-           o.setSortNo(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       qcItemMapper.insert(dbQcItem);
-       // 测试 planId 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setPlanId(null)));
-       // 测试 itemCode 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setItemCode(null)));
-       // 测试 itemName 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setItemName(null)));
-       // 测试 itemType 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setItemType(null)));
-       // 测试 unit 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setUnit(null)));
-       // 测试 stdValue 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setStdValue(null)));
-       // 测试 upperLimit 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setUpperLimit(null)));
-       // 测试 lowerLimit 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setLowerLimit(null)));
-       // 测试 requiredFlag 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setRequiredFlag(null)));
-       // 测试 sortNo 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setSortNo(null)));
-       // 测试 status 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       qcItemMapper.insert(cloneIgnoreId(dbQcItem, o -> o.setCreateTime(null)));
-       // 准备参数
-       QcItemPageReqVO reqVO = new QcItemPageReqVO();
-       reqVO.setPlanId(null);
-       reqVO.setItemCode(null);
-       reqVO.setItemName(null);
-       reqVO.setItemType(null);
-       reqVO.setUnit(null);
-       reqVO.setStdValue(null);
-       reqVO.setUpperLimit(null);
-       reqVO.setLowerLimit(null);
-       reqVO.setRequiredFlag(null);
-       reqVO.setSortNo(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testGetQcItemPage() {
+        qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
 
-       // 调用
-       PageResult<QcItemRespVO> pageResult = qcItemService.getQcItemPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbQcItem, pageResult.getList().get(0));
+        QcItemPageReqVO reqVO = new QcItemPageReqVO();
+        reqVO.setPlanId(DRAFT_PLAN);
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<QcItemRespVO> list = qcItemService.getQcItemPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("IT-01", list.get(0).getItemCode());
     }
 
 }

@@ -1,172 +1,212 @@
 package com.iboot.pf.module.mes.service.dispatchtask;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskRespVO;
-import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.*;
-import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskRespVO;
+import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.dispatchtask.DispatchTaskDO;
-import com.iboot.pf.module.mes.controller.admin.dispatchtask.vo.DispatchTaskRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.mysql.dispatchtask.DispatchTaskMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesDispatchTaskStatusEnum;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DISPATCH_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DISPATCH_TASK_OPERATOR_REQUIRED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DISPATCH_TASK_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.DISPATCH_TASK_TIME_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link DispatchTaskServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 派工任务 Service 测试：人员与班组至少填一个、计划时间校验、只有待接单允许改与删。
  */
 @Import(DispatchTaskServiceImpl.class)
-public class DispatchTaskServiceImplTest extends BaseDbUnitTest {
+class DispatchTaskServiceImplTest extends BaseDbUnitTest {
 
     @Resource
-    private DispatchTaskServiceImpl dispatchTaskService;
-
+    private DispatchTaskService dispatchTaskService;
     @Resource
     private DispatchTaskMapper dispatchTaskMapper;
+    @Resource
+    private OpTaskMapper opTaskMapper;
 
-    @Test
-    public void testCreateDispatchTask_success() {
-        // 准备参数
-        DispatchTaskSaveReqVO createReqVO = randomPojo(DispatchTaskSaveReqVO.class).setId(null);
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long dispatchTaskId = dispatchTaskService.createDispatchTask(createReqVO);
-        // 断言
-        assertNotNull(dispatchTaskId);
-        // 校验记录的属性是否正确
-        DispatchTaskDO dispatchTask = dispatchTaskMapper.selectById(dispatchTaskId);
-        assertPojoEquals(createReqVO, dispatchTask, "id");
+    private Long opTaskId;
+
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "DSPT0001" : invocation.getArgument(1));
+        OpTaskDO opTask = new OpTaskDO().setTaskNo("OPT-0001").setWorkOrderId(1L).setRouteOpId(31L);
+        opTaskMapper.insert(opTask);
+        opTaskId = opTask.getId();
+    }
+
+    private DispatchTaskSaveReqVO buildReqVO(String dispatchNo) {
+        DispatchTaskSaveReqVO reqVO = new DispatchTaskSaveReqVO();
+        reqVO.setDispatchNo(dispatchNo);
+        reqVO.setOpTaskId(opTaskId);
+        reqVO.setOperatorId(1L);
+        reqVO.setTeamId(MesConstants.NONE_ID);
+        reqVO.setResId(2L);
+        reqVO.setShiftId(MesConstants.NONE_ID);
+        reqVO.setPlannedStartTime(LocalDateTime.now());
+        reqVO.setPlannedEndTime(LocalDateTime.now().plusHours(4));
+        reqVO.setStatus(MesDispatchTaskStatusEnum.PENDING.name());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateDispatchTask_success() {
-        // mock 数据
-        DispatchTaskDO dbDispatchTask = randomPojo(DispatchTaskDO.class);
-        dispatchTaskMapper.insert(dbDispatchTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        DispatchTaskSaveReqVO updateReqVO = randomPojo(DispatchTaskSaveReqVO.class, o -> {
-            o.setId(dbDispatchTask.getId()); // 设置更新的 ID
-        });
+    void testCreateDispatchTask_blankNoFilledByRule() {
+        Long id = dispatchTaskService.createDispatchTask(buildReqVO(null));
 
-        // 调用
+        DispatchTaskDO dispatchTask = dispatchTaskMapper.selectById(id);
+        assertNotNull(dispatchTask);
+        assertEquals("DSPT0001", dispatchTask.getDispatchNo());
+        assertEquals(MesConstants.NONE_ID, dispatchTask.getTeamId());
+    }
+
+    @Test
+    void testCreateDispatchTask_opTaskNotExists() {
+        DispatchTaskSaveReqVO reqVO = buildReqVO("DSPT-A");
+        reqVO.setOpTaskId(randomLongId());
+
+        assertServiceException(() -> dispatchTaskService.createDispatchTask(reqVO), OP_TASK_NOT_EXISTS);
+    }
+
+    @Test
+    void testCreateDispatchTask_operatorAndTeamBothEmpty() {
+        DispatchTaskSaveReqVO reqVO = buildReqVO("DSPT-A");
+        reqVO.setOperatorId(MesConstants.NONE_ID);
+        reqVO.setTeamId(MesConstants.NONE_ID);
+
+        // 两个都空这条派工没有接收方
+        assertServiceException(() -> dispatchTaskService.createDispatchTask(reqVO),
+                DISPATCH_TASK_OPERATOR_REQUIRED);
+    }
+
+    @Test
+    void testCreateDispatchTask_teamOnlyAccepted() {
+        DispatchTaskSaveReqVO reqVO = buildReqVO("DSPT-A");
+        reqVO.setOperatorId(MesConstants.NONE_ID);
+        reqVO.setTeamId(3L);
+
+        assertNotNull(dispatchTaskService.createDispatchTask(reqVO));
+    }
+
+    @Test
+    void testCreateDispatchTask_endBeforeStartRejected() {
+        DispatchTaskSaveReqVO reqVO = buildReqVO("DSPT-A");
+        reqVO.setPlannedEndTime(reqVO.getPlannedStartTime().minusMinutes(1));
+
+        assertServiceException(() -> dispatchTaskService.createDispatchTask(reqVO), DISPATCH_TASK_TIME_INVALID);
+    }
+
+    @Test
+    void testUpdateDispatchTask_keepDispatchNo() {
+        Long id = dispatchTaskService.createDispatchTask(buildReqVO("DSPT-A"));
+
+        DispatchTaskSaveReqVO updateReqVO = buildReqVO("DSPT-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("改派资源");
         dispatchTaskService.updateDispatchTask(updateReqVO);
-        // 校验是否更新正确
-        DispatchTaskDO dispatchTask = dispatchTaskMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, dispatchTask);
+
+        DispatchTaskDO dispatchTask = dispatchTaskMapper.selectById(id);
+        assertEquals("DSPT-A", dispatchTask.getDispatchNo());
+        assertEquals("改派资源", dispatchTask.getRemark());
     }
 
     @Test
-    public void testUpdateDispatchTask_notExists() {
-        // 准备参数
-        DispatchTaskSaveReqVO updateReqVO = randomPojo(DispatchTaskSaveReqVO.class);
+    void testUpdateDispatchTask_acceptedRejected() {
+        DispatchTaskSaveReqVO createReqVO = buildReqVO("DSPT-A");
+        createReqVO.setStatus(MesDispatchTaskStatusEnum.ACCEPTED.name());
+        Long id = dispatchTaskService.createDispatchTask(createReqVO);
 
-        // 调用, 并断言异常
+        DispatchTaskSaveReqVO updateReqVO = buildReqVO("DSPT-A");
+        updateReqVO.setId(id);
+        // 已接单的派工现场已经按它开工了，不允许改派
+        assertServiceException(() -> dispatchTaskService.updateDispatchTask(updateReqVO),
+                DISPATCH_TASK_STATUS_INVALID);
+    }
+
+    @Test
+    void testUpdateDispatchTask_notExists() {
+        DispatchTaskSaveReqVO updateReqVO = buildReqVO("DSPT-A");
+        updateReqVO.setId(randomLongId());
+
         assertServiceException(() -> dispatchTaskService.updateDispatchTask(updateReqVO), DISPATCH_TASK_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteDispatchTask_success() {
-        // mock 数据
-        DispatchTaskDO dbDispatchTask = randomPojo(DispatchTaskDO.class);
-        dispatchTaskMapper.insert(dbDispatchTask);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbDispatchTask.getId();
+    void testDeleteDispatchTask_success() {
+        Long id = dispatchTaskService.createDispatchTask(buildReqVO("DSPT-A"));
 
-        // 调用
         dispatchTaskService.deleteDispatchTask(id);
-       // 校验数据不存在了
-       assertNull(dispatchTaskMapper.selectById(id));
+
+        assertNull(dispatchTaskMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteDispatchTask_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteDispatchTask_acceptedRejected() {
+        DispatchTaskSaveReqVO createReqVO = buildReqVO("DSPT-A");
+        createReqVO.setStatus(MesDispatchTaskStatusEnum.RUNNING.name());
+        Long id = dispatchTaskService.createDispatchTask(createReqVO);
 
-        // 调用, 并断言异常
-        assertServiceException(() -> dispatchTaskService.deleteDispatchTask(id), DISPATCH_TASK_NOT_EXISTS);
+        assertServiceException(() -> dispatchTaskService.deleteDispatchTask(id), DISPATCH_TASK_STATUS_INVALID);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetDispatchTaskPage() {
-       // mock 数据
-       DispatchTaskDO dbDispatchTask = randomPojo(DispatchTaskDO.class, o -> { // 等会查询到
-           o.setDispatchNo(null);
-           o.setOpTaskId(null);
-           o.setOperatorId(null);
-           o.setTeamId(null);
-           o.setResId(null);
-           o.setShiftId(null);
-           o.setPlannedStartTime(null);
-           o.setPlannedEndTime(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       dispatchTaskMapper.insert(dbDispatchTask);
-       // 测试 dispatchNo 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setDispatchNo(null)));
-       // 测试 opTaskId 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setOpTaskId(null)));
-       // 测试 operatorId 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setOperatorId(null)));
-       // 测试 teamId 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setTeamId(null)));
-       // 测试 resId 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setResId(null)));
-       // 测试 shiftId 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setShiftId(null)));
-       // 测试 plannedStartTime 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setPlannedStartTime(null)));
-       // 测试 plannedEndTime 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setPlannedEndTime(null)));
-       // 测试 status 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       dispatchTaskMapper.insert(cloneIgnoreId(dbDispatchTask, o -> o.setCreateTime(null)));
-       // 准备参数
-       DispatchTaskPageReqVO reqVO = new DispatchTaskPageReqVO();
-       reqVO.setDispatchNo(null);
-       reqVO.setOpTaskId(null);
-       reqVO.setOperatorId(null);
-       reqVO.setTeamId(null);
-       reqVO.setResId(null);
-       reqVO.setShiftId(null);
-       reqVO.setPlannedStartTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setPlannedEndTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteDispatchTaskList_acceptedRejected() {
+        Long first = dispatchTaskService.createDispatchTask(buildReqVO("DSPT-A"));
+        DispatchTaskSaveReqVO running = buildReqVO("DSPT-B");
+        running.setStatus(MesDispatchTaskStatusEnum.RUNNING.name());
+        Long second = dispatchTaskService.createDispatchTask(running);
 
-       // 调用
-       PageResult<DispatchTaskRespVO> pageResult = dispatchTaskService.getDispatchTaskPage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbDispatchTask, pageResult.getList().get(0));
+        assertServiceException(() -> dispatchTaskService.deleteDispatchTaskListByIds(List.of(first, second)),
+                DISPATCH_TASK_STATUS_INVALID);
+        assertNotNull(dispatchTaskMapper.selectById(first));
+    }
+
+    @Test
+    void testGetDispatchTaskPage() {
+        dispatchTaskService.createDispatchTask(buildReqVO("DSPT-A"));
+
+        DispatchTaskPageReqVO reqVO = new DispatchTaskPageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<DispatchTaskRespVO> list = dispatchTaskService.getDispatchTaskPage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("DSPT-A", list.get(0).getDispatchNo());
+        // 工序任务号由模块内 JOIN 出来
+        assertEquals("OPT-0001", list.get(0).getOpTaskNo());
     }
 
 }

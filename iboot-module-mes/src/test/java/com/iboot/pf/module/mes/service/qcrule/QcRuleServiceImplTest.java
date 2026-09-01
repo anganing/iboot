@@ -1,188 +1,186 @@
 package com.iboot.pf.module.mes.service.qcrule;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import jakarta.annotation.Resource;
-
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
-
+import com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRulePageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleRespVO;
-import com.iboot.pf.module.mes.controller.admin.qcrule.vo.*;
-import com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleRespVO;
+import com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleSaveReqVO;
+import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcrule.QcRuleDO;
-import com.iboot.pf.module.mes.controller.admin.qcrule.vo.QcRuleRespVO;
+import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
 import com.iboot.pf.module.mes.dal.mysql.qcrule.QcRuleMapper;
-import com.iboot.pf.framework.common.pojo.PageResult;
-
+import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
+import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
+import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.qcplan.QcPlanService;
+import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import java.util.*;
-import java.time.LocalDateTime;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static cn.hutool.core.util.RandomUtil.*;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.*;
-import static com.iboot.pf.framework.test.core.util.AssertUtils.*;
-import static com.iboot.pf.framework.test.core.util.RandomUtils.*;
-import static com.iboot.pf.framework.common.util.date.LocalDateTimeUtils.*;
-import static com.iboot.pf.framework.common.util.object.ObjectUtils.*;
-import static com.iboot.pf.framework.common.util.date.DateUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.List;
+
+import static com.iboot.pf.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RULE_CODE_DUPLICATE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RULE_HAS_TASK;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_RULE_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_NOT_PUBLISHED;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 /**
- * {@link QcRuleServiceImpl} 的单元测试类
- *
- * @author iboot
+ * 质检触发规则 Service 测试：编码自动分配与唯一、只能引用已发布方案、可选匹配维度归零、已生成任务禁删。
  */
 @Import(QcRuleServiceImpl.class)
-public class QcRuleServiceImplTest extends BaseDbUnitTest {
+class QcRuleServiceImplTest extends BaseDbUnitTest {
+
+    private static final Long PUBLISHED_PLAN = 1L;
+    private static final Long DRAFT_PLAN = 2L;
 
     @Resource
-    private QcRuleServiceImpl qcRuleService;
-
+    private QcRuleService qcRuleService;
     @Resource
     private QcRuleMapper qcRuleMapper;
+    @Resource
+    private QcTaskMapper qcTaskMapper;
 
-    @Test
-    public void testCreateQcRule_success() {
-        // 准备参数
-        QcRuleSaveReqVO createReqVO = randomPojo(QcRuleSaveReqVO.class).setId(null);
+    @MockitoBean
+    private QcPlanService qcPlanService;
+    @MockitoBean
+    private MesCodeService codeService;
+    @MockitoBean
+    private MesSnapshotService snapshotService;
+    @MockitoBean
+    private MesRelationFiller relationFiller;
 
-        // 调用
-        Long qcRuleId = qcRuleService.createQcRule(createReqVO);
-        // 断言
-        assertNotNull(qcRuleId);
-        // 校验记录的属性是否正确
-        QcRuleDO qcRule = qcRuleMapper.selectById(qcRuleId);
-        assertPojoEquals(createReqVO, qcRule, "id");
+    @BeforeEach
+    void mockExternalDependencies() {
+        when(codeService.generate(anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1) == null
+                        ? "QR0001" : invocation.getArgument(1));
+        when(qcPlanService.validateQcPlanExists(eq(PUBLISHED_PLAN))).thenReturn(new QcPlanDO()
+                .setId(PUBLISHED_PLAN).setStatus(MesQcPlanStatusEnum.PUBLISHED.name()));
+        when(qcPlanService.validateQcPlanExists(eq(DRAFT_PLAN))).thenReturn(new QcPlanDO()
+                .setId(DRAFT_PLAN).setStatus(MesQcPlanStatusEnum.DRAFT.name()));
+    }
+
+    private QcRuleSaveReqVO buildReqVO(String code) {
+        QcRuleSaveReqVO reqVO = new QcRuleSaveReqVO();
+        reqVO.setCode(code);
+        reqVO.setName("来料检验规则");
+        reqVO.setTriggerPoint(MesQcTriggerPointEnum.IQC.name());
+        reqVO.setObjectType(MesQcObjectTypeEnum.MATERIAL.name());
+        reqVO.setQcPlanId(PUBLISHED_PLAN);
+        reqVO.setQcMode(MesQcModeEnum.PROCESS.name());
+        reqVO.setPriority(0);
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        reqVO.setRemark("单测数据");
+        return reqVO;
     }
 
     @Test
-    public void testUpdateQcRule_success() {
-        // mock 数据
-        QcRuleDO dbQcRule = randomPojo(QcRuleDO.class);
-        qcRuleMapper.insert(dbQcRule);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        QcRuleSaveReqVO updateReqVO = randomPojo(QcRuleSaveReqVO.class, o -> {
-            o.setId(dbQcRule.getId()); // 设置更新的 ID
-        });
+    void testCreateQcRule_blankCodeFilledAndOptionalDimensionsZeroed() {
+        Long id = qcRuleService.createQcRule(buildReqVO(null));
 
-        // 调用
+        QcRuleDO qcRule = qcRuleMapper.selectById(id);
+        assertNotNull(qcRule);
+        assertEquals("QR0001", qcRule.getCode());
+        // 可选匹配维度落 0 表示不限，不能留 NULL，否则统计口径失效
+        assertEquals(MesConstants.NONE_ID, qcRule.getMatId());
+        assertEquals(MesConstants.NONE_ID, qcRule.getMatCatId());
+        assertEquals(MesConstants.NONE_ID, qcRule.getOpId());
+        assertEquals(MesConstants.NONE_ID, qcRule.getWcId());
+        assertEquals(MesConstants.NONE_ID, qcRule.getSupplierId());
+    }
+
+    @Test
+    void testCreateQcRule_draftPlanRejected() {
+        QcRuleSaveReqVO reqVO = buildReqVO("QR-A");
+        reqVO.setQcPlanId(DRAFT_PLAN);
+
+        assertServiceException(() -> qcRuleService.createQcRule(reqVO), QC_TASK_PLAN_NOT_PUBLISHED);
+    }
+
+    @Test
+    void testCreateQcRule_duplicateCodeRejected() {
+        qcRuleService.createQcRule(buildReqVO("QR-A"));
+
+        assertServiceException(() -> qcRuleService.createQcRule(buildReqVO("QR-A")), QC_RULE_CODE_DUPLICATE);
+    }
+
+    @Test
+    void testUpdateQcRule_keepCode() {
+        Long id = qcRuleService.createQcRule(buildReqVO("QR-A"));
+
+        QcRuleSaveReqVO updateReqVO = buildReqVO("QR-CHANGED");
+        updateReqVO.setId(id);
+        updateReqVO.setName("来料检验规则改名");
         qcRuleService.updateQcRule(updateReqVO);
-        // 校验是否更新正确
-        QcRuleDO qcRule = qcRuleMapper.selectById(updateReqVO.getId()); // 获取最新的
-        assertPojoEquals(updateReqVO, qcRule);
+
+        QcRuleDO qcRule = qcRuleMapper.selectById(id);
+        assertEquals("QR-A", qcRule.getCode());
+        assertEquals("来料检验规则改名", qcRule.getName());
     }
 
     @Test
-    public void testUpdateQcRule_notExists() {
-        // 准备参数
-        QcRuleSaveReqVO updateReqVO = randomPojo(QcRuleSaveReqVO.class);
+    void testUpdateQcRule_notExists() {
+        QcRuleSaveReqVO updateReqVO = buildReqVO("QR-A");
+        updateReqVO.setId(randomLongId());
 
-        // 调用, 并断言异常
         assertServiceException(() -> qcRuleService.updateQcRule(updateReqVO), QC_RULE_NOT_EXISTS);
     }
 
     @Test
-    public void testDeleteQcRule_success() {
-        // mock 数据
-        QcRuleDO dbQcRule = randomPojo(QcRuleDO.class);
-        qcRuleMapper.insert(dbQcRule);// @Sql: 先插入出一条存在的数据
-        // 准备参数
-        Long id = dbQcRule.getId();
+    void testDeleteQcRule_success() {
+        Long id = qcRuleService.createQcRule(buildReqVO("QR-A"));
 
-        // 调用
         qcRuleService.deleteQcRule(id);
-       // 校验数据不存在了
-       assertNull(qcRuleMapper.selectById(id));
+
+        assertNull(qcRuleMapper.selectById(id));
     }
 
     @Test
-    public void testDeleteQcRule_notExists() {
-        // 准备参数
-        Long id = randomLongId();
+    void testDeleteQcRule_hasTaskRejected() {
+        Long id = qcRuleService.createQcRule(buildReqVO("QR-A"));
+        qcTaskMapper.insert(new QcTaskDO().setRuleId(id).setTaskNo("QCT-0001"));
 
-        // 调用, 并断言异常
-        assertServiceException(() -> qcRuleService.deleteQcRule(id), QC_RULE_NOT_EXISTS);
+        assertServiceException(() -> qcRuleService.deleteQcRule(id), QC_RULE_HAS_TASK);
     }
 
     @Test
-    @Disabled  // TODO 请修改 null 为需要的值，然后删除 @Disabled 注解
-    public void testGetQcRulePage() {
-       // mock 数据
-       QcRuleDO dbQcRule = randomPojo(QcRuleDO.class, o -> { // 等会查询到
-           o.setCode(null);
-           o.setName(null);
-           o.setTriggerPoint(null);
-           o.setObjectType(null);
-           o.setMatId(null);
-           o.setMatCatId(null);
-           o.setOpId(null);
-           o.setWcId(null);
-           o.setSupplierId(null);
-           o.setQcPlanId(null);
-           o.setQcMode(null);
-           o.setPriority(null);
-           o.setStatus(null);
-           o.setRemark(null);
-           o.setCreateTime(null);
-       });
-       qcRuleMapper.insert(dbQcRule);
-       // 测试 code 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setCode(null)));
-       // 测试 name 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setName(null)));
-       // 测试 triggerPoint 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setTriggerPoint(null)));
-       // 测试 objectType 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setObjectType(null)));
-       // 测试 matId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setMatId(null)));
-       // 测试 matCatId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setMatCatId(null)));
-       // 测试 opId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setOpId(null)));
-       // 测试 wcId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setWcId(null)));
-       // 测试 supplierId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setSupplierId(null)));
-       // 测试 qcPlanId 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setQcPlanId(null)));
-       // 测试 qcMode 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setQcMode(null)));
-       // 测试 priority 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setPriority(null)));
-       // 测试 status 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setStatus(null)));
-       // 测试 remark 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setRemark(null)));
-       // 测试 createTime 不匹配
-       qcRuleMapper.insert(cloneIgnoreId(dbQcRule, o -> o.setCreateTime(null)));
-       // 准备参数
-       QcRulePageReqVO reqVO = new QcRulePageReqVO();
-       reqVO.setCode(null);
-       reqVO.setName(null);
-       reqVO.setTriggerPoint(null);
-       reqVO.setObjectType(null);
-       reqVO.setMatId(null);
-       reqVO.setMatCatId(null);
-       reqVO.setOpId(null);
-       reqVO.setWcId(null);
-       reqVO.setSupplierId(null);
-       reqVO.setQcPlanId(null);
-       reqVO.setQcMode(null);
-       reqVO.setPriority(null);
-       reqVO.setStatus(null);
-       reqVO.setRemark(null);
-       reqVO.setCreateTime(buildBetweenTime(2023, 2, 1, 2023, 2, 28));
+    void testDeleteQcRuleList_hasTaskRejected() {
+        Long first = qcRuleService.createQcRule(buildReqVO("QR-A"));
+        Long second = qcRuleService.createQcRule(buildReqVO("QR-B"));
+        qcTaskMapper.insert(new QcTaskDO().setRuleId(second).setTaskNo("QCT-0001"));
 
-       // 调用
-       PageResult<QcRuleRespVO> pageResult = qcRuleService.getQcRulePage(reqVO);
-       // 断言
-       assertEquals(1, pageResult.getTotal());
-       assertEquals(1, pageResult.getList().size());
-       assertPojoEquals(dbQcRule, pageResult.getList().get(0));
+        assertServiceException(() -> qcRuleService.deleteQcRuleListByIds(List.of(first, second)), QC_RULE_HAS_TASK);
+        assertNotNull(qcRuleMapper.selectById(first));
+    }
+
+    @Test
+    void testGetQcRulePage() {
+        qcRuleService.createQcRule(buildReqVO("QR-A"));
+
+        QcRulePageReqVO reqVO = new QcRulePageReqVO();
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<QcRuleRespVO> list = qcRuleService.getQcRulePage(reqVO).getList();
+
+        assertEquals(1, list.size());
+        assertEquals("QR-A", list.get(0).getCode());
     }
 
 }
