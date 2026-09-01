@@ -2,11 +2,31 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesOpTaskApi } from '#/api/mes/optask';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  OP_RELATION_PROPS,
+  RES_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
+import {
+  ROUTE_OP_RELATION_PROPS,
+  ROUTE_RELATION_PROPS,
+  WORK_ORDER_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 工序编码、名称、顺序、并行组、关键标记、执行模式都是路线工序的快照，由后端带出；
+ * 工艺路线只是为了限定路线工序的选择范围，不提交给后端。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -20,256 +40,116 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'taskNo',
       label: '工序任务号',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工序任务号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'workOrderId',
-      label: '作业工单编号',
+      label: '作业工单',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WORK_ORDER_RELATION_PROPS,
     },
     {
-      fieldName: 'workOrderNo',
-      label: '作业工单号快照',
+      fieldName: 'routeId',
+      label: '工艺路线',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入作业工单号快照',
+        ...ROUTE_RELATION_PROPS,
+        placeholder: '先选路线再挑工序',
       },
     },
     {
       fieldName: 'routeOpId',
-      label: '锁定的路线工序编号',
+      label: '路线工序',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的路线工序编号',
-      },
-    },
-    {
-      fieldName: 'opId',
-      label: '标准工序编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入标准工序编号',
-      },
-    },
-    {
-      fieldName: 'opCode',
-      label: '工序编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序编码快照',
-      },
-    },
-    {
-      fieldName: 'opName',
-      label: '工序名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序名称快照',
-      },
-    },
-    {
-      fieldName: 'seq',
-      label: '工序顺序号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序顺序号',
-      },
-    },
-    {
-      fieldName: 'parallelGroup',
-      label: '并行工序组',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入并行工序组',
-      },
-    },
-    {
-      fieldName: 'prevTaskId',
-      label: '前序工序任务编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入前序工序任务编号',
-      },
-    },
-    {
-      fieldName: 'nextTaskId',
-      label: '后序工序任务编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入后序工序任务编号',
-      },
-    },
-    {
-      fieldName: 'execMode',
-      label: '执行模式：SEQUENTIAL、PARALLEL、OPTIONAL',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入执行模式：SEQUENTIAL、PARALLEL、OPTIONAL',
-      },
-    },
-    {
-      fieldName: 'qcMode',
-      label: '质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE',
-      },
-    },
-    {
-      fieldName: 'skipPolicy',
-      label: '跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED',
-      },
-    },
-    {
-      fieldName: 'keyFlag',
-      label: '是否关键工序',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+      component: markRaw(RelationSelect),
+      // 工序必须限定在所选路线下，否则会挑到别条路线的工序
+      dependencies: {
+        triggerFields: ['routeId'],
+        componentProps: (values) => ({
+          ...ROUTE_OP_RELATION_PROPS,
+          disabled: !values.routeId,
+          extraParams: { routeId: values.routeId },
+          placeholder: values.routeId ? '请选择路线工序' : '请先选择工艺路线',
+        }),
       },
     },
     {
       fieldName: 'plannedQty',
       label: '计划数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计划数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入计划数量' },
     },
     {
-      fieldName: 'completedQty',
-      label: '合格完成数量',
+      fieldName: 'qcMode',
+      label: '质检模式',
       rules: 'required',
-      component: 'Input',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入合格完成数量',
+        options: getDictOptions(DICT_TYPE.MES_QC_MODE, 'string'),
+        placeholder: '请选择质检模式',
       },
+      defaultValue: 'NONE',
     },
     {
-      fieldName: 'scrapQty',
-      label: '报废数量',
+      fieldName: 'skipPolicy',
+      label: '跳序策略',
       rules: 'required',
-      component: 'Input',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入报废数量',
+        options: getDictOptions(DICT_TYPE.MES_SKIP_POLICY, 'string'),
+        placeholder: '请选择跳序策略',
       },
+      defaultValue: 'NOT_ALLOWED',
     },
     {
       fieldName: 'resId',
-      label: '当前分配资源编号',
-      component: 'Input',
+      label: '分配资源',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入当前分配资源编号',
+        ...RES_RELATION_PROPS,
+        placeholder: '未分配可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'plannedStartTime',
       label: '计划开始时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划开始时间' },
     },
     {
       fieldName: 'plannedEndTime',
       label: '计划结束时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'actualStartTime',
-      label: '实际开始时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'actualEndTime',
-      label: '实际结束时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划结束时间' },
     },
     {
       fieldName: 'status',
-      label: '状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_OP_TASK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
-      },
+      defaultValue: 'PENDING',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-工序任务数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -287,235 +167,59 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'workOrderId',
-      label: '作业工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单编号',
-      },
-    },
-    {
       fieldName: 'workOrderNo',
-      label: '作业工单号快照',
+      label: '作业工单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入作业工单号快照',
-      },
-    },
-    {
-      fieldName: 'routeOpId',
-      label: '锁定的路线工序编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的路线工序编号',
+        placeholder: '请输入作业工单号',
       },
     },
     {
       fieldName: 'opId',
-      label: '标准工序编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入标准工序编号',
-      },
+      label: '标准工序',
+      component: markRaw(RelationSelect),
+      componentProps: OP_RELATION_PROPS,
     },
     {
-      fieldName: 'opCode',
-      label: '工序编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序编码快照',
-      },
-    },
-    {
-      fieldName: 'opName',
-      label: '工序名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序名称快照',
-      },
-    },
-    {
-      fieldName: 'seq',
-      label: '工序顺序号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序顺序号',
-      },
-    },
-    {
-      fieldName: 'parallelGroup',
-      label: '并行工序组',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入并行工序组',
-      },
-    },
-    {
-      fieldName: 'prevTaskId',
-      label: '前序工序任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入前序工序任务编号',
-      },
-    },
-    {
-      fieldName: 'nextTaskId',
-      label: '后序工序任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入后序工序任务编号',
-      },
-    },
-    {
-      fieldName: 'execMode',
-      label: '执行模式：SEQUENTIAL、PARALLEL、OPTIONAL',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入执行模式：SEQUENTIAL、PARALLEL、OPTIONAL',
-      },
-    },
-    {
-      fieldName: 'qcMode',
-      label: '质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE',
-      },
-    },
-    {
-      fieldName: 'skipPolicy',
-      label: '跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED',
-      },
+      fieldName: 'resId',
+      label: '分配资源',
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
       fieldName: 'keyFlag',
-      label: '是否关键工序',
+      label: '关键工序',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择是否关键工序',
       },
     },
     {
-      fieldName: 'plannedQty',
-      label: '计划数量',
-      component: 'Input',
+      fieldName: 'qcMode',
+      label: '质检模式',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入计划数量',
+        options: getDictOptions(DICT_TYPE.MES_QC_MODE, 'string'),
+        placeholder: '请选择质检模式',
       },
     },
     {
-      fieldName: 'completedQty',
-      label: '合格完成数量',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入合格完成数量',
-      },
-    },
-    {
-      fieldName: 'scrapQty',
-      label: '报废数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入报废数量',
-      },
-    },
-    {
-      fieldName: 'resId',
-      label: '当前分配资源编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入当前分配资源编号',
+        options: getDictOptions(DICT_TYPE.MES_OP_TASK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
       fieldName: 'plannedStartTime',
       label: '计划开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'plannedEndTime',
-      label: '计划结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'actualStartTime',
-      label: '实际开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'actualEndTime',
-      label: '实际结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -528,151 +232,77 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'taskNo',
-      title: '工序任务号',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderNo',
-      title: '作业工单号快照',
-      minWidth: 120,
-    },
-    {
-      field: 'routeOpId',
-      title: '锁定的路线工序编号',
-      minWidth: 120,
-    },
-    {
-      field: 'opId',
-      title: '标准工序编号',
-      minWidth: 120,
-    },
-    {
-      field: 'opCode',
-      title: '工序编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'opName',
-      title: '工序名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'seq',
-      title: '工序顺序号',
-      minWidth: 120,
-    },
-    {
-      field: 'parallelGroup',
-      title: '并行工序组',
-      minWidth: 120,
-    },
-    {
-      field: 'prevTaskId',
-      title: '前序工序任务编号',
-      minWidth: 120,
-    },
-    {
-      field: 'nextTaskId',
-      title: '后序工序任务编号',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'taskNo', title: '工序任务号', minWidth: 160 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'seq', title: '工序顺序', minWidth: 100 },
+    { field: 'opCode', title: '工序编码', minWidth: 130 },
+    { field: 'opName', title: '工序名称', minWidth: 150 },
+    { field: 'parallelGroup', title: '并行组', minWidth: 110 },
     {
       field: 'execMode',
-      title: '执行模式：SEQUENTIAL、PARALLEL、OPTIONAL',
-      minWidth: 120,
-    },
-    {
-      field: 'qcMode',
-      title: '质检模式：NONE、BEFORE_START、FIRST_ARTICLE、PROCESS、BEFORE_COMPLETE',
-      minWidth: 120,
-    },
-    {
-      field: 'skipPolicy',
-      title: '跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED',
-      minWidth: 120,
+      title: '执行模式',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_OP_EXEC_MODE },
+      },
     },
     {
       field: 'keyFlag',
-      title: '是否关键工序',
+      title: '关键工序',
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
+    },
+    { field: 'plannedQty', title: '计划数量', minWidth: 110 },
+    { field: 'completedQty', title: '已完成数量', minWidth: 110 },
+    { field: 'scrapQty', title: '报废数量', minWidth: 110 },
+    { field: 'resName', title: '分配资源', minWidth: 140 },
+    {
+      field: 'qcMode',
+      title: '质检模式',
       minWidth: 120,
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.MES_QC_MODE } },
     },
     {
-      field: 'plannedQty',
-      title: '计划数量',
-      minWidth: 120,
-    },
-    {
-      field: 'completedQty',
-      title: '合格完成数量',
-      minWidth: 120,
-    },
-    {
-      field: 'scrapQty',
-      title: '报废数量',
-      minWidth: 120,
-    },
-    {
-      field: 'resId',
-      title: '当前分配资源编号',
-      minWidth: 120,
+      field: 'skipPolicy',
+      title: '跳序策略',
+      minWidth: 130,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_SKIP_POLICY },
+      },
     },
     {
       field: 'plannedStartTime',
       title: '计划开始时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'plannedEndTime',
-      title: '计划结束时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'actualStartTime',
-      title: '实际开始时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'actualEndTime',
-      title: '实际结束时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'status',
-      title: '状态：PENDING、READY、RUNNING、PAUSED、QC_WAITING、HOLD、DONE、SKIPPED、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_OP_TASK_STATUS },
+      },
     },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'workOrderWork_order_no',
-      title: '作业工单work_order_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -2,11 +2,31 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcTaskApi } from '#/api/mes/qctask';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  MAT_RELATION_PROPS,
+  UOM_RELATION_PROPS,
+  USER_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
+import { BATCH_RELATION_PROPS } from '#/views/wms/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
+import {
+  QC_PLAN_RELATION_PROPS,
+  QC_RULE_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 方案版本、物料与单位快照、批次号由后端补全；合格与不合格数量由检验结果汇总，都不在表单里。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -20,46 +40,39 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'taskNo',
       label: '质检任务号',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入质检任务号',
-      },
-    },
-    {
-      fieldName: 'ruleId',
-      label: '命中的质检规则编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入命中的质检规则编号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'qcPlanId',
-      label: '锁定的检验方案编号',
+      label: '检验方案',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的检验方案编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: QC_PLAN_RELATION_PROPS,
     },
     {
-      fieldName: 'qcPlanVersion',
-      label: '锁定的检验方案版本',
-      rules: 'required',
-      component: 'Input',
+      fieldName: 'ruleId',
+      label: '命中质检规则',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入锁定的检验方案版本',
+        ...QC_RULE_RELATION_PROPS,
+        placeholder: '手工建单可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'triggerPoint',
-      label: '触发点：IQC、IPQC、FQC、OQC、FAI',
+      label: '触发点',
       rules: 'required',
-      component: 'Input',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入触发点：IQC、IPQC、FQC、OQC、FAI',
+        options: getDictOptions(DICT_TYPE.MES_QC_TRIGGER_POINT, 'string'),
+        placeholder: '请选择触发点',
       },
+      defaultValue: 'IPQC',
     },
     {
       fieldName: 'bizType',
@@ -67,9 +80,10 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
+        options: getDictOptions(DICT_TYPE.MES_BIZ_TYPE, 'string'),
         placeholder: '请选择来源业务类型',
       },
+      defaultValue: 'OP_TASK',
     },
     {
       fieldName: 'bizNo',
@@ -77,208 +91,106 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 64,
         placeholder: '请输入来源业务单号',
       },
     },
     {
-      fieldName: 'bizLineId',
-      label: '来源业务明细编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源业务明细编号',
-      },
-    },
-    {
       fieldName: 'matId',
-      label: '检验物料编号',
+      label: '检验物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检验物料编号',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料规格快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'batchId',
-      label: '检验批次编号',
-      component: 'Input',
+      label: '检验批次',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入检验批次编号',
+        ...BATCH_RELATION_PROPS,
+        placeholder: '不区分批次可留空',
       },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入批次号快照',
-      },
+      defaultValue: 0,
     },
     {
       fieldName: 'qty',
       label: '送检数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入送检数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入送检数量' },
     },
     {
       fieldName: 'sampleQty',
       label: '抽样数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入抽样数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '不能大于送检数量' },
     },
     {
       fieldName: 'uomId',
-      label: '计量单位编号',
+      label: '计量单位',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编码快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'assignedInspectorId',
-      label: '指派检验员编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入指派检验员编号',
-      },
+      label: '指派检验员',
+      component: markRaw(RelationSelect),
+      componentProps: { ...USER_RELATION_PROPS, placeholder: '未指派可留空' },
+      defaultValue: 0,
     },
     {
       fieldName: 'inspectStartTime',
       label: '检验开始时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择检验开始时间' },
     },
     {
       fieldName: 'inspectEndTime',
       label: '检验结束时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择检验结束时间' },
     },
     {
       fieldName: 'conclusion',
-      label: '检验结论：QUALIFIED、REJECTED、CONCESSION',
-      component: 'Input',
+      label: '检验结论',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入检验结论：QUALIFIED、REJECTED、CONCESSION',
-      },
-    },
-    {
-      fieldName: 'qtyQualified',
-      label: '合格数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入合格数量',
-      },
-    },
-    {
-      fieldName: 'qtyRejected',
-      label: '不合格数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入不合格数量',
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_QC_CONCLUSION, 'string'),
+        placeholder: '完成时必填',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：CREATED、ASSIGNED、INSPECTING、RESULT_POSTING、DONE、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_QC_TASK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'CREATED',
     },
     {
       fieldName: 'idempotencyKey',
-      label: '创建幂等键',
+      label: '幂等键',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入创建幂等键',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
+        maxLength: 128,
+        placeholder: '业务自动触发时用于去重，手工建单可留空',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-质检任务数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -296,52 +208,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'ruleId',
-      label: '命中的质检规则编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入命中的质检规则编号',
-      },
-    },
-    {
-      fieldName: 'qcPlanId',
-      label: '锁定的检验方案编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的检验方案编号',
-      },
-    },
-    {
-      fieldName: 'qcPlanVersion',
-      label: '锁定的检验方案版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的检验方案版本',
-      },
-    },
-    {
-      fieldName: 'triggerPoint',
-      label: '触发点：IQC、IPQC、FQC、OQC、FAI',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入触发点：IQC、IPQC、FQC、OQC、FAI',
-      },
-    },
-    {
-      fieldName: 'bizType',
-      label: '来源业务类型',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择来源业务类型',
-      },
-    },
-    {
       fieldName: 'bizNo',
       label: '来源业务单号',
       component: 'Input',
@@ -351,198 +217,56 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'bizLineId',
-      label: '来源业务明细编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源业务明细编号',
-      },
-    },
-    {
       fieldName: 'matId',
-      label: '检验物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检验物料编号',
-      },
+      label: '检验物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料规格快照',
-      },
-    },
-    {
-      fieldName: 'batchId',
-      label: '检验批次编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检验批次编号',
-      },
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入批次号快照',
-      },
-    },
-    {
-      fieldName: 'qty',
-      label: '送检数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入送检数量',
-      },
-    },
-    {
-      fieldName: 'sampleQty',
-      label: '抽样数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入抽样数量',
-      },
-    },
-    {
-      fieldName: 'uomId',
-      label: '计量单位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编码快照',
-      },
+      fieldName: 'qcPlanId',
+      label: '检验方案',
+      component: markRaw(RelationSelect),
+      componentProps: QC_PLAN_RELATION_PROPS,
     },
     {
       fieldName: 'assignedInspectorId',
-      label: '指派检验员编号',
-      component: 'Input',
+      label: '指派检验员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
+    },
+    {
+      fieldName: 'triggerPoint',
+      label: '触发点',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入指派检验员编号',
+        options: getDictOptions(DICT_TYPE.MES_QC_TRIGGER_POINT, 'string'),
+        placeholder: '请选择触发点',
+      },
+    },
+    {
+      fieldName: 'conclusion',
+      label: '检验结论',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_QC_CONCLUSION, 'string'),
+        placeholder: '请选择检验结论',
+      },
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_QC_TASK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
       fieldName: 'inspectStartTime',
       label: '检验开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'inspectEndTime',
-      label: '检验结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'conclusion',
-      label: '检验结论：QUALIFIED、REJECTED、CONCESSION',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检验结论：QUALIFIED、REJECTED、CONCESSION',
-      },
-    },
-    {
-      fieldName: 'qtyQualified',
-      label: '合格数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入合格数量',
-      },
-    },
-    {
-      fieldName: 'qtyRejected',
-      label: '不合格数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入不合格数量',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：CREATED、ASSIGNED、INSPECTING、RESULT_POSTING、DONE、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：CREATED、ASSIGNED、INSPECTING、RESULT_POSTING、DONE、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '创建幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入创建幂等键',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -555,169 +279,70 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesQcTaskApi.QcTask>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'taskNo',
-      title: '质检任务号',
-      minWidth: 120,
-    },
-    {
-      field: 'qcPlanVersion',
-      title: '锁定的检验方案版本',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'taskNo', title: '质检任务号', minWidth: 160 },
     {
       field: 'triggerPoint',
-      title: '触发点：IQC、IPQC、FQC、OQC、FAI',
+      title: '触发点',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_QC_TRIGGER_POINT },
+      },
     },
     {
       field: 'bizType',
       title: '来源业务类型',
+      minWidth: 130,
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.MES_BIZ_TYPE } },
+    },
+    { field: 'bizNo', title: '来源业务单号', minWidth: 150 },
+    { field: 'qcPlanCode', title: '方案编码', minWidth: 150 },
+    { field: 'qcPlanVersion', title: '方案版本', minWidth: 110 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'lotNo', title: '批次号', minWidth: 130 },
+    { field: 'qty', title: '送检数量', minWidth: 110 },
+    { field: 'sampleQty', title: '抽样数量', minWidth: 110 },
+    { field: 'uomCode', title: '单位', minWidth: 90 },
+    { field: 'qtyQualified', title: '合格数量', minWidth: 110 },
+    { field: 'qtyRejected', title: '不合格数量', minWidth: 110 },
+    { field: 'assignedInspectorName', title: '检验员', minWidth: 120 },
+    {
+      field: 'conclusion',
+      title: '检验结论',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_QC_CONCLUSION },
+      },
     },
     {
-      field: 'bizNo',
-      title: '来源业务单号',
+      field: 'status',
+      title: '状态',
       minWidth: 120,
-    },
-    {
-      field: 'bizLineId',
-      title: '来源业务明细编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '检验物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matSpec',
-      title: '物料规格快照',
-      minWidth: 120,
-    },
-    {
-      field: 'batchId',
-      title: '检验批次编号',
-      minWidth: 120,
-    },
-    {
-      field: 'lotNo',
-      title: '批次号快照',
-      minWidth: 120,
-    },
-    {
-      field: 'qty',
-      title: '送检数量',
-      minWidth: 120,
-    },
-    {
-      field: 'sampleQty',
-      title: '抽样数量',
-      minWidth: 120,
-    },
-    {
-      field: 'uomId',
-      title: '计量单位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'uomCode',
-      title: '计量单位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'assignedInspectorId',
-      title: '指派检验员编号',
-      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_QC_TASK_STATUS },
+      },
     },
     {
       field: 'inspectStartTime',
       title: '检验开始时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'inspectEndTime',
-      title: '检验结束时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'conclusion',
-      title: '检验结论：QUALIFIED、REJECTED、CONCESSION',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyQualified',
-      title: '合格数量',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyRejected',
-      title: '不合格数量',
-      minWidth: 120,
-    },
-    {
-      field: 'status',
-      title: '状态：CREATED、ASSIGNED、INSPECTING、RESULT_POSTING、DONE、CANCELLED',
-      minWidth: 120,
-    },
-    {
-      field: 'idempotencyKey',
-      title: '创建幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'ruleCode',
-      title: '命中的质检规则编码',
-      minWidth: 120,
-    },
-    {
-      field: 'ruleName',
-      title: '命中的质检规则名称',
-      minWidth: 120,
-    },
-    {
-      field: 'qcPlanCode',
-      title: '锁定的检验方案编码',
-      minWidth: 120,
-    },
-    {
-      field: 'qcPlanName',
-      title: '锁定的检验方案名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

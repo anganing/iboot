@@ -4,10 +4,10 @@ import type { MesMaterialReqApi } from '#/api/mes/materialreq';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElTabs, ElTabPane } from 'element-plus';
+import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -16,62 +16,59 @@ import {
   exportMaterialReq,
   getMaterialReqPage,
 } from '#/api/mes/materialreq';
-import MaterialReqImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import MaterialReqLineList from './modules/material-req-line-list.vue';
+import MaterialReqLineDrawer from './modules/material-req-line-drawer.vue';
 
- /** 子表的列表 */
-const subTabsName = ref('materialReqLine')
-const selectMaterialReq = ref<MesMaterialReqApi.MaterialReq>();
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: MaterialReqImport,
+/** 明细走独立抽屉，列表页不内嵌平铺子表 */
+const [LineDrawer, lineDrawerApi] = useVbenDrawer({
+  connectedComponent: MaterialReqLineDrawer,
   destroyOnClose: true,
 });
-
-/** 导入MES-领退补料申请 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-领退补料申请 */
+/** 创建领退补料申请 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-领退补料申请 */
+/** 编辑领退补料申请 */
 function handleEdit(row: MesMaterialReqApi.MaterialReq) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-领退补料申请 */
+/** 打开申请明细抽屉 */
+function handleLines(row: MesMaterialReqApi.MaterialReq) {
+  lineDrawerApi.setData(row).open();
+}
+
+/** 删除领退补料申请 */
 async function handleDelete(row: MesMaterialReqApi.MaterialReq) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.reqNo]),
   });
   try {
     await deleteMaterialReq(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.reqNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-领退补料申请 */
+/** 批量删除领退补料申请 */
 async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
+  await confirm('确认删除所选领退补料申请？申请明细会一并级联删除。');
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deletingBatch'),
   });
@@ -97,9 +94,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportMaterialReq(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-领退补料申请.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '领退补料申请.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -107,7 +103,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     columns: useGridColumns(),
-    height: '600px',
+    height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
@@ -123,7 +119,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     rowConfig: {
       keyField: 'id',
       isHover: true,
-      isCurrent: true,
     },
     toolbarConfig: {
       refresh: true,
@@ -131,9 +126,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<MesMaterialReqApi.MaterialReq>,
   gridEvents: {
-    cellClick: ({ row }: { row: MesMaterialReqApi.MaterialReq}) => {
-      selectMaterialReq.value = row;
-    },
     checkboxAll: handleRowCheckboxChange,
     checkboxChange: handleRowCheckboxChange,
   },
@@ -143,24 +135,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-   <div>
-    <Grid table-title="MES-领退补料申请列表">
+    <LineDrawer />
+    <Grid table-title="领退补料申请列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-领退补料申请']),
+              label: $t('ui.actionTitle.create', ['领退补料申请']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:material-req:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:material-req:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -184,6 +169,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:material-req:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
@@ -198,7 +191,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:material-req:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.reqNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -206,12 +199,5 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
     </Grid>
-     <!-- 子表的表单 -->
-    <ElTabs v-model="subTabsName" class="mt-2">
-          <ElTabPane name="materialReqLine" label="MES-领退补料申请明细">
-            <MaterialReqLineList :req-id="selectMaterialReq?.id" />
-          </ElTabPane>
-    </ElTabs>
-    </div>
   </Page>
-</template>
+</template>

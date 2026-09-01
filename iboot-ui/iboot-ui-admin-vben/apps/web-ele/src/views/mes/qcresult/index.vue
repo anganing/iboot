@@ -16,7 +16,6 @@ import {
   exportQcResult,
   getQcResultPage,
 } from '#/api/mes/qcresult';
-import QcResultImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,46 +25,37 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: QcResultImport,
-  destroyOnClose: true,
-});
-
-/** 导入MES-检验结果 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-检验结果 */
+/** 创建检验结果 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-检验结果 */
+/** 编辑检验结果 */
 function handleEdit(row: MesQcResultApi.QcResult) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-检验结果 */
+/** 删除检验结果 */
 async function handleDelete(row: MesQcResultApi.QcResult) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.itemCode]),
   });
   try {
     await deleteQcResult(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.itemCode]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-检验结果 */
+/** 批量删除检验结果 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +83,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportQcResult(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-检验结果.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '检验结果.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,23 +124,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-检验结果列表">
+    <Grid table-title="检验结果列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-检验结果']),
+              label: $t('ui.actionTitle.create', ['检验结果']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:qc-result:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:qc-result:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:qc-result:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.itemCode]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

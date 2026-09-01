@@ -16,7 +16,6 @@ import {
   exportOpSkipRecord,
   getOpSkipRecordPage,
 } from '#/api/mes/opskiprecord';
-import OpSkipRecordImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,46 +25,37 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: OpSkipRecordImport,
-  destroyOnClose: true,
-});
-
-/** 导入MES-工序跳过记录 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-工序跳过记录 */
+/** 创建工序跳过记录 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-工序跳过记录 */
+/** 编辑工序跳过记录 */
 function handleEdit(row: MesOpSkipRecordApi.OpSkipRecord) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-工序跳过记录 */
+/** 删除工序跳过记录 */
 async function handleDelete(row: MesOpSkipRecordApi.OpSkipRecord) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.opTaskNo]),
   });
   try {
     await deleteOpSkipRecord(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.opTaskNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-工序跳过记录 */
+/** 批量删除工序跳过记录 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +83,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportOpSkipRecord(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-工序跳过记录.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '工序跳过记录.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,23 +124,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-工序跳过记录列表">
+    <Grid table-title="工序跳过记录列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-工序跳过记录']),
+              label: $t('ui.actionTitle.create', ['工序跳过记录']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:op-skip-record:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:op-skip-record:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:op-skip-record:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.opTaskNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

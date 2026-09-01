@@ -2,11 +2,34 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesProdOrderApi } from '#/api/mes/prodorder';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  MAT_RELATION_PROPS,
+  PLANT_RELATION_PROPS,
+  PROJECT_RELATION_PROPS,
+  PROJECT_TASK_RELATION_PROPS,
+  UOM_RELATION_PROPS,
+  WORKSHOP_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, INT_PROPS, QTY_PROPS } from '../form-props';
+import {
+  BOM_RELATION_PROPS,
+  PROD_DEMAND_RELATION_PROPS,
+  ROUTE_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 物料与单位快照、BOM 与路线版本、进度数量、齐套状态、时间戳都由后端维护，不出现在表单里。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -20,170 +43,86 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'orderNo',
       label: '生产工单号',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入生产工单号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'demandId',
-      label: '生产需求编号',
-      component: 'Input',
+      label: '生产需求',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入生产需求编号',
+        ...PROD_DEMAND_RELATION_PROPS,
+        placeholder: '手工建单可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号',
+      label: '车间',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入车间编号',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'matId',
-      label: '生产物料编号',
+      label: '生产物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产物料编号',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料规格快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'qty',
-      label: '计划生产数量',
+      label: '计划数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计划生产数量',
-      },
-    },
-    {
-      fieldName: 'completedQty',
-      label: '已完成数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入已完成数量',
-      },
-    },
-    {
-      fieldName: 'scrapQty',
-      label: '累计报废数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入累计报废数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入计划生产数量' },
     },
     {
       fieldName: 'uomId',
-      label: '计量单位编号',
+      label: '计量单位',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编码快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'bomId',
-      label: '锁定的BOM编号',
+      label: '锁定 BOM',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的BOM编号',
-      },
-    },
-    {
-      fieldName: 'bomVersion',
-      label: '锁定的BOM版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的BOM版本',
+      component: markRaw(RelationSelect),
+      // BOM 属于所选物料，先选物料再挑版本
+      dependencies: {
+        triggerFields: ['matId'],
+        componentProps: (values) => ({
+          ...BOM_RELATION_PROPS,
+          disabled: !values.matId,
+          extraParams: { matId: values.matId },
+          placeholder: values.matId ? '请选择 BOM 版本' : '请先选择生产物料',
+        }),
       },
     },
     {
       fieldName: 'routeId',
-      label: '锁定的工艺路线编号',
+      label: '锁定工艺路线',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的工艺路线编号',
-      },
-    },
-    {
-      fieldName: 'routeVersion',
-      label: '锁定的工艺路线版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入锁定的工艺路线版本',
+      component: markRaw(RelationSelect),
+      dependencies: {
+        triggerFields: ['matId'],
+        componentProps: (values) => ({
+          ...ROUTE_RELATION_PROPS,
+          disabled: !values.matId,
+          extraParams: { matId: values.matId },
+          placeholder: values.matId ? '请选择工艺路线版本' : '请先选择生产物料',
+        }),
       },
     },
     {
@@ -191,92 +130,62 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '工单交期',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择工单交期' },
     },
     {
       fieldName: 'priority',
       label: '优先级',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入优先级',
-      },
+      component: 'InputNumber',
+      componentProps: { ...INT_PROPS, placeholder: '数值越大越优先' },
+      defaultValue: 0,
     },
     {
-      fieldName: 'kitStatus',
-      label: '齐套状态：UNCHECKED、FULL_KIT、PARTIAL_KIT、SHORTAGE',
+      fieldName: 'projectId',
+      label: '归属项目',
       rules: 'required',
-      component: 'RadioGroup',
+      component: markRaw(RelationSelect),
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        ...PROJECT_RELATION_PROPS,
+        placeholder: '无项目请选择占位项目',
       },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'projectTaskId',
+      label: '项目任务',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      dependencies: {
+        triggerFields: ['projectId'],
+        componentProps: (values) => ({
+          ...PROJECT_TASK_RELATION_PROPS,
+          disabled: !values.projectId,
+          extraParams: { projectId: values.projectId },
+          placeholder: values.projectId ? '请选择项目任务' : '请先选择项目',
+        }),
+      },
+      defaultValue: 0,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、RELEASED、READY、RUNNING、HOLD、DONE、CLOSED、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_PROD_ORDER_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
-    },
-    {
-      fieldName: 'releaseTime',
-      label: '下达时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'actualStartTime',
-      label: '实际开始时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'actualEndTime',
-      label: '实际结束时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
-      },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -287,7 +196,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'MES-生产工单数据',
+      label: '生产工单数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -308,165 +217,41 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'demandId',
-      label: '生产需求编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产需求编号',
-      },
+      fieldName: 'matId',
+      label: '生产物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工厂编号',
-      },
+      label: '工厂',
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'workshopId',
-      label: '车间编号',
-      component: 'Input',
+      label: '车间',
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
+    },
+    {
+      fieldName: 'kitStatus',
+      label: '齐套状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入车间编号',
+        options: getDictOptions(DICT_TYPE.MES_KIT_STATUS, 'string'),
+        placeholder: '请选择齐套状态',
       },
     },
     {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
-    },
-    {
-      fieldName: 'matId',
-      label: '生产物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产物料编号',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料规格快照',
-      },
-    },
-    {
-      fieldName: 'qty',
-      label: '计划生产数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计划生产数量',
-      },
-    },
-    {
-      fieldName: 'completedQty',
-      label: '已完成数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入已完成数量',
-      },
-    },
-    {
-      fieldName: 'scrapQty',
-      label: '累计报废数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入累计报废数量',
-      },
-    },
-    {
-      fieldName: 'uomId',
-      label: '计量单位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编码快照',
-      },
-    },
-    {
-      fieldName: 'bomId',
-      label: '锁定的BOM编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的BOM编号',
-      },
-    },
-    {
-      fieldName: 'bomVersion',
-      label: '锁定的BOM版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的BOM版本',
-      },
-    },
-    {
-      fieldName: 'routeId',
-      label: '锁定的工艺路线编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的工艺路线编号',
-      },
-    },
-    {
-      fieldName: 'routeVersion',
-      label: '锁定的工艺路线版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入锁定的工艺路线版本',
+        options: getDictOptions(DICT_TYPE.MES_PROD_ORDER_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -476,80 +261,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...getRangePickerDefaultProps(),
         clearable: true,
-      },
-    },
-    {
-      fieldName: 'priority',
-      label: '优先级',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入优先级',
-      },
-    },
-    {
-      fieldName: 'kitStatus',
-      label: '齐套状态：UNCHECKED、FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择齐套状态：UNCHECKED、FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：DRAFT、RELEASED、READY、RUNNING、HOLD、DONE、CLOSED、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、RELEASED、READY、RUNNING、HOLD、DONE、CLOSED、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'releaseTime',
-      label: '下达时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'actualStartTime',
-      label: '实际开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'actualEndTime',
-      label: '实际结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
       },
     },
     {
@@ -567,161 +278,62 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesProdOrderApi.ProdOrder>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'orderNo',
-      title: '生产工单号',
-      minWidth: 120,
-    },
-    {
-      field: 'plantId',
-      title: '工厂编号',
-      minWidth: 120,
-    },
-    {
-      field: 'workshopId',
-      title: '车间编号',
-      minWidth: 120,
-    },
-    {
-      field: 'projectId',
-      title: '项目编号，0表示无项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '生产物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matSpec',
-      title: '物料规格快照',
-      minWidth: 120,
-    },
-    {
-      field: 'qty',
-      title: '计划生产数量',
-      minWidth: 120,
-    },
-    {
-      field: 'completedQty',
-      title: '已完成数量',
-      minWidth: 120,
-    },
-    {
-      field: 'scrapQty',
-      title: '累计报废数量',
-      minWidth: 120,
-    },
-    {
-      field: 'uomId',
-      title: '计量单位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'uomCode',
-      title: '计量单位编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'bomId',
-      title: '锁定的BOM编号',
-      minWidth: 120,
-    },
-    {
-      field: 'bomVersion',
-      title: '锁定的BOM版本',
-      minWidth: 120,
-    },
-    {
-      field: 'routeId',
-      title: '锁定的工艺路线编号',
-      minWidth: 120,
-    },
-    {
-      field: 'routeVersion',
-      title: '锁定的工艺路线版本',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'orderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'demandNo', title: '生产需求单号', minWidth: 160 },
+    { field: 'plantName', title: '工厂', minWidth: 130 },
+    { field: 'workshopName', title: '车间', minWidth: 130 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'matSpec', title: '规格型号', minWidth: 150 },
+    { field: 'qty', title: '计划数量', minWidth: 110 },
+    { field: 'completedQty', title: '已完成数量', minWidth: 110 },
+    { field: 'scrapQty', title: '报废数量', minWidth: 110 },
+    { field: 'uomCode', title: '单位', minWidth: 90 },
+    { field: 'bomVersion', title: 'BOM 版本', minWidth: 110 },
+    { field: 'routeVersion', title: '路线版本', minWidth: 110 },
     {
       field: 'dueDate',
       title: '工单交期',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'priority',
-      title: '优先级',
-      minWidth: 120,
-    },
+    { field: 'priority', title: '优先级', minWidth: 90 },
     {
       field: 'kitStatus',
-      title: '齐套状态：UNCHECKED、FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      minWidth: 120,
+      title: '齐套状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_KIT_STATUS },
+      },
     },
     {
       field: 'status',
-      title: '状态：DRAFT、RELEASED、READY、RUNNING、HOLD、DONE、CLOSED、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_PROD_ORDER_STATUS },
+      },
     },
     {
       field: 'releaseTime',
       title: '下达时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'actualStartTime',
-      title: '实际开始时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'actualEndTime',
-      title: '实际结束时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'demandDemand_no',
-      title: '生产需求demand_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

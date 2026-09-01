@@ -16,7 +16,6 @@ import {
   exportQcRule,
   getQcRulePage,
 } from '#/api/mes/qcrule';
-import QcRuleImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,46 +25,37 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: QcRuleImport,
-  destroyOnClose: true,
-});
-
-/** 导入MES-质检触发规则 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-质检触发规则 */
+/** 创建质检触发规则 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-质检触发规则 */
+/** 编辑质检触发规则 */
 function handleEdit(row: MesQcRuleApi.QcRule) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-质检触发规则 */
+/** 删除质检触发规则 */
 async function handleDelete(row: MesQcRuleApi.QcRule) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.code]),
   });
   try {
     await deleteQcRule(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.code]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-质检触发规则 */
+/** 批量删除质检触发规则 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +83,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportQcRule(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-质检触发规则.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '质检触发规则.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,23 +124,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-质检触发规则列表">
+    <Grid table-title="质检触发规则列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-质检触发规则']),
+              label: $t('ui.actionTitle.create', ['质检触发规则']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:qc-rule:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:qc-rule:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:qc-rule:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.code]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

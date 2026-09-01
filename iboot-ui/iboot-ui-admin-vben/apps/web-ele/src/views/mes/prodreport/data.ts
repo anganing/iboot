@@ -2,11 +2,27 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesProdReportApi } from '#/api/mes/prodreport';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  RES_RELATION_PROPS,
+  SHIFT_RELATION_PROPS,
+  USER_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
+import { OP_TASK_RELATION_PROPS } from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 生产工单与作业工单编号由后端从工序任务反查带出，前端只提交工序任务，避免三者对不上。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -20,166 +36,119 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'reportNo',
       label: '报工单号',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入报工单号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单编号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'opTaskId',
-      label: '工序任务编号',
+      label: '工序任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序任务编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'workerId',
-      label: '报工作业人员编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入报工作业人员编号',
-      },
+      label: '报工人员',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'resId',
-      label: '生产资源编号',
-      rules: 'required',
-      component: 'Input',
+      label: '生产资源',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入生产资源编号',
+        ...RES_RELATION_PROPS,
+        placeholder: '未指定可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号',
-      component: 'Input',
+      label: '班次',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入班次编号',
+        ...SHIFT_RELATION_PROPS,
+        placeholder: '不区分班次可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'qtyGood',
       label: '合格数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入合格数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入合格数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'qtyScrap',
       label: '报废数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入报废数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入报废数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'qtyRework',
       label: '返工数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返工数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入返工数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'startTime',
-      label: '本次作业开始时间',
+      label: '作业开始时间',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择作业开始时间' },
     },
     {
       fieldName: 'endTime',
-      label: '本次作业结束时间',
+      label: '作业结束时间',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择作业结束时间' },
     },
     {
       fieldName: 'reportTime',
       label: '报工时间',
-      rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '留空取当前时间' },
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、QC_PENDING、CONFIRMED、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_PROD_REPORT_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'idempotencyKey',
-      label: '报工幂等键',
+      label: '幂等键',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入报工幂等键',
+        maxLength: 128,
+        placeholder: '扫码端提交时用于去重，手工建单可留空',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-生产报工记录数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -197,144 +166,42 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单编号',
-      },
-    },
-    {
       fieldName: 'opTaskId',
-      label: '工序任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序任务编号',
-      },
+      label: '工序任务',
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'workerId',
-      label: '报工作业人员编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入报工作业人员编号',
-      },
+      label: '报工人员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'resId',
-      label: '生产资源编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产资源编号',
-      },
+      label: '生产资源',
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
       fieldName: 'shiftId',
-      label: '班次编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入班次编号',
-      },
+      label: '班次',
+      component: markRaw(RelationSelect),
+      componentProps: SHIFT_RELATION_PROPS,
     },
     {
-      fieldName: 'qtyGood',
-      label: '合格数量',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入合格数量',
-      },
-    },
-    {
-      fieldName: 'qtyScrap',
-      label: '报废数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入报废数量',
-      },
-    },
-    {
-      fieldName: 'qtyRework',
-      label: '返工数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入返工数量',
-      },
-    },
-    {
-      fieldName: 'startTime',
-      label: '本次作业开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'endTime',
-      label: '本次作业结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_PROD_REPORT_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
       fieldName: 'reportTime',
       label: '报工时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、QC_PENDING、CONFIRMED、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、SUBMITTED、QC_PENDING、CONFIRMED、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '报工幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入报工幂等键',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -347,100 +214,56 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesProdReportApi.ProdReport>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'reportNo',
-      title: '报工单号',
-      minWidth: 120,
-    },
-    {
-      field: 'workerId',
-      title: '报工作业人员编号',
-      minWidth: 120,
-    },
-    {
-      field: 'resId',
-      title: '生产资源编号',
-      minWidth: 120,
-    },
-    {
-      field: 'shiftId',
-      title: '班次编号',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyGood',
-      title: '合格数量',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyScrap',
-      title: '报废数量',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyRework',
-      title: '返工数量',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'reportNo', title: '报工单号', minWidth: 160 },
+    { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
+    { field: 'opName', title: '工序名称', minWidth: 140 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'workerName', title: '报工人员', minWidth: 120 },
+    { field: 'resName', title: '生产资源', minWidth: 140 },
+    { field: 'shiftName', title: '班次', minWidth: 110 },
+    { field: 'qtyGood', title: '合格数量', minWidth: 110 },
+    { field: 'qtyScrap', title: '报废数量', minWidth: 110 },
+    { field: 'qtyRework', title: '返工数量', minWidth: 110 },
     {
       field: 'startTime',
-      title: '本次作业开始时间',
-      minWidth: 120,
+      title: '作业开始时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'endTime',
-      title: '本次作业结束时间',
-      minWidth: 120,
+      title: '作业结束时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'reportTime',
       title: '报工时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'status',
-      title: '状态：DRAFT、SUBMITTED、QC_PENDING、CONFIRMED、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_PROD_REPORT_STATUS },
+      },
     },
-    {
-      field: 'idempotencyKey',
-      title: '报工幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'prodOrderOrder_no',
-      title: '生产工单order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderWork_order_no',
-      title: '作业工单work_order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'opTaskTask_no',
-      title: '工序任务task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

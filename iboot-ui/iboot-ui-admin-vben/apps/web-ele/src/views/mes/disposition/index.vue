@@ -16,7 +16,6 @@ import {
   exportDisposition,
   getDispositionPage,
 } from '#/api/mes/disposition';
-import DispositionImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,46 +25,37 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: DispositionImport,
-  destroyOnClose: true,
-});
-
-/** 导入MES-不合格品处置单 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-不合格品处置单 */
+/** 创建不合格品处置单 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-不合格品处置单 */
+/** 编辑不合格品处置单 */
 function handleEdit(row: MesDispositionApi.Disposition) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-不合格品处置单 */
+/** 删除不合格品处置单 */
 async function handleDelete(row: MesDispositionApi.Disposition) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.dispositionNo]),
   });
   try {
     await deleteDisposition(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.dispositionNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-不合格品处置单 */
+/** 批量删除不合格品处置单 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +83,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportDisposition(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-不合格品处置单.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '不合格品处置单.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,23 +124,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-不合格品处置单列表">
+    <Grid table-title="不合格品处置单列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-不合格品处置单']),
+              label: $t('ui.actionTitle.create', ['不合格品处置单']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:disposition:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:disposition:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:disposition:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.dispositionNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

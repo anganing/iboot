@@ -2,11 +2,26 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesReworkApi } from '#/api/mes/rework';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
-/** 新增/修改的表单 */
+import { QTY_PROPS } from '../form-props';
+import {
+  OP_TASK_RELATION_PROPS,
+  QC_TASK_RELATION_PROPS,
+  ROUTE_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 生产工单、作业工单编号与返工路线版本由后端带出，不出现在表单里。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -20,103 +35,63 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'reworkNo',
       label: '返工任务编号',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入返工任务编号',
-      },
-    },
-    {
-      fieldName: 'sourceQcTaskId',
-      label: '来源质检任务编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入来源质检任务编号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单编号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'opTaskId',
-      label: '返工起始工序任务编号',
+      label: '返工起始工序',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
+    },
+    {
+      fieldName: 'sourceQcTaskId',
+      label: '来源质检任务',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入返工起始工序任务编号',
+        ...QC_TASK_RELATION_PROPS,
+        placeholder: '手工发起可留空',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'qty',
       label: '返工数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返工数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入返工数量' },
     },
     {
       fieldName: 'routeId',
-      label: '返工工艺路线编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返工工艺路线编号',
-      },
-    },
-    {
-      fieldName: 'routeVersion',
-      label: '返工工艺路线版本',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返工工艺路线版本',
-      },
+      label: '返工工艺路线',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: ROUTE_RELATION_PROPS,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、RELEASED、RUNNING、QC_PENDING、DONE、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_REWORK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-返工任务数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -134,85 +109,25 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'sourceQcTaskId',
-      label: '来源质检任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入来源质检任务编号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单编号',
-      },
-    },
-    {
       fieldName: 'opTaskId',
-      label: '返工起始工序任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入返工起始工序任务编号',
-      },
+      label: '返工起始工序',
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
-      fieldName: 'qty',
-      label: '返工数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入返工数量',
-      },
-    },
-    {
-      fieldName: 'routeId',
-      label: '返工工艺路线编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入返工工艺路线编号',
-      },
-    },
-    {
-      fieldName: 'routeVersion',
-      label: '返工工艺路线版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入返工工艺路线版本',
-      },
+      fieldName: 'sourceQcTaskId',
+      label: '来源质检任务',
+      component: markRaw(RelationSelect),
+      componentProps: QC_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、RELEASED、RUNNING、QC_PENDING、DONE、CANCELLED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、RELEASED、RUNNING、QC_PENDING、DONE、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions(DICT_TYPE.MES_REWORK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -230,67 +145,35 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesReworkApi.Rework>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'reworkNo',
-      title: '返工任务编号',
-      minWidth: 120,
-    },
-    {
-      field: 'sourceQcTaskId',
-      title: '来源质检任务编号',
-      minWidth: 120,
-    },
-    {
-      field: 'qty',
-      title: '返工数量',
-      minWidth: 120,
-    },
-    {
-      field: 'routeId',
-      title: '返工工艺路线编号',
-      minWidth: 120,
-    },
-    {
-      field: 'routeVersion',
-      title: '返工工艺路线版本',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'reworkNo', title: '返工任务编号', minWidth: 160 },
+    { field: 'opTaskNo', title: '返工起始工序', minWidth: 160 },
+    { field: 'opName', title: '工序名称', minWidth: 140 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'sourceQcTaskNo', title: '来源质检任务', minWidth: 160 },
+    { field: 'qty', title: '返工数量', minWidth: 110 },
+    { field: 'routeVersion', title: '返工路线版本', minWidth: 130 },
     {
       field: 'status',
-      title: '状态：DRAFT、RELEASED、RUNNING、QC_PENDING、DONE、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_REWORK_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'prodOrderOrder_no',
-      title: '生产工单order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderWork_order_no',
-      title: '作业工单work_order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'opTaskTask_no',
-      title: '返工起始工序任务task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

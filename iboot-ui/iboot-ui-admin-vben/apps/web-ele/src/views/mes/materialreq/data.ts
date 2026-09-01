@@ -2,11 +2,35 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesMaterialReqApi } from '#/api/mes/materialreq';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  INV_ORG_RELATION_PROPS,
+  MAT_RELATION_PROPS,
+  UOM_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
+import {
+  BATCH_RELATION_PROPS,
+  WH_RELATION_PROPS,
+} from '#/views/wms/relation-config';
 
-/** 新增/修改的表单 */
+import { INT_PROPS, QTY_PROPS } from '../form-props';
+import {
+  OP_TASK_RELATION_PROPS,
+  PROD_ORDER_RELATION_PROPS,
+  WORK_ORDER_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 主表新增/修改的表单。
+ *
+ * 生产工单号快照与项目维度由后端从生产工单继承；WMS 单号由 WMS 回写，都不在表单里。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -19,142 +43,94 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'reqNo',
-      label: '领退补料申请单号',
-      rules: 'required',
+      label: '申请单号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入领退补料申请单号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'prodOrderId',
-      label: '生产工单编号',
+      label: '生产工单',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'prodOrderNo',
-      label: '生产工单号快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单号快照',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号，0表示工单级申请',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单编号，0表示工单级申请',
-      },
-    },
-    {
-      fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序级申请',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序任务编号，0表示非工序级申请',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PROD_ORDER_RELATION_PROPS,
     },
     {
       fieldName: 'reqType',
-      label: '申请类型：ISSUE、RETURN、SUPPLEMENT',
+      label: '申请类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择申请类型：ISSUE、RETURN、SUPPLEMENT',
+        options: getDictOptions(DICT_TYPE.MES_MATERIAL_REQ_TYPE, 'string'),
+        placeholder: '请选择申请类型',
       },
+      defaultValue: 'ISSUE',
+    },
+    {
+      fieldName: 'workOrderId',
+      label: '作业工单',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...WORK_ORDER_RELATION_PROPS,
+        placeholder: '工单级申请可留空',
+      },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'opTaskId',
+      label: '工序任务',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...OP_TASK_RELATION_PROPS,
+        placeholder: '非工序级申请可留空',
+      },
+      defaultValue: 0,
     },
     {
       fieldName: 'invOrgId',
-      label: '库存组织编号',
+      label: '库存组织',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入库存组织编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: INV_ORG_RELATION_PROPS,
     },
     {
       fieldName: 'whId',
-      label: '目标仓库或来源仓库编号',
+      label: '仓库',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入目标仓库或来源仓库编号',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
-    },
-    {
-      fieldName: 'wmsBizNo',
-      label: 'WMS生成的出入库单号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入WMS生成的出入库单号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、WMS_PROCESSING、PARTIAL、DONE、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_MATERIAL_REQ_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'idempotencyKey',
-      label: '创建幂等键',
+      label: '幂等键',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入创建幂等键',
+        maxLength: 128,
+        placeholder: '业务自动触发时用于去重，手工建单可留空',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-领退补料申请数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -164,130 +140,55 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'reqNo',
-      label: '领退补料申请单号',
+      label: '申请单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入领退补料申请单号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产工单编号',
+        placeholder: '请输入申请单号',
       },
     },
     {
       fieldName: 'prodOrderNo',
-      label: '生产工单号快照',
+      label: '生产工单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入生产工单号快照',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号，0表示工单级申请',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单编号，0表示工单级申请',
-      },
-    },
-    {
-      fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序级申请',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序任务编号，0表示非工序级申请',
+        placeholder: '请输入生产工单号',
       },
     },
     {
       fieldName: 'reqType',
-      label: '申请类型：ISSUE、RETURN、SUPPLEMENT',
+      label: '申请类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择申请类型：ISSUE、RETURN、SUPPLEMENT',
-      },
-    },
-    {
-      fieldName: 'invOrgId',
-      label: '库存组织编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入库存组织编号',
+        options: getDictOptions(DICT_TYPE.MES_MATERIAL_REQ_TYPE, 'string'),
+        placeholder: '请选择申请类型',
       },
     },
     {
       fieldName: 'whId',
-      label: '目标仓库或来源仓库编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入目标仓库或来源仓库编号',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
+      label: '仓库',
+      component: markRaw(RelationSelect),
+      componentProps: WH_RELATION_PROPS,
     },
     {
       fieldName: 'wmsBizNo',
-      label: 'WMS生成的出入库单号',
+      label: 'WMS 单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入WMS生成的出入库单号',
+        placeholder: '请输入 WMS 单号',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、WMS_PROCESSING、PARTIAL、DONE、CANCELLED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、SUBMITTED、WMS_PROCESSING、PARTIAL、DONE、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '创建幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入创建幂等键',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
+        options: getDictOptions(DICT_TYPE.MES_MATERIAL_REQ_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -305,504 +206,218 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.MaterialReq>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'reqNo',
-      title: '领退补料申请单号',
-      minWidth: 120,
-    },
-    {
-      field: 'prodOrderNo',
-      title: '生产工单号快照',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'reqNo', title: '申请单号', minWidth: 160 },
     {
       field: 'reqType',
-      title: '申请类型：ISSUE、RETURN、SUPPLEMENT',
-      minWidth: 120,
+      title: '申请类型',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_MATERIAL_REQ_TYPE },
+      },
     },
-    {
-      field: 'invOrgId',
-      title: '库存组织编号',
-      minWidth: 120,
-    },
-    {
-      field: 'whId',
-      title: '目标仓库或来源仓库编号',
-      minWidth: 120,
-    },
-    {
-      field: 'projectId',
-      title: '项目编号，0表示无项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'wmsBizNo',
-      title: 'WMS生成的出入库单号',
-      minWidth: 120,
-    },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
+    { field: 'whName', title: '仓库', minWidth: 140 },
+    { field: 'projectName', title: '归属项目', minWidth: 140 },
+    { field: 'wmsBizNo', title: 'WMS 单号', minWidth: 150 },
     {
       field: 'status',
-      title: '状态：DRAFT、SUBMITTED、WMS_PROCESSING、PARTIAL、DONE、CANCELLED',
+      title: '状态',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_MATERIAL_REQ_STATUS },
+      },
     },
-    {
-      field: 'idempotencyKey',
-      title: '创建幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'prodOrderOrder_no',
-      title: '生产工单order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderWork_order_no',
-      title: '作业工单编号，0表示工单级申请work_order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'opTaskTask_no',
-      title: '工序任务编号，0表示非工序级申请task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },
   ];
 }
 
-// ==================== 子表（MES-领退补料申请明细） ====================
+// ==================== 子表（领退补料申请明细） ====================
 
- /** 新增/修改的表单 */
+/**
+ * 明细新增/修改的表单。
+ *
+ * 物料、单位、批次号快照由后端补全；WMS 已处理数量由 WMS 回写，都不在表单里；
+ * 父键 reqId 由父组件 setData 传入，不作为可见字段。
+ */
 export function useMaterialReqLineFormSchema(): VbenFormSchema[] {
-    return [
-        {
-            fieldName: 'id',
-            component: 'Input',
-            dependencies: {
-                triggerFields: [''],
-                show: () => false,
-            },
-        },
-                         {
-                            fieldName: 'lineNo',
-                            label: '行号',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入行号',
-                                },
-                        },
-                        {
-                            fieldName: 'routeOpMatId',
-                            label: '路线工序用料编号',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入路线工序用料编号',
-                                },
-                        },
-                        {
-                            fieldName: 'matId',
-                            label: '物料编号',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入物料编号',
-                                },
-                        },
-                        {
-                            fieldName: 'matCode',
-                            label: '物料编码快照',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入物料编码快照',
-                                },
-                        },
-                        {
-                            fieldName: 'matName',
-                            label: '物料名称快照',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入物料名称快照',
-                                },
-                        },
-                        {
-                            fieldName: 'matSpec',
-                            label: '物料规格快照',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入物料规格快照',
-                                },
-                        },
-                        {
-                            fieldName: 'qty',
-                            label: '申请数量',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入申请数量',
-                                },
-                        },
-                        {
-                            fieldName: 'processedQty',
-                            label: 'WMS已处理数量',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入WMS已处理数量',
-                                },
-                        },
-                        {
-                            fieldName: 'uomId',
-                            label: '计量单位编号',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入计量单位编号',
-                                },
-                        },
-                        {
-                            fieldName: 'uomCode',
-                            label: '计量单位编码快照',
-                                rules: 'required',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入计量单位编码快照',
-                                },
-                        },
-                        {
-                            fieldName: 'batchId',
-                            label: '指定退料批次编号',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入指定退料批次编号',
-                                },
-                        },
-                        {
-                            fieldName: 'lotNo',
-                            label: '批次号快照',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入批次号快照',
-                                },
-                        },
-                        {
-                            fieldName: 'mustIssueBeforeStart',
-                            label: '是否必须在开工前发料',
-                                rules: 'required',
-                                component: 'RadioGroup',
-                                componentProps: {
-                                        options: [],
-                                    buttonStyle: 'solid',
-                                    optionType: 'button',
-                                },
-                        },
-                        {
-                            fieldName: 'status',
-                            label: '明细状态',
-                                rules: 'required',
-                                component: 'RadioGroup',
-                                componentProps: {
-                                        options: [],
-                                    buttonStyle: 'solid',
-                                    optionType: 'button',
-                                },
-                        },
-                        {
-                            fieldName: 'remark',
-                            label: '备注',
-                                component: 'Input',
-                                componentProps: {
-                                    placeholder: '请输入备注',
-                                },
-                        },
-    ];
+  return [
+    {
+      fieldName: 'id',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'lineNo',
+      label: '行号',
+      rules: 'required',
+      component: 'InputNumber',
+      componentProps: {
+        ...INT_PROPS,
+        min: 1,
+        placeholder: '同一申请单内不能重复',
+      },
+      defaultValue: 1,
+    },
+    {
+      fieldName: 'matId',
+      label: '物料',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'qty',
+      label: '申请数量',
+      rules: 'required',
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入申请数量' },
+    },
+    {
+      fieldName: 'uomId',
+      label: '计量单位',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
+    },
+    {
+      fieldName: 'batchId',
+      label: '指定批次',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...BATCH_RELATION_PROPS,
+        placeholder: '退料必须指定批次',
+      },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'mustIssueBeforeStart',
+      label: '开工前发料',
+      rules: 'required',
+      component: 'RadioGroup',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
+      },
+      defaultValue: true,
+    },
+    {
+      fieldName: 'status',
+      label: '明细状态',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(
+          DICT_TYPE.MES_MATERIAL_REQ_LINE_STATUS,
+          'string',
+        ),
+        placeholder: '请选择明细状态',
+      },
+      defaultValue: 'DRAFT',
+    },
+    {
+      fieldName: 'remark',
+      label: '备注',
+      component: 'Textarea',
+      componentProps: {
+        maxLength: 500,
+        placeholder: '请输入备注',
+        rows: 2,
+      },
+    },
+  ];
 }
 
-/** 列表的搜索表单 */
+/** 明细列表的搜索表单 */
 export function useMaterialReqLineGridFormSchema(): VbenFormSchema[] {
-    return [
-                {
-                    fieldName: 'reqId',
-                    label: '领退补料申请编号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入领退补料申请编号',
-                        },
-                },
-                {
-                    fieldName: 'lineNo',
-                    label: '行号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入行号',
-                        },
-                },
-                {
-                    fieldName: 'routeOpMatId',
-                    label: '路线工序用料编号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入路线工序用料编号',
-                        },
-                },
-                {
-                    fieldName: 'matId',
-                    label: '物料编号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入物料编号',
-                        },
-                },
-                {
-                    fieldName: 'matCode',
-                    label: '物料编码快照',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入物料编码快照',
-                        },
-                },
-                {
-                    fieldName: 'matName',
-                    label: '物料名称快照',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入物料名称快照',
-                        },
-                },
-                {
-                    fieldName: 'matSpec',
-                    label: '物料规格快照',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入物料规格快照',
-                        },
-                },
-                {
-                    fieldName: 'qty',
-                    label: '申请数量',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入申请数量',
-                        },
-                },
-                {
-                    fieldName: 'processedQty',
-                    label: 'WMS已处理数量',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入WMS已处理数量',
-                        },
-                },
-                {
-                    fieldName: 'uomId',
-                    label: '计量单位编号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入计量单位编号',
-                        },
-                },
-                {
-                    fieldName: 'uomCode',
-                    label: '计量单位编码快照',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入计量单位编码快照',
-                        },
-                },
-                {
-                    fieldName: 'batchId',
-                    label: '指定退料批次编号',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入指定退料批次编号',
-                        },
-                },
-                {
-                    fieldName: 'lotNo',
-                    label: '批次号快照',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入批次号快照',
-                        },
-                },
-                {
-                    fieldName: 'mustIssueBeforeStart',
-                    label: '是否必须在开工前发料',
-                        component: 'Select',
-                        componentProps: {
-                            clearable: true,
-                                options: [],
-                            placeholder: '请选择是否必须在开工前发料',
-                        },
-                },
-                {
-                    fieldName: 'status',
-                    label: '明细状态',
-                        component: 'Select',
-                        componentProps: {
-                            clearable: true,
-                                options: [],
-                            placeholder: '请选择明细状态',
-                        },
-                },
-                {
-                    fieldName: 'remark',
-                    label: '备注',
-                        component: 'Input',
-                        componentProps: {
-                            clearable: true,
-                            placeholder: '请输入备注',
-                        },
-                },
-                {
-                    fieldName: 'createTime',
-                    label: '创建时间',
-                        component: 'RangePicker',
-                        componentProps: {
-                            ...getRangePickerDefaultProps(),
-                            clearable: true,
-                        },
-                },
-    ];
+  return [
+    {
+      fieldName: 'matId',
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'lotNo',
+      label: '批次号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入批次号',
+      },
+    },
+    {
+      fieldName: 'status',
+      label: '明细状态',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(
+          DICT_TYPE.MES_MATERIAL_REQ_LINE_STATUS,
+          'string',
+        ),
+        placeholder: '请选择明细状态',
+      },
+    },
+  ];
 }
 
-/** 列表的字段 */
+/** 明细列表的字段 */
 export function useMaterialReqLineGridColumns(): VxeTableGridOptions<MesMaterialReqApi.MaterialReqLine>['columns'] {
-    return [
-            { type: 'checkbox', width: 40 },
-                {
-                    field: 'id',
-                    title: '主键',
-                    minWidth: 120,
-                },
-                {
-                    field: 'reqId',
-                    title: '领退补料申请编号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'lineNo',
-                    title: '行号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'routeOpMatId',
-                    title: '路线工序用料编号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'matId',
-                    title: '物料编号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'matCode',
-                    title: '物料编码快照',
-                    minWidth: 120,
-                },
-                {
-                    field: 'matName',
-                    title: '物料名称快照',
-                    minWidth: 120,
-                },
-                {
-                    field: 'matSpec',
-                    title: '物料规格快照',
-                    minWidth: 120,
-                },
-                {
-                    field: 'qty',
-                    title: '申请数量',
-                    minWidth: 120,
-                },
-                {
-                    field: 'processedQty',
-                    title: 'WMS已处理数量',
-                    minWidth: 120,
-                },
-                {
-                    field: 'uomId',
-                    title: '计量单位编号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'uomCode',
-                    title: '计量单位编码快照',
-                    minWidth: 120,
-                },
-                {
-                    field: 'batchId',
-                    title: '指定退料批次编号',
-                    minWidth: 120,
-                },
-                {
-                    field: 'lotNo',
-                    title: '批次号快照',
-                    minWidth: 120,
-                },
-                {
-                    field: 'mustIssueBeforeStart',
-                    title: '是否必须在开工前发料',
-                    minWidth: 120,
-                },
-                {
-                    field: 'status',
-                    title: '明细状态',
-                    minWidth: 120,
-                },
-                {
-                    field: 'remark',
-                    title: '备注',
-                    minWidth: 120,
-                },
-                {
-                    field: 'createTime',
-                    title: '创建时间',
-                    minWidth: 120,
-                        formatter: 'formatDateTime',
-                },
-        {
-            title: '操作',
-            width: 200,
-            fixed: 'right',
-            slots: { default: 'actions' },
-        },
-    ];
+  return [
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'lineNo', title: '行号', minWidth: 80 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'matSpec', title: '规格型号', minWidth: 150 },
+    { field: 'qty', title: '申请数量', minWidth: 110 },
+    { field: 'processedQty', title: 'WMS 已处理', minWidth: 110 },
+    { field: 'uomCode', title: '单位', minWidth: 90 },
+    { field: 'lotNo', title: '批次号', minWidth: 130 },
+    {
+      field: 'mustIssueBeforeStart',
+      title: '开工前发料',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
+    },
+    {
+      field: 'status',
+      title: '明细状态',
+      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_MATERIAL_REQ_LINE_STATUS },
+      },
+    },
+    { field: 'remark', title: '备注', minWidth: 140 },
+    {
+      title: '操作',
+      width: 160,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
+  ];
 }

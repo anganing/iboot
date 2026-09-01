@@ -53,12 +53,15 @@ function handleChange(file: any) {
 /** 下载模板 */
 async function handleDownload() {
   const data = await importProdOrderTemplate();
-  downloadFileFromBlobPart({ fileName: 'MES-生产工单导入模板.xls', source: data });
+  downloadFileFromBlobPart({
+    fileName: '生产工单导入模板.xls',
+    source: data,
+  });
 }
 </script>
 
 <template>
-  <Modal title="导入MES-生产工单" class="w-1/3">
+  <Modal title="导入生产工单" class="w-1/3">
     <Form class="mx-4">
       <template #file>
         <div class="w-full">
@@ -79,4 +82,4 @@ async function handleDownload() {
       </div>
     </template>
   </Modal>
-</template>
+</template>

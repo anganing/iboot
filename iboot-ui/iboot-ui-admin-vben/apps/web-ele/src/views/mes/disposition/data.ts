@@ -2,11 +2,23 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesDispositionApi } from '#/api/mes/disposition';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
+import { QC_TASK_RELATION_PROPS } from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 处置数量不能超过质检任务的不合格数量，审批通过或驳回时审批人必填，规则都在后端 Service 校验。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -19,116 +31,102 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dispositionNo',
-      label: '不合格处置单号',
-      rules: 'required',
+      label: '处置单号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入不合格处置单号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'taskId',
-      label: '质检任务编号',
+      label: '质检任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入质检任务编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: QC_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'dispositionType',
-      label: '处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS',
+      label: '处置类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS',
+        options: getDictOptions(DICT_TYPE.MES_DISPOSITION_TYPE, 'string'),
+        placeholder: '请选择处置类型',
       },
+      defaultValue: 'REWORK',
     },
     {
       fieldName: 'qty',
       label: '处置数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入处置数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '不能大于任务不合格数量' },
     },
     {
       fieldName: 'targetBizType',
-      label: '联动目标业务类型',
+      label: '联动业务类型',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择联动目标业务类型',
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_BIZ_TYPE, 'string'),
+        placeholder: '联动返工/报废单据时填写',
       },
     },
     {
       fieldName: 'targetBizNo',
-      label: '联动目标业务单号',
+      label: '联动业务单号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入联动目标业务单号',
+        maxLength: 64,
+        placeholder: '联动单据生成后回填',
       },
     },
     {
-      fieldName: 'approvedBy',
-      label: '审批人员编号',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      rules: 'required',
+      component: 'Select',
       componentProps: {
-        placeholder: '请输入审批人员编号',
+        options: getDictOptions(DICT_TYPE.MES_DISPOSITION_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
+    },
+    {
+      fieldName: 'approvedBy',
+      label: '审批人',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...USER_RELATION_PROPS,
+        placeholder: '已批准或已驳回时必填',
+      },
+      defaultValue: 0,
     },
     {
       fieldName: 'approveTime',
       label: '审批时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、APPROVED、EXECUTING、DONE、REJECTED、CANCELLED',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '留空取当前时间' },
     },
     {
       fieldName: 'idempotencyKey',
-      label: '处置幂等键',
+      label: '幂等键',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入处置幂等键',
+        maxLength: 128,
+        placeholder: '业务自动触发时用于去重，手工建单可留空',
       },
     },
     {
       fieldName: 'remark',
       label: '处置说明',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入处置说明',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-不合格品处置单数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -138,109 +136,57 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'dispositionNo',
-      label: '不合格处置单号',
+      label: '处置单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入不合格处置单号',
+        placeholder: '请输入处置单号',
       },
     },
     {
       fieldName: 'taskId',
-      label: '质检任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入质检任务编号',
-      },
+      label: '质检任务',
+      component: markRaw(RelationSelect),
+      componentProps: QC_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'dispositionType',
-      label: '处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS',
+      label: '处置类型',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS',
-      },
-    },
-    {
-      fieldName: 'qty',
-      label: '处置数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入处置数量',
-      },
-    },
-    {
-      fieldName: 'targetBizType',
-      label: '联动目标业务类型',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择联动目标业务类型',
+        options: getDictOptions(DICT_TYPE.MES_DISPOSITION_TYPE, 'string'),
+        placeholder: '请选择处置类型',
       },
     },
     {
       fieldName: 'targetBizNo',
-      label: '联动目标业务单号',
+      label: '联动业务单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入联动目标业务单号',
+        placeholder: '请输入联动业务单号',
       },
     },
     {
       fieldName: 'approvedBy',
-      label: '审批人员编号',
-      component: 'Input',
+      label: '审批人',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入审批人员编号',
+        options: getDictOptions(DICT_TYPE.MES_DISPOSITION_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
       fieldName: 'approveTime',
       label: '审批时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：DRAFT、SUBMITTED、APPROVED、EXECUTING、DONE、REJECTED、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、SUBMITTED、APPROVED、EXECUTING、DONE、REJECTED、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '处置幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入处置幂等键',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '处置说明',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入处置说明',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -253,73 +199,55 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesDispositionApi.Disposition>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'dispositionNo',
-      title: '不合格处置单号',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'dispositionNo', title: '处置单号', minWidth: 160 },
+    { field: 'taskNo', title: '质检任务号', minWidth: 160 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
     {
       field: 'dispositionType',
-      title: '处置类型：REWORK、SCRAP、CONCESSION、FREEZE、RETURN_SUPPLIER、ADJUST_PROCESS',
+      title: '处置类型',
       minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_DISPOSITION_TYPE },
+      },
     },
-    {
-      field: 'qty',
-      title: '处置数量',
-      minWidth: 120,
-    },
+    { field: 'qty', title: '处置数量', minWidth: 110 },
     {
       field: 'targetBizType',
-      title: '联动目标业务类型',
-      minWidth: 120,
+      title: '联动业务类型',
+      minWidth: 130,
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.MES_BIZ_TYPE } },
     },
-    {
-      field: 'targetBizNo',
-      title: '联动目标业务单号',
-      minWidth: 120,
-    },
-    {
-      field: 'approvedBy',
-      title: '审批人员编号',
-      minWidth: 120,
-    },
+    { field: 'targetBizNo', title: '联动业务单号', minWidth: 150 },
+    { field: 'approvedByName', title: '审批人', minWidth: 120 },
     {
       field: 'approveTime',
       title: '审批时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'status',
-      title: '状态：DRAFT、SUBMITTED、APPROVED、EXECUTING、DONE、REJECTED、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_DISPOSITION_STATUS },
+      },
     },
-    {
-      field: 'idempotencyKey',
-      title: '处置幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '处置说明',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '处置说明', minWidth: 160 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'taskTask_no',
-      title: '质检任务task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

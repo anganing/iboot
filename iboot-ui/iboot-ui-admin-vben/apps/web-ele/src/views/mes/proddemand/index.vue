@@ -16,11 +16,11 @@ import {
   exportProdDemand,
   getProdDemandPage,
 } from '#/api/mes/proddemand';
-import ProdDemandImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import ProdDemandImport from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
@@ -31,7 +31,7 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-/** 导入MES-生产需求 */
+/** 导入生产需求 */
 function handleImport() {
   importFormModalApi.open();
 }
@@ -41,31 +41,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-生产需求 */
+/** 创建生产需求 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-生产需求 */
+/** 编辑生产需求 */
 function handleEdit(row: MesProdDemandApi.ProdDemand) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-生产需求 */
+/** 删除生产需求 */
 async function handleDelete(row: MesProdDemandApi.ProdDemand) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.demandNo]),
   });
   try {
     await deleteProdDemand(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.demandNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-生产需求 */
+/** 批量删除生产需求 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +93,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportProdDemand(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-生产需求.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '生产需求.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -136,12 +135,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-生产需求列表">
+    <Grid table-title="生产需求列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-生产需求']),
+              label: $t('ui.actionTitle.create', ['生产需求']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:prod-demand:create'],
@@ -189,7 +188,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:prod-demand:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.demandNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +197,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

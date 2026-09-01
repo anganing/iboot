@@ -2,346 +2,79 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesKitSnapshotApi } from '#/api/mes/kitsnapshot';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { MAT_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'checkNo',
-      label: '齐套检查编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入齐套检查编号',
-      },
-    },
-    {
-      fieldName: 'checkScope',
-      label: '检查范围：PROD_ORDER、WORK_ORDER、OP_TASK',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查范围：PROD_ORDER、WORK_ORDER、OP_TASK',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单编号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单编号，0表示整单检查',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单编号，0表示整单检查',
-      },
-    },
-    {
-      fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序检查',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序任务编号，0表示非工序检查',
-      },
-    },
-    {
-      fieldName: 'lineNo',
-      label: '检查明细行号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查明细行号',
-      },
-    },
-    {
-      fieldName: 'matId',
-      label: '需求物料编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入需求物料编号',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'reqQty',
-      label: '需求数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入需求数量',
-      },
-    },
-    {
-      fieldName: 'availQty',
-      label: '检查时可用数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查时可用数量',
-      },
-    },
-    {
-      fieldName: 'reservedQty',
-      label: '检查时本需求已预留数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查时本需求已预留数量',
-      },
-    },
-    {
-      fieldName: 'issuedQty',
-      label: '检查时已领用数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查时已领用数量',
-      },
-    },
-    {
-      fieldName: 'shortQty',
-      label: '短缺数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入短缺数量',
-      },
-    },
-    {
-      fieldName: 'altMatId',
-      label: '实际采用替代料编号，0表示未采用',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入实际采用替代料编号，0表示未采用',
-      },
-    },
-    {
-      fieldName: 'result',
-      label: '检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      },
-    },
-    {
-      fieldName: 'checkTime',
-      label: '检查时间',
-      rules: 'required',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入备注',
-      },
-    },
-  ];
-}
+import {
+  OP_TASK_RELATION_PROPS,
+  PROD_ORDER_RELATION_PROPS,
+  WORK_ORDER_RELATION_PROPS,
+} from '../relation-config';
 
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-齐套检查快照数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
-    },
-  ];
-}
-
-/** 列表的搜索表单 */
+/**
+ * 列表的搜索表单。
+ *
+ * 齐套快照是齐套检查过账写入的账表，只查询与导出，所以没有 useFormSchema。
+ */
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'checkNo',
-      label: '齐套检查编号',
+      label: '检查单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入齐套检查编号',
-      },
-    },
-    {
-      fieldName: 'checkScope',
-      label: '检查范围：PROD_ORDER、WORK_ORDER、OP_TASK',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检查范围：PROD_ORDER、WORK_ORDER、OP_TASK',
+        placeholder: '请输入检查单号',
       },
     },
     {
       fieldName: 'prodOrderId',
-      label: '生产工单编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产工单编号',
-      },
+      label: '生产工单',
+      component: markRaw(RelationSelect),
+      componentProps: PROD_ORDER_RELATION_PROPS,
     },
     {
       fieldName: 'workOrderId',
-      label: '作业工单编号，0表示整单检查',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单编号，0表示整单检查',
-      },
+      label: '作业工单',
+      component: markRaw(RelationSelect),
+      componentProps: WORK_ORDER_RELATION_PROPS,
     },
     {
       fieldName: 'opTaskId',
-      label: '工序任务编号，0表示非工序检查',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序任务编号，0表示非工序检查',
-      },
-    },
-    {
-      fieldName: 'lineNo',
-      label: '检查明细行号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检查明细行号',
-      },
+      label: '工序任务',
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'matId',
-      label: '需求物料编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入需求物料编号',
-      },
+      label: '物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
+      fieldName: 'checkScope',
+      label: '检查范围',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'reqQty',
-      label: '需求数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入需求数量',
-      },
-    },
-    {
-      fieldName: 'availQty',
-      label: '检查时可用数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检查时可用数量',
-      },
-    },
-    {
-      fieldName: 'reservedQty',
-      label: '检查时本需求已预留数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检查时本需求已预留数量',
-      },
-    },
-    {
-      fieldName: 'issuedQty',
-      label: '检查时已领用数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检查时已领用数量',
-      },
-    },
-    {
-      fieldName: 'shortQty',
-      label: '短缺数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入短缺数量',
-      },
-    },
-    {
-      fieldName: 'altMatId',
-      label: '实际采用替代料编号，0表示未采用',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实际采用替代料编号，0表示未采用',
+        options: getDictOptions(DICT_TYPE.MES_KIT_CHECK_SCOPE, 'string'),
+        placeholder: '请选择检查范围',
       },
     },
     {
       fieldName: 'result',
-      label: '检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      component: 'Input',
+      label: '齐套结果',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE',
+        options: getDictOptions(DICT_TYPE.MES_KIT_STATUS, 'string'),
+        placeholder: '请选择齐套结果',
       },
     },
     {
@@ -353,134 +86,56 @@ export function useGridFormSchema(): VbenFormSchema[] {
         clearable: true,
       },
     },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
   ];
 }
 
-/** 列表的字段 */
+/** 列表的字段。账表不提供写操作，所以没有勾选列与操作列。 */
 export function useGridColumns(): VxeTableGridOptions<MesKitSnapshotApi.KitSnapshot>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'checkNo',
-      title: '齐套检查编号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'checkNo', title: '检查单号', minWidth: 160 },
     {
       field: 'checkScope',
-      title: '检查范围：PROD_ORDER、WORK_ORDER、OP_TASK',
-      minWidth: 120,
+      title: '检查范围',
+      minWidth: 130,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_KIT_CHECK_SCOPE },
+      },
     },
-    {
-      field: 'lineNo',
-      title: '检查明细行号',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '需求物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'reqQty',
-      title: '需求数量',
-      minWidth: 120,
-    },
-    {
-      field: 'availQty',
-      title: '检查时可用数量',
-      minWidth: 120,
-    },
-    {
-      field: 'reservedQty',
-      title: '检查时本需求已预留数量',
-      minWidth: 120,
-    },
-    {
-      field: 'issuedQty',
-      title: '检查时已领用数量',
-      minWidth: 120,
-    },
-    {
-      field: 'shortQty',
-      title: '短缺数量',
-      minWidth: 120,
-    },
-    {
-      field: 'altMatId',
-      title: '实际采用替代料编号，0表示未采用',
-      minWidth: 120,
-    },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
+    { field: 'lineNo', title: '行号', minWidth: 80 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'reqQty', title: '需求数量', minWidth: 110 },
+    { field: 'availQty', title: '可用数量', minWidth: 110 },
+    { field: 'reservedQty', title: '已预留数量', minWidth: 110 },
+    { field: 'issuedQty', title: '已发料数量', minWidth: 110 },
+    { field: 'shortQty', title: '缺料数量', minWidth: 110 },
+    { field: 'altMatName', title: '替代料', minWidth: 150 },
     {
       field: 'result',
-      title: '检查结果：FULL_KIT、PARTIAL_KIT、SHORTAGE',
-      minWidth: 120,
+      title: '齐套结果',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_KIT_STATUS },
+      },
     },
     {
       field: 'checkTime',
       title: '检查时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
-    },
-    {
-      field: 'prodOrderOrder_no',
-      title: '生产工单order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderWork_order_no',
-      title: '作业工单编号，0表示整单检查work_order_no',
-      minWidth: 120,
-    },
-    {
-      field: 'opTaskTask_no',
-      title: '工序任务编号，0表示非工序检查task_no',
-      minWidth: 120,
-    },
-    {
-      title: '操作',
-      width: 200,
-      fixed: 'right',
-      slots: { default: 'actions' },
     },
   ];
 }

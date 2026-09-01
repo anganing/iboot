@@ -2,11 +2,28 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesProdDemandApi } from '#/api/mes/proddemand';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  MAT_RELATION_PROPS,
+  PLANT_RELATION_PROPS,
+  PROJECT_RELATION_PROPS,
+  PROJECT_TASK_RELATION_PROPS,
+  UOM_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, INT_PROPS, QTY_PROPS } from '../form-props';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 物料编码、名称、规格与单位编码是后端从 mdm 门面取的快照，不出现在表单里。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -19,166 +36,132 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'demandNo',
-      label: '生产需求编号',
-      rules: 'required',
+      label: '需求单号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入生产需求编号',
+        maxLength: 64,
+        placeholder: '留空由编码规则自动分配',
       },
     },
     {
       fieldName: 'sourceType',
-      label: '来源类型：MANUAL、EXCEL、ERP、APS',
+      label: '来源类型',
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
-        placeholder: '请选择来源类型：MANUAL、EXCEL、ERP、APS',
+        options: getDictOptions(DICT_TYPE.MES_DEMAND_SOURCE_TYPE, 'string'),
+        placeholder: '请选择来源类型',
       },
+      defaultValue: 'MANUAL',
     },
     {
       fieldName: 'sourceNo',
       label: '来源单号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入来源单号',
+        maxLength: 64,
+        placeholder: '如销售订单号、ERP 需求号',
       },
     },
     {
       fieldName: 'plantId',
-      label: '工厂编号',
+      label: '工厂',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂编号',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'matId',
-      label: '需求物料编号',
+      label: '需求物料',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入需求物料编号',
-      },
-    },
-    {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入物料规格快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
     },
     {
       fieldName: 'qty',
       label: '需求数量',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入需求数量',
-      },
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入需求数量' },
     },
     {
       fieldName: 'uomId',
-      label: '计量单位编号',
+      label: '计量单位',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入计量单位编码快照',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: UOM_RELATION_PROPS,
     },
     {
       fieldName: 'dueDate',
       label: '需求交期',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择需求交期' },
     },
     {
       fieldName: 'priority',
-      label: '优先级，数值越大越优先',
+      label: '优先级',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
+      componentProps: { ...INT_PROPS, placeholder: '数值越大越优先' },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'projectId',
+      label: '归属项目',
+      rules: 'required',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入优先级，数值越大越优先',
+        ...PROJECT_RELATION_PROPS,
+        placeholder: '无项目请选择占位项目',
       },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'projectTaskId',
+      label: '项目任务',
+      rules: 'required',
+      component: markRaw(RelationSelect),
+      // 项目任务隶属于项目，先选项目再挑任务，否则会挑到别的项目的任务
+      dependencies: {
+        triggerFields: ['projectId'],
+        componentProps: (values) => ({
+          ...PROJECT_TASK_RELATION_PROPS,
+          disabled: !values.projectId,
+          extraParams: { projectId: values.projectId },
+          placeholder: values.projectId ? '请选择项目任务' : '请先选择项目',
+        }),
+      },
+      defaultValue: 0,
     },
     {
       fieldName: 'status',
-      label: '状态：DRAFT、CONFIRMED、PLANNED、RELEASED、DONE、CANCELLED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_DEMAND_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'idempotencyKey',
-      label: '创建幂等键',
+      label: '幂等键',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入创建幂等键',
+        maxLength: 128,
+        placeholder: '外部系统下发时用于去重，手工建单可留空',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
     },
   ];
@@ -189,7 +172,7 @@ export function useImportFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'file',
-      label: 'MES-生产需求数据',
+      label: '生产需求数据',
       component: 'Upload',
       rules: 'required',
       help: '仅允许导入 xls、xlsx 格式文件',
@@ -202,21 +185,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'demandNo',
-      label: '生产需求编号',
+      label: '需求单号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入生产需求编号',
-      },
-    },
-    {
-      fieldName: 'sourceType',
-      label: '来源类型：MANUAL、EXCEL、ERP、APS',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择来源类型：MANUAL、EXCEL、ERP、APS',
+        placeholder: '请输入需求单号',
       },
     },
     {
@@ -229,93 +202,35 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'plantId',
-      label: '工厂编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工厂编号',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目编号，0表示无项目',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目编号，0表示无项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务编号，0表示无项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目任务编号，0表示无项目任务',
-      },
-    },
-    {
       fieldName: 'matId',
-      label: '需求物料编号',
-      component: 'Input',
+      label: '需求物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'plantId',
+      label: '工厂',
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'sourceType',
+      label: '来源类型',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入需求物料编号',
+        options: getDictOptions(DICT_TYPE.MES_DEMAND_SOURCE_TYPE, 'string'),
+        placeholder: '请选择来源类型',
       },
     },
     {
-      fieldName: 'matCode',
-      label: '物料编码快照',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入物料编码快照',
-      },
-    },
-    {
-      fieldName: 'matName',
-      label: '物料名称快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料名称快照',
-      },
-    },
-    {
-      fieldName: 'matSpec',
-      label: '物料规格快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入物料规格快照',
-      },
-    },
-    {
-      fieldName: 'qty',
-      label: '需求数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入需求数量',
-      },
-    },
-    {
-      fieldName: 'uomId',
-      label: '计量单位编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编号',
-      },
-    },
-    {
-      fieldName: 'uomCode',
-      label: '计量单位编码快照',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入计量单位编码快照',
+        options: getDictOptions(DICT_TYPE.MES_DEMAND_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -325,43 +240,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...getRangePickerDefaultProps(),
         clearable: true,
-      },
-    },
-    {
-      fieldName: 'priority',
-      label: '优先级，数值越大越优先',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入优先级，数值越大越优先',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态：DRAFT、CONFIRMED、PLANNED、RELEASED、DONE、CANCELLED',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态：DRAFT、CONFIRMED、PLANNED、RELEASED、DONE、CANCELLED',
-      },
-    },
-    {
-      fieldName: 'idempotencyKey',
-      label: '创建幂等键',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入创建幂等键',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
       },
     },
     {
@@ -379,108 +257,52 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesProdDemandApi.ProdDemand>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'demandNo',
-      title: '生产需求编号',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'demandNo', title: '需求单号', minWidth: 160 },
     {
       field: 'sourceType',
-      title: '来源类型：MANUAL、EXCEL、ERP、APS',
-      minWidth: 120,
+      title: '来源类型',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_DEMAND_SOURCE_TYPE },
+      },
     },
-    {
-      field: 'sourceNo',
-      title: '来源单号',
-      minWidth: 120,
-    },
-    {
-      field: 'plantId',
-      title: '工厂编号',
-      minWidth: 120,
-    },
-    {
-      field: 'projectId',
-      title: '项目编号，0表示无项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskId',
-      title: '项目任务编号，0表示无项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'matId',
-      title: '需求物料编号',
-      minWidth: 120,
-    },
-    {
-      field: 'matCode',
-      title: '物料编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matName',
-      title: '物料名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'matSpec',
-      title: '物料规格快照',
-      minWidth: 120,
-    },
-    {
-      field: 'qty',
-      title: '需求数量',
-      minWidth: 120,
-    },
-    {
-      field: 'uomId',
-      title: '计量单位编号',
-      minWidth: 120,
-    },
-    {
-      field: 'uomCode',
-      title: '计量单位编码快照',
-      minWidth: 120,
-    },
+    { field: 'sourceNo', title: '来源单号', minWidth: 150 },
+    { field: 'plantName', title: '工厂', minWidth: 130 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'matSpec', title: '规格型号', minWidth: 150 },
+    { field: 'qty', title: '需求数量', minWidth: 110 },
+    { field: 'uomCode', title: '单位', minWidth: 90 },
     {
       field: 'dueDate',
       title: '需求交期',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'priority',
-      title: '优先级，数值越大越优先',
-      minWidth: 120,
-    },
+    { field: 'priority', title: '优先级', minWidth: 90 },
+    { field: 'projectName', title: '归属项目', minWidth: 140 },
     {
       field: 'status',
-      title: '状态：DRAFT、CONFIRMED、PLANNED、RELEASED、DONE、CANCELLED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_DEMAND_STATUS },
+      },
     },
-    {
-      field: 'idempotencyKey',
-      title: '创建幂等键',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

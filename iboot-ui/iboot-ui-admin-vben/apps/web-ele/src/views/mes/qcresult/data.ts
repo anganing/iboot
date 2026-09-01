@@ -2,11 +2,26 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcResultApi } from '#/api/mes/qcresult';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS, INT_PROPS, QTY_PROPS } from '../form-props';
+import {
+  QC_ITEM_RELATION_PROPS,
+  QC_TASK_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 检验项编码与名称是快照，由后端从检验项目带出；结论与是否合格必须一致，由后端校验。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -19,136 +34,91 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'taskId',
-      label: '质检任务编号',
+      label: '质检任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入质检任务编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: QC_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'itemId',
-      label: '检验项目编号',
+      label: '检验项目',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检验项目编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: QC_ITEM_RELATION_PROPS,
     },
     {
       fieldName: 'sampleNo',
       label: '样本序号',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入样本序号',
+        ...INT_PROPS,
+        min: 1,
+        placeholder: '同一检验项内不能重复',
       },
-    },
-    {
-      fieldName: 'itemCode',
-      label: '检验项编码快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检验项编码快照',
-      },
-    },
-    {
-      fieldName: 'itemName',
-      label: '检验项名称快照',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检验项名称快照',
-      },
+      defaultValue: 1,
     },
     {
       fieldName: 'actualValue',
       label: '实测值',
+      rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 255,
         placeholder: '请输入实测值',
       },
     },
     {
-      fieldName: 'passFlag',
-      label: '是否合格',
+      fieldName: 'conclusion',
+      label: '项目结论',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_QC_ITEM_CONCLUSION, 'string'),
+        placeholder: '请选择项目结论',
       },
+      defaultValue: 'PASS',
+    },
+    // 是否合格不作为独立字段：它与项目结论必须一致，由表单提交时按结论推导，
+    // 让用户各选一次只会出现互相矛盾的取值，后端也会拦下。
+    {
+      fieldName: 'qtyQualified',
+      label: '本项合格数量',
+      rules: 'required',
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入本项合格数量' },
+      defaultValue: 0,
+    },
+    {
+      fieldName: 'qtyRejected',
+      label: '本项不合格数量',
+      rules: 'required',
+      component: 'InputNumber',
+      componentProps: { ...QTY_PROPS, placeholder: '请输入本项不合格数量' },
+      defaultValue: 0,
     },
     {
       fieldName: 'inspectorId',
-      label: '检验员编号',
+      label: '检验员',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入检验员编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'inspectTime',
       label: '检验时间',
-      rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'qtyQualified',
-      label: '本项判定合格数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入本项判定合格数量',
-      },
-    },
-    {
-      fieldName: 'qtyRejected',
-      label: '本项判定不合格数量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入本项判定不合格数量',
-      },
-    },
-    {
-      fieldName: 'conclusion',
-      label: '项目结论：PASS、FAIL',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目结论：PASS、FAIL',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '留空取当前时间' },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-检验结果数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -158,57 +128,33 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'taskId',
-      label: '质检任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入质检任务编号',
-      },
-    },
-    {
-      fieldName: 'itemId',
-      label: '检验项目编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入检验项目编号',
-      },
-    },
-    {
-      fieldName: 'sampleNo',
-      label: '样本序号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入样本序号',
-      },
+      label: '质检任务',
+      component: markRaw(RelationSelect),
+      componentProps: QC_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'itemCode',
-      label: '检验项编码快照',
+      label: '检验项编码',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入检验项编码快照',
+        placeholder: '请输入检验项编码',
       },
     },
     {
       fieldName: 'itemName',
-      label: '检验项名称快照',
+      label: '检验项名称',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入检验项名称快照',
+        placeholder: '请输入检验项名称',
       },
     },
     {
-      fieldName: 'actualValue',
-      label: '实测值',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入实测值',
-      },
+      fieldName: 'inspectorId',
+      label: '检验员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'passFlag',
@@ -216,67 +162,23 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择是否合格',
       },
     },
     {
-      fieldName: 'inspectorId',
-      label: '检验员编号',
-      component: 'Input',
+      fieldName: 'conclusion',
+      label: '项目结论',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入检验员编号',
+        options: getDictOptions(DICT_TYPE.MES_QC_ITEM_CONCLUSION, 'string'),
+        placeholder: '请选择项目结论',
       },
     },
     {
       fieldName: 'inspectTime',
       label: '检验时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'qtyQualified',
-      label: '本项判定合格数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入本项判定合格数量',
-      },
-    },
-    {
-      fieldName: 'qtyRejected',
-      label: '本项判定不合格数量',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入本项判定不合格数量',
-      },
-    },
-    {
-      fieldName: 'conclusion',
-      label: '项目结论：PASS、FAIL',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目结论：PASS、FAIL',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -289,83 +191,50 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesQcResultApi.QcResult>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'itemId',
-      title: '检验项目编号',
-      minWidth: 120,
-    },
-    {
-      field: 'sampleNo',
-      title: '样本序号',
-      minWidth: 120,
-    },
-    {
-      field: 'itemCode',
-      title: '检验项编码快照',
-      minWidth: 120,
-    },
-    {
-      field: 'itemName',
-      title: '检验项名称快照',
-      minWidth: 120,
-    },
-    {
-      field: 'actualValue',
-      title: '实测值',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'taskNo', title: '质检任务号', minWidth: 160 },
+    { field: 'itemCode', title: '检验项编码', minWidth: 140 },
+    { field: 'itemName', title: '检验项名称', minWidth: 170 },
+    { field: 'sampleNo', title: '样本序号', minWidth: 100 },
+    { field: 'actualValue', title: '实测值', minWidth: 130 },
     {
       field: 'passFlag',
       title: '是否合格',
-      minWidth: 120,
-    },
-    {
-      field: 'inspectorId',
-      title: '检验员编号',
-      minWidth: 120,
-    },
-    {
-      field: 'inspectTime',
-      title: '检验时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'qtyQualified',
-      title: '本项判定合格数量',
-      minWidth: 120,
-    },
-    {
-      field: 'qtyRejected',
-      title: '本项判定不合格数量',
-      minWidth: 120,
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
     {
       field: 'conclusion',
-      title: '项目结论：PASS、FAIL',
-      minWidth: 120,
+      title: '项目结论',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_QC_ITEM_CONCLUSION },
+      },
     },
+    { field: 'qtyQualified', title: '合格数量', minWidth: 110 },
+    { field: 'qtyRejected', title: '不合格数量', minWidth: 110 },
+    { field: 'inspectorName', title: '检验员', minWidth: 120 },
     {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
+      field: 'inspectTime',
+      title: '检验时间',
+      minWidth: 160,
+      formatter: 'formatDateTime',
     },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'taskTask_no',
-      title: '质检任务task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -2,11 +2,24 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesOpSkipRecordApi } from '#/api/mes/opskiprecord';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
+import { DATETIME_PROPS } from '../form-props';
+import { OP_TASK_RELATION_PROPS } from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * 能否跳序、是否需要审批由工序任务的跳序策略决定，后端按策略裁决；
+ * 已生效的记录只允许补充影响说明与备注。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -19,12 +32,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'opTaskId',
-      label: '被跳过工序任务编号',
+      label: '被跳过工序任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入被跳过工序任务编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'skipReasonType',
@@ -32,97 +43,86 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
+        options: getDictOptions(DICT_TYPE.MES_SKIP_REASON_TYPE, 'string'),
         placeholder: '请选择跳过原因类型',
       },
+      defaultValue: 'NOT_APPLICABLE',
     },
     {
       fieldName: 'skipReason',
       label: '跳过原因',
       rules: 'required',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入跳过原因',
+        rows: 2,
       },
     },
     {
       fieldName: 'operatorId',
-      label: '操作人员编号',
+      label: '操作人员',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入操作人员编号',
-      },
-    },
-    {
-      fieldName: 'approvedBy',
-      label: '审批人员编号',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入审批人员编号',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'approveStatus',
-      label: '审批状态：NOT_REQUIRED、PENDING、APPROVED、REJECTED',
+      label: '审批状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_SKIP_APPROVE_STATUS, 'string'),
+        placeholder: '请选择审批状态',
       },
+      defaultValue: 'NOT_REQUIRED',
+    },
+    {
+      fieldName: 'approvedBy',
+      label: '审批人员',
+      component: markRaw(RelationSelect),
+      componentProps: {
+        ...USER_RELATION_PROPS,
+        placeholder: '已批准或已驳回时必填',
+      },
+      defaultValue: 0,
     },
     {
       fieldName: 'skipTime',
       label: '实际跳过时间',
       component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'effectRemark',
-      label: '对后续工序、质检及排程的影响说明',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入对后续工序、质检及排程的影响说明',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '留空取当前时间' },
     },
     {
       fieldName: 'status',
-      label: '状态：PENDING、EFFECTIVE、REVOKED',
+      label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.MES_SKIP_RECORD_STATUS, 'string'),
+        placeholder: '请选择状态',
+      },
+      defaultValue: 'PENDING',
+    },
+    {
+      fieldName: 'effectRemark',
+      label: '影响说明',
+      component: 'Textarea',
+      componentProps: {
+        maxLength: 500,
+        placeholder: '对后续工序、质检及排程的影响',
+        rows: 2,
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: 'MES-工序跳过记录数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -132,12 +132,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'opTaskId',
-      label: '被跳过工序任务编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入被跳过工序任务编号',
-      },
+      label: '工序任务',
+      component: markRaw(RelationSelect),
+      componentProps: OP_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'skipReasonType',
@@ -145,87 +142,45 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.MES_SKIP_REASON_TYPE, 'string'),
         placeholder: '请选择跳过原因类型',
       },
     },
     {
-      fieldName: 'skipReason',
-      label: '跳过原因',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入跳过原因',
-      },
-    },
-    {
       fieldName: 'operatorId',
-      label: '操作人员编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入操作人员编号',
-      },
+      label: '操作人员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'approvedBy',
-      label: '审批人员编号',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入审批人员编号',
-      },
+      label: '审批人员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'approveStatus',
-      label: '审批状态：NOT_REQUIRED、PENDING、APPROVED、REJECTED',
+      label: '审批状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择审批状态：NOT_REQUIRED、PENDING、APPROVED、REJECTED',
-      },
-    },
-    {
-      fieldName: 'skipTime',
-      label: '实际跳过时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'effectRemark',
-      label: '对后续工序、质检及排程的影响说明',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入对后续工序、质检及排程的影响说明',
+        options: getDictOptions(DICT_TYPE.MES_SKIP_APPROVE_STATUS, 'string'),
+        placeholder: '请选择审批状态',
       },
     },
     {
       fieldName: 'status',
-      label: '状态：PENDING、EFFECTIVE、REVOKED',
+      label: '状态',
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
-        placeholder: '请选择状态：PENDING、EFFECTIVE、REVOKED',
+        options: getDictOptions(DICT_TYPE.MES_SKIP_RECORD_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
+      fieldName: 'skipTime',
+      label: '跳过时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -238,68 +193,58 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesOpSkipRecordApi.OpSkipRecord>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
+    { field: 'opName', title: '工序名称', minWidth: 140 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
     {
       field: 'skipReasonType',
       title: '跳过原因类型',
-      minWidth: 120,
+      minWidth: 130,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_SKIP_REASON_TYPE },
+      },
     },
-    {
-      field: 'skipReason',
-      title: '跳过原因',
-      minWidth: 120,
-    },
-    {
-      field: 'operatorId',
-      title: '操作人员编号',
-      minWidth: 120,
-    },
-    {
-      field: 'approvedBy',
-      title: '审批人员编号',
-      minWidth: 120,
-    },
+    { field: 'skipReason', title: '跳过原因', minWidth: 180 },
+    { field: 'operatorName', title: '操作人员', minWidth: 120 },
+    { field: 'approvedByName', title: '审批人员', minWidth: 120 },
     {
       field: 'approveStatus',
-      title: '审批状态：NOT_REQUIRED、PENDING、APPROVED、REJECTED',
-      minWidth: 120,
+      title: '审批状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_SKIP_APPROVE_STATUS },
+      },
     },
     {
       field: 'skipTime',
-      title: '实际跳过时间',
-      minWidth: 120,
+      title: '跳过时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
-    },
-    {
-      field: 'effectRemark',
-      title: '对后续工序、质检及排程的影响说明',
-      minWidth: 120,
     },
     {
       field: 'status',
-      title: '状态：PENDING、EFFECTIVE、REVOKED',
-      minWidth: 120,
+      title: '状态',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_SKIP_RECORD_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'effectRemark', title: '影响说明', minWidth: 180 },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'opTaskTask_no',
-      title: '被跳过工序任务task_no',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

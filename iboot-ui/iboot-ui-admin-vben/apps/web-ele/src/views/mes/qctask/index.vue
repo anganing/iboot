@@ -16,7 +16,6 @@ import {
   exportQcTask,
   getQcTaskPage,
 } from '#/api/mes/qctask';
-import QcTaskImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,46 +25,37 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: QcTaskImport,
-  destroyOnClose: true,
-});
-
-/** 导入MES-质检任务 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建MES-质检任务 */
+/** 创建质检任务 */
 function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑MES-质检任务 */
+/** 编辑质检任务 */
 function handleEdit(row: MesQcTaskApi.QcTask) {
   formModalApi.setData(row).open();
 }
 
-/** 删除MES-质检任务 */
+/** 删除质检任务 */
 async function handleDelete(row: MesQcTaskApi.QcTask) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.taskNo]),
   });
   try {
     await deleteQcTask(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.taskNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除MES-质检任务 */
+/** 批量删除质检任务 */
 async function handleDeleteBatch() {
   await confirm($t('ui.actionMessage.deleteBatchConfirm'));
   const loadingInstance = ElLoading.service({
@@ -93,9 +83,8 @@ function handleRowCheckboxChange({
 /** 导出表格 */
 async function handleExport() {
   const data = await exportQcTask(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: 'MES-质检任务.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '质检任务.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,23 +124,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="MES-质检任务列表">
+    <Grid table-title="质检任务列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['MES-质检任务']),
+              label: $t('ui.actionTitle.create', ['质检任务']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['mes:qc-task:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['mes:qc-task:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:qc-task:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [row.taskNo]),
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>
