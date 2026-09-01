@@ -48,6 +48,10 @@
         <mockito-inline.version>5.2.0</mockito-inline.version>
         <!-- Bpm 工作流相关 -->
         <flowable.version>8.0.0</flowable.version>
+        <!-- APS 排程求解相关 -->
+        <!-- 锁死 1.34.0：1.x 的 build-parent 是 Java 17，2.x 要求 Java 21；
+             且 2.x 把 score analysis 划入商业版，约束命中快照依赖它 -->
+        <timefold.version>1.34.0</timefold.version>
         <!-- 工具类相关 -->
         <anji-plus-captcha.version>1.4.0</anji-plus-captcha.version>
         <jsoup.version>1.22.2</jsoup.version>
@@ -453,6 +457,16 @@
                 <version>${flowable.version}</version>
             </dependency>
             <!-- 工作流相关结束 -->
+
+            <!-- APS 排程求解相关 -->
+            <dependency>
+                <groupId>ai.timefold.solver</groupId>
+                <artifactId>timefold-solver-bom</artifactId>
+                <version>${timefold.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- APS 排程求解相关结束 -->
 
             <!-- 工具类相关 -->
             <dependency>

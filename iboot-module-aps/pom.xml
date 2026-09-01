@@ -38,6 +38,13 @@
             <artifactId>iboot-module-system</artifactId>
             <version>${revision}</version>
         </dependency>
+        <!-- 显式依赖 infra：编码规则 CodeRuleApi 与 WebSocket 推送 WebSocketSenderApi 都在这里，
+             之前靠 mdm 传递才编得过，传递依赖一断就编译失败 -->
+        <dependency>
+            <groupId>com.iboot</groupId>
+            <artifactId>iboot-module-infra</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <!-- Web 相关 -->
         <dependency>
@@ -67,10 +74,23 @@
             <artifactId>iboot-spring-boot-starter-excel</artifactId>
         </dependency>
 
+        <!-- 排程求解相关：Timefold Solver Community Edition（Apache-2.0）。
+             版本由 iboot-dependencies 的 timefold-solver-bom 统一管理，不引 spring-boot-starter：
+             它会全局扫描 @PlanningSolution 并只支持 yaml 配置，挡住按策略动态构建求解配置 -->
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-core</artifactId>
+        </dependency>
+
         <!-- Test 测试相关 -->
         <dependency>
             <groupId>com.iboot</groupId>
             <artifactId>iboot-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
