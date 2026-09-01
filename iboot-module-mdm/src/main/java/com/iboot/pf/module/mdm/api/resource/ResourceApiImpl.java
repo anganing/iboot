@@ -92,6 +92,13 @@ public class ResourceApiImpl implements ResourceApi {
 
     @Override
     @DataPermission(enable = false)
+    public List<ResourceCapabilityRespDTO> getResourceCapabilityListByResIds(Collection<Long> resIds) {
+        List<ResCapabilityDO> capabilities = resCapabilityService.getResCapabilityListByResIds(resIds);
+        return BeanUtils.toBean(capabilities, ResourceCapabilityRespDTO.class);
+    }
+
+    @Override
+    @DataPermission(enable = false)
     public List<ResChangeoverRespDTO> getChangeoverList(Collection<Long> resIds, Collection<String> resGroups) {
         List<ResChangeoverDO> changeovers = resChangeoverService.getChangeoverList(resIds, resGroups);
         return BeanUtils.toBean(changeovers, ResChangeoverRespDTO.class);

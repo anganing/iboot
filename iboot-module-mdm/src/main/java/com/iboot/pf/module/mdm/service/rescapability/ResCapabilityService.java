@@ -80,4 +80,15 @@ public interface ResCapabilityService {
      */
     List<ResCapabilityDO> getResCapabilityList(Collection<Long> opIds);
 
+    /**
+     * 按资源编号集合批量查询启用中的资源能力
+     *
+     * <p>APS 刷新资源投影时按资源落能力快照，与 {@link #getResCapabilityList(Collection)} 的
+     * 查询方向相反：那个按工序找候选资源，这个按资源列可做工序。
+     *
+     * @param resIds 生产资源编号集合
+     * @return 资源能力列表；空集合返回空列表
+     */
+    List<ResCapabilityDO> getResCapabilityListByResIds(Collection<Long> resIds);
+
 }

@@ -11,6 +11,7 @@ import com.iboot.pf.module.mdm.dal.dataobject.rescapability.ResCapabilityDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -39,6 +40,21 @@ public interface ResCapabilityMapper extends BaseMapperX<ResCapabilityDO> {
 
     default List<ResCapabilityDO> selectListByResId(Long resId) {
         return selectList(ResCapabilityDO::getResId, resId);
+    }
+
+    /**
+     * 按资源编号集合批量查询资源能力。
+     *
+     * <p>一次 IN 查询取回全部，供 APS 资源投影落能力快照；不允许调用方按资源逐条查造成 N+1。
+     */
+    default List<ResCapabilityDO> selectListByResIds(Collection<Long> resIds) {
+        if (resIds == null || resIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<ResCapabilityDO>()
+                .in(ResCapabilityDO::getResId, resIds)
+                .orderByAsc(ResCapabilityDO::getResId)
+                .orderByDesc(ResCapabilityDO::getPreferredFlag));
     }
 
     default ResCapabilityDO selectByResIdAndOpId(Long resId, Long opId) {

@@ -74,6 +74,16 @@ public interface ResourceApi {
     List<ResourceCapabilityRespDTO> getResourceCapabilityList(Collection<Long> opIds);
 
     /**
+     * 按资源编号集合批量查询启用中的资源能力
+     *
+     * <p>APS 刷新资源投影时用它把“这台资源能做哪些工序、效率多少”冻结进投影，求解时不再回查 mdm。
+     *
+     * @param resIds 生产资源编号集合
+     * @return 资源能力列表；仅返回启用记录
+     */
+    List<ResourceCapabilityRespDTO> getResourceCapabilityListByResIds(Collection<Long> resIds);
+
+    /**
      * 按资源编号或资源组批量查询换型矩阵
      *
      * @param resIds 资源编号集合

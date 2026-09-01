@@ -139,4 +139,11 @@ public class ResCapabilityServiceImpl implements ResCapabilityService {
         return result;
     }
 
+    @Override
+    public List<ResCapabilityDO> getResCapabilityListByResIds(Collection<Long> resIds) {
+        return resCapabilityMapper.selectListByResIds(resIds).stream()
+                .filter(capability -> CommonStatusEnum.isEnable(capability.getStatus()))
+                .toList();
+    }
+
 }
