@@ -24,6 +24,7 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - **跨模块禁止跨库 `JOIN`**（例如 mdm 的 SQL 里 `JOIN system_users`）。跨模块取数一律在 Service 层调用对方模块的 `XxxApi` 门面批量补全（`AdminUserApi.getUserMap(ids)` 这类批量方法，一次 SQL，不允许 N+1），DO 和 Mapper 不得跨模块暴露。原因是跨库 JOIN 会把两个模块焊死在同一个数据库上，将来微服务拆分时无处下手。只有数据源不同、确实无法 JOIN，或关联数据已有专用聚合接口时才允许例外，并必须在代码评审中说明原因。注意补全逻辑要写在 Service 而非 Controller，否则 Excel 导出复用 Service 分页结果时会丢字段。
 - 表单中的外键字段（`xxxId`）一律用选择器让用户从主数据中选取，禁止用 `InputNumber`/`Input` 把主键编号暴露给用户手填：平铺主数据用 `RelationSelect`（关联配置统一沉淀在 `views/mdm/relation-config.ts` 复用），树形主数据用 `ApiTreeSelect`。列表展示关联数据时显示编码/名称等可读字段，不显示原始 ID；代码/枚举值列必须用字典或 formatter 映射成中文，不允许直接展示 `CRITICAL` 这类原始值。
 - 业务记录需要关联文档、图片、视频、图纸等附件时，先阅读并遵循 [`dev-docs/文档附件开发规范.md`](dev-docs/文档附件开发规范.md)。其中定义了附件子表结构模板、`file_type` 后端判定、去签名地址落库与读取重签名、附件全量替换与级联清理、前端上传字段组件与 `FileViewer` 预览方式。要点：业务上会出现第二个文件的一律建独立附件子表，不要在主表内联 `file_*` 列；文件名取自 `File.name`，不从 URL 反解。
+- 改动 APS 求解相关代码（约束、求解域、排程能力）前，先阅读并遵循 [`dev-docs/APS求解器开发规范.md`](dev-docs/APS求解器开发规范.md)。其中定义了 Timefold 版本与许可红线、投影输入约定、求解域建模、约束与权重、求解编排与快照、测试要求。不可协商的红线：Timefold 锁定 1.34.0（2.x 要求 Java 21 且 score analysis 收费），严禁出现 `moveThreadCount`、分区搜索、近邻选择、多阶段移动、约束剖析这些 Community 版会抛 `EnterpriseLicenseException` 的配置项；求解输入只读四张投影表，不许回查主数据；时间推导用声明式影子变量（`@ShadowVariable(supplierName)` + `@ShadowSources`），不要手写 `ListVariableListener`；约束名只在 `ApsConstraintNames` 里定义，它是策略权重与命中快照的对齐锚点。参考项目 `业务建模/参考项目/jvs-aps` 用的是 OptaPlanner 9.44，写法不可直接照抄。
 
 ## 项目结构与模块组织
 
