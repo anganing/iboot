@@ -307,6 +307,7 @@ public class ApsSolverProblemBuilder {
         task.setStdDuration(row.getStdDuration());
         task.setManQty(row.getManQty());
         task.setChangeoverGroup(row.getChangeoverGroup());
+        task.setMaterialShortage(Boolean.TRUE.equals(row.getMaterialShortageFlag()));
         task.setPinned(Boolean.TRUE.equals(row.getLockedFlag()));
         task.setPinnedResId(row.getResId());
         task.setPinnedStartTime(row.getActualStartTime());

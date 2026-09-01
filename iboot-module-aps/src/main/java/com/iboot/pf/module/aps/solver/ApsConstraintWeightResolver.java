@@ -63,6 +63,8 @@ public final class ApsConstraintWeightResolver {
         defaults.put(ApsConstraintNames.SHADOW_INCONSISTENT, ApsConstraintWeight.ofHard(DEFAULT_HARD_WEIGHT));
         // 交期最重：制造业的第一目标是准时交付
         defaults.put(ApsConstraintNames.DUE_DATE_DELAY, ApsConstraintWeight.ofSoft(100L));
+        // 齐套排在交期之后、总完工之前：缺料让路的收益是"现在就能干的活先干"，但不能为了它牺牲交期
+        defaults.put(ApsConstraintNames.MATERIAL_SHORTAGE, ApsConstraintWeight.ofSoft(20L));
         defaults.put(ApsConstraintNames.TOTAL_MAKESPAN, ApsConstraintWeight.ofSoft(10L));
         defaults.put(ApsConstraintNames.PRIORITY_INVERSION, ApsConstraintWeight.ofSoft(5L));
         defaults.put(ApsConstraintNames.PRECEDENCE_IDLE_GAP, ApsConstraintWeight.ofSoft(1L));

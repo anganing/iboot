@@ -30,6 +30,7 @@ import com.iboot.pf.module.aps.enums.ApsCommandTypeEnum;
 import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.aps.enums.ApsScenarioStatusEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandService;
+import com.iboot.pf.module.aps.service.projection.kit.ApsMaterialKitCalculator;
 import com.iboot.pf.module.aps.service.projection.source.OrderProjectionSource;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
@@ -116,6 +117,8 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
     @Resource
     private ObjectProvider<OrderProjectionSource> orderSourceProvider;
     @Resource
+    private ApsMaterialKitCalculator materialKitCalculator;
+    @Resource
     private ApsRelationFiller relationFiller;
     @Resource
     private ApsCommandService commandService;
@@ -174,6 +177,8 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
             }
             List<ApsOrderProjectionDO> rows =
                     source.loadOrderProjection(reqDTO.getScenarioId(), scenario.getPlantId());
+            // 齐套结论属于输入的一部分，和工时一起在投影阶段冻结，求解时不再回查库存
+            materialKitCalculator.fillMaterialShortage(reqDTO.getScenarioId(), rows);
             orderProjectionMapper.deletePhysicalByScenarioId(reqDTO.getScenarioId());
             if (CollUtil.isNotEmpty(rows)) {
                 orderProjectionMapper.insertBatch(rows);

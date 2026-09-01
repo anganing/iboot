@@ -15,6 +15,7 @@ import com.iboot.pf.module.aps.enums.ApsStrategyStatusEnum;
 import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
 import com.iboot.pf.module.aps.framework.web.config.ApsSolverConfiguration;
 import com.iboot.pf.module.aps.service.command.ApsCommandServiceImpl;
+import com.iboot.pf.module.aps.service.release.ApsScheduleReleaseService;
 import com.iboot.pf.module.aps.service.scenario.ApsScenarioService;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import com.iboot.pf.module.aps.service.strategy.ApsStrategyService;
@@ -91,6 +92,8 @@ class ApsSolveServiceImplTest extends BaseDbAndRedisUnitTest {
     private ApsSolverSnapshotWriter snapshotWriter;
     @MockitoBean
     private ApsRelationFiller relationFiller;
+    @MockitoBean
+    private ApsScheduleReleaseService releaseService;
     @MockitoBean
     private SolverManager<ApsSolution, Long> solverManager;
 

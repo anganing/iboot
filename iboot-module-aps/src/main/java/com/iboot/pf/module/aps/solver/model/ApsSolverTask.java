@@ -124,6 +124,14 @@ public class ApsSolverTask {
     private String changeoverGroup;
 
     /**
+     * 是否缺料，来自投影阶段冻结的齐套结论。
+     *
+     * <p>是问题事实而不是影子变量：齐套判定跟排到哪台设备、排第几位无关，
+     * 做成影子变量只会让求解器每次移动都白算一遍。
+     */
+    private boolean materialShortage;
+
+    /**
      * 能做这道工序的资源编号集合，来自资源能力快照。
      *
      * <p>空集合表示主数据没配能力：此时不限制资源，交给软约束优化，而不是直接判为无解。

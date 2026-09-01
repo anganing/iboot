@@ -9,6 +9,7 @@ import com.iboot.pf.module.aps.dal.mysql.scenario.ApsScenarioMapper;
 import com.iboot.pf.module.aps.enums.ApsScenarioStatusEnum;
 import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandServiceImpl;
+import com.iboot.pf.module.aps.service.projection.kit.ApsMaterialKitCalculator;
 import com.iboot.pf.module.aps.service.projection.source.OrderProjectionSource;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
@@ -68,6 +69,8 @@ class ApsProjectionServiceImplTest extends BaseDbUnitTest {
     private InventoryApi inventoryApi;
     @MockitoBean
     private ObjectProvider<OrderProjectionSource> orderSourceProvider;
+    @MockitoBean
+    private ApsMaterialKitCalculator materialKitCalculator;
     @MockitoBean
     private ApsRelationFiller relationFiller;
 

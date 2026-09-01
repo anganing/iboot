@@ -52,6 +52,9 @@
             <if test="req.lockedFlag != null">
                 AND t.locked_flag = #{req.lockedFlag}
             </if>
+            <if test="req.materialShortageFlag != null">
+                AND t.material_shortage_flag = #{req.materialShortageFlag}
+            </if>
             <if test="req.dueDate != null and req.dueDate.length == 2">
                 AND t.due_date BETWEEN #{req.dueDate[0]} AND #{req.dueDate[1]}
             </if>

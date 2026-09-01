@@ -173,6 +173,15 @@ public class ProjectionOrderRespVO {
     @ExcelProperty("换型分组")
     private String changeoverGroup;
 
+    @Schema(description = "是否缺料，由 BOM 展开对冲库存投影得出")
+    @ExcelProperty(value = "是否缺料", converter = DictConvert.class)
+    @DictFormat(ApsDictTypeConstants.BOOLEAN_STRING)
+    private Boolean materialShortageFlag;
+
+    @Schema(description = "缺料数量合计")
+    @ExcelProperty("缺料数量")
+    private BigDecimal materialShortQty;
+
     @Schema(description = "来源对象状态快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "PENDING")
     @ExcelProperty(value = "来源状态", converter = DictConvert.class)
     @DictFormat(ApsDictTypeConstants.OP_TASK_STATUS)

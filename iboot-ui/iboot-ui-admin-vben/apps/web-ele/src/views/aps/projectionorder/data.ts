@@ -9,7 +9,7 @@ import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
-import { MAT_RELATION_PROPS, PROJECT_RELATION_PROPS, PLANT_RELATION_PROPS, WORKSHOP_RELATION_PROPS } from '#/views/mdm/relation-config';
+import { MAT_RELATION_PROPS, PLANT_RELATION_PROPS, PROJECT_RELATION_PROPS, WORKSHOP_RELATION_PROPS } from '#/views/mdm/relation-config';
 import { RES_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 import { APS_SCENARIO_RELATION_PROPS } from '../relation-config';
@@ -85,6 +85,16 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'materialShortageFlag',
+      label: '是否缺料',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
+        placeholder: '请选择',
+      },
+    },
+    {
       fieldName: 'dueDate',
       label: '交期',
       component: 'RangePicker',
@@ -134,6 +144,13 @@ export function useGridColumns(): VxeTableGridOptions<ApsProjectionOrderApi.Proj
       minWidth: 110,
       cellRender: { name: 'CellDict', props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING } },
     },
+    {
+      field: 'materialShortageFlag',
+      title: '是否缺料',
+      minWidth: 110,
+      cellRender: { name: 'CellDict', props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING } },
+    },
+    { field: 'materialShortQty', title: '缺料数量', minWidth: 110 },
     { field: 'snapshotTime', title: '投影快照时间', minWidth: 160, formatter: 'formatDateTime' },
     { field: 'createTime', title: '创建时间', minWidth: 160, formatter: 'formatDateTime' },
   ];

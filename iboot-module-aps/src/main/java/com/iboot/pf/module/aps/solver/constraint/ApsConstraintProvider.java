@@ -7,6 +7,7 @@ import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import com.iboot.pf.module.aps.solver.model.ApsSolverTask;
+import com.iboot.pf.module.aps.solver.config.ApsStrategyConfig;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class ApsConstraintProvider implements ConstraintProvider {
                 pinnedTaskImmutable(factory),
                 calendarCapacity(factory),
                 shadowInconsistent(factory),
+                materialShortage(factory),
                 dueDateDelay(factory),
                 totalMakespan(factory),
                 priorityInversion(factory),
@@ -124,6 +126,38 @@ public class ApsConstraintProvider implements ConstraintProvider {
                 .filter(ApsSolverTask::isInconsistent)
                 .penalizeLong(ONE_HARD, task -> 1L)
                 .asConstraint(ApsConstraintNames.SHADOW_INCONSISTENT);
+    }
+
+    /**
+     * 软约束：缺料工序给有料工序让路。
+     *
+     * <p>只在策略开了 {@code materialConstrained} 时生效，通过 join 策略配置这个问题事实来开关，
+     * 而不是把约束从 {@code defineConstraints} 数组里摘掉：约束集合必须稳定，否则历史命中快照的
+     * 分类键会对不上，权重配置也会因“未知约束名”被拒。
+     *
+     * <p>做成软约束而非硬约束是有原因的：缺料是问题事实，求解器没有任何移动能把它变成不缺，
+     * 硬约束会让整个版本永远判为不可行（{@code hardScore < 0} 直接 FAILED，连看一眼都做不到）。
+     * 软约束能真正改变分派结果：把缺料工序往后挪、把产能让给现在就能干的活。
+     *
+     * <p>惩罚量取“同资源上排在它之后的有料工序数量”，而不是简单计数：这个量随着缺料工序往后移
+     * 单调下降，求解器有明确的下降方向。只按计数罚的话，缺料工序排在队首和队尾同分，等于没约束。
+     */
+    Constraint materialShortage(ConstraintFactory factory) {
+        return factory.forEach(ApsSolverTask.class)
+                // 已开工的工序料早就领了，不参与让路
+                .filter(task -> task.isMaterialShortage() && task.getStartTime() != null && !task.isPinned())
+                .join(ApsStrategyConfig.class,
+                        Joiners.filtering((task, config) -> Boolean.TRUE.equals(config.getMaterialConstrained())))
+                .join(ApsSolverTask.class,
+                        Joiners.filtering((shortageTask, config, other) ->
+                                !other.isMaterialShortage() && !other.isPinned()
+                                        && other.getStartTime() != null
+                                        && other.getResource() != null
+                                        && shortageTask.getResource() != null
+                                        && Objects.equals(other.getResource(), shortageTask.getResource())
+                                        && other.getStartTime().isAfter(shortageTask.getStartTime())))
+                .penalizeLong(ONE_SOFT, (shortageTask, config, other) -> 1L)
+                .asConstraint(ApsConstraintNames.MATERIAL_SHORTAGE);
     }
 
     /** 软约束：交期延误分钟数，按优先级加权，优先级越高越不能晚。 */

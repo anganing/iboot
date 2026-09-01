@@ -50,6 +50,9 @@ public class ProjectionOrderPageReqVO extends PageParam {
     @Schema(description = "是否已开工或业务锁定")
     private Boolean lockedFlag;
 
+    @Schema(description = "是否缺料")
+    private Boolean materialShortageFlag;
+
     @Schema(description = "交期")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
     private LocalDateTime[] dueDate;

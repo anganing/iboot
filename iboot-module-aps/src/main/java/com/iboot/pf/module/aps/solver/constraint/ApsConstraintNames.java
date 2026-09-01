@@ -29,6 +29,14 @@ public interface ApsConstraintNames {
     /** 硬约束：影子变量陷入循环等待，时间无法推导。 */
     String SHADOW_INCONSISTENT = "shadowInconsistent";
 
+    /**
+     * 硬约束：缺料工序不许排产。
+     *
+     * <p>只在策略开了 {@code materialConstrained} 时生效：关掉时约束方法直接放行，
+     * 而不是把约束从数组里摘掉——约束集合必须稳定，否则历史快照的分类键会对不上。
+     */
+    String MATERIAL_SHORTAGE = "materialShortage";
+
     /** 软约束：交期延误分钟数。 */
     String DUE_DATE_DELAY = "dueDateDelay";
 
@@ -46,8 +54,8 @@ public interface ApsConstraintNames {
 
     /** 全部约束名，供策略配置校验与快照分类使用。 */
     List<String> ALL = List.of(RESOURCE_CAPABILITY, OPERATION_PRECEDENCE, PINNED_TASK_IMMUTABLE,
-            CALENDAR_CAPACITY, SHADOW_INCONSISTENT, DUE_DATE_DELAY, TOTAL_MAKESPAN, PRIORITY_INVERSION,
-            PRECEDENCE_IDLE_GAP, CHANGEOVER_TIME);
+            CALENDAR_CAPACITY, SHADOW_INCONSISTENT, MATERIAL_SHORTAGE, DUE_DATE_DELAY, TOTAL_MAKESPAN,
+            PRIORITY_INVERSION, PRECEDENCE_IDLE_GAP, CHANGEOVER_TIME);
 
     /** 约束名对应的中文说明，用于前端展示与快照可读性。 */
     static String displayName(String constraintName) {
@@ -57,6 +65,7 @@ public interface ApsConstraintNames {
             case PINNED_TASK_IMMUTABLE -> "锁定任务被改动";
             case CALENDAR_CAPACITY -> "超出日历可用产能";
             case SHADOW_INCONSISTENT -> "工序前后序存在循环等待";
+            case MATERIAL_SHORTAGE -> "物料未齐套";
             case DUE_DATE_DELAY -> "交期延误";
             case TOTAL_MAKESPAN -> "总完工时间";
             case PRIORITY_INVERSION -> "优先级倒挂";

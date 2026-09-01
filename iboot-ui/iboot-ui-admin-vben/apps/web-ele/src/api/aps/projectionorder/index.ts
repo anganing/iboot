@@ -1,5 +1,6 @@
-import type { PageParam, PageResult } from '@vben/request';
 import type { Dayjs } from 'dayjs';
+
+import type { PageParam, PageResult } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
@@ -28,14 +29,16 @@ export namespace ApsProjectionOrderApi {
     resName?: string; // 当前资源名称
     qty?: number; // 计划数量或剩余数量
     completedQty?: number; // 已完成数量快照
-    dueDate?: string | Dayjs; // 交期
+    dueDate?: Dayjs | string; // 交期
     priority?: number; // 优先级
     currentStatus?: string; // 来源对象状态快照
-    actualStartTime: string | Dayjs; // 实际开始时间
-    actualEndTime: string | Dayjs; // 实际结束时间
+    actualStartTime: Dayjs | string; // 实际开始时间
+    actualEndTime: Dayjs | string; // 实际结束时间
     lockedFlag?: boolean; // 是否已开工或业务锁定
-    sourceUpdateTime?: string | Dayjs; // 来源数据更新时间
-    snapshotTime?: string | Dayjs; // 投影快照时间
+    materialShortageFlag?: boolean; // 是否缺料，由 BOM 展开对冲库存投影得出
+    materialShortQty?: number; // 缺料数量合计
+    sourceUpdateTime?: Dayjs | string; // 来源数据更新时间
+    snapshotTime?: Dayjs | string; // 投影快照时间
     remark?: string; // 备注
   }
 }

@@ -1,6 +1,7 @@
 package com.iboot.pf.module.aps.solver.constraint;
 
 import ai.timefold.solver.test.api.score.stream.ConstraintVerifier;
+import com.iboot.pf.module.aps.solver.config.ApsStrategyConfig;
 import com.iboot.pf.module.aps.solver.model.ApsSolution;
 import com.iboot.pf.module.aps.solver.model.ApsSolverResource;
 import com.iboot.pf.module.aps.solver.model.ApsSolverTask;
@@ -222,7 +223,7 @@ class ApsConstraintProviderTest {
     void definedConstraintsShouldMatchConstraintNames() {
         // 约束名是策略权重与命中快照的锚点，数量与集合必须与常量表一致
         List<String> defined = List.copyOf(ApsConstraintNames.ALL);
-        org.junit.jupiter.api.Assertions.assertEquals(10, defined.size());
+        org.junit.jupiter.api.Assertions.assertEquals(11, defined.size());
     }
 
     @Test
@@ -235,6 +236,51 @@ class ApsConstraintProviderTest {
         verifier.verifyThat(ApsConstraintProvider::shadowInconsistent)
                 .given(resource, task)
                 .penalizesBy(1L);
+    }
+
+    @Test
+    void materialShortageShouldPenalizeBlockedReadyTask() {
+        ApsSolverResource resource = resource(1L, "CNC-01");
+        ApsSolverTask shortageTask = task(100L, resource, T8, T10);
+        shortageTask.setMaterialShortage(true);
+        // 同资源上排在它之后的有料工序：缺料的占着前面，有料的只能等
+        ApsSolverTask readyTask = task(101L, resource, T12, T14);
+
+        verifier.verifyThat(ApsConstraintProvider::materialShortage)
+                .given(resource, shortageTask, readyTask, materialConstrainedConfig(true))
+                .penalizesBy(1L);
+    }
+
+    @Test
+    void materialShortageShouldBeInertWhenStrategyDisabled() {
+        ApsSolverResource resource = resource(1L, "CNC-01");
+        ApsSolverTask shortageTask = task(100L, resource, T8, T10);
+        shortageTask.setMaterialShortage(true);
+        ApsSolverTask readyTask = task(101L, resource, T12, T14);
+
+        // 策略没开齐套约束时完全不生效，约束仍留在集合里保证快照分类键稳定
+        verifier.verifyThat(ApsConstraintProvider::materialShortage)
+                .given(resource, shortageTask, readyTask, materialConstrainedConfig(false))
+                .penalizesBy(0L);
+    }
+
+    @Test
+    void materialShortageShouldNotPenalizeWhenShortageTaskIsLast() {
+        ApsSolverResource resource = resource(1L, "CNC-01");
+        ApsSolverTask readyTask = task(100L, resource, T8, T10);
+        ApsSolverTask shortageTask = task(101L, resource, T12, T14);
+        shortageTask.setMaterialShortage(true);
+
+        // 缺料工序已经排到队尾，没有挡住任何有料工序，惩罚归零：这就是求解器要找的方向
+        verifier.verifyThat(ApsConstraintProvider::materialShortage)
+                .given(resource, readyTask, shortageTask, materialConstrainedConfig(true))
+                .penalizesBy(0L);
+    }
+
+    private ApsStrategyConfig materialConstrainedConfig(boolean enabled) {
+        ApsStrategyConfig config = new ApsStrategyConfig();
+        config.setMaterialConstrained(enabled);
+        return config;
     }
 
 }

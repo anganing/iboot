@@ -129,6 +129,17 @@ public class ApsOrderProjectionDO extends BaseDO {
     /** 物料换型分组快照，空串表示不参与换型计算。 */
     private String changeoverGroup;
 
+    /**
+     * 是否缺料：BOM 展开后有任一子件的可用库存不足。
+     *
+     * <p>投影阶段冻结，求解时由物料齐套约束读取。放在投影而不是求解时现算，是为了让同一场景重复
+     * 求解读到同一份齐套结论——库存每分钟都在动，现算会让结果不可复现，追溯链断掉。
+     */
+    private Boolean materialShortageFlag;
+
+    /** 缺料数量合计，多种子件缺料时累加，供缺料严重程度排序与快照展示。 */
+    private BigDecimal materialShortQty;
+
     /** 来源对象状态快照，取值见字典 mes_op_task_status。 */
     private String currentStatus;
 

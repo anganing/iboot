@@ -29,8 +29,11 @@ public class ApsStrategyConfig {
     /**
      * 是否约束物料齐套。
      *
-     * <p>本轮只落配置不生效：齐套联动要把库存投影与 BOM 展开一起纳入求解，
-     * 属于下一轮范围。缺料仍由 {@code refreshShortage} 单独汇总。
+     * <p>开启后 {@code materialShortage} 软约束生效：缺料工序给同资源上有料的工序让路。
+     * 齐套结论在刷新工单投影时由 BOM 展开对冲库存投影得出，冻结进
+     * {@code aps_projection_order.material_shortage_flag}，求解期间只读它，不回查库存。
+     *
+     * <p>缺省关闭：现场刚上线时 BOM 与库存往往还没对齐，开着会让计划无谓地往后推。
      */
     private Boolean materialConstrained = Boolean.FALSE;
 
