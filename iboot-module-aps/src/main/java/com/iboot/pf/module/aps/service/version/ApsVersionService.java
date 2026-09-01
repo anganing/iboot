@@ -89,4 +89,23 @@ public interface ApsVersionService {
      */
     List<ApsVersionDO> getVersionDOListByScenarioId(Long scenarioId);
 
+    /**
+     * 求解成功后回填得分与结束时间，状态推进到已求解
+     *
+     * @param versionId 版本编号
+     * @param score 综合得分的可读表示
+     * @param hardScore 硬约束得分
+     * @param softScore 软约束得分
+     * @param solverMessage 求解结果说明
+     */
+    void markSolved(Long versionId, String score, Long hardScore, Long softScore, String solverMessage);
+
+    /**
+     * 求解失败或无可行解时置为求解失败并记录原因
+     *
+     * @param versionId 版本编号
+     * @param solverMessage 失败原因
+     */
+    void markFailed(Long versionId, String solverMessage);
+
 }

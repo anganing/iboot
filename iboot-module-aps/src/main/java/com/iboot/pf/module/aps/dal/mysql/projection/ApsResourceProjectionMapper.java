@@ -38,6 +38,18 @@ public interface ApsResourceProjectionMapper extends BaseMapperX<ApsResourceProj
                 .orderByAsc(ApsResourceProjectionDO::getSourceResId, ApsResourceProjectionDO::getWorkDate));
     }
 
+    /**
+     * 按场景列出全部资源投影，含日汇总与各班次明细。
+     *
+     * <p>求解要用班次明细展开可用时间窗，只取日汇总会把班次间的停机时间也当成可用产能。
+     */
+    default List<ApsResourceProjectionDO> selectListByScenarioId(Long scenarioId) {
+        return selectList(new LambdaQueryWrapper<ApsResourceProjectionDO>()
+                .eq(ApsResourceProjectionDO::getScenarioId, scenarioId)
+                .orderByAsc(ApsResourceProjectionDO::getSourceResId, ApsResourceProjectionDO::getWorkDate,
+                        ApsResourceProjectionDO::getShiftId));
+    }
+
     /** 物理删除某场景的资源投影，理由同物料投影。 */
     @Delete("DELETE FROM aps_projection_resource WHERE scenario_id = #{scenarioId}")
     int deletePhysicalByScenarioId(Long scenarioId);

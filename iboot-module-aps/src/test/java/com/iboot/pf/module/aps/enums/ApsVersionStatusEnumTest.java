@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** 排程版本状态机的单元测试：只允许文档里写明的三条迁移。 */
+/** 排程版本状态机的单元测试：只允许文档里写明的迁移。 */
 class ApsVersionStatusEnumTest {
 
     @Test
@@ -15,6 +15,16 @@ class ApsVersionStatusEnumTest {
         assertTrue(ApsVersionStatusEnum.PENDING_CONFIRM.canTransitTo(ApsVersionStatusEnum.CONFIRMED));
         assertTrue(ApsVersionStatusEnum.CONFIRMED.canTransitTo(ApsVersionStatusEnum.PUBLISHED));
         assertTrue(ApsVersionStatusEnum.PUBLISHED.canTransitTo(ApsVersionStatusEnum.REPLACED));
+    }
+
+    @Test
+    void solvingShouldAllowSolveOutcomes() {
+        // 求解结束有两种结局，都由 SOLVING 直接迁出
+        assertTrue(ApsVersionStatusEnum.SOLVING.canTransitTo(ApsVersionStatusEnum.SOLVED));
+        assertTrue(ApsVersionStatusEnum.SOLVING.canTransitTo(ApsVersionStatusEnum.FAILED));
+        // 求解失败是终态：重排要生成新版本，不允许把失败的版本救回来确认发布
+        assertFalse(ApsVersionStatusEnum.FAILED.canTransitTo(ApsVersionStatusEnum.SOLVED));
+        assertFalse(ApsVersionStatusEnum.SOLVED.canTransitTo(ApsVersionStatusEnum.FAILED));
     }
 
     @Test

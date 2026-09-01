@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.exception.ErrorCode;
  *
  * <p>编号段按业务对象划分：场景 1_065_001、版本 1_065_002、任务 1_065_003、投影 1_065_004、
  * 缺料 1_065_005、负荷 1_065_006、任务依赖与锁定 1_065_007、策略 1_065_008、求解快照 1_065_009、
- * 跨模块主数据校验 1_065_010。
+ * 跨模块主数据校验 1_065_010、求解 1_065_011。
  */
 public interface ErrorCodeConstants {
 
@@ -59,4 +59,10 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TASK_NOT_EXISTS = new ErrorCode(1_065_010_006, "项目任务不存在");
     ErrorCode SHIFT_NOT_EXISTS = new ErrorCode(1_065_010_007, "班次不存在");
     ErrorCode WC_NOT_EXISTS = new ErrorCode(1_065_010_008, "工作中心不存在");
+    ErrorCode SOLVE_ALREADY_RUNNING = new ErrorCode(1_065_011_000, "该场景正在求解中，请稍后再试");
+    ErrorCode SOLVE_NO_RESOURCE = new ErrorCode(1_065_011_001, "场景内没有可用的生产资源，请先刷新资源投影");
+    ErrorCode SOLVE_NO_TASK = new ErrorCode(1_065_011_002, "场景内没有待排程的工序任务，请先刷新工单投影");
+    ErrorCode SOLVE_STRATEGY_CONFIG_INVALID = new ErrorCode(1_065_011_003, "排程策略配置解析失败：{}");
+    ErrorCode SOLVE_NOT_RUNNING = new ErrorCode(1_065_011_004, "该版本没有正在进行的求解任务");
+    ErrorCode SOLVE_DIRECTION_UNSUPPORTED = new ErrorCode(1_065_011_005, "当前仅支持正排（FORWARD），暂不支持倒排");
 }

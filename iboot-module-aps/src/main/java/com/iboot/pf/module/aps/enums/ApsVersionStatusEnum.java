@@ -11,8 +11,12 @@ import java.util.Set;
 /**
  * 排程版本状态机。与字典 {@code aps_version_status} 一致。
  *
- * <p>允许的迁移只有三条：求解中/已求解/待确认 -> 已确认，已确认 -> 已发布，已发布 -> 已被替换。
+ * <p>允许的迁移：求解中 -> 已求解 / 求解失败，求解中/已求解/待确认 -> 已确认，
+ * 已确认 -> 已发布，已发布 -> 已被替换。
  * 已发布与已被替换是终态，排程结果不允许再改，否则车间已领到的计划会和库里的数据对不上。
+ *
+ * <p>求解失败是终态：失败的版本不允许确认发布，重排要生成新版本。保留失败记录而不是删掉，
+ * 是为了让“这个场景什么时候排不出来过”可追溯。
  */
 @Getter
 @AllArgsConstructor
@@ -47,7 +51,9 @@ public enum ApsVersionStatusEnum implements ArrayValuable<String> {
     /** 判断当前状态是否允许迁移到目标状态。 */
     public boolean canTransitTo(ApsVersionStatusEnum target) {
         return switch (this) {
-            case SOLVING, SOLVED, PENDING_CONFIRM -> target == CONFIRMED;
+            // 求解完成后既可能有解（SOLVED）也可能无解（FAILED），人工确认前允许直接确认已求解的版本
+            case SOLVING -> target == SOLVED || target == FAILED || target == CONFIRMED;
+            case SOLVED, PENDING_CONFIRM -> target == CONFIRMED;
             case CONFIRMED -> target == PUBLISHED;
             case PUBLISHED -> target == REPLACED;
             default -> false;

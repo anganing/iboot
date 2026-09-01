@@ -156,6 +156,48 @@ public class ApsVersionServiceImpl implements ApsVersionService {
         return versionMapper.selectListByScenarioId(scenarioId);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markSolved(Long versionId, String score, Long hardScore, Long softScore, String solverMessage) {
+        ApsVersionDO version = requireForUpdate(versionId);
+        validateTransition(version, ApsVersionStatusEnum.SOLVED);
+        updateSolveResult(version, ApsVersionStatusEnum.SOLVED, score, hardScore, softScore, solverMessage);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markFailed(Long versionId, String solverMessage) {
+        ApsVersionDO version = requireForUpdate(versionId);
+        validateTransition(version, ApsVersionStatusEnum.FAILED);
+        updateSolveResult(version, ApsVersionStatusEnum.FAILED, null, null, null, solverMessage);
+    }
+
+    /**
+     * 回填求解结果。
+     *
+     * <p>和状态流转共用乐观锁：并发下只有一个请求能把版本从 SOLVING 推走，
+     * 另一个更新 0 行直接报状态非法，不会出现两次求解互相覆盖得分。
+     */
+    private void updateSolveResult(ApsVersionDO version, ApsVersionStatusEnum status, String score,
+                                   Long hardScore, Long softScore, String solverMessage) {
+        int currentVersion = version.getVersion() == null ? ApsConstants.INIT_VERSION : version.getVersion();
+        ApsVersionDO update = ApsVersionDO.builder()
+                .status(status.name())
+                .score(score)
+                .hardScore(hardScore)
+                .softScore(softScore)
+                .solveEndTime(LocalDateTime.now())
+                .solverMessage(solverMessage)
+                .version(currentVersion + 1)
+                .build();
+        LambdaUpdateWrapper<ApsVersionDO> wrapper = new LambdaUpdateWrapper<ApsVersionDO>()
+                .eq(ApsVersionDO::getId, version.getId())
+                .eq(ApsVersionDO::getVersion, currentVersion);
+        if (versionMapper.update(update, wrapper) == 0) {
+            throw exception(VERSION_STATUS_INVALID);
+        }
+    }
+
     private void transit(Long id, ApsVersionStatusEnum target, Long operatorId) {
         ApsVersionDO version = requireForUpdate(id);
         // 幂等：已是目标状态直接返回

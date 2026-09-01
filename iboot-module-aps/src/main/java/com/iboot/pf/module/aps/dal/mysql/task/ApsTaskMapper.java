@@ -10,6 +10,7 @@ import com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Delete;
 
 import java.util.Collection;
 import java.util.List;
@@ -70,5 +71,14 @@ public interface ApsTaskMapper extends BaseMapperX<ApsTaskDO> {
                 .gt(ApsTaskDO::getEndTime, startTime)
                 .ne(excludeId != null, ApsTaskDO::getId, excludeId));
     }
+
+    /**
+     * 物理删除某版本的排程任务。
+     *
+     * <p>求解结果是每次重算整体重建的派生数据；逻辑删除会让含 deleted 的唯一索引在重算后撞车
+     * （uk_aps_task_version_op_deleted），所以必须物理删除。
+     */
+    @Delete("DELETE FROM aps_task WHERE version_id = #{versionId}")
+    int deletePhysicalByVersionId(Long versionId);
 
 }
