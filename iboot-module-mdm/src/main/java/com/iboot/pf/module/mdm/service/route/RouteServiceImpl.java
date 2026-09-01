@@ -115,8 +115,9 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public PageResult<RouteOpDO> getRouteOpPage(PageParam pageReqVO, Long routeId) {
-        return routeOpMapper.selectPage(pageReqVO, routeId);
+    public PageResult<RouteOpRespVO> getRouteOpPage(PageParam pageReqVO, Long routeId) {
+        // JOIN 出工序与工作中心的可读字段，列表与关联选择器不显示裸 ID
+        return routeOpMapper.selectJoinPage(pageReqVO, routeId);
     }
 
     @Override
@@ -198,8 +199,8 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public RouteOpDO getRouteOp(Long id) {
-        return routeOpMapper.selectById(id);
+    public RouteOpRespVO getRouteOp(Long id) {
+        return routeOpMapper.selectJoinById(id);
     }
 
     @Override

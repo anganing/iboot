@@ -349,3 +349,23 @@ export const SKILL_RELATION_PROPS = {
   ],
   valueField: 'id',
 };
+
+export const TEAM_RELATION_PROPS = {
+  columns: [
+    { field: 'code', label: '班组编码', minWidth: 140 },
+    { field: 'name', label: '班组名称', minWidth: 160 },
+    { field: 'workshopName', label: '所属车间', minWidth: 140 },
+    { field: 'leaderUserName', label: '班组长', minWidth: 120 },
+  ],
+  detailUri: '/mdm/team/get?id={id}',
+  dialogTitle: '选择班组',
+  displayFields: ['code', 'name'],
+  pageUri: '/mdm/team/page',
+  placeholder: '请选择班组',
+  queryFields: [
+    { field: 'code', label: '班组编码' },
+    { field: 'name', label: '班组名称' },
+    STATUS_QUERY_FIELD,
+  ],
+  valueField: 'id',
+};

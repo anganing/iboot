@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.mdm.dal.mysql.route.RouteOpMapper">
+
+    <!-- 工序与工作中心都在 mdm 库内，直接 JOIN 出可读编码与名称 -->
+    <sql id="selectColumns">
+        ro.*
+        , o.code AS op_code
+        , o.name AS op_name
+        , w.code AS wc_code
+        , w.name AS wc_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM mdm_route_op ro
+        LEFT JOIN mdm_op o ON o.id = ro.op_id AND o.deleted = 0
+        LEFT JOIN mdm_wc w ON w.id = ro.wc_id AND w.deleted = 0
+    </sql>
+
+    <select id="selectJoinPage"
+            resultType="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteOpRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE ro.deleted = 0 AND ro.route_id = #{routeId}
+        ORDER BY ro.seq ASC
+    </select>
+
+    <select id="selectJoinById"
+            resultType="com.iboot.pf.module.mdm.controller.admin.route.vo.RouteOpRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE ro.deleted = 0 AND ro.id = #{id}
+    </select>
+
+</mapper>

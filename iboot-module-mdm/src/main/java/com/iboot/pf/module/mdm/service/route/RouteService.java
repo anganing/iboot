@@ -82,7 +82,7 @@ public interface RouteService {
      * @param routeId 工艺路线编号
      * @return 工艺路线工序分页
      */
-    PageResult<RouteOpDO> getRouteOpPage(PageParam pageReqVO, Long routeId);
+    PageResult<RouteOpRespVO> getRouteOpPage(PageParam pageReqVO, Long routeId);
 
     /**
      * 创建工艺路线工序
@@ -121,7 +121,7 @@ public interface RouteService {
 	 * @param id 编号
      * @return 工艺路线工序
 	 */
-    RouteOpDO getRouteOp(Long id);
+    RouteOpRespVO getRouteOp(Long id);
 
     // ==================== 只读门面（供 API 层委托） ====================
 

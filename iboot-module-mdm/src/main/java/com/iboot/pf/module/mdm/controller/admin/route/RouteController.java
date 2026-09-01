@@ -118,8 +118,8 @@ public class RouteController {
     @Operation(summary = "获得工艺路线工序分页")
     @Parameter(name = "routeId", description = "工艺路线编号", required = true)
     @PreAuthorize("@ss.hasPermission('mdm:route:query')")
-    public CommonResult<PageResult<RouteOpDO>> getRouteOpPage(PageParam pageReqVO,
-                                                                                        @RequestParam("routeId") Long routeId) {
+    public CommonResult<PageResult<RouteOpRespVO>> getRouteOpPage(PageParam pageReqVO,
+                                                                 @RequestParam("routeId") Long routeId) {
         return success(routeService.getRouteOpPage(pageReqVO, routeId));
     }
 
@@ -168,7 +168,7 @@ public class RouteController {
 	@Operation(summary = "获得工艺路线工序")
 	@Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('mdm:route:query')")
-	public CommonResult<RouteOpDO> getRouteOp(@RequestParam("id") Long id) {
+	public CommonResult<RouteOpRespVO> getRouteOp(@RequestParam("id") Long id) {
 	    return success(routeService.getRouteOp(id));
 	}
 
