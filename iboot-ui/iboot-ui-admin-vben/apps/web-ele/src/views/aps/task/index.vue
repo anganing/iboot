@@ -2,92 +2,55 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsTaskApi } from '#/api/aps/task';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page, useVbenModal } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteTask,
-  deleteTaskList,
-  exportTask,
-  getTaskPage,
-} from '#/api/aps/task';
-import TaskImport from './modules/import-form.vue';
+import { exportTask, getTaskPage, lockTask, unlockTask } from '#/api/aps/task';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
+import AdjustForm from './modules/adjust-form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
+const [AdjustFormModal, adjustFormModalApi] = useVbenModal({
+  connectedComponent: AdjustForm,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: TaskImport,
-  destroyOnClose: true,
-});
-
-/** 导入排程任务 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建排程任务 */
-function handleCreate() {
-  formModalApi.setData(null).open();
+/** 调整排程任务 */
+function handleAdjust(row: ApsTaskApi.Task) {
+  adjustFormModalApi.setData(row).open();
 }
 
-/** 编辑排程任务 */
-function handleEdit(row: ApsTaskApi.Task) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除排程任务 */
-async function handleDelete(row: ApsTaskApi.Task) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
-  });
+/** 锁定排程任务 */
+async function handleLock(row: ApsTaskApi.Task) {
+  const loadingInstance = ElLoading.service({ text: '正在锁定任务...' });
   try {
-    await deleteTask(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    await lockTask(row.id!, '人工锁定');
+    ElMessage.success('排程任务已锁定');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除排程任务 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
+/** 解锁排程任务 */
+async function handleUnlock(row: ApsTaskApi.Task) {
+  const loadingInstance = ElLoading.service({ text: '正在解锁任务...' });
   try {
-    await deleteTaskList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    await unlockTask(row.id!, '人工解锁');
+    ElMessage.success('排程任务已解锁');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: ApsTaskApi.Task[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -95,7 +58,6 @@ async function handleExport() {
   const data = await exportTask(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '排程任务.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -125,48 +87,22 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<ApsTaskApi.Task>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
+    <AdjustFormModal @success="handleRefresh" />
     <Grid table-title="排程任务列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['排程任务']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['aps:task:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['aps:task:import'],
-              onClick: handleImport,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['aps:task:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:task:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,22 +111,34 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '调整',
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['aps:task:update'],
-              onClick: handleEdit.bind(null, row),
+              disabled: row.lockedFlag || row.status === 'STARTED',
+              onClick: handleAdjust.bind(null, row),
             },
             {
-              label: $t('common.delete'),
-              type: 'danger',
+              label: '锁定',
+              type: 'warning',
               link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:task:delete'],
+              auth: ['aps:task:update'],
+              disabled: row.lockedFlag,
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
+                title: `锁定后重排不再移动任务【${row.taskNo}】，确认锁定吗？`,
+                confirm: handleLock.bind(null, row),
+              },
+            },
+            {
+              label: '解锁',
+              type: 'primary',
+              link: true,
+              auth: ['aps:task:update'],
+              disabled: !row.lockedFlag || row.status === 'STARTED',
+              popConfirm: {
+                title: `解锁后重排可能移动任务【${row.taskNo}】，确认解锁吗？`,
+                confirm: handleUnlock.bind(null, row),
               },
             },
           ]"
@@ -198,4 +146,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

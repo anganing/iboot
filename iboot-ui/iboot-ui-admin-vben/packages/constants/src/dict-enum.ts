@@ -417,9 +417,30 @@ const WMS_DICT = {
   WMS_ZONE_TYPE: 'wms_zone_type', // WMS 库区类型
 } as const;
 
+/** ========== APS - 高级计划排程模块 ========== */
+const APS_DICT = {
+  APS_PROJECTION_SOURCE_TYPE: 'aps_projection_source_type', // APS 工单投影来源类型
+  APS_SCENARIO_STATUS: 'aps_scenario_status', // APS 排程场景状态
+  APS_SHORTAGE_STATUS: 'aps_shortage_status', // APS 缺料状态
+  APS_SNAPSHOT_TYPE: 'aps_snapshot_type', // APS 求解快照类型
+  APS_STRATEGY_STATUS: 'aps_strategy_status', // APS 排程策略状态
+  APS_TASK_DEP_TYPE: 'aps_task_dep_type', // APS 任务依赖类型
+  APS_TASK_LOCK_STATUS: 'aps_task_lock_status', // APS 任务锁定状态
+  APS_TASK_LOCK_TYPE: 'aps_task_lock_type', // APS 任务锁定类型
+  APS_TASK_STATUS: 'aps_task_status', // APS 排程任务状态
+  APS_VERSION_STATUS: 'aps_version_status', // APS 排程版本状态
+} as const;
+
+/** ========== MDM - 主数据模块 ========== */
+const MDM_DICT = {
+  MDM_MAT_TYPE: 'mdm_mat_type', // MDM 物料类型
+  MDM_RES_TYPE: 'mdm_res_type', // MDM 资源类型
+} as const;
+
 /** 字典类型枚举 - 统一导出 */
 const DICT_TYPE = {
   ...AI_DICT,
+  ...APS_DICT,
   ...BPM_DICT,
   ...CRM_DICT,
   ...ERP_DICT,
@@ -428,6 +449,7 @@ const DICT_TYPE = {
   ...IM_DICT,
   ...IOT_DICT,
   ...HRM_DICT,
+  ...MDM_DICT,
   ...MES_DICT,
   ...WMS_DICT,
   ...MEMBER_DICT,

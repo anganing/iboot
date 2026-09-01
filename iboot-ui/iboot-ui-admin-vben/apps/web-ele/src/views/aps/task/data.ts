@@ -2,12 +2,24 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsTaskApi } from '#/api/aps/task';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  PLANT_RELATION_PROPS,
+  PROJECT_RELATION_PROPS,
+  RES_RELATION_PROPS,
+  WORKSHOP_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
+import { APS_VERSION_RELATION_PROPS } from '../relation-config';
+
+/** 人工调整的表单：只允许改资源、计划时间与执行顺序 */
+export function useAdjustFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'id',
@@ -18,139 +30,40 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'versionId',
-      label: '排程版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入排程版本',
-      },
-    },
-    {
       fieldName: 'taskNo',
-      label: '任务号',
-      rules: 'required',
+      label: '任务编号',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入任务号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单',
-      },
-    },
-    {
-      fieldName: 'prodOrderNo',
-      label: '生产工单号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入生产工单号',
-      },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入作业工单',
-      },
-    },
-    {
-      fieldName: 'opTaskId',
-      label: '工序任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序任务',
-      },
-    },
-    {
-      fieldName: 'routeOpId',
-      label: '路线工序',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入路线工序',
-      },
-    },
-    {
-      fieldName: 'opCode',
-      label: '工序编码',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工序编码',
+        disabled: true,
       },
     },
     {
       fieldName: 'opName',
-      label: '工序名称',
-      rules: 'required',
+      label: '工序',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入工序名称',
-      },
-    },
-    {
-      fieldName: 'plantId',
-      label: '工厂',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂',
-      },
-    },
-    {
-      fieldName: 'workshopId',
-      label: '车间',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入车间',
-      },
-    },
-    {
-      fieldName: 'projectId',
-      label: '项目',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入项目任务',
+        disabled: true,
       },
     },
     {
       fieldName: 'resId',
-      label: '排定生产资源',
+      label: '生产资源',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入排定生产资源',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
-      fieldName: 'resCode',
-      label: '资源编码',
+      fieldName: 'sequenceNo',
+      label: '执行顺序号',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入资源编码',
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 1,
+        precision: 0,
       },
+      defaultValue: 1,
     },
     {
       fieldName: 'startTime',
@@ -158,10 +71,11 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
         class: '!w-full',
+        format: 'YYYY-MM-DD HH:mm:ss',
+        showTime: true,
+        type: 'datetime',
+        valueFormat: 'YYYY-MM-DD HH:mm:ss',
       },
     },
     {
@@ -170,72 +84,23 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
         class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'durationMinutes',
-      label: '占用(分钟)',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入占用(分钟)',
-      },
-    },
-    {
-      fieldName: 'sequenceNo',
-      label: '执行顺序',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入执行顺序',
-      },
-    },
-    {
-      fieldName: 'lockedFlag',
-      label: '是否锁定',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        format: 'YYYY-MM-DD HH:mm:ss',
+        showTime: true,
+        type: 'datetime',
+        valueFormat: 'YYYY-MM-DD HH:mm:ss',
       },
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
-        placeholder: '请输入备注',
+        maxLength: 500,
+        placeholder: '请输入调整原因',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '排程任务数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
+      formItemClass: 'col-span-2',
     },
   ];
 }
@@ -246,28 +111,16 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'versionId',
       label: '排程版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入排程版本',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_VERSION_RELATION_PROPS,
     },
     {
       fieldName: 'taskNo',
-      label: '任务号',
+      label: '任务编号',
       component: 'Input',
       componentProps: {
         clearable: true,
-        placeholder: '请输入任务号',
-      },
-    },
-    {
-      fieldName: 'prodOrderId',
-      label: '生产工单',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入生产工单',
+        placeholder: '请输入任务编号',
       },
     },
     {
@@ -280,33 +133,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'workOrderId',
-      label: '作业工单',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入作业工单',
-      },
-    },
-    {
-      fieldName: 'opTaskId',
-      label: '工序任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序任务',
-      },
-    },
-    {
-      fieldName: 'routeOpId',
-      label: '路线工序',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入路线工序',
-      },
-    },
-    {
       fieldName: 'opCode',
       label: '工序编码',
       component: 'Input',
@@ -316,102 +142,37 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'opName',
-      label: '工序名称',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工序名称',
-      },
-    },
-    {
       fieldName: 'plantId',
       label: '工厂',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工厂',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'workshopId',
       label: '车间',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入车间',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'projectId',
       label: '项目',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目',
-      },
-    },
-    {
-      fieldName: 'projectTaskId',
-      label: '项目任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入项目任务',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PROJECT_RELATION_PROPS,
     },
     {
       fieldName: 'resId',
-      label: '排定生产资源',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入排定生产资源',
-      },
+      label: '生产资源',
+      component: markRaw(RelationSelect),
+      componentProps: RES_RELATION_PROPS,
     },
     {
-      fieldName: 'resCode',
-      label: '资源编码',
-      component: 'Input',
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入资源编码',
-      },
-    },
-    {
-      fieldName: 'startTime',
-      label: '计划开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'endTime',
-      label: '计划结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'durationMinutes',
-      label: '占用(分钟)',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入占用(分钟)',
-      },
-    },
-    {
-      fieldName: 'sequenceNo',
-      label: '执行顺序',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入执行顺序',
+        options: getDictOptions(DICT_TYPE.APS_TASK_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -420,32 +181,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择是否锁定',
       },
     },
     {
-      fieldName: 'status',
-      label: '状态',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
-      },
-    },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
+      fieldName: 'startTime',
+      label: '计划开始时间',
       component: 'RangePicker',
       componentProps: {
         ...getRangePickerDefaultProps(),
@@ -458,126 +200,51 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<ApsTaskApi.Task>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'taskNo',
-      title: '任务号',
-      minWidth: 120,
-    },
-    {
-      field: 'prodOrderId',
-      title: '生产工单',
-      minWidth: 120,
-    },
-    {
-      field: 'prodOrderNo',
-      title: '生产工单号',
-      minWidth: 120,
-    },
-    {
-      field: 'workOrderId',
-      title: '作业工单',
-      minWidth: 120,
-    },
-    {
-      field: 'opTaskId',
-      title: '工序任务',
-      minWidth: 120,
-    },
-    {
-      field: 'routeOpId',
-      title: '路线工序',
-      minWidth: 120,
-    },
-    {
-      field: 'opCode',
-      title: '工序编码',
-      minWidth: 120,
-    },
-    {
-      field: 'opName',
-      title: '工序名称',
-      minWidth: 120,
-    },
-    {
-      field: 'plantId',
-      title: '工厂',
-      minWidth: 120,
-    },
-    {
-      field: 'workshopId',
-      title: '车间',
-      minWidth: 120,
-    },
-    {
-      field: 'projectId',
-      title: '项目',
-      minWidth: 120,
-    },
-    {
-      field: 'projectTaskId',
-      title: '项目任务',
-      minWidth: 120,
-    },
-    {
-      field: 'resId',
-      title: '排定生产资源',
-      minWidth: 120,
-    },
-    {
-      field: 'resCode',
-      title: '资源编码',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'taskNo', title: '任务编号', minWidth: 160 },
+    { field: 'scenarioCode', title: '场景编码', minWidth: 140 },
+    { field: 'versionNo', title: '版本号', minWidth: 90 },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 150 },
+    { field: 'opCode', title: '工序编码', minWidth: 110 },
+    { field: 'opName', title: '工序名称', minWidth: 130 },
+    { field: 'resCode', title: '资源编码', minWidth: 110 },
+    { field: 'resName', title: '资源名称', minWidth: 130 },
+    { field: 'plantName', title: '工厂', minWidth: 120 },
+    { field: 'workshopName', title: '车间', minWidth: 120 },
+    { field: 'projectName', title: '项目', minWidth: 130 },
     {
       field: 'startTime',
       title: '计划开始时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'endTime',
       title: '计划结束时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'durationMinutes',
-      title: '占用(分钟)',
-      minWidth: 120,
-    },
-    {
-      field: 'sequenceNo',
-      title: '执行顺序',
-      minWidth: 120,
-    },
+    { field: 'durationMinutes', title: '占用分钟', minWidth: 100 },
+    { field: 'sequenceNo', title: '顺序号', minWidth: 90 },
     {
       field: 'lockedFlag',
       title: '是否锁定',
-      minWidth: 120,
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.INFRA_BOOLEAN_STRING },
+      },
     },
     {
       field: 'status',
       title: '状态',
-      minWidth: 120,
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.APS_TASK_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
-    {
-      field: 'createTime',
-      title: '创建时间',
-      minWidth: 120,
-      formatter: 'formatDateTime',
-    },
-    {
-      field: 'versionVersion_no',
-      title: '排程版本号',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       title: '操作',
       width: 200,

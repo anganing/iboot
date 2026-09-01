@@ -2,9 +2,19 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsScenarioApi } from '#/api/aps/scenario';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import {
+  PLANT_RELATION_PROPS,
+  WORKSHOP_RELATION_PROPS,
+} from '#/views/mdm/relation-config';
+
+import { APS_STRATEGY_RELATION_PROPS } from '../relation-config';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -20,10 +30,10 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'code',
       label: '场景编码',
-      rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入场景编码',
+        maxLength: 64,
+        placeholder: '留空由编码规则分配',
       },
     },
     {
@@ -32,6 +42,7 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
+        maxLength: 128,
         placeholder: '请输入场景名称',
       },
     },
@@ -39,28 +50,26 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'plantId',
       label: '工厂',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入工厂',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'workshopId',
       label: '车间',
       rules: 'required',
-      component: 'Input',
+      component: markRaw(RelationSelect),
       componentProps: {
-        placeholder: '请输入车间',
+        ...WORKSHOP_RELATION_PROPS,
+        placeholder: '留空表示全工厂',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'strategyId',
       label: '排程策略',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入排程策略',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_STRATEGY_RELATION_PROPS,
     },
     {
       fieldName: 'planStartTime',
@@ -68,10 +77,11 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
         class: '!w-full',
+        format: 'YYYY-MM-DD HH:mm:ss',
+        showTime: true,
+        type: 'datetime',
+        valueFormat: 'YYYY-MM-DD HH:mm:ss',
       },
     },
     {
@@ -80,54 +90,33 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'DatePicker',
       componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
         class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'snapshotTime',
-      label: '快照时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
         format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
+        showTime: true,
+        type: 'datetime',
+        valueFormat: 'YYYY-MM-DD HH:mm:ss',
       },
     },
     {
       fieldName: 'status',
       label: '状态',
       rules: 'required',
-      component: 'RadioGroup',
+      component: 'Select',
       componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
+        options: getDictOptions(DICT_TYPE.APS_SCENARIO_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
+      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '排程场景数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -156,28 +145,29 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'plantId',
       label: '工厂',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入工厂',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: PLANT_RELATION_PROPS,
     },
     {
       fieldName: 'workshopId',
       label: '车间',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入车间',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: WORKSHOP_RELATION_PROPS,
     },
     {
       fieldName: 'strategyId',
       label: '排程策略',
-      component: 'Input',
+      component: markRaw(RelationSelect),
+      componentProps: APS_STRATEGY_RELATION_PROPS,
+    },
+    {
+      fieldName: 'status',
+      label: '状态',
+      component: 'Select',
       componentProps: {
         clearable: true,
-        placeholder: '请输入排程策略',
+        options: getDictOptions(DICT_TYPE.APS_SCENARIO_STATUS, 'string'),
+        placeholder: '请选择状态',
       },
     },
     {
@@ -187,43 +177,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...getRangePickerDefaultProps(),
         clearable: true,
-      },
-    },
-    {
-      fieldName: 'planEndTime',
-      label: '计划结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'snapshotTime',
-      label: '快照时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      component: 'Select',
-      componentProps: {
-        clearable: true,
-        options: [],
-        placeholder: '请选择状态',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
       },
     },
     {
@@ -241,70 +194,56 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<ApsScenarioApi.Scenario>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'code', title: '场景编码', minWidth: 150 },
+    { field: 'name', title: '场景名称', minWidth: 160 },
+    { field: 'plantName', title: '工厂', minWidth: 130 },
     {
-      field: 'code',
-      title: '场景编码',
-      minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '场景名称',
-      minWidth: 120,
-    },
-    {
-      field: 'plantId',
-      title: '工厂',
-      minWidth: 120,
-    },
-    {
-      field: 'workshopId',
+      field: 'workshopName',
       title: '车间',
-      minWidth: 120,
+      minWidth: 130,
+      formatter: ({ row }) => row.workshopName || '全工厂',
     },
-    {
-      field: 'strategyId',
-      title: '排程策略',
-      minWidth: 120,
-    },
+    { field: 'strategyCode', title: '策略编码', minWidth: 140 },
+    { field: 'strategyName', title: '策略名称', minWidth: 150 },
     {
       field: 'planStartTime',
       title: '计划开始时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'planEndTime',
       title: '计划结束时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'snapshotTime',
-      title: '快照时间',
-      minWidth: 120,
+      title: '输入快照时间',
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'status',
       title: '状态',
-      minWidth: 120,
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.APS_SCENARIO_STATUS },
+      },
     },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
-      width: 200,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

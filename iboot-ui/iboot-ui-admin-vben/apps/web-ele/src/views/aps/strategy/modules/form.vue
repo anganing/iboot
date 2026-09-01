@@ -8,8 +8,13 @@ import { useVbenModal } from '@vben/common-ui';
 import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
-import { createStrategy, getStrategy, updateStrategy } from '#/api/aps/strategy';
+import {
+  createStrategy,
+  getStrategy,
+  updateStrategy,
+} from '#/api/aps/strategy';
 import { $t } from '#/locales';
+import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
 import { useFormSchema } from '../data';
 
@@ -21,14 +26,18 @@ const getTitle = computed(() => {
     : $t('ui.actionTitle.create', ['排程策略']);
 });
 
+const formLayout = getMdmFormLayout(2);
+
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: {
       class: 'w-full',
     },
-    formItemClass: 'col-span-2',
-    labelWidth: 80,
+    formItemClass: formLayout.formItemClass,
+    labelClass: 'justify-start',
+    labelWidth: 110,
   },
+  wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
   schema: useFormSchema(),
   showDefaultActions: false,
@@ -58,6 +67,7 @@ const [Modal, modalApi] = useVbenModal({
       formData.value = undefined;
       return;
     }
+    await formApi.resetForm();
     // 加载数据
     const data = modalApi.getData<ApsStrategyApi.Strategy>();
     if (!data || !data.id) {
@@ -65,8 +75,8 @@ const [Modal, modalApi] = useVbenModal({
     }
     modalApi.lock();
     try {
+      // 列表行不含约束配置，编辑必须用 get 拿完整数据
       formData.value = await getStrategy(data.id);
-      // 设置到 values
       await formApi.setValues(formData.value);
     } finally {
       modalApi.unlock();
@@ -76,7 +86,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle">
+  <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
-</template>
+</template>

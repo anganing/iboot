@@ -2,11 +2,24 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsTaskDepApi } from '#/api/aps/taskdep';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
-/** 新增/修改的表单 */
+import {
+  APS_TASK_RELATION_PROPS,
+  APS_VERSION_RELATION_PROPS,
+} from '../relation-config';
+
+/**
+ * 新增/修改的表单。
+ *
+ * <p>版本编号不出现在表单里：依赖必须落在前置任务所属版本上，由后端从任务反推。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -18,31 +31,18 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'versionId',
-      label: '排程版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入排程版本',
-      },
-    },
-    {
       fieldName: 'fromTaskId',
-      label: '前置排程任务',
+      label: '前置任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入前置排程任务',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'toTaskId',
-      label: '后置排程任务',
+      label: '后置任务',
       rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入后置排程任务',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'depType',
@@ -50,39 +50,35 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Select',
       componentProps: {
-        options: [],
+        options: getDictOptions(DICT_TYPE.APS_TASK_DEP_TYPE, 'string'),
         placeholder: '请选择依赖类型',
       },
+      defaultValue: 'FINISH_START',
     },
     {
       fieldName: 'lagMinutes',
-      label: '间隔(分钟)',
+      label: '间隔分钟数',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入间隔(分钟)',
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 0,
+        precision: 0,
+        placeholder: '例如冷却等待 30 分钟',
       },
+      defaultValue: 0,
     },
     {
       fieldName: 'remark',
       label: '备注',
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
+        maxLength: 500,
         placeholder: '请输入备注',
+        rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '任务依赖数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
+      formItemClass: 'col-span-2',
     },
   ];
 }
@@ -93,29 +89,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'versionId',
       label: '排程版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入排程版本',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_VERSION_RELATION_PROPS,
     },
     {
       fieldName: 'fromTaskId',
-      label: '前置排程任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入前置排程任务',
-      },
+      label: '前置任务',
+      component: markRaw(RelationSelect),
+      componentProps: APS_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'toTaskId',
-      label: '后置排程任务',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入后置排程任务',
-      },
+      label: '后置任务',
+      component: markRaw(RelationSelect),
+      componentProps: APS_TASK_RELATION_PROPS,
     },
     {
       fieldName: 'depType',
@@ -123,26 +110,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.APS_TASK_DEP_TYPE, 'string'),
         placeholder: '请选择依赖类型',
-      },
-    },
-    {
-      fieldName: 'lagMinutes',
-      label: '间隔(分钟)',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入间隔(分钟)',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
       },
     },
     {
@@ -160,47 +129,35 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<ApsTaskDepApi.TaskDep>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'fromTaskId',
-      title: '前置排程任务',
-      minWidth: 120,
-    },
-    {
-      field: 'toTaskId',
-      title: '后置排程任务',
-      minWidth: 120,
-    },
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'versionNo', title: '版本号', minWidth: 90 },
+    { field: 'fromTaskNo', title: '前置任务编号', minWidth: 160 },
+    { field: 'fromOpCode', title: '前置工序编码', minWidth: 130 },
+    { field: 'fromOpName', title: '前置工序', minWidth: 130 },
+    { field: 'toTaskNo', title: '后置任务编号', minWidth: 160 },
+    { field: 'toOpCode', title: '后置工序编码', minWidth: 130 },
+    { field: 'toOpName', title: '后置工序', minWidth: 130 },
     {
       field: 'depType',
       title: '依赖类型',
-      minWidth: 120,
+      minWidth: 130,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.APS_TASK_DEP_TYPE },
+      },
     },
-    {
-      field: 'lagMinutes',
-      title: '间隔(分钟)',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'lagMinutes', title: '间隔分钟', minWidth: 100 },
+    { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'versionVersion_no',
-      title: '排程版本号',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

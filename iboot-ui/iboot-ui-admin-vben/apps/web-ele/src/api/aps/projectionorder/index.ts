@@ -8,6 +8,8 @@ export namespace ApsProjectionOrderApi {
   export interface ProjectionOrder {
     id: number; // 主键
     scenarioId?: number; // 排程场景编号
+    scenarioCode?: string; // 排程场景编码
+    scenarioName?: string; // 排程场景名称
     sourceType?: string; // 来源类型：DEMAND、PROD_ORDER、OP_TASK
     sourceId?: number; // MES来源对象编号
     sourceNo?: string; // MES来源对象单号
@@ -20,8 +22,10 @@ export namespace ApsProjectionOrderApi {
     projectTaskId?: number; // 项目任务编号，0表示无项目任务
     matId?: number; // 生产物料编号
     matCode?: string; // 物料编码快照
+    matName?: string; // 物料名称
     routeOpId?: number; // 路线工序编号，0表示需求或整单
     resId?: number; // 当前资源编号，0表示未分配
+    resName?: string; // 当前资源名称
     qty?: number; // 计划数量或剩余数量
     completedQty?: number; // 已完成数量快照
     dueDate?: string | Dayjs; // 交期
@@ -32,7 +36,7 @@ export namespace ApsProjectionOrderApi {
     lockedFlag?: boolean; // 是否已开工或业务锁定
     sourceUpdateTime?: string | Dayjs; // 来源数据更新时间
     snapshotTime?: string | Dayjs; // 投影快照时间
-    remark: string; // 备注
+    remark?: string; // 备注
   }
 }
 
@@ -51,41 +55,9 @@ export function getProjectionOrder(id: number) {
   );
 }
 
-/** 新增APS-MES需求工单任务投影 */
-export function createProjectionOrder(data: ApsProjectionOrderApi.ProjectionOrder) {
-  return requestClient.post('/aps/projection-order/create', data);
-}
-
-/** 修改APS-MES需求工单任务投影 */
-export function updateProjectionOrder(data: ApsProjectionOrderApi.ProjectionOrder) {
-  return requestClient.put('/aps/projection-order/update', data);
-}
-
-/** 删除APS-MES需求工单任务投影 */
-export function deleteProjectionOrder(id: number) {
-  return requestClient.delete(`/aps/projection-order/delete?id=${id}`);
-}
-
-/** 批量删除APS-MES需求工单任务投影 */
-export function deleteProjectionOrderList(ids: number[]) {
-  return requestClient.delete(
-    `/aps/projection-order/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出APS-MES需求工单任务投影 */
 export function exportProjectionOrder(params: any) {
   return requestClient.download('/aps/projection-order/export-excel', { params });
 }
 
-/** 下载APS-MES需求工单任务投影导入模板 */
-export function importProjectionOrderTemplate() {
-  return requestClient.download('/aps/projection-order/get-import-template');
-}
 
-/** 导入APS-MES需求工单任务投影 */
-export function importProjectionOrder(file: File) {
-  return requestClient.upload('/aps/projection-order/import', { file });
-}
-
-

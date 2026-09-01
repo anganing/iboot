@@ -9,6 +9,7 @@ export namespace ApsShortageApi {
     id: number; // 主键
     versionId?: number; // 排程版本编号
     prodOrderId?: number; // 生产工单编号，0表示汇总缺料
+    prodOrderNo?: string; // 生产工单号
     opTaskId?: number; // 工序任务编号，0表示非工序级缺料
     projectId?: number; // 项目编号，0表示无项目
     projectTaskId?: number; // 项目任务编号，0表示无项目任务
@@ -21,9 +22,14 @@ export namespace ApsShortageApi {
     uomId?: number; // 计量单位编号
     uomCode?: string; // 计量单位编码快照
     needDate?: string | Dayjs; // 需求到位时间
-    expectedSupplyDate: string | Dayjs; // 预计供给时间
+    expectedSupplyDate?: string | Dayjs; // 预计供给时间
+    versionNo?: number; // 排程版本号
+    scenarioCode?: string; // 排程场景编码
+    scenarioName?: string; // 排程场景名称
+    projectName?: string; // 项目名称
+    projectTaskName?: string; // 项目任务名称
     status?: string; // 状态：OPEN、PARTIAL、RESOLVED、IGNORED
-    remark: string; // 备注
+    remark?: string; // 备注
   }
 }
 
@@ -42,26 +48,23 @@ export function getShortage(id: number) {
   );
 }
 
-/** 新增APS-排程缺料清单 */
-export function createShortage(data: ApsShortageApi.Shortage) {
-  return requestClient.post('/aps/shortage/create', data);
+/** 按排程版本刷新缺料清单 */
+export function refreshShortage(versionId: number) {
+  return requestClient.put(`/aps/shortage/refresh?versionId=${versionId}`);
 }
 
-/** 修改APS-排程缺料清单 */
-export function updateShortage(data: ApsShortageApi.Shortage) {
-  return requestClient.put('/aps/shortage/update', data);
+/** 处理缺料，补充预计供给时间 */
+export function handleShortage(data: {
+  id: number;
+  expectedSupplyDate?: string | Dayjs;
+  remark?: string;
+}) {
+  return requestClient.put('/aps/shortage/handle', data);
 }
 
-/** 删除APS-排程缺料清单 */
-export function deleteShortage(id: number) {
-  return requestClient.delete(`/aps/shortage/delete?id=${id}`);
-}
-
-/** 批量删除APS-排程缺料清单 */
-export function deleteShortageList(ids: number[]) {
-  return requestClient.delete(
-    `/aps/shortage/delete-list?ids=${ids.join(',')}`,
-  );
+/** 忽略缺料 */
+export function ignoreShortage(id: number) {
+  return requestClient.put(`/aps/shortage/ignore?id=${id}`);
 }
 
 /** 导出APS-排程缺料清单 */
@@ -69,14 +72,4 @@ export function exportShortage(params: any) {
   return requestClient.download('/aps/shortage/export-excel', { params });
 }
 
-/** 下载APS-排程缺料清单导入模板 */
-export function importShortageTemplate() {
-  return requestClient.download('/aps/shortage/get-import-template');
-}
 
-/** 导入APS-排程缺料清单 */
-export function importShortage(file: File) {
-  return requestClient.upload('/aps/shortage/import', { file });
-}
-
-

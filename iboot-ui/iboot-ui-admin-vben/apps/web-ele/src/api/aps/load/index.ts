@@ -8,6 +8,9 @@ export namespace ApsLoadApi {
   export interface Load {
     id: number; // 主键
     versionId?: number; // 排程版本编号
+    versionNo?: number; // 排程版本号
+    scenarioCode?: string; // 排程场景编码
+    scenarioName?: string; // 排程场景名称
     resId?: number; // 生产资源编号
     resCode?: string; // 资源编码快照
     resName?: string; // 资源名称快照
@@ -16,7 +19,7 @@ export namespace ApsLoadApi {
     capacityMinutes?: number; // 可用产能分钟数
     loadRate?: number; // 负荷率
     overloadMinutes?: number; // 超负荷分钟数
-    remark: string; // 备注
+    remark?: string; // 备注
   }
 }
 
@@ -35,26 +38,9 @@ export function getLoad(id: number) {
   );
 }
 
-/** 新增APS-资源负荷 */
-export function createLoad(data: ApsLoadApi.Load) {
-  return requestClient.post('/aps/load/create', data);
-}
-
-/** 修改APS-资源负荷 */
-export function updateLoad(data: ApsLoadApi.Load) {
-  return requestClient.put('/aps/load/update', data);
-}
-
-/** 删除APS-资源负荷 */
-export function deleteLoad(id: number) {
-  return requestClient.delete(`/aps/load/delete?id=${id}`);
-}
-
-/** 批量删除APS-资源负荷 */
-export function deleteLoadList(ids: number[]) {
-  return requestClient.delete(
-    `/aps/load/delete-list?ids=${ids.join(',')}`,
-  );
+/** 按排程版本重算资源负荷 */
+export function refreshLoad(versionId: number) {
+  return requestClient.put(`/aps/load/refresh?versionId=${versionId}`);
 }
 
 /** 导出APS-资源负荷 */
@@ -62,14 +48,4 @@ export function exportLoad(params: any) {
   return requestClient.download('/aps/load/export-excel', { params });
 }
 
-/** 下载APS-资源负荷导入模板 */
-export function importLoadTemplate() {
-  return requestClient.download('/aps/load/get-import-template');
-}
 
-/** 导入APS-资源负荷 */
-export function importLoad(file: File) {
-  return requestClient.upload('/aps/load/import', { file });
-}
-
-

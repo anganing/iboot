@@ -2,155 +2,16 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsVersionApi } from '#/api/aps/version';
 
+import { markRaw } from 'vue';
+
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
+import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'scenarioId',
-      label: '排程场景',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入排程场景',
-      },
-    },
-    {
-      fieldName: 'versionNo',
-      label: '版本号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入版本号',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'RadioGroup',
-      componentProps: {
-        options: [],
-        buttonStyle: 'solid',
-        optionType: 'button',
-      },
-    },
-    {
-      fieldName: 'score',
-      label: '综合得分',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入综合得分',
-      },
-    },
-    {
-      fieldName: 'hardScore',
-      label: '硬约束得分',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入硬约束得分',
-      },
-    },
-    {
-      fieldName: 'softScore',
-      label: '软约束得分',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入软约束得分',
-      },
-    },
-    {
-      fieldName: 'solveStartTime',
-      label: '求解开始时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'solveEndTime',
-      label: '求解结束时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'publishedTime',
-      label: '发布时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-        class: '!w-full',
-      },
-    },
-    {
-      fieldName: 'publishedBy',
-      label: '发布人员',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入发布人员',
-      },
-    },
-    {
-      fieldName: 'solverMessage',
-      label: '求解信息',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入求解信息',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入备注',
-      },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '排程版本数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
-    },
-  ];
-}
+import { APS_SCENARIO_RELATION_PROPS } from '../relation-config';
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -158,18 +19,18 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'scenarioId',
       label: '排程场景',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入排程场景',
-      },
+      component: markRaw(RelationSelect),
+      componentProps: APS_SCENARIO_RELATION_PROPS,
     },
     {
       fieldName: 'versionNo',
       label: '版本号',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        clearable: true,
+        class: '!w-full',
+        controlsPosition: 'right',
+        min: 1,
+        precision: 0,
         placeholder: '请输入版本号',
       },
     },
@@ -179,54 +40,15 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         clearable: true,
-        options: [],
+        options: getDictOptions(DICT_TYPE.APS_VERSION_STATUS, 'string'),
         placeholder: '请选择状态',
       },
     },
     {
-      fieldName: 'score',
-      label: '综合得分',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入综合得分',
-      },
-    },
-    {
-      fieldName: 'hardScore',
-      label: '硬约束得分',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入硬约束得分',
-      },
-    },
-    {
-      fieldName: 'softScore',
-      label: '软约束得分',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入软约束得分',
-      },
-    },
-    {
-      fieldName: 'solveStartTime',
-      label: '求解开始时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
-    },
-    {
-      fieldName: 'solveEndTime',
-      label: '求解结束时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        clearable: true,
-      },
+      fieldName: 'publishedBy',
+      label: '发布人',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
     },
     {
       fieldName: 'publishedTime',
@@ -235,42 +57,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...getRangePickerDefaultProps(),
         clearable: true,
-      },
-    },
-    {
-      fieldName: 'publishedBy',
-      label: '发布人员',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入发布人员',
-      },
-    },
-    {
-      fieldName: 'solverMessage',
-      label: '求解信息',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入求解信息',
-      },
-    },
-    {
-      fieldName: 'version',
-      label: '乐观锁版本',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入乐观锁版本',
-      },
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Input',
-      componentProps: {
-        clearable: true,
-        placeholder: '请输入备注',
       },
     },
     {
@@ -288,90 +74,51 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
-  { type: 'seq', title: '序号', width: 60 },
-    {
-      field: 'versionNo',
-      title: '版本号',
-      minWidth: 120,
-    },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'scenarioCode', title: '场景编码', minWidth: 150 },
+    { field: 'scenarioName', title: '场景名称', minWidth: 160 },
+    { field: 'versionNo', title: '版本号', minWidth: 90 },
     {
       field: 'status',
       title: '状态',
-      minWidth: 120,
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.APS_VERSION_STATUS },
+      },
     },
-    {
-      field: 'score',
-      title: '综合得分',
-      minWidth: 120,
-    },
-    {
-      field: 'hardScore',
-      title: '硬约束得分',
-      minWidth: 120,
-    },
-    {
-      field: 'softScore',
-      title: '软约束得分',
-      minWidth: 120,
-    },
+    { field: 'score', title: '综合得分', minWidth: 140 },
+    { field: 'hardScore', title: '硬约束得分', minWidth: 120 },
+    { field: 'softScore', title: '软约束得分', minWidth: 120 },
     {
       field: 'solveStartTime',
       title: '求解开始时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'solveEndTime',
       title: '求解结束时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
       field: 'publishedTime',
       title: '发布时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      field: 'publishedBy',
-      title: '发布人员',
-      minWidth: 120,
-    },
-    {
-      field: 'solverMessage',
-      title: '求解信息',
-      minWidth: 120,
-    },
-    {
-      field: 'version',
-      title: '乐观锁版本',
-      minWidth: 120,
-    },
-    {
-      field: 'remark',
-      title: '备注',
-      minWidth: 120,
-    },
+    { field: 'publishedByName', title: '发布人', minWidth: 120 },
+    { field: 'solverMessage', title: '求解信息', minWidth: 200 },
     {
       field: 'createTime',
       title: '创建时间',
-      minWidth: 120,
+      minWidth: 160,
       formatter: 'formatDateTime',
     },
     {
-      field: 'scenarioCode',
-      title: '排程场景编码',
-      minWidth: 120,
-    },
-    {
-      field: 'scenarioName',
-      title: '排程场景名称',
-      minWidth: 120,
-    },
-    {
       title: '操作',
-      width: 200,
+      width: 180,
       fixed: 'right',
       slots: { default: 'actions' },
     },

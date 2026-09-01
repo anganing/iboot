@@ -2,200 +2,119 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsShortageApi } from '#/api/aps/shortage';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
+import { Page, useVbenModal } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteShortage,
-  deleteShortageList,
   exportShortage,
   getShortagePage,
+  ignoreShortage,
+  refreshShortage,
 } from '#/api/aps/shortage';
-import ShortageImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
+import HandleForm from './modules/handle-form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: ShortageImport,
+const [HandleFormModal, handleFormModalApi] = useVbenModal({
+  connectedComponent: HandleForm,
   destroyOnClose: true,
 });
 
-/** 导入缺料清单 */
-function handleImport() {
-  importFormModalApi.open();
-}
-
-/** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建缺料清单 */
-function handleCreate() {
-  formModalApi.setData(null).open();
+function handleHandle(row: ApsShortageApi.Shortage) {
+  handleFormModalApi.setData(row).open();
 }
 
-/** 编辑缺料清单 */
-function handleEdit(row: ApsShortageApi.Shortage) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除缺料清单 */
-async function handleDelete(row: ApsShortageApi.Shortage) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
-  });
+async function handleIgnore(row: ApsShortageApi.Shortage) {
+  const loading = ElLoading.service({ text: '正在忽略缺料...' });
   try {
-    await deleteShortage(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    await ignoreShortage(row.id!);
+    ElMessage.success('缺料已忽略');
     handleRefresh();
   } finally {
-    loadingInstance.close();
+    loading.close();
   }
 }
 
-/** 批量删除缺料清单 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
+async function handleRefreshShortage(row: ApsShortageApi.Shortage) {
+  const loading = ElLoading.service({ text: '正在按库存投影重算缺料...' });
   try {
-    await deleteShortageList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    await refreshShortage(row.versionId!);
+    ElMessage.success('缺料清单已刷新');
     handleRefresh();
   } finally {
-    loadingInstance.close();
+    loading.close();
   }
 }
 
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: ApsShortageApi.Shortage[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
-}
-
-/** 导出表格 */
 async function handleExport() {
   const data = await exportShortage(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: '缺料清单.xls', source: data });
+  downloadFileFromBlobPart({ fileName: '排程缺料清单.xls', source: data });
 }
 
-
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: {
-    schema: useGridFormSchema(),
-  },
+  formOptions: { schema: useGridFormSchema() },
   gridOptions: {
     columns: useGridColumns(),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues) => {
-          return await getShortagePage({
-            pageNo: page.currentPage,
-            pageSize: page.pageSize,
-            ...formValues,
-          });
-        },
+        query: async ({ page }, formValues) => getShortagePage({
+          pageNo: page.currentPage,
+          pageSize: page.pageSize,
+          ...formValues,
+        }),
       },
     },
-    rowConfig: {
-      keyField: 'id',
-      isHover: true,
-    },
-    toolbarConfig: {
-      refresh: true,
-      search: true,
-    },
+    rowConfig: { keyField: 'id', isHover: true },
+    toolbarConfig: { refresh: true, search: true },
   } as VxeTableGridOptions<ApsShortageApi.Shortage>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="缺料清单列表">
+    <HandleFormModal @success="handleRefresh" />
+    <Grid table-title="排程缺料清单">
       <template #toolbar-tools>
-        <TableAction
-          :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['缺料清单']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['aps:shortage:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['aps:shortage:import'],
-              onClick: handleImport,
-            },
-            {
-              label: $t('ui.actionTitle.export'),
-              type: 'primary',
-              icon: ACTION_ICON.DOWNLOAD,
-              auth: ['aps:shortage:export'],
-              onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:shortage:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
-          ]"
-        />
+        <TableAction :actions="[
+          {
+            label: $t('ui.actionTitle.export'), type: 'primary', icon: ACTION_ICON.DOWNLOAD,
+            auth: ['aps:shortage:export'], onClick: handleExport,
+          },
+        ]" />
       </template>
       <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['aps:shortage:update'],
-              onClick: handleEdit.bind(null, row),
+        <TableAction :actions="[
+          {
+            label: '刷新', type: 'primary', link: true, icon: ACTION_ICON.REFRESH,
+            auth: ['aps:shortage:update'],
+            popConfirm: {
+              title: `按最新库存投影重算版本 ${row.versionNo} 的缺料清单吗？`,
+              confirm: handleRefreshShortage.bind(null, row),
             },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:shortage:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
-              },
+          },
+          {
+            label: '处理', type: 'primary', link: true, icon: ACTION_ICON.EDIT,
+            auth: ['aps:shortage:update'], onClick: handleHandle.bind(null, row),
+          },
+          {
+            label: '忽略', type: 'warning', link: true,
+            auth: ['aps:shortage:update'], disabled: row.status === 'IGNORED',
+            popConfirm: {
+              title: `忽略物料【${row.matCode}】的短缺提示吗？`,
+              confirm: handleIgnore.bind(null, row),
             },
-          ]"
-        />
+          },
+        ]" />
       </template>
     </Grid>
   </Page>
-</template>
+</template>

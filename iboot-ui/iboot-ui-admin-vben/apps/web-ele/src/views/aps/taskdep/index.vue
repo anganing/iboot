@@ -16,7 +16,6 @@ import {
   exportTaskDep,
   getTaskDepPage,
 } from '#/api/aps/taskdep';
-import TaskDepImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -26,15 +25,6 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: TaskDepImport,
-  destroyOnClose: true,
-});
-
-/** 导入任务依赖 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
@@ -54,11 +44,11 @@ function handleEdit(row: ApsTaskDepApi.TaskDep) {
 /** 删除任务依赖 */
 async function handleDelete(row: ApsTaskDepApi.TaskDep) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [row.fromTaskNo]),
   });
   try {
     await deleteTaskDep(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.fromTaskNo]));
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -67,7 +57,7 @@ async function handleDelete(row: ApsTaskDepApi.TaskDep) {
 
 /** 批量删除任务依赖 */
 async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
+  await confirm('已发布版本的依赖不允许删除，确认删除选中的依赖吗？');
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deletingBatch'),
   });
@@ -95,7 +85,6 @@ async function handleExport() {
   const data = await exportTaskDep(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '任务依赖.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -135,7 +124,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="任务依赖列表">
       <template #toolbar-tools>
         <TableAction
@@ -146,12 +134,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.ADD,
               auth: ['aps:task-dep:create'],
               onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['aps:task-dep:import'],
-              onClick: handleImport,
             },
             {
               label: $t('ui.actionTitle.export'),
@@ -189,7 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['aps:task-dep:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: `确认删除【${row.fromTaskNo} → ${row.toTaskNo}】的依赖吗？`,
                 confirm: handleDelete.bind(null, row),
               },
             },
@@ -198,4 +180,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

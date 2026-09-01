@@ -2,92 +2,49 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsVersionApi } from '#/api/aps/version';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteVersion,
-  deleteVersionList,
+  confirmVersion,
   exportVersion,
   getVersionPage,
+  publishVersion,
 } from '#/api/aps/version';
-import VersionImport from './modules/import-form.vue';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: VersionImport,
-  destroyOnClose: true,
-});
-
-/** 导入排程版本 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建排程版本 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑排程版本 */
-function handleEdit(row: ApsVersionApi.Version) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除排程版本 */
-async function handleDelete(row: ApsVersionApi.Version) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
-  });
+/** 确认排程版本 */
+async function handleConfirm(row: ApsVersionApi.Version) {
+  const loadingInstance = ElLoading.service({ text: '正在确认版本...' });
   try {
-    await deleteVersion(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    await confirmVersion(row.id!);
+    ElMessage.success('排程版本已确认');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除排程版本 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
+/** 发布排程版本 */
+async function handlePublish(row: ApsVersionApi.Version) {
+  const loadingInstance = ElLoading.service({ text: '正在发布版本...' });
   try {
-    await deleteVersionList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    await publishVersion(row.id!);
+    ElMessage.success('排程版本已发布');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: ApsVersionApi.Version[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -95,7 +52,6 @@ async function handleExport() {
   const data = await exportVersion(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '排程版本.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -125,48 +81,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<ApsVersionApi.Version>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="排程版本列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['排程版本']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['aps:version:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['aps:version:import'],
-              onClick: handleImport,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['aps:version:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:version:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,22 +104,29 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '确认',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
+              icon: ACTION_ICON.AUDIT,
               auth: ['aps:version:update'],
-              onClick: handleEdit.bind(null, row),
+              disabled: !['PENDING_CONFIRM', 'SOLVED', 'SOLVING'].includes(
+                row.status ?? '',
+              ),
+              popConfirm: {
+                title: `确认排程版本【${row.scenarioCode} V${row.versionNo}】的求解结果吗？`,
+                confirm: handleConfirm.bind(null, row),
+              },
             },
             {
-              label: $t('common.delete'),
-              type: 'danger',
+              label: '发布',
+              type: 'success',
               link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:version:delete'],
+              icon: ACTION_ICON.UPLOAD,
+              auth: ['aps:version:update'],
+              disabled: row.status !== 'CONFIRMED',
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
+                title: `发布后同场景原已发布版本将被置为已被替换，确认发布【${row.scenarioCode} V${row.versionNo}】吗？`,
+                confirm: handlePublish.bind(null, row),
               },
             },
           ]"
@@ -198,4 +134,4 @@ const [Grid, gridApi] = useVbenVxeGrid({
       </template>
     </Grid>
   </Page>
-</template>
+</template>

@@ -1,87 +1,87 @@
 import type { PageParam, PageResult } from '@vben/request';
-import type { Dayjs } from 'dayjs';
 
 import { requestClient } from '#/api/request';
 
 export namespace ApsTaskApi {
-  /** APS-工序排程任务信息 */
+  /** APS-排程任务信息 */
   export interface Task {
-    id: number; // 主键
+    id?: number; // 主键
     versionId?: number; // 排程版本编号
+    versionNo?: number; // 排程版本号
+    scenarioCode?: string; // 排程场景编码
+    scenarioName?: string; // 排程场景名称
     taskNo?: string; // 排程任务编号
     prodOrderId?: number; // 生产工单编号
     prodOrderNo?: string; // 生产工单号快照
     workOrderId?: number; // 作业工单编号
-    opTaskId?: number; // MES工序任务编号
+    opTaskId?: number; // MES 工序任务编号
     routeOpId?: number; // 路线工序编号
     opCode?: string; // 工序编码快照
     opName?: string; // 工序名称快照
     plantId?: number; // 工厂编号
+    plantName?: string; // 工厂名称
     workshopId?: number; // 车间编号
-    projectId?: number; // 项目编号，0表示无项目
-    projectTaskId?: number; // 项目任务编号，0表示无项目任务
+    workshopName?: string; // 车间名称
+    projectId?: number; // 项目编号
+    projectName?: string; // 项目名称
+    projectTaskId?: number; // 项目任务编号
+    projectTaskName?: string; // 项目任务名称
     resId?: number; // 排定生产资源编号
     resCode?: string; // 资源编码快照
-    startTime?: string | Dayjs; // 计划开始时间
-    endTime?: string | Dayjs; // 计划结束时间
+    resName?: string; // 资源名称
+    startTime?: string; // 计划开始时间
+    endTime?: string; // 计划结束时间
     durationMinutes?: number; // 计划占用分钟数
     sequenceNo?: number; // 资源内执行顺序号
     lockedFlag?: boolean; // 是否锁定不可移动
-    status?: string; // 状态：PLANNED、LOCKED、RELEASED、STARTED、DONE、CANCELLED
-    remark: string; // 备注
+    status?: string; // 状态，字典 aps_task_status
+    remark?: string; // 备注
+    createTime?: string; // 创建时间
+  }
+
+  /** 排程任务人工调整请求 */
+  export interface TaskAdjust {
+    id?: number; // 主键
+    resId?: number; // 排定生产资源编号
+    startTime?: string; // 计划开始时间
+    endTime?: string; // 计划结束时间
+    sequenceNo?: number; // 资源内执行顺序号
+    remark?: string; // 备注
   }
 }
 
-/** 查询APS-工序排程任务分页 */
+/** 查询排程任务分页 */
 export function getTaskPage(params: PageParam) {
-  return requestClient.get<PageResult<ApsTaskApi.Task>>(
-    '/aps/task/page',
-    { params },
-  );
+  return requestClient.get<PageResult<ApsTaskApi.Task>>('/aps/task/page', {
+    params,
+  });
 }
 
-/** 查询APS-工序排程任务详情 */
+/** 查询排程任务详情 */
 export function getTask(id: number) {
-  return requestClient.get<ApsTaskApi.Task>(
-    `/aps/task/get?id=${id}`,
-  );
+  return requestClient.get<ApsTaskApi.Task>(`/aps/task/get?id=${id}`);
 }
 
-/** 新增APS-工序排程任务 */
-export function createTask(data: ApsTaskApi.Task) {
-  return requestClient.post('/aps/task/create', data);
+/** 调整排程任务的资源与计划时间 */
+export function adjustTask(data: ApsTaskApi.TaskAdjust) {
+  return requestClient.put('/aps/task/adjust', data);
 }
 
-/** 修改APS-工序排程任务 */
-export function updateTask(data: ApsTaskApi.Task) {
-  return requestClient.put('/aps/task/update', data);
+/** 锁定排程任务，重排时不再移动它 */
+export function lockTask(id: number, reason?: string) {
+  return requestClient.put('/aps/task/lock', undefined, {
+    params: { id, reason: reason ?? '' },
+  });
 }
 
-/** 删除APS-工序排程任务 */
-export function deleteTask(id: number) {
-  return requestClient.delete(`/aps/task/delete?id=${id}`);
+/** 解锁排程任务 */
+export function unlockTask(id: number, reason?: string) {
+  return requestClient.put('/aps/task/unlock', undefined, {
+    params: { id, reason: reason ?? '' },
+  });
 }
 
-/** 批量删除APS-工序排程任务 */
-export function deleteTaskList(ids: number[]) {
-  return requestClient.delete(
-    `/aps/task/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
-/** 导出APS-工序排程任务 */
+/** 导出排程任务 */
 export function exportTask(params: any) {
   return requestClient.download('/aps/task/export-excel', { params });
 }
-
-/** 下载APS-工序排程任务导入模板 */
-export function importTaskTemplate() {
-  return requestClient.download('/aps/task/get-import-template');
-}
-
-/** 导入APS-工序排程任务 */
-export function importTask(file: File) {
-  return requestClient.upload('/aps/task/import', { file });
-}
-
-

@@ -2,171 +2,70 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { ApsLoadApi } from '#/api/aps/load';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteLoad,
-  deleteLoadList,
-  exportLoad,
-  getLoadPage,
-} from '#/api/aps/load';
-import LoadImport from './modules/import-form.vue';
-import { $t } from '#/locales';
+import { exportLoad, getLoadPage, refreshLoad } from '#/api/aps/load';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: LoadImport,
-  destroyOnClose: true,
-});
-
-/** 导入资源负荷 */
-function handleImport() {
-  importFormModalApi.open();
-}
-
-/** 刷新表格 */
-function handleRefresh() {
-  gridApi.query();
-}
-
-/** 创建资源负荷 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑资源负荷 */
-function handleEdit(row: ApsLoadApi.Load) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除资源负荷 */
-async function handleDelete(row: ApsLoadApi.Load) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
-  });
+async function handleRefreshLoad(row: ApsLoadApi.Load) {
+  if (!row.versionId) {
+    ElMessage.warning('当前记录缺少排程版本，无法重算');
+    return;
+  }
+  const loading = ElLoading.service({ text: '正在重算资源负荷...' });
   try {
-    await deleteLoad(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
-    handleRefresh();
+    await refreshLoad(row.versionId);
+    ElMessage.success('资源负荷已重算');
+    await gridApi.query();
   } finally {
-    loadingInstance.close();
+    loading.close();
   }
 }
 
-/** 批量删除资源负荷 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteLoadList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: ApsLoadApi.Load[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
-}
-
-/** 导出表格 */
 async function handleExport() {
   const data = await exportLoad(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '资源负荷.xls', source: data });
 }
 
-
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: {
-    schema: useGridFormSchema(),
-  },
+  formOptions: { schema: useGridFormSchema() },
   gridOptions: {
     columns: useGridColumns(),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues) => {
-          return await getLoadPage({
+        query: async ({ page }, formValues) =>
+          getLoadPage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,
             ...formValues,
-          });
-        },
+          }),
       },
     },
-    rowConfig: {
-      keyField: 'id',
-      isHover: true,
-    },
-    toolbarConfig: {
-      refresh: true,
-      search: true,
-    },
+    rowConfig: { keyField: 'id', isHover: true },
+    toolbarConfig: { refresh: true, search: true },
   } as VxeTableGridOptions<ApsLoadApi.Load>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="资源负荷列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['资源负荷']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['aps:load:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['aps:load:import'],
-              onClick: handleImport,
-            },
-            {
-              label: $t('ui.actionTitle.export'),
+              label: '导出',
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['aps:load:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:load:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,27 +74,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '重算负荷',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
+              icon: ACTION_ICON.REFRESH,
               auth: ['aps:load:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['aps:load:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
-              },
+              onClick: handleRefreshLoad.bind(null, row),
             },
           ]"
         />
       </template>
     </Grid>
   </Page>
-</template>
+</template>

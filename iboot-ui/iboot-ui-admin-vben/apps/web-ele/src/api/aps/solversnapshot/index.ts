@@ -8,11 +8,14 @@ export namespace ApsSolverSnapshotApi {
   export interface SolverSnapshot {
     id: number; // 主键
     versionId?: number; // 排程版本编号
+    versionNo?: number; // 排程版本号
+    scenarioCode?: string; // 排程场景编码
+    scenarioName?: string; // 排程场景名称
     snapshotType?: string; // 快照类型：INPUT、SOLUTION、CONSTRAINT_MATCH、ERROR
     snapshotJson?: string; // Timefold求解输入、结果或约束命中快照
     checksum?: string; // 快照内容校验值
     snapshotTime?: string | Dayjs; // 快照生成时间
-    remark: string; // 备注
+    remark?: string; // 备注
   }
 }
 
@@ -31,41 +34,9 @@ export function getSolverSnapshot(id: number) {
   );
 }
 
-/** 新增APS-Timefold求解快照 */
-export function createSolverSnapshot(data: ApsSolverSnapshotApi.SolverSnapshot) {
-  return requestClient.post('/aps/solver-snapshot/create', data);
-}
-
-/** 修改APS-Timefold求解快照 */
-export function updateSolverSnapshot(data: ApsSolverSnapshotApi.SolverSnapshot) {
-  return requestClient.put('/aps/solver-snapshot/update', data);
-}
-
-/** 删除APS-Timefold求解快照 */
-export function deleteSolverSnapshot(id: number) {
-  return requestClient.delete(`/aps/solver-snapshot/delete?id=${id}`);
-}
-
-/** 批量删除APS-Timefold求解快照 */
-export function deleteSolverSnapshotList(ids: number[]) {
-  return requestClient.delete(
-    `/aps/solver-snapshot/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出APS-Timefold求解快照 */
 export function exportSolverSnapshot(params: any) {
   return requestClient.download('/aps/solver-snapshot/export-excel', { params });
 }
 
-/** 下载APS-Timefold求解快照导入模板 */
-export function importSolverSnapshotTemplate() {
-  return requestClient.download('/aps/solver-snapshot/get-import-template');
-}
 
-/** 导入APS-Timefold求解快照 */
-export function importSolverSnapshot(file: File) {
-  return requestClient.upload('/aps/solver-snapshot/import', { file });
-}
-
-
