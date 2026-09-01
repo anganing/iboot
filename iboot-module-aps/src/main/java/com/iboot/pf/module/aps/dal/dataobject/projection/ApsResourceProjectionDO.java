@@ -13,6 +13,7 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * APS-MDM 资源与日历投影 DO。
@@ -63,10 +64,21 @@ public class ApsResourceProjectionDO extends BaseDO {
     /** 班次编号，0 表示日汇总。 */
     private Long shiftId;
 
+    /** 班次开始时间；日汇总记录为空。 */
+    private LocalTime shiftStartTime;
+
+    /** 班次结束时间；日汇总记录为空。 */
+    private LocalTime shiftEndTime;
+
     /** 可用分钟数。 */
     private Integer availableMinutes;
 
-    /** 资源能力快照，JSON。 */
+    /**
+     * 资源能力快照，JSON 数组。
+     *
+     * <p>元素形如 {@code {"opId":1,"efficiency":1.05,"preferred":true}}，求解时判定资源能否做某道工序，
+     * 以及按能力效率折算工时。求解只读投影，不回查 mdm，否则同一场景重复求解的结果不可复现。
+     */
     private String capabilityJson;
 
     /** 来源数据更新时间。 */

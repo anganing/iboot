@@ -15,6 +15,7 @@ import com.iboot.pf.module.mdm.api.bom.BomApi;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.mdm.api.resource.ResourceApi;
+import com.iboot.pf.module.mdm.api.shift.ShiftApi;
 import com.iboot.pf.module.mdm.api.route.RouteApi;
 import com.iboot.pf.module.mdm.api.uom.UomApi;
 import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
@@ -61,6 +62,8 @@ class ApsProjectionServiceImplTest extends BaseDbUnitTest {
     private RouteApi routeApi;
     @MockitoBean
     private ResourceApi resourceApi;
+    @MockitoBean
+    private ShiftApi shiftApi;
     @MockitoBean
     private InventoryApi inventoryApi;
     @MockitoBean

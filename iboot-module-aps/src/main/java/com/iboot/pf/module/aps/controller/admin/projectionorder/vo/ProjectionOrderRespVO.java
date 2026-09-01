@@ -99,6 +99,21 @@ public class ProjectionOrderRespVO {
     @Schema(description = "路线工序编号，0 表示需求或整单", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long routeOpId;
 
+    @Schema(description = "工序顺序号，0 表示非工序投影", requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
+    @ExcelProperty("工序顺序")
+    private Integer seq;
+
+    @Schema(description = "标准工序编号，0 表示非工序投影", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    private Long opId;
+
+    @Schema(description = "工序编码快照")
+    @ExcelProperty("工序编码")
+    private String opCode;
+
+    @Schema(description = "工序名称快照")
+    @ExcelProperty("工序名称")
+    private String opName;
+
     @Schema(description = "当前资源编号，0 表示未分配", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long resId;
 
@@ -121,6 +136,42 @@ public class ProjectionOrderRespVO {
     @Schema(description = "优先级，数值越大越优先", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @ExcelProperty("优先级")
     private Integer priority;
+
+    @Schema(description = "准备（换型）工时", requiredMode = Schema.RequiredMode.REQUIRED, example = "30")
+    @ExcelProperty("准备工时")
+    private Integer setupMinutes;
+
+    @Schema(description = "单件加工工时", requiredMode = Schema.RequiredMode.REQUIRED, example = "1.5")
+    @ExcelProperty("单件工时")
+    private BigDecimal stdMinutesPerUnit;
+
+    @Schema(description = "收尾工时", requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
+    @ExcelProperty("收尾工时")
+    private Integer teardownMinutes;
+
+    @Schema(description = "排队等待分钟数", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @ExcelProperty("排队分钟")
+    private Integer queueMinutes;
+
+    @Schema(description = "转移分钟数", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @ExcelProperty("转移分钟")
+    private Integer moveMinutes;
+
+    @Schema(description = "工时类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "PER_UNIT")
+    @ExcelProperty("工时类型")
+    private String durationType;
+
+    @Schema(description = "固定工时分钟数", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @ExcelProperty("固定工时")
+    private Integer stdDuration;
+
+    @Schema(description = "标准人数", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @ExcelProperty("标准人数")
+    private Integer manQty;
+
+    @Schema(description = "物料换型分组快照")
+    @ExcelProperty("换型分组")
+    private String changeoverGroup;
 
     @Schema(description = "来源对象状态快照", requiredMode = Schema.RequiredMode.REQUIRED, example = "PENDING")
     @ExcelProperty(value = "来源状态", converter = DictConvert.class)

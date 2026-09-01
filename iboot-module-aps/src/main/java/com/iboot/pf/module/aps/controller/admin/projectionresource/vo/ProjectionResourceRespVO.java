@@ -10,6 +10,7 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * 资源投影 Response VO。
@@ -83,6 +84,14 @@ public class ProjectionResourceRespVO {
     @Schema(description = "班次名称")
     @ExcelProperty("班次")
     private String shiftName;
+
+    @Schema(description = "班次开始时间，日汇总为空")
+    @ExcelProperty("班次开始")
+    private LocalTime shiftStartTime;
+
+    @Schema(description = "班次结束时间，日汇总为空")
+    @ExcelProperty("班次结束")
+    private LocalTime shiftEndTime;
 
     @Schema(description = "可用分钟数", requiredMode = Schema.RequiredMode.REQUIRED, example = "480")
     @ExcelProperty("可用分钟数")

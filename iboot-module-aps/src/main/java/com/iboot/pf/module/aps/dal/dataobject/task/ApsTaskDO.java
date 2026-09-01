@@ -86,6 +86,9 @@ public class ApsTaskDO extends BaseDO {
     /** 计划占用分钟数。 */
     private Integer durationMinutes;
 
+    /** 本次换型损失分钟数，已含在 {@link #durationMinutes} 内，单独留一份便于甘特着色与损失复盘。 */
+    private Integer changeoverMinutes;
+
     /** 资源内执行顺序号。 */
     private Integer sequenceNo;
 

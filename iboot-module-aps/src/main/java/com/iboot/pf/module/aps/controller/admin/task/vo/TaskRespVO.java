@@ -117,6 +117,10 @@ public class TaskRespVO {
     @ExcelProperty("计划占用分钟数")
     private Integer durationMinutes;
 
+    @Schema(description = "换型损失分钟数，已含在占用分钟内", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @ExcelProperty("换型分钟数")
+    private Integer changeoverMinutes;
+
     @Schema(description = "资源内执行顺序号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("执行顺序号")
     private Integer sequenceNo;

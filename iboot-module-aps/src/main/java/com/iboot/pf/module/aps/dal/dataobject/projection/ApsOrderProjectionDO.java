@@ -75,6 +75,18 @@ public class ApsOrderProjectionDO extends BaseDO {
     /** 路线工序编号，0 表示需求或整单。 */
     private Long routeOpId;
 
+    /** 工序在路线中的顺序号，0 表示非工序投影；求解时按它生成同工单内的前后序依赖。 */
+    private Integer seq;
+
+    /** 标准工序编号，0 表示非工序投影；求解时按它匹配资源能力。 */
+    private Long opId;
+
+    /** 工序编码快照。 */
+    private String opCode;
+
+    /** 工序名称快照。 */
+    private String opName;
+
     /** 当前资源编号，0 表示未分配。 */
     private Long resId;
 
@@ -89,6 +101,33 @@ public class ApsOrderProjectionDO extends BaseDO {
 
     /** 优先级，数值越大越优先。 */
     private Integer priority;
+
+    /** 准备（换型）工时，路线工序 override 优先、回落标准工序。 */
+    private Integer setupMinutes;
+
+    /** 单件加工工时。 */
+    private BigDecimal stdMinutesPerUnit;
+
+    /** 收尾工时。 */
+    private Integer teardownMinutes;
+
+    /** 排队等待分钟数；只作为工序间最小间隔，不占资源。 */
+    private Integer queueMinutes;
+
+    /** 转移分钟数；只作为工序间最小间隔，不占资源。 */
+    private Integer moveMinutes;
+
+    /** 工时类型，取值见 {@link com.iboot.pf.module.aps.enums.ApsDurationTypeEnum}。 */
+    private String durationType;
+
+    /** 固定工时分钟数，{@code durationType = FIXED} 时取用。 */
+    private Integer stdDuration;
+
+    /** 标准人数。 */
+    private Integer manQty;
+
+    /** 物料换型分组快照，空串表示不参与换型计算。 */
+    private String changeoverGroup;
 
     /** 来源对象状态快照，取值见字典 mes_op_task_status。 */
     private String currentStatus;

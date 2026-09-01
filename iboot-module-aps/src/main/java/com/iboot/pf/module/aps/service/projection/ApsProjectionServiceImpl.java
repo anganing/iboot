@@ -2,6 +2,7 @@ package com.iboot.pf.module.aps.service.projection;
 
 import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.framework.common.util.json.JsonUtils;
 import com.iboot.pf.module.aps.api.projection.dto.InventoryProjectionQueryReqDTO;
 import com.iboot.pf.module.aps.api.projection.dto.MaterialProjectionQueryReqDTO;
 import com.iboot.pf.module.aps.api.projection.dto.OrderProjectionQueryReqDTO;
@@ -17,6 +18,7 @@ import com.iboot.pf.module.aps.controller.admin.projectionresource.vo.Projection
 import com.iboot.pf.module.aps.dal.dataobject.projection.ApsInventoryProjectionDO;
 import com.iboot.pf.module.aps.dal.dataobject.projection.ApsMaterialProjectionDO;
 import com.iboot.pf.module.aps.dal.dataobject.projection.ApsOrderProjectionDO;
+import com.iboot.pf.module.aps.dal.dataobject.projection.ApsResourceCapability;
 import com.iboot.pf.module.aps.dal.dataobject.projection.ApsResourceProjectionDO;
 import com.iboot.pf.module.aps.dal.dataobject.scenario.ApsScenarioDO;
 import com.iboot.pf.module.aps.dal.mysql.projection.ApsInventoryProjectionMapper;
@@ -36,9 +38,12 @@ import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.mdm.api.resource.ResourceApi;
 import com.iboot.pf.module.mdm.api.resource.dto.ResourceCalendarRespDTO;
+import com.iboot.pf.module.mdm.api.resource.dto.ResourceCapabilityRespDTO;
 import com.iboot.pf.module.mdm.api.resource.dto.ResourceRespDTO;
 import com.iboot.pf.module.mdm.api.route.RouteApi;
 import com.iboot.pf.module.mdm.api.route.dto.RouteRespDTO;
+import com.iboot.pf.module.mdm.api.shift.ShiftApi;
+import com.iboot.pf.module.mdm.api.shift.dto.ShiftRespDTO;
 import com.iboot.pf.module.mdm.api.uom.UomApi;
 import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
 import com.iboot.pf.module.wms.api.inventory.InventoryApi;
@@ -54,6 +59,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +109,8 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
     private RouteApi routeApi;
     @Resource
     private ResourceApi resourceApi;
+    @Resource
+    private ShiftApi shiftApi;
     @Resource
     private InventoryApi inventoryApi;
     @Resource
@@ -344,12 +352,16 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
         LocalDate endDate = scenario.getPlanEndTime().toLocalDate();
         List<ResourceCalendarRespDTO> calendars =
                 resourceApi.getResourceCalendarList(resourceMap.keySet(), startDate, endDate);
+        // 班次起止与资源能力都在这里一次性冻结：求解器只读投影，不回查 mdm
+        Map<Long, ShiftRespDTO> shiftMap = shiftApi.getShiftMap(collectShiftIds(calendars));
+        Map<Long, String> capabilityMap = buildCapabilityJsonMap(resourceMap.keySet());
         List<ApsResourceProjectionDO> rows = new ArrayList<>(calendars.size());
         for (ResourceCalendarRespDTO calendar : calendars) {
             ResourceRespDTO resource = resourceMap.get(calendar.getResId());
             if (resource == null) {
                 continue;
             }
+            ShiftRespDTO shift = calendar.getShiftId() == null ? null : shiftMap.get(calendar.getShiftId());
             rows.add(ApsResourceProjectionDO.builder()
                     .scenarioId(scenario.getId())
                     .sourceResId(resource.getId())
@@ -361,12 +373,44 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
                     .wcId(orNone(resource.getWcId()))
                     .workDate(calendar.getWorkDate())
                     .shiftId(orNone(calendar.getShiftId()))
+                    .shiftStartTime(shift == null ? null : shift.getStartTime())
+                    .shiftEndTime(shift == null ? null : shift.getEndTime())
                     .availableMinutes(calendar.getAvailableMinutes())
+                    .capabilityJson(capabilityMap.get(resource.getId()))
                     .sourceUpdateTime(now)
                     .snapshotTime(now)
                     .build());
         }
         return rows;
+    }
+
+    /** 日历里出现过的班次编号；0 表示日汇总，没有对应班次主数据。 */
+    private Set<Long> collectShiftIds(List<ResourceCalendarRespDTO> calendars) {
+        Set<Long> shiftIds = new LinkedHashSet<>();
+        for (ResourceCalendarRespDTO calendar : calendars) {
+            if (calendar.getShiftId() != null && !ApsConstants.NONE_ID.equals(calendar.getShiftId())) {
+                shiftIds.add(calendar.getShiftId());
+            }
+        }
+        return shiftIds;
+    }
+
+    /**
+     * 资源能力快照 JSON：资源编号 -> {@code [{"opId":1,"efficiency":1.0,"preferred":true}]}。
+     *
+     * <p>一次批量取回全部资源的能力再按资源分组，不在资源循环里逐个查（N+1）。
+     */
+    private Map<Long, String> buildCapabilityJsonMap(Set<Long> resIds) {
+        List<ResourceCapabilityRespDTO> capabilities = resourceApi.getResourceCapabilityListByResIds(resIds);
+        Map<Long, List<ApsResourceCapability>> grouped = new LinkedHashMap<>();
+        for (ResourceCapabilityRespDTO capability : capabilities) {
+            grouped.computeIfAbsent(capability.getResId(), key -> new ArrayList<>())
+                    .add(new ApsResourceCapability(capability.getOpId(), capability.getEfficiency(),
+                            Boolean.TRUE.equals(capability.getPreferredFlag())));
+        }
+        Map<Long, String> result = new LinkedHashMap<>();
+        grouped.forEach((resId, items) -> result.put(resId, JsonUtils.toJsonString(items)));
+        return result;
     }
 
     private Set<Long> collectBaseUomIds(List<MaterialRespDTO> materials) {
