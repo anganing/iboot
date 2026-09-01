@@ -8,6 +8,7 @@ import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.framework.security.core.util.SecurityFrameworkUtils;
 import com.iboot.pf.module.aps.api.task.dto.LockTaskReqDTO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskAdjustReqVO;
+import com.iboot.pf.module.aps.controller.admin.task.vo.TaskGanttRespVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO;
 import com.iboot.pf.module.aps.enums.ApsCommandTypeEnum;
@@ -64,6 +65,14 @@ public class TaskController {
     @PreAuthorize("@ss.hasPermission('aps:task:query')")
     public CommonResult<PageResult<TaskRespVO>> getTaskPage(@Valid TaskPageReqVO pageReqVO) {
         return success(taskService.getTaskPage(pageReqVO));
+    }
+
+    @GetMapping("/gantt")
+    @Operation(summary = "获得排程甘特图数据")
+    @Parameter(name = "versionId", description = "排程版本编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('aps:task:query')")
+    public CommonResult<TaskGanttRespVO> getTaskGantt(@RequestParam("versionId") Long versionId) {
+        return success(taskService.getTaskGantt(versionId));
     }
 
     @PutMapping("/adjust")

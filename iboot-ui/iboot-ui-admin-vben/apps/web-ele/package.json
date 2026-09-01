@@ -50,6 +50,7 @@
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
     "@videojs-player/vue": "catalog:",
+    "@visactor/vtable-gantt": "catalog:",
     "@vueuse/core": "catalog:",
     "@vueuse/integrations": "catalog:",
     "benz-amr-recorder": "catalog:",

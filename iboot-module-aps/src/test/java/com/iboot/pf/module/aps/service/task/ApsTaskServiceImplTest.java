@@ -3,14 +3,20 @@ package com.iboot.pf.module.aps.service.task;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.aps.api.task.dto.LockTaskReqDTO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskAdjustReqVO;
+import com.iboot.pf.module.aps.controller.admin.task.vo.TaskGanttRespVO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.dal.dataobject.taskdep.ApsTaskDepDO;
 import com.iboot.pf.module.aps.dal.dataobject.tasklock.ApsTaskLockDO;
 import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
+import com.iboot.pf.module.aps.dal.mysql.taskdep.ApsTaskDepMapper;
 import com.iboot.pf.module.aps.dal.mysql.tasklock.ApsTaskLockMapper;
 import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
+import com.iboot.pf.module.aps.enums.ApsTaskDepTypeEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskLockStatusEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskLockTypeEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskStatusEnum;
+import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandServiceImpl;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import com.iboot.pf.module.aps.service.snapshot.ApsSnapshotService;
@@ -55,6 +61,8 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
     private ApsTaskService taskService;
     @Resource
     private ApsTaskMapper taskMapper;
+    @Resource
+    private ApsTaskDepMapper taskDepMapper;
     @Resource
     private ApsTaskLockMapper taskLockMapper;
 
@@ -217,6 +225,71 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
     @Test
     void testValidateTaskExists_notExists() {
         assertServiceException(() -> taskService.validateTaskExists(randomLongId()), TASK_NOT_EXISTS);
+    }
+
+    @Test
+    void testGetTaskGantt_groupsByResourceAndKeepsInVersionLinks() {
+        mockVersion();
+        Long first = insertTask("T001", RES_ID, LocalDateTime.of(2026, 8, 1, 8, 0),
+                LocalDateTime.of(2026, 8, 1, 10, 0), ApsTaskStatusEnum.PLANNED.name());
+        Long second = insertTask("T002", RES_ID, LocalDateTime.of(2026, 8, 1, 10, 0),
+                LocalDateTime.of(2026, 8, 1, 11, 0), ApsTaskStatusEnum.PLANNED.name());
+        Long other = insertTask("T003", RES_ID + 1, LocalDateTime.of(2026, 8, 1, 9, 0),
+                LocalDateTime.of(2026, 8, 1, 12, 0), ApsTaskStatusEnum.PLANNED.name());
+        insertDep(first, second);
+        // 悬空边：后置任务不属于本版本的任务集合，必须被丢掉，否则前端会画出错位的连线
+        insertDep(first, randomLongId());
+
+        TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
+
+        assertEquals(3, respVO.getTaskCount());
+        assertEquals(2, respVO.getResources().size());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 8, 0), respVO.getMinTime());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 12, 0), respVO.getMaxTime());
+        assertEquals(1, respVO.getLinks().size());
+        assertEquals(first, respVO.getLinks().get(0).getFromTaskId());
+        assertEquals(second, respVO.getLinks().get(0).getToTaskId());
+        // Mapper 按资源、开始时间排序，第一个资源上应有两条任务且负荷为两段之和
+        TaskGanttRespVO.Resource main = respVO.getResources().stream()
+                .filter(row -> RES_ID.equals(row.getResId())).findFirst().orElseThrow();
+        assertEquals(2, main.getTaskCount());
+        assertEquals(120, main.getLoadMinutes());
+        assertEquals("T001", main.getTasks().get(0).getTaskNo());
+        assertEquals(other, respVO.getResources().stream()
+                .filter(row -> !RES_ID.equals(row.getResId())).findFirst().orElseThrow()
+                .getTasks().get(0).getId());
+    }
+
+    @Test
+    void testGetTaskGantt_emptyVersionReturnsNoResource() {
+        mockVersion();
+
+        TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
+
+        assertEquals(0, respVO.getTaskCount());
+        assertTrue(respVO.getResources().isEmpty());
+        assertTrue(respVO.getLinks().isEmpty());
+        assertNull(respVO.getMinTime());
+    }
+
+    private void mockVersion() {
+        VersionRespVO version = new VersionRespVO();
+        version.setId(VERSION_ID);
+        version.setVersionNo(1);
+        version.setScenarioCode("SC001");
+        version.setScenarioName("松江工厂 8 月排程");
+        version.setStatus(ApsVersionStatusEnum.SOLVED.name());
+        when(versionService.getVersion(VERSION_ID)).thenReturn(version);
+    }
+
+    private void insertDep(Long fromTaskId, Long toTaskId) {
+        taskDepMapper.insert(ApsTaskDepDO.builder()
+                .versionId(VERSION_ID)
+                .fromTaskId(fromTaskId)
+                .toTaskId(toTaskId)
+                .depType(ApsTaskDepTypeEnum.FINISH_START.name())
+                .lagMinutes(0)
+                .build());
     }
 
 }

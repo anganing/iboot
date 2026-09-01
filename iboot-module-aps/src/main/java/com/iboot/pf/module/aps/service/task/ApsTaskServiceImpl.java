@@ -3,11 +3,15 @@ package com.iboot.pf.module.aps.service.task;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.aps.api.task.dto.LockTaskReqDTO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskAdjustReqVO;
+import com.iboot.pf.module.aps.controller.admin.task.vo.TaskGanttRespVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.dal.dataobject.taskdep.ApsTaskDepDO;
 import com.iboot.pf.module.aps.dal.dataobject.tasklock.ApsTaskLockDO;
 import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
+import com.iboot.pf.module.aps.dal.mysql.taskdep.ApsTaskDepMapper;
 import com.iboot.pf.module.aps.dal.mysql.tasklock.ApsTaskLockMapper;
 import com.iboot.pf.module.aps.enums.ApsCommandTypeEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskLockStatusEnum;
@@ -24,15 +28,23 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.TASK_CANNOT_UNLOCK;
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.TASK_NOT_EXISTS;
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.TASK_RESOURCE_OVERLAP;
 import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.TASK_TIME_INVALID;
+import static com.iboot.pf.module.aps.enums.ErrorCodeConstants.VERSION_NOT_EXISTS;
 
 /**
  * APS-工序排程任务 Service 实现类。
@@ -48,6 +60,8 @@ public class ApsTaskServiceImpl implements ApsTaskService {
 
     @Resource
     private ApsTaskMapper taskMapper;
+    @Resource
+    private ApsTaskDepMapper taskDepMapper;
     @Resource
     private ApsTaskLockMapper taskLockMapper;
     @Resource
@@ -71,6 +85,42 @@ public class ApsTaskServiceImpl implements ApsTaskService {
         PageResult<TaskRespVO> pageResult = taskMapper.selectPage(pageReqVO);
         fillRelationNames(pageResult.getList());
         return pageResult;
+    }
+
+    /**
+     * 甘特图视图。
+     *
+     * <p>一次查完整版本而不是分页：连线要靠两端任务同时在结果集里才画得出来，时间轴左右边界也必须
+     * 由全量任务的最早开始与最晚结束推出，分页片段两者都做不到。
+     *
+     * <p>依赖连线只保留两端任务都在本版本内的边：{@code aps_task_dep} 与 {@code aps_task} 每轮求解
+     * 一起物理重建，理论上不会有悬空引用，但人工维护依赖时可能删掉任务，前端拿到悬空边会画出错位的线。
+     */
+    @Override
+    public TaskGanttRespVO getTaskGantt(Long versionId) {
+        VersionRespVO version = versionService.getVersion(versionId);
+        if (version == null) {
+            throw exception(VERSION_NOT_EXISTS);
+        }
+        TaskGanttRespVO respVO = new TaskGanttRespVO();
+        respVO.setVersionId(versionId);
+        respVO.setVersionNo(version.getVersionNo());
+        respVO.setScenarioCode(version.getScenarioCode());
+        respVO.setScenarioName(version.getScenarioName());
+        respVO.setVersionStatus(version.getStatus());
+        // Mapper 已按资源、开始时间排序，这里不再二次排序
+        List<ApsTaskDO> tasks = taskMapper.selectListByVersionId(versionId);
+        respVO.setTaskCount(tasks.size());
+        if (tasks.isEmpty()) {
+            return respVO;
+        }
+        respVO.setResources(buildResources(tasks));
+        respVO.setMinTime(tasks.stream().map(ApsTaskDO::getStartTime).filter(Objects::nonNull)
+                .min(Comparator.naturalOrder()).orElse(null));
+        respVO.setMaxTime(tasks.stream().map(ApsTaskDO::getEndTime).filter(Objects::nonNull)
+                .max(Comparator.naturalOrder()).orElse(null));
+        respVO.setLinks(buildLinks(versionId, tasks));
+        return respVO;
     }
 
     @Override
@@ -212,6 +262,88 @@ public class ApsTaskServiceImpl implements ApsTaskService {
         relationFiller.fillProjectName(list, TaskRespVO::getProjectId, TaskRespVO::setProjectName);
         relationFiller.fillProjectTaskName(list, TaskRespVO::getProjectTaskId, TaskRespVO::setProjectTaskName);
         relationFiller.fillResName(list, TaskRespVO::getResId, TaskRespVO::setResName);
+    }
+
+    /** 按资源分组成甘特图的行，资源名称与项目名称走门面批量补全，不做 N+1。 */
+    private List<TaskGanttRespVO.Resource> buildResources(List<ApsTaskDO> tasks) {
+        Map<Long, TaskGanttRespVO.Resource> resourceMap = new LinkedHashMap<>();
+        List<TaskGanttRespVO.Task> flatTasks = new ArrayList<>();
+        Map<Long, Long> taskIdToProjectId = new LinkedHashMap<>();
+        for (ApsTaskDO task : tasks) {
+            TaskGanttRespVO.Resource resource = resourceMap.computeIfAbsent(task.getResId(), resId -> {
+                TaskGanttRespVO.Resource row = new TaskGanttRespVO.Resource();
+                row.setResId(resId);
+                row.setResCode(task.getResCode());
+                row.setTaskCount(0);
+                row.setLoadMinutes(0);
+                return row;
+            });
+            TaskGanttRespVO.Task bar = toGanttTask(task);
+            resource.getTasks().add(bar);
+            resource.setTaskCount(resource.getTaskCount() + 1);
+            resource.setLoadMinutes(resource.getLoadMinutes()
+                    + (task.getDurationMinutes() == null ? 0 : task.getDurationMinutes()));
+            flatTasks.add(bar);
+            taskIdToProjectId.put(task.getId(), task.getProjectId());
+        }
+        List<TaskGanttRespVO.Resource> resources = new ArrayList<>(resourceMap.values());
+        relationFiller.fillResName(resources, TaskGanttRespVO.Resource::getResId,
+                TaskGanttRespVO.Resource::setResName);
+        fillGanttProjectNames(flatTasks, taskIdToProjectId);
+        return resources;
+    }
+
+    /**
+     * 补全任务条上的项目名称。
+     *
+     * <p>项目编号不在 {@code TaskGanttRespVO.Task} 里（前端不需要裸 ID），所以借一个临时载体过一遍
+     * 批量补全，仍然只打一次 mdm 门面。
+     */
+    private void fillGanttProjectNames(List<TaskGanttRespVO.Task> bars, Map<Long, Long> taskIdToProjectId) {
+        List<ProjectNameCarrier> carriers = bars.stream()
+                .map(bar -> new ProjectNameCarrier(bar, taskIdToProjectId.get(bar.getId())))
+                .toList();
+        relationFiller.fillProjectName(carriers, ProjectNameCarrier::projectId,
+                (carrier, name) -> carrier.bar().setProjectName(name));
+    }
+
+    /** 项目名称补全的临时载体。 */
+    private record ProjectNameCarrier(TaskGanttRespVO.Task bar, Long projectId) {
+    }
+
+    private TaskGanttRespVO.Task toGanttTask(ApsTaskDO task) {
+        TaskGanttRespVO.Task bar = new TaskGanttRespVO.Task();
+        bar.setId(task.getId());
+        bar.setTaskNo(task.getTaskNo());
+        bar.setProdOrderNo(task.getProdOrderNo());
+        bar.setOpCode(task.getOpCode());
+        bar.setOpName(task.getOpName());
+        bar.setStartTime(task.getStartTime());
+        bar.setEndTime(task.getEndTime());
+        bar.setDurationMinutes(task.getDurationMinutes());
+        bar.setChangeoverMinutes(task.getChangeoverMinutes());
+        bar.setSequenceNo(task.getSequenceNo());
+        bar.setLockedFlag(task.getLockedFlag());
+        bar.setStatus(task.getStatus());
+        return bar;
+    }
+
+    /** 依赖连线，丢弃两端任务不全在本版本内的悬空边。 */
+    private List<TaskGanttRespVO.Link> buildLinks(Long versionId, List<ApsTaskDO> tasks) {
+        Set<Long> taskIds = new HashSet<>(tasks.stream().map(ApsTaskDO::getId).toList());
+        List<TaskGanttRespVO.Link> links = new ArrayList<>();
+        for (ApsTaskDepDO dep : taskDepMapper.selectListByVersionId(versionId)) {
+            if (!taskIds.contains(dep.getFromTaskId()) || !taskIds.contains(dep.getToTaskId())) {
+                continue;
+            }
+            TaskGanttRespVO.Link link = new TaskGanttRespVO.Link();
+            link.setFromTaskId(dep.getFromTaskId());
+            link.setToTaskId(dep.getToTaskId());
+            link.setDepType(dep.getDepType());
+            link.setLagMinutes(dep.getLagMinutes());
+            links.add(link);
+        }
+        return links;
     }
 
 }

@@ -107,6 +107,7 @@ catalog:
   '@vite-pwa/vitepress': ^1.1.0
   '@vitejs/plugin-vue': ^6.0.7
   '@vitejs/plugin-vue-jsx': ^5.1.5
+  '@visactor/vtable-gantt': 1.26.7
   '@vue/shared': ^3.5.38
   '@vue/test-utils': ^2.4.11
   '@vueuse/core': ^14.3.0

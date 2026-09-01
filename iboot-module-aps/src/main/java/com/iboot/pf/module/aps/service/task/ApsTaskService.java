@@ -3,6 +3,7 @@ package com.iboot.pf.module.aps.service.task;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.aps.api.task.dto.LockTaskReqDTO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskAdjustReqVO;
+import com.iboot.pf.module.aps.controller.admin.task.vo.TaskGanttRespVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
@@ -36,6 +37,14 @@ public interface ApsTaskService {
      * @return 排程任务分页
      */
     PageResult<TaskRespVO> getTaskPage(TaskPageReqVO pageReqVO);
+
+    /**
+     * 获得某个排程版本的甘特图视图：资源分组 + 任务条 + 依赖连线 + 时间窗
+     *
+     * @param versionId 排程版本编号
+     * @return 甘特图数据
+     */
+    TaskGanttRespVO getTaskGantt(Long versionId);
 
     /**
      * 人工调整排程任务的资源与计划时间
