@@ -5,6 +5,7 @@ import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.mdm.api.org.OrgApi;
+import com.iboot.pf.module.mdm.api.org.dto.InvOrgRespDTO;
 import com.iboot.pf.module.mdm.api.org.dto.PlantRespDTO;
 import com.iboot.pf.module.mdm.api.org.dto.WcRespDTO;
 import com.iboot.pf.module.mdm.api.org.dto.WorkshopRespDTO;
@@ -17,8 +18,13 @@ import com.iboot.pf.module.mdm.api.shift.ShiftApi;
 import com.iboot.pf.module.mdm.api.shift.dto.ShiftRespDTO;
 import com.iboot.pf.module.mdm.api.uom.UomApi;
 import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
+import com.iboot.pf.module.mes.api.order.ProdOrderApi;
+import com.iboot.pf.module.mes.api.order.dto.ProdOrderRespDTO;
 import com.iboot.pf.module.system.api.user.AdminUserApi;
 import com.iboot.pf.module.system.api.user.dto.AdminUserRespDTO;
+import com.iboot.pf.module.wms.api.warehouse.WarehouseApi;
+import com.iboot.pf.module.wms.api.warehouse.dto.LocRespDTO;
+import com.iboot.pf.module.wms.api.warehouse.dto.WhRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -56,10 +62,19 @@ public class ApsRelationFiller {
     private UomApi uomApi;
     @Resource
     private AdminUserApi adminUserApi;
+    @Resource
+    private WarehouseApi warehouseApi;
+    @Resource
+    private ProdOrderApi prodOrderApi;
 
     /** 补全工厂名称。 */
     public <T> void fillPlantName(List<T> list, Function<T, Long> idGetter, BiConsumer<T, String> nameSetter) {
         fill(list, idGetter, nameSetter, ids -> orgApi.getPlantMap(ids), PlantRespDTO::getName);
+    }
+
+    /** 补全库存组织名称。 */
+    public <T> void fillInvOrgName(List<T> list, Function<T, Long> idGetter, BiConsumer<T, String> nameSetter) {
+        fill(list, idGetter, nameSetter, ids -> orgApi.getInvOrgMap(ids), InvOrgRespDTO::getName);
     }
 
     /** 补全车间名称。 */
@@ -110,6 +125,25 @@ public class ApsRelationFiller {
     /** 补全用户昵称，用于发布人、锁定人这类字段。 */
     public <T> void fillUserNickname(List<T> list, Function<T, Long> idGetter, BiConsumer<T, String> nameSetter) {
         fill(list, idGetter, nameSetter, ids -> adminUserApi.getUserMap(ids), AdminUserRespDTO::getNickname);
+    }
+
+    /** 补全仓库名称。 */
+    public <T> void fillWhName(List<T> list, Function<T, Long> idGetter, BiConsumer<T, String> nameSetter) {
+        fill(list, idGetter, nameSetter, ids -> warehouseApi.getWhMap(ids), WhRespDTO::getName);
+    }
+
+    /** 补全库位编码。 */
+    public <T> void fillLocName(List<T> list, Function<T, Long> idGetter, BiConsumer<T, String> nameSetter) {
+        fill(list, idGetter, nameSetter, ids -> warehouseApi.getLocMap(ids), LocRespDTO::getCode);
+    }
+
+    /** 补全生产工单号。 */
+    public <T> void fillProdOrderNo(List<T> list, Function<T, Long> idGetter,
+                                    BiConsumer<T, String> noSetter) {
+        fill(list, idGetter, noSetter,
+                ids -> prodOrderApi.getProdOrderList(ids).stream()
+                        .collect(java.util.stream.Collectors.toMap(ProdOrderRespDTO::getId, item -> item)),
+                ProdOrderRespDTO::getOrderNo);
     }
 
     /**

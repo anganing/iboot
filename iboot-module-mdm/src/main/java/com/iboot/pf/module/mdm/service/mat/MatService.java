@@ -70,6 +70,13 @@ public interface MatService {
     List<MatDO> getMatList(Collection<Long> ids);
 
     /**
+     * 查询全部启用物料
+     *
+     * @return 启用物料列表
+     */
+    List<MatDO> getEnabledMatList();
+
+    /**
      * 按编码批量查询物料主档
      *
      * @param codes 物料编码集合

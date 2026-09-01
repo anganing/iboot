@@ -42,6 +42,10 @@ public class ProjectionInvRespVO {
     @Schema(description = "库存组织编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long invOrgId;
 
+    @Schema(description = "库存组织名称")
+    @ExcelProperty("库存组织")
+    private String invOrgName;
+
     @Schema(description = "工厂编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long plantId;
 
@@ -52,8 +56,16 @@ public class ProjectionInvRespVO {
     @Schema(description = "仓库编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long whId;
 
+    @Schema(description = "仓库名称")
+    @ExcelProperty("仓库")
+    private String whName;
+
     @Schema(description = "库位编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long locId;
+
+    @Schema(description = "库位编码")
+    @ExcelProperty("库位")
+    private String locName;
 
     @Schema(description = "物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long matId;

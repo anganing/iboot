@@ -42,6 +42,13 @@ public class MaterialApiImpl implements MaterialApi {
 
     @Override
     @DataPermission(enable = false)
+    public List<MaterialRespDTO> getEnabledMaterialList() {
+        List<MatDO> mats = matService.getEnabledMatList();
+        return BeanUtils.toBean(mats, MaterialRespDTO.class);
+    }
+
+    @Override
+    @DataPermission(enable = false)
     public Map<Long, MaterialRespDTO> getMaterialMap(Collection<Long> ids) {
         List<MaterialRespDTO> list = getMaterialList(ids);
         return CollectionUtils.convertMap(list, MaterialRespDTO::getId);

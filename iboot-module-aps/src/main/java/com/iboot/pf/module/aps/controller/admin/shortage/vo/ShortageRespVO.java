@@ -43,6 +43,10 @@ public class ShortageRespVO {
     @Schema(description = "生产工单编号，0 表示汇总缺料", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long prodOrderId;
 
+    @Schema(description = "生产工单号")
+    @ExcelProperty("生产工单号")
+    private String prodOrderNo;
+
     @Schema(description = "工序任务编号，0 表示非工序级缺料", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Long opTaskId;
 

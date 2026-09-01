@@ -153,6 +153,7 @@ public class ApsShortageServiceImpl implements ApsShortageService {
      * <p>放在 Service 而非 Controller：Excel 导出复用这里的分页结果，写在 Controller 会丢字段。
      */
     private void fillRelationNames(List<ShortageRespVO> list) {
+        relationFiller.fillProdOrderNo(list, ShortageRespVO::getProdOrderId, ShortageRespVO::setProdOrderNo);
         relationFiller.fillProjectName(list, ShortageRespVO::getProjectId, ShortageRespVO::setProjectName);
         relationFiller.fillProjectTaskName(list, ShortageRespVO::getProjectTaskId,
                 ShortageRespVO::setProjectTaskName);

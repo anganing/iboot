@@ -32,6 +32,16 @@ public interface MaterialApi {
     List<MaterialRespDTO> getMaterialList(Collection<Long> ids);
 
     /**
+     * 查询全部启用的物料主档
+     *
+     * <p>APS 刷新完整物料投影时使用；空的物料编号集合始终表示“没有指定物料”，
+     * 不可以偷换成“查询全部”，否则调用方无法表达真正的空范围。
+     *
+     * @return 启用物料列表
+     */
+    List<MaterialRespDTO> getEnabledMaterialList();
+
+    /**
      * 按编号批量查询物料主档 Map，供批量补全，避免 N+1
      *
      * @param ids 物料编号集合

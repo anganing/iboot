@@ -118,7 +118,9 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
         commandService.executeVoid(ApsCommandTypeEnum.REFRESH_MATERIAL_PROJECTION, reqDTO, () -> {
             requireOpenScenario(reqDTO.getScenarioId());
             LocalDateTime now = LocalDateTime.now();
-            List<MaterialRespDTO> materials = materialApi.getMaterialList(reqDTO.getMaterialIds());
+            List<MaterialRespDTO> materials = CollUtil.isEmpty(reqDTO.getMaterialIds())
+                    ? materialApi.getEnabledMaterialList()
+                    : materialApi.getMaterialList(reqDTO.getMaterialIds());
             Map<Long, UomRespDTO> uomMap = uomApi.getUomMap(collectBaseUomIds(materials));
             List<ApsMaterialProjectionDO> rows = new ArrayList<>(materials.size());
             for (MaterialRespDTO material : materials) {
@@ -396,7 +398,10 @@ public class ApsProjectionServiceImpl implements ApsProjectionService {
     }
 
     private void fillInventoryRelationNames(List<ProjectionInvRespVO> list) {
+        relationFiller.fillInvOrgName(list, ProjectionInvRespVO::getInvOrgId, ProjectionInvRespVO::setInvOrgName);
         relationFiller.fillPlantName(list, ProjectionInvRespVO::getPlantId, ProjectionInvRespVO::setPlantName);
+        relationFiller.fillWhName(list, ProjectionInvRespVO::getWhId, ProjectionInvRespVO::setWhName);
+        relationFiller.fillLocName(list, ProjectionInvRespVO::getLocId, ProjectionInvRespVO::setLocName);
         relationFiller.fillMatName(list, ProjectionInvRespVO::getMatId, ProjectionInvRespVO::setMatName);
         relationFiller.fillProjectName(list, ProjectionInvRespVO::getProjectId, ProjectionInvRespVO::setProjectName);
     }

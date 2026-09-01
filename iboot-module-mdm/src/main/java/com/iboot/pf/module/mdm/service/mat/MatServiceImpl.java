@@ -124,6 +124,11 @@ public class MatServiceImpl implements MatService {
     }
 
     @Override
+    public List<MatDO> getEnabledMatList() {
+        return matMapper.selectList(MatDO::getStatus, CommonStatusEnum.ENABLE.getStatus());
+    }
+
+    @Override
     public List<MatDO> getMatListByCodes(Collection<String> codes) {
         if (CollUtil.isEmpty(codes)) {
             return List.of();
