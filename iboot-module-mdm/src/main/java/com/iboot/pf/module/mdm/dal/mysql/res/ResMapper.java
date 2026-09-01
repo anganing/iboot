@@ -34,4 +34,6 @@ public interface ResMapper extends BaseMapperX<ResDO> {
 
     IPage<ResRespVO> selectJoinPage(IPage<ResRespVO> page, @Param("req") ResPageReqVO reqVO);
 
+    List<ResSimpleRespVO> selectSimpleList(@Param("req") ResSimpleListReqVO reqVO);
+
 }

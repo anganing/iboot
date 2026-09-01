@@ -78,4 +78,13 @@ public interface ResCalendarService {
      */
     List<ResCalendarDO> getResCalendarList(Collection<Long> resIds, LocalDate startDate, LocalDate endDate);
 
+    /**
+     * 批量排班：为指定资源在日期区间内按星期过滤逐日写入资源日历，
+     * 已存在（同资源同日期）的记录整体覆盖为新的班次与产能
+     *
+     * @param batchReqVO 批量排班信息
+     * @return 新增与覆盖的条数
+     */
+    ResCalendarBatchSaveRespVO saveResCalendarBatch(@Valid ResCalendarBatchSaveReqVO batchReqVO);
+
 }

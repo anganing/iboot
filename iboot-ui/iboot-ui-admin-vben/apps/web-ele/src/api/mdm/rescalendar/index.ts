@@ -18,6 +18,23 @@ export namespace MdmResCalendarApi {
     availableMinutes?: number; // 可用产能分钟
     remark: string; // 备注
   }
+
+  /** 批量排班请求 */
+  export interface BatchSaveReq {
+    resIds: number[]; // 资源编号列表
+    dateFrom: string; // 工作日期开始
+    dateTo: string; // 工作日期结束
+    weekdays?: number[]; // 参与排班的星期，1 表示周一、7 表示周日；为空表示每天都排
+    shiftId: number; // 班次编号
+    availableMinutes: number; // 可用产能分钟
+    remark?: string; // 备注
+  }
+
+  /** 批量排班结果 */
+  export interface BatchSaveResp {
+    createCount: number; // 新增条数
+    updateCount: number; // 覆盖更新条数
+  }
 }
 
 /** 查询资源日历分页 */
@@ -57,6 +74,14 @@ export function getResCalendarList(params: {
 /** 新增资源日历 */
 export function createResCalendar(data: MdmResCalendarApi.ResCalendar) {
   return requestClient.post('/mdm/res-calendar/create', data);
+}
+
+/** 批量排班：按资源与日期区间逐日写入，已存在的同资源同日期记录整体覆盖 */
+export function saveResCalendarBatch(data: MdmResCalendarApi.BatchSaveReq) {
+  return requestClient.post<MdmResCalendarApi.BatchSaveResp>(
+    '/mdm/res-calendar/save-batch',
+    data,
+  );
 }
 
 /** 修改资源日历 */

@@ -1,83 +1,71 @@
 <script lang="ts" setup>
-import { nextTick, ref, useTemplateRef } from 'vue';
+import { ref, useTemplateRef } from 'vue';
 
-import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenModal } from '@vben/common-ui';
 
 import { ElTabPane, ElTabs } from 'element-plus';
 
-import CalendarView from './modules/calendar.vue';
-import DateScheduleList from './modules/date-schedule-list.vue';
+import BatchForm from './modules/batch-form.vue';
 import Form from './modules/form.vue';
 import ListView from './modules/list.vue';
+import ScheduleMatrix from './modules/schedule-matrix.vue';
 
 defineOptions({ name: 'MdmResCalendar' });
 
-const activeTabName = ref('calendar');
-const calendarRef =
-  useTemplateRef<InstanceType<typeof CalendarView>>('calendarRef');
+const activeTabName = ref('matrix');
+const matrixRef =
+  useTemplateRef<InstanceType<typeof ScheduleMatrix>>('matrixRef');
 const listRef = useTemplateRef<InstanceType<typeof ListView>>('listRef');
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [DateScheduleDrawer, dateScheduleDrawerApi] = useVbenDrawer({
-  connectedComponent: DateScheduleList,
+const [BatchFormModal, batchFormModalApi] = useVbenModal({
+  connectedComponent: BatchForm,
   destroyOnClose: true,
 });
 
-/** 新增：日历传入的日期作为工作日期默认值 */
-function handleCreate(workDate?: string) {
-  dateScheduleDrawerApi.close();
-  formModalApi.setData(workDate ? { workDate } : null).open();
+/** 新增：矩阵传入的资源与日期作为默认值 */
+function handleCreate(payload?: { resId?: number; workDate?: string }) {
+  formModalApi.setData(payload ?? null).open();
 }
 
 /** 编辑 */
 function handleEdit(id: number) {
-  dateScheduleDrawerApi.close();
   formModalApi.setData({ id }).open();
 }
 
-/** 查看当天的全部资源安排，由用户选择需要编辑的记录 */
-function handleView(workDate: string) {
-  dateScheduleDrawerApi.setData({ workDate }).open();
+/** 批量排班：默认带上矩阵当前的日期区间与勾选资源 */
+function handleBatch(payload: {
+  dateFrom: string;
+  dateTo: string;
+  resIds: number[];
+}) {
+  batchFormModalApi.setData(payload).open();
 }
 
 /** 保存成功后两个 Tab 都刷新，避免数据陈旧 */
 function handleSuccess() {
-  calendarRef.value?.refresh();
+  matrixRef.value?.refresh();
   listRef.value?.refresh();
-}
-
-/** 日历从隐藏的标签页恢复时，主动重算尺寸避免网格错位 */
-async function handleTabChange(tabName: string | number) {
-  if (tabName !== 'calendar') {
-    return;
-  }
-  await nextTick();
-  calendarRef.value?.updateSize();
 }
 </script>
 
 <template>
   <Page auto-content-height content-class="flex flex-col overflow-hidden">
     <FormModal @success="handleSuccess" />
-    <DateScheduleDrawer
-      @create="handleCreate"
-      @edit="handleEdit"
-      @success="handleSuccess"
-    />
+    <BatchFormModal @success="handleSuccess" />
     <ElTabs
       v-model="activeTabName"
       class="res-calendar-tabs flex min-h-0 flex-1 flex-col overflow-hidden [&_.el-tab-pane]:h-full [&_.el-tabs__content]:min-h-0 [&_.el-tabs__content]:flex-1 [&_.el-tabs__header]:shrink-0"
-      @tab-change="handleTabChange"
     >
-      <ElTabPane class="h-full overflow-hidden" name="calendar" label="日历">
-        <CalendarView
-          ref="calendarRef"
+      <ElTabPane class="h-full overflow-hidden" name="matrix" label="排班矩阵">
+        <ScheduleMatrix
+          ref="matrixRef"
+          @batch="handleBatch"
           @create="handleCreate"
           @edit="handleEdit"
-          @view="handleView"
         />
       </ElTabPane>
       <ElTabPane class="h-full" name="list" label="列表" lazy>

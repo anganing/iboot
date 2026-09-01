@@ -5,6 +5,8 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.controller.admin.res.vo.ResPageReqVO;
 import com.iboot.pf.module.mdm.controller.admin.res.vo.ResRespVO;
 import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSaveReqVO;
+import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSimpleListReqVO;
+import com.iboot.pf.module.mdm.controller.admin.res.vo.ResSimpleRespVO;
 import com.iboot.pf.module.mdm.dal.dataobject.res.ResDO;
 import com.iboot.pf.module.mdm.dal.mysql.res.ResMapper;
 import com.iboot.pf.module.mdm.dal.mysql.rescapability.ResCapabilityMapper;
@@ -119,6 +121,11 @@ public class ResServiceImpl implements ResService {
             return List.of();
         }
         return resMapper.selectList(ResDO::getPlantId, plantId);
+    }
+
+    @Override
+    public List<ResSimpleRespVO> getResSimpleList(ResSimpleListReqVO reqVO) {
+        return resMapper.selectSimpleList(reqVO);
     }
 
 }

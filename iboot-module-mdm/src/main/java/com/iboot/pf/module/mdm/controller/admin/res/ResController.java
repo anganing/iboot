@@ -86,6 +86,13 @@ public class ResController {
         return success(resService.getResPage(pageReqVO));
     }
 
+    @GetMapping("/simple-list")
+    @Operation(summary = "获得生产资源精简列表", description = "只返回编号、编码、名称等必要字段，供排班矩阵等场景一次加载全量资源")
+    @PreAuthorize("@ss.hasPermission('mdm:res:query')")
+    public CommonResult<List<ResSimpleRespVO>> getResSimpleList(@Valid ResSimpleListReqVO reqVO) {
+        return success(resService.getResSimpleList(reqVO));
+    }
+
     @GetMapping("/export-excel")
     @Operation(summary = "导出生产资源 Excel")
     @PreAuthorize("@ss.hasPermission('mdm:res:export')")

@@ -75,11 +75,12 @@ const [Modal, modalApi] = useVbenModal({
     if (!data) {
       return;
     }
-    // 新增场景：日历点击空白日期时预填工作日期
     if (!data.id) {
-      if (data.workDate) {
-        await formApi.setValues({ workDate: data.workDate });
-      }
+      // 新增场景：矩阵点击空白格时预填资源与工作日期
+      await formApi.setValues({
+        ...(data.resId ? { resId: data.resId } : {}),
+        ...(data.workDate ? { workDate: data.workDate } : {}),
+      });
       return;
     }
     modalApi.lock();

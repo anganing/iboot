@@ -45,6 +45,14 @@ public class ResCalendarController {
         return success(resCalendarService.createResCalendar(createReqVO));
     }
 
+    @PostMapping("/save-batch")
+    @Operation(summary = "批量排班", description = "按资源与日期区间逐日写入，已存在同资源同日期的记录整体覆盖")
+    @PreAuthorize("@ss.hasPermission('mdm:res-calendar:create')")
+    public CommonResult<ResCalendarBatchSaveRespVO> saveResCalendarBatch(
+            @Valid @RequestBody ResCalendarBatchSaveReqVO batchReqVO) {
+        return success(resCalendarService.saveResCalendarBatch(batchReqVO));
+    }
+
     @PutMapping("/update")
     @Operation(summary = "更新资源日历")
     @PreAuthorize("@ss.hasPermission('mdm:res-calendar:update')")

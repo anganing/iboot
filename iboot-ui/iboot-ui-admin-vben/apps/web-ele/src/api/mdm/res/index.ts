@@ -21,6 +21,16 @@ export namespace MdmResApi {
     status?: number; // 状态
     remark: string; // 备注
   }
+
+  /** 生产资源精简信息 */
+  export interface ResSimple {
+    id: number; // 主键
+    code?: string; // 编码
+    name?: string; // 名称
+    resType?: string; // 资源类型
+    wcId?: number; // 工作中心编号
+    wcName?: string; // 工作中心名称
+  }
 }
 
 /** 查询生产资源分页 */
@@ -33,6 +43,17 @@ export function getResPage(params: PageParam) {
 /** 查询生产资源详情 */
 export function getRes(id: number) {
   return requestClient.get<MdmResApi.Res>(`/mdm/res/get?id=${id}`);
+}
+
+/** 查询生产资源精简列表（供排班矩阵等场景一次加载全量资源行） */
+export function getResSimpleList(params?: {
+  resType?: string;
+  status?: number;
+  wcId?: number;
+}) {
+  return requestClient.get<MdmResApi.ResSimple[]>('/mdm/res/simple-list', {
+    params,
+  });
 }
 
 /** 新增生产资源 */

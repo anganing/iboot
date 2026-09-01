@@ -22,6 +22,8 @@ public interface ErrorCodeConstants {
     ErrorCode WC_NOT_EXISTS = new ErrorCode(1_062_007_000, "工作中心不存在");
     ErrorCode RES_NOT_EXISTS = new ErrorCode(1_062_008_000, "资源不存在");
     ErrorCode RES_CALENDAR_NOT_EXISTS = new ErrorCode(1_062_009_000, "资源日历不存在");
+    ErrorCode RES_CALENDAR_DATE_RANGE_INVALID = new ErrorCode(1_062_009_001, "工作日期开始不能晚于结束");
+    ErrorCode RES_CALENDAR_BATCH_EMPTY = new ErrorCode(1_062_009_002, "所选日期区间与星期没有交集，没有需要排班的日期");
     ErrorCode SHIFT_NOT_EXISTS = new ErrorCode(1_062_010_000, "班次不存在");
     ErrorCode CUSTOMER_NOT_EXISTS = new ErrorCode(1_062_011_000, "客户不存在");
     ErrorCode SUPPLIER_NOT_EXISTS = new ErrorCode(1_062_012_000, "供应商不存在");

@@ -75,4 +75,12 @@ public interface ResService {
      */
     List<ResDO> getResListByPlantId(Long plantId);
 
+    /**
+     * 获得生产资源精简列表，供排班矩阵等场景一次拉全量资源行
+     *
+     * @param reqVO 查询条件
+     * @return 生产资源精简列表
+     */
+    List<ResSimpleRespVO> getResSimpleList(ResSimpleListReqVO reqVO);
+
 }

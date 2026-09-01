@@ -1,6 +1,8 @@
 package com.iboot.pf.module.mdm.service.rescalendar;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarBatchSaveReqVO;
+import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarBatchSaveRespVO;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarListReqVO;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarRespVO;
 import com.iboot.pf.module.mdm.controller.admin.rescalendar.vo.ResCalendarSaveReqVO;
@@ -20,6 +22,9 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_CALENDAR_BATCH_EMPTY;
+import static com.iboot.pf.module.mdm.enums.ErrorCodeConstants.RES_CALENDAR_DATE_RANGE_INVALID;
 
 @Import(ResCalendarServiceImpl.class)
 class ResCalendarServiceImplTest extends BaseDbUnitTest {
@@ -108,6 +113,55 @@ class ResCalendarServiceImplTest extends BaseDbUnitTest {
         resCalendarService.updateResCalendar(updateReqVO);
 
         assertEquals(360, resCalendarService.getResCalendar(id).getAvailableMinutes());
+    }
+
+    @Test
+    void testSaveResCalendarBatch_expandsDatesForEachRes() {
+        // 2026-09-07 是周一，区间取整周，只排周一到周五
+        ResCalendarBatchSaveRespVO respVO = resCalendarService.saveResCalendarBatch(buildBatchReqVO(
+                List.of(resId, otherResId), LocalDate.of(2026, 9, 7), LocalDate.of(2026, 9, 13),
+                List.of(1, 2, 3, 4, 5), 480));
+
+        // 2 个资源 × 5 个工作日
+        assertEquals(10, respVO.getCreateCount());
+        assertEquals(0, respVO.getUpdateCount());
+        assertEquals(10, resCalendarService.getResCalendarList(
+                buildListReqVO(null, LocalDate.of(2026, 9, 7), LocalDate.of(2026, 9, 13))).size());
+    }
+
+    @Test
+    void testSaveResCalendarBatch_overwritesExistingDate() {
+        Long id = createResCalendar(resId, DATE_IN, 480);
+
+        ResCalendarBatchSaveRespVO respVO = resCalendarService.saveResCalendarBatch(buildBatchReqVO(
+                List.of(resId), DATE_IN, DATE_IN, null, 360));
+
+        assertEquals(0, respVO.getCreateCount());
+        assertEquals(1, respVO.getUpdateCount());
+        assertEquals(360, resCalendarService.getResCalendar(id).getAvailableMinutes());
+    }
+
+    @Test
+    void testSaveResCalendarBatch_rejectsInvalidInput() {
+        assertServiceException(() -> resCalendarService.saveResCalendarBatch(buildBatchReqVO(
+                List.of(resId), DATE_OUT, DATE_IN, null, 480)), RES_CALENDAR_DATE_RANGE_INVALID);
+
+        // 2026-09-07 至 2026-09-11 为周一到周五，指定只排周日时没有可排日期
+        assertServiceException(() -> resCalendarService.saveResCalendarBatch(buildBatchReqVO(
+                List.of(resId), LocalDate.of(2026, 9, 7), LocalDate.of(2026, 9, 11),
+                List.of(7), 480)), RES_CALENDAR_BATCH_EMPTY);
+    }
+
+    private ResCalendarBatchSaveReqVO buildBatchReqVO(List<Long> resIds, LocalDate dateFrom, LocalDate dateTo,
+            List<Integer> weekdays, Integer availableMinutes) {
+        ResCalendarBatchSaveReqVO reqVO = new ResCalendarBatchSaveReqVO();
+        reqVO.setResIds(resIds);
+        reqVO.setDateFrom(dateFrom);
+        reqVO.setDateTo(dateTo);
+        reqVO.setWeekdays(weekdays);
+        reqVO.setShiftId(shiftId);
+        reqVO.setAvailableMinutes(availableMinutes);
+        return reqVO;
     }
 
     private Long createResCalendar(Long calendarResId, LocalDate workDate, Integer availableMinutes) {
