@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { GanttGranularity, GanttGroupBy } from '../data';
+import type { GanttGranularity, GanttGroupBy, GanttTooltip } from '../data';
 
 import type { ApsTaskApi } from '#/api/aps/task';
 
@@ -13,8 +13,6 @@ import {
 } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
-import { DICT_TYPE } from '@vben/constants';
-import { getDictLabel } from '@vben/hooks';
 import { IconifyIcon } from '@vben/icons';
 import { formatDate, formatDateTime } from '@vben/utils';
 
@@ -36,14 +34,19 @@ import { getTaskGantt } from '#/api/aps/task';
 import AdjustForm from '#/views/aps/task/modules/adjust-form.vue';
 
 import {
+  buildOrderTooltip,
+  buildResourceTooltip,
+  buildTaskTooltip,
   DEFAULT_GROUP_BY,
+  formatHours,
   getColWidth,
   getScales,
-  getTaskBarColor,
   getTaskListColumns,
   GRANULARITY_OPTIONS,
   GROUP_BY_OPTIONS,
+  resolveTaskBarColor,
   TASK_BAR_COLOR,
+  TOOLTIP_TONE_CLASS,
 } from '../data';
 
 /**
@@ -67,17 +70,24 @@ const DEP_TYPE_MAP: Record<string, TYPES.DependencyType> = {
 /** 已冻结的版本不允许调整任务，和后端 validateMutable 的口径保持一致 */
 const IMMUTABLE_STATUS = new Set(['PUBLISHED', 'REPLACED']);
 
+/** 悬浮详情与光标的间距，别贴着光标以免挡住任务条本身 */
+const TOOLTIP_GAP = 14;
+/** 悬浮详情与容器边缘的留白 */
+const TOOLTIP_EDGE = 8;
+
 const containerRef = ref<HTMLDivElement>();
 // 用 shallowRef：Gantt 实例内部持有 canvas 与场景树，深度响应式代理会拖慢渲染
 const ganttInstance = shallowRef<Gantt>();
+const tooltipRef = ref<HTMLDivElement>();
 /** 悬浮详情：canvas 上画不出 HTML 浮层，用绝对定位的 div 跟着鼠标走 */
 const tooltip = ref<{
+  detail?: GanttTooltip;
   left: number;
-  rows: Array<{ label: string; value: string }>;
-  title: string;
   top: number;
   visible: boolean;
-}>({ left: 0, rows: [], title: '', top: 0, visible: false });
+}>({ left: 0, top: 0, visible: false });
+// 光标在容器内的坐标，翻转与夹边都要拿它重算，所以单独留着而不是只存最终位置
+let tooltipCursor = { x: 0, y: 0 };
 const granularity = ref<GanttGranularity>('day');
 const groupBy = ref<GanttGroupBy>(DEFAULT_GROUP_BY);
 // 默认收起：一键展开后行数等于任务数，几百道工序的版本会拉出很长一屏
@@ -125,18 +135,7 @@ function buildResourceRecords(data: ApsTaskApi.Gantt) {
     name: group.resName || group.resCode || String(group.resId),
     summary: `${group.taskCount ?? 0} 道 / ${formatHours(group.loadMinutes)}`,
     hierarchyState: hierarchyState(),
-    tooltip: {
-      title: group.resName || group.resCode || String(group.resId),
-      rows: [
-        { label: '资源编码', value: group.resCode || '-' },
-        { label: '工序道数', value: `${group.taskCount ?? 0} 道` },
-        { label: '计划负荷', value: formatHours(group.loadMinutes) },
-        {
-          label: '占用区间',
-          value: formatRange(group.planStartTime, group.planEndTime),
-        },
-      ],
-    },
+    tooltip: buildResourceTooltip(group),
     children: (taskMap.get(group.resId) ?? []).map((task) =>
       toTaskRecord(task, task.prodOrderNo ?? ''),
     ),
@@ -158,25 +157,7 @@ function buildOrderRecords(data: ApsTaskApi.Gantt) {
     hierarchyState: hierarchyState(),
     // 工单超期时整组任务条标红：超期是要立刻被看见的信号，不该藏在文字里
     delayFlag: group.delayFlag,
-    tooltip: {
-      title: group.prodOrderNo || '未关联工单',
-      rows: [
-        { label: '生产物料', value: joinText(group.matCode, group.matName) },
-        { label: '交期', value: group.dueDate ? formatDateTime(group.dueDate) : '无交期' },
-        {
-          label: '计划完工',
-          value: group.planEndTime ? formatDateTime(group.planEndTime) : '-',
-        },
-        {
-          label: '交期风险',
-          value: group.delayFlag
-            ? `超期 ${formatHours(group.delayMinutes)}`
-            : '未超期',
-        },
-        { label: '工序道数', value: `${group.taskCount ?? 0} 道` },
-        { label: '计划工时', value: formatHours(group.loadMinutes) },
-      ],
-    },
+    tooltip: buildOrderTooltip(group),
     children: (taskMap.get(group.prodOrderId) ?? []).map((task) =>
       toTaskRecord(task, task.resName || task.resCode || '', group.delayFlag),
     ),
@@ -225,31 +206,11 @@ function toTaskRecord(
     startDate: formatDateTime(task.startTime),
     endDate: formatDateTime(task.endTime),
     delayFlag,
-    tooltip: {
-      title: `${task.opCode ?? ''} ${task.opName ?? ''}`.trim() || '排程任务',
-      rows: [
-        { label: '任务编号', value: task.taskNo || '-' },
-        { label: '生产工单', value: task.prodOrderNo || '-' },
-        {
-          label: '生产资源',
-          value: joinText(task.resCode, task.resName),
-        },
-        { label: '项目', value: task.projectName || '-' },
-        {
-          label: '计划时间',
-          value: formatRange(task.startTime, task.endTime),
-        },
-        { label: '计划工时', value: formatHours(task.durationMinutes) },
-        {
-          label: '换型损失',
-          value: (task.changeoverMinutes ?? 0) > 0
-            ? formatHours(task.changeoverMinutes)
-            : '无',
-        },
-        { label: '资源内顺序', value: `第 ${task.sequenceNo ?? '-'} 位` },
-        { label: '任务状态', value: getTaskStatusText(task) },
-      ],
-    },
+    tooltip: buildTaskTooltip(task, {
+      delayFlag,
+      editable: editable.value,
+      groupBy: groupBy.value,
+    }),
     raw: task,
   };
 }
@@ -258,18 +219,10 @@ function hierarchyState() {
   return expanded.value ? 'expand' : 'collapse';
 }
 
-/**
- * 任务条颜色。
- *
- * <p>工单维度下超期优先：一张工单只要交不上，它下面的工序先要被看见，再谈是否含换型。
- * 资源维度不看超期，那个视图关心的是设备占用与冲突。
- */
+/** 任务条颜色，配色规则沉在 data.ts 里和悬浮详情共用一份口径 */
 function resolveBarColor(taskRecord: any) {
-  if (groupBy.value === 'order' && taskRecord?.delayFlag) {
-    return TASK_BAR_COLOR.delayed;
-  }
   return taskRecord?.raw
-    ? getTaskBarColor(taskRecord.raw)
+    ? resolveTaskBarColor(taskRecord.raw, groupBy.value, taskRecord.delayFlag)
     : TASK_BAR_COLOR.planned;
 }
 
@@ -326,35 +279,6 @@ function renderTaskBarLabel({
     } as any),
   );
   return { rootContainer: container, renderDefaultBar: false, renderDefaultText: false };
-}
-
-function formatHours(minutes?: number) {
-  return `${((minutes ?? 0) / 60).toFixed(1)} h`;
-}
-
-/** 拼「编码 · 名称」，两者都空时给占位 */
-function joinText(...parts: Array<string | undefined>) {
-  return parts.filter(Boolean).join(' · ') || '-';
-}
-
-/** 时间区间，缺一头就只显示已有的那一头 */
-function formatRange(start?: number | string, end?: number | string) {
-  if (!start && !end) {
-    return '-';
-  }
-  return `${start ? formatDateTime(start) : '-'} ~ ${end ? formatDateTime(end) : '-'}`;
-}
-
-/** 任务状态中文：走字典而不是在这里硬编码映射表 */
-function getTaskStatusText(task: ApsTaskApi.GanttTask) {
-  const label = task.status
-    ? getDictLabel(DICT_TYPE.APS_TASK_STATUS, task.status)
-    : '';
-  const flags = [label || task.status || '-'];
-  if (task.lockedFlag) {
-    flags.push('已锁定');
-  }
-  return flags.join(' / ');
 }
 
 /** 按天平移时间轴边界，用来给时间窗留出余量 */
@@ -505,19 +429,47 @@ async function renderGantt() {
  * <p>canvas 里画不出 HTML 浮层，所以用一个绝对定位的 div 跟着鼠标走。位置取自原生事件的
  * clientX/clientY 再换算成容器内坐标：Gantt 的 offset 是画布坐标，横向滚动后会和屏幕位置错开。
  */
-function handleTaskBarEnter({ record, event }: { event: MouseEvent; record: any }) {
-  const detail = record?.tooltip;
+async function handleTaskBarEnter({
+  record,
+  event,
+}: {
+  event: MouseEvent;
+  record: any;
+}) {
+  const detail = record?.tooltip as GanttTooltip | undefined;
   const box = containerRef.value?.getBoundingClientRect();
   if (!detail || !box) {
     return;
   }
-  tooltip.value = {
-    // 往右下偏一点，避免浮层压在光标下面挡住任务条本身
-    left: event.clientX - box.left + 14,
-    top: event.clientY - box.top + 14,
-    rows: detail.rows ?? [],
-    title: detail.title ?? '',
-    visible: true,
+  tooltipCursor = { x: event.clientX - box.left, y: event.clientY - box.top };
+  // 先只换内容不显形：浮层高度随行数变化，摆位要等它按新内容量出尺寸
+  tooltip.value = { ...tooltip.value, detail };
+  await nextTick();
+  tooltip.value = { ...tooltip.value, ...placeTooltip(), visible: true };
+}
+
+/**
+ * 浮层落点。
+ *
+ * <p>默认贴光标右下方，那一侧放不下就翻到另一侧，最后再夹回容器内。甘特图容器是
+ * overflow-hidden，越界的浮层会被直接裁掉，而最需要看详情的任务条常常正好排在最右、最下。
+ */
+function placeTooltip() {
+  const box = containerRef.value?.getBoundingClientRect();
+  const panel = tooltipRef.value?.getBoundingClientRect();
+  const width = panel?.width ?? 0;
+  const height = panel?.height ?? 0;
+  let left = tooltipCursor.x + TOOLTIP_GAP;
+  let top = tooltipCursor.y + TOOLTIP_GAP;
+  if (box && left + width > box.width - TOOLTIP_EDGE) {
+    left = tooltipCursor.x - TOOLTIP_GAP - width;
+  }
+  if (box && top + height > box.height - TOOLTIP_EDGE) {
+    top = tooltipCursor.y - TOOLTIP_GAP - height;
+  }
+  return {
+    left: Math.max(left, TOOLTIP_EDGE),
+    top: Math.max(top, TOOLTIP_EDGE),
   };
 }
 
@@ -727,21 +679,88 @@ onBeforeUnmount(releaseGantt);
         class="absolute inset-0"
         style="position: absolute"
       ></div>
-      <!-- 任务详情浮层：canvas 内画不出 HTML，位置由 mouseenter_task_bar 事件算出来 -->
+      <!--
+        任务详情浮层：canvas 内画不出 HTML，位置由 mouseenter_task_bar 事件算出来。
+        用 invisible 而不是 v-if 收起：翻转落点要先量出浮层尺寸，display:none 量出来是 0。
+      -->
       <div
-        v-if="tooltip.visible"
-        class="bg-card border-border pointer-events-none absolute z-10 max-w-[340px] rounded border p-2 text-xs shadow-lg"
+        ref="tooltipRef"
+        class="bg-popover text-popover-foreground border-border pointer-events-none absolute z-10 w-[300px] overflow-hidden rounded-md border shadow-lg transition-opacity duration-150"
+        :class="tooltip.visible ? 'opacity-100' : 'invisible opacity-0'"
         :style="{ left: `${tooltip.left}px`, top: `${tooltip.top}px` }"
       >
-        <div class="mb-1 font-medium">{{ tooltip.title }}</div>
-        <div
-          v-for="row in tooltip.rows"
-          :key="row.label"
-          class="flex gap-2 leading-5"
-        >
-          <span class="text-muted-foreground shrink-0">{{ row.label }}</span>
-          <span class="break-all">{{ row.value }}</span>
-        </div>
+        <template v-if="tooltip.detail">
+          <div class="flex items-start gap-2 px-3 pb-2 pt-2.5">
+            <span
+              class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded"
+              :style="{ backgroundColor: tooltip.detail.color }"
+            >
+              <IconifyIcon
+                :icon="tooltip.detail.icon"
+                class="size-3.5 text-white"
+              />
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium leading-5">
+                {{ tooltip.detail.title }}
+              </div>
+              <div
+                v-if="tooltip.detail.subtitle"
+                class="text-muted-foreground truncate text-xs leading-4"
+              >
+                {{ tooltip.detail.subtitle }}
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="tooltip.detail.tags.length > 0"
+            class="flex flex-wrap gap-1 px-3 pb-2"
+          >
+            <ElTag
+              v-for="tag in tooltip.detail.tags"
+              :key="tag.text"
+              disable-transitions
+              size="small"
+              :type="tag.type"
+            >
+              {{ tag.text }}
+            </ElTag>
+          </div>
+          <!-- 时间条：起止时间是移入后第一眼要找的信息，单独一行给足权重 -->
+          <div
+            v-if="tooltip.detail.timeline"
+            class="bg-muted mx-3 mb-2 flex items-center gap-1.5 rounded px-2 py-1.5 text-xs"
+          >
+            <span class="font-medium">{{ tooltip.detail.timeline.start }}</span>
+            <IconifyIcon
+              icon="lucide:arrow-right"
+              class="text-muted-foreground size-3 shrink-0"
+            />
+            <span class="font-medium">{{ tooltip.detail.timeline.end }}</span>
+            <span class="text-muted-foreground ml-auto">
+              {{ tooltip.detail.timeline.duration }}
+            </span>
+          </div>
+          <div
+            class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 pb-2.5 text-xs"
+          >
+            <template v-for="row in tooltip.detail.rows" :key="row.label">
+              <span class="text-muted-foreground">{{ row.label }}</span>
+              <span
+                class="break-all text-right"
+                :class="TOOLTIP_TONE_CLASS[row.tone ?? 'default']"
+              >
+                {{ row.value }}
+              </span>
+            </template>
+          </div>
+          <div
+            v-if="tooltip.detail.hint"
+            class="border-border text-muted-foreground border-t px-3 py-1.5 text-[11px]"
+          >
+            {{ tooltip.detail.hint }}
+          </div>
+        </template>
       </div>
       <ElEmpty
         v-if="!hasData"
