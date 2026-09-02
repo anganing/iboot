@@ -285,9 +285,6 @@ catalogs:
     defu:
       specifier: ^6.1.7
       version: 6.1.7
-    dhtmlx-gantt:
-      specifier: ^9.1.4
-      version: 9.1.4
     diagram-js:
       specifier: ^15.14.0
       version: 15.18.0
@@ -825,9 +822,6 @@ importers:
       dayjs:
         specifier: 'catalog:'
         version: 1.11.21
-      dhtmlx-gantt:
-        specifier: 'catalog:'
-        version: 9.1.4
       diagram-js:
         specifier: 'catalog:'
         version: 15.18.0
@@ -7433,9 +7427,6 @@ packages:
 
   devalue@5.8.1:
     resolution: {integrity: sha512-4CXDYRBGqN+57wVJkuXBYmpAVUSg3L6JAQa/DFqm238G73E1wuyc/JhGQJzN7vUf/CMphYau2zXbfWzDR5aTEw==}
-
-  dhtmlx-gantt@9.1.4:
-    resolution: {integrity: sha512-XCNA5QUiuV79Xq1ykNpH9LFNR2IVpDZMqnmBV6dsBeOkHyPMOpkyQ/gqAPCcK2GAvYHoN2nGAMYb2LldCWhMuQ==}
 
   diagram-js-direct-editing@3.4.0:
     resolution: {integrity: sha512-eXfd+nxJr5xt3YlCrs+E53mPi+gqBWRBkAXkR99ZPL7Pl0B3H5nkv/uiwx4Q4vJU/Sp8Jy3zVdhP/Y2c6loTjw==}
@@ -17829,8 +17820,6 @@ snapshots:
   detect-libc@2.1.2: {}
 
   devalue@5.8.1: {}
-
-  dhtmlx-gantt@9.1.4: {}
 
   diagram-js-direct-editing@3.4.0(diagram-js@15.18.0):
     dependencies:
