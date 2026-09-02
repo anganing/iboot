@@ -16,6 +16,7 @@ import {
   WORKSHOP_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
+import { DATETIME_PROPS } from '../form-props';
 import { APS_VERSION_RELATION_PROPS } from '../relation-config';
 
 /** 人工调整的表单：只允许改资源、计划时间与执行顺序 */
@@ -70,26 +71,14 @@ export function useAdjustFormSchema(): VbenFormSchema[] {
       label: '计划开始时间',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        class: '!w-full',
-        format: 'YYYY-MM-DD HH:mm:ss',
-        showTime: true,
-        type: 'datetime',
-        valueFormat: 'YYYY-MM-DD HH:mm:ss',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划开始时间' },
     },
     {
       fieldName: 'endTime',
       label: '计划结束时间',
       rules: 'required',
       component: 'DatePicker',
-      componentProps: {
-        class: '!w-full',
-        format: 'YYYY-MM-DD HH:mm:ss',
-        showTime: true,
-        type: 'datetime',
-        valueFormat: 'YYYY-MM-DD HH:mm:ss',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划结束时间' },
     },
     {
       fieldName: 'remark',

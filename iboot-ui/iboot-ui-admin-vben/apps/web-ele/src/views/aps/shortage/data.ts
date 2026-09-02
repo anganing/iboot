@@ -11,6 +11,7 @@ import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 import { MAT_RELATION_PROPS, PROJECT_RELATION_PROPS } from '#/views/mdm/relation-config';
 
+import { DATETIME_PROPS } from '../form-props';
 import { APS_VERSION_RELATION_PROPS } from '../relation-config';
 
 /** 缺料处理表单：数量与状态由库存投影重算，人工只补供给预期和备注。 */
@@ -43,13 +44,7 @@ export function useHandleFormSchema(): VbenFormSchema[] {
       fieldName: 'expectedSupplyDate',
       label: '预计供给时间',
       component: 'DatePicker',
-      componentProps: {
-        class: '!w-full',
-        format: 'YYYY-MM-DD HH:mm:ss',
-        showTime: true,
-        type: 'datetime',
-        valueFormat: 'YYYY-MM-DD HH:mm:ss',
-      },
+      componentProps: { ...DATETIME_PROPS, placeholder: '请选择预计供给时间' },
     },
     {
       fieldName: 'remark',

@@ -9,7 +9,7 @@ import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
-import { PLANT_RELATION_PROPS, WC_RELATION_PROPS, WORKSHOP_RELATION_PROPS, RES_RELATION_PROPS } from '#/views/mdm/relation-config';
+import { PLANT_RELATION_PROPS, RES_RELATION_PROPS, WC_RELATION_PROPS, WORKSHOP_RELATION_PROPS } from '#/views/mdm/relation-config';
 import { SHIFT_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 import { APS_SCENARIO_RELATION_PROPS } from '../relation-config';
