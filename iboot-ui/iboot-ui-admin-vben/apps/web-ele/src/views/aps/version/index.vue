@@ -15,6 +15,7 @@ import {
   publishVersion,
 } from '#/api/aps/version';
 import { $t } from '#/locales';
+import GanttModal from '#/views/aps/gantt/modules/gantt-modal.vue';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import GenerateForm from './modules/generate-form.vue';
@@ -22,6 +23,11 @@ import SolveProgressDrawer from './modules/solve-progress-drawer.vue';
 
 const [GenerateModal, generateModalApi] = useVbenModal({
   connectedComponent: GenerateForm,
+  destroyOnClose: true,
+});
+
+const [VersionGanttModal, versionGanttModalApi] = useVbenModal({
+  connectedComponent: GanttModal,
   destroyOnClose: true,
 });
 
@@ -52,6 +58,16 @@ function handleGenerated(versionId: number) {
 /** 查看某个版本的求解进度，支持刷新页面后回来接着看 */
 function handleViewProgress(row: ApsVersionApi.Version) {
   progressDrawerApi.setData({ versionId: row.id }).open();
+}
+
+/** 查看某个版本的排程甘特图，标题带上场景与版本号，全屏弹窗里不再重复选版本 */
+function handleViewGantt(row: ApsVersionApi.Version) {
+  versionGanttModalApi
+    .setData({
+      versionId: row.id,
+      title: `${row.scenarioName || row.scenarioCode || ''} V${row.versionNo ?? ''}`,
+    })
+    .open();
 }
 
 /** 确认排程版本 */
@@ -119,6 +135,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <GenerateModal @success="handleGenerated" />
     <ProgressDrawer @finished="handleRefresh" />
+    <VersionGanttModal />
     <Grid table-title="排程版本列表">
       <template #toolbar-tools>
         <TableAction
@@ -150,6 +167,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.VIEW,
               auth: ['aps:version:query'],
               onClick: handleViewProgress.bind(null, row),
+            },
+            {
+              label: '甘特图',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:chart-gantt',
+              auth: ['aps:task:query'],
+              onClick: handleViewGantt.bind(null, row),
             },
             {
               label: '确认',

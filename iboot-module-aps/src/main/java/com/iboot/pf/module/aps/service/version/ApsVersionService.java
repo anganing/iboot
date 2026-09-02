@@ -38,6 +38,22 @@ public interface ApsVersionService {
     PageResult<VersionRespVO> getVersionPage(VersionPageReqVO pageReqVO);
 
     /**
+     * 获得场景当前已发布的排程版本，供车间侧"看生效计划"使用
+     *
+     * @param scenarioId 场景编号
+     * @return 已发布版本；场景还没有发布过版本时返回 {@code null}
+     */
+    VersionRespVO getPublishedVersion(Long scenarioId);
+
+    /**
+     * 获得场景下曾经生效过的排程版本列表（已发布与已被替换），最新在前
+     *
+     * @param scenarioId 场景编号
+     * @return 版本列表
+     */
+    List<VersionRespVO> getEffectiveVersionList(Long scenarioId);
+
+    /**
      * 生成排程版本
      *
      * @param reqDTO 命令

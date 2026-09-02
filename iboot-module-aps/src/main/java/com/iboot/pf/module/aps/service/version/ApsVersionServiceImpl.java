@@ -2,6 +2,7 @@ package com.iboot.pf.module.aps.service.version;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.ReplaceVersionReqDTO;
@@ -69,6 +70,41 @@ public class ApsVersionServiceImpl implements ApsVersionService {
         PageResult<VersionRespVO> pageResult = versionMapper.selectPage(pageReqVO);
         fillRelationNames(pageResult.getList());
         return pageResult;
+    }
+
+    /**
+     * 场景当前生效的排程版本。
+     *
+     * <p>给车间侧的"看生效计划"用：让不参与排程评审的人从场景直接落到已发布版本，
+     * 而不是在一堆求解失败、已被替换的版本里自己挑。场景还没发布过版本时返回 {@code null} 而不是抛异常，
+     * 因为"这个场景还没发布计划"是正常状态，不是错误。
+     */
+    @Override
+    public VersionRespVO getPublishedVersion(Long scenarioId) {
+        if (scenarioId == null) {
+            return null;
+        }
+        ApsVersionDO published = versionMapper.selectPublishedByScenarioId(scenarioId,
+                ApsVersionStatusEnum.PUBLISHED.name());
+        return published == null ? null : getVersion(published.getId());
+    }
+
+    /**
+     * 场景下曾经生效过的版本。
+     *
+     * <p>只含已发布与已被替换：车间侧回看历史计划时，求解失败与待确认的版本从来没有下过车间，
+     * 把它们混进来会让人误以为那也曾是一份计划。
+     */
+    @Override
+    public List<VersionRespVO> getEffectiveVersionList(Long scenarioId) {
+        if (scenarioId == null) {
+            return Collections.emptyList();
+        }
+        List<ApsVersionDO> list = versionMapper.selectEffectiveListByScenarioId(scenarioId,
+                List.of(ApsVersionStatusEnum.PUBLISHED.name(), ApsVersionStatusEnum.REPLACED.name()));
+        List<VersionRespVO> respList = BeanUtils.toBean(list, VersionRespVO.class);
+        fillRelationNames(respList);
+        return respList;
     }
 
     @Override

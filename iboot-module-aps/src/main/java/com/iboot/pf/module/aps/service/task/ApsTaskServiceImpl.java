@@ -20,6 +20,7 @@ import com.iboot.pf.module.aps.enums.ApsTaskStatusEnum;
 import com.iboot.pf.module.aps.service.command.ApsCommandService;
 import com.iboot.pf.module.aps.service.snapshot.ApsRelationFiller;
 import com.iboot.pf.module.aps.service.snapshot.ApsSnapshotService;
+import com.iboot.pf.module.aps.service.task.bo.ApsGanttOrderGroupBO;
 import com.iboot.pf.module.aps.service.version.ApsVersionService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -95,6 +96,8 @@ public class ApsTaskServiceImpl implements ApsTaskService {
      *
      * <p>依赖连线只保留两端任务都在本版本内的边：{@code aps_task_dep} 与 {@code aps_task} 每轮求解
      * 一起物理重建，理论上不会有悬空引用，但人工维护依赖时可能删掉任务，前端拿到悬空边会画出错位的线。
+     *
+     * <p>任务平铺返回，另给资源与工单两套分组元数据，让前端在同一份数据上切换维度，不必为换维度多打一次请求。
      */
     @Override
     public TaskGanttRespVO getTaskGantt(Long versionId) {
@@ -114,7 +117,9 @@ public class ApsTaskServiceImpl implements ApsTaskService {
         if (tasks.isEmpty()) {
             return respVO;
         }
-        respVO.setResources(buildResources(tasks));
+        respVO.setTasks(buildGanttTasks(tasks));
+        respVO.setResourceGroups(buildResourceGroups(tasks));
+        respVO.setOrderGroups(buildOrderGroups(versionId));
         respVO.setMinTime(tasks.stream().map(ApsTaskDO::getStartTime).filter(Objects::nonNull)
                 .min(Comparator.naturalOrder()).orElse(null));
         respVO.setMaxTime(tasks.stream().map(ApsTaskDO::getEndTime).filter(Objects::nonNull)
@@ -264,33 +269,95 @@ public class ApsTaskServiceImpl implements ApsTaskService {
         relationFiller.fillResName(list, TaskRespVO::getResId, TaskRespVO::setResName);
     }
 
-    /** 按资源分组成甘特图的行，资源名称与项目名称走门面批量补全，不做 N+1。 */
-    private List<TaskGanttRespVO.Resource> buildResources(List<ApsTaskDO> tasks) {
-        Map<Long, TaskGanttRespVO.Resource> resourceMap = new LinkedHashMap<>();
-        List<TaskGanttRespVO.Task> flatTasks = new ArrayList<>();
+    /**
+     * 任务条平铺，资源名称与项目名称走门面批量补全，不做 N+1。
+     *
+     * <p>资源名称补在每条任务上而不是只补在分组上：工单维度下父行是工单，任务条自己得说明"在哪台设备做"。
+     */
+    private List<TaskGanttRespVO.Task> buildGanttTasks(List<ApsTaskDO> tasks) {
+        List<TaskGanttRespVO.Task> bars = new ArrayList<>(tasks.size());
         Map<Long, Long> taskIdToProjectId = new LinkedHashMap<>();
         for (ApsTaskDO task : tasks) {
-            TaskGanttRespVO.Resource resource = resourceMap.computeIfAbsent(task.getResId(), resId -> {
-                TaskGanttRespVO.Resource row = new TaskGanttRespVO.Resource();
+            bars.add(toGanttTask(task));
+            taskIdToProjectId.put(task.getId(), task.getProjectId());
+        }
+        relationFiller.fillResName(bars, TaskGanttRespVO.Task::getResId, TaskGanttRespVO.Task::setResName);
+        fillGanttProjectNames(bars, taskIdToProjectId);
+        return bars;
+    }
+
+    /** 资源维度的分组元数据：任务条数、负荷合计与该资源上的计划时间跨度。 */
+    private List<TaskGanttRespVO.ResourceGroup> buildResourceGroups(List<ApsTaskDO> tasks) {
+        Map<Long, TaskGanttRespVO.ResourceGroup> groupMap = new LinkedHashMap<>();
+        for (ApsTaskDO task : tasks) {
+            TaskGanttRespVO.ResourceGroup group = groupMap.computeIfAbsent(task.getResId(), resId -> {
+                TaskGanttRespVO.ResourceGroup row = new TaskGanttRespVO.ResourceGroup();
                 row.setResId(resId);
                 row.setResCode(task.getResCode());
                 row.setTaskCount(0);
                 row.setLoadMinutes(0);
                 return row;
             });
-            TaskGanttRespVO.Task bar = toGanttTask(task);
-            resource.getTasks().add(bar);
-            resource.setTaskCount(resource.getTaskCount() + 1);
-            resource.setLoadMinutes(resource.getLoadMinutes()
+            group.setTaskCount(group.getTaskCount() + 1);
+            group.setLoadMinutes(group.getLoadMinutes()
                     + (task.getDurationMinutes() == null ? 0 : task.getDurationMinutes()));
-            flatTasks.add(bar);
-            taskIdToProjectId.put(task.getId(), task.getProjectId());
+            group.setPlanStartTime(minTime(group.getPlanStartTime(), task.getStartTime()));
+            group.setPlanEndTime(maxTime(group.getPlanEndTime(), task.getEndTime()));
         }
-        List<TaskGanttRespVO.Resource> resources = new ArrayList<>(resourceMap.values());
-        relationFiller.fillResName(resources, TaskGanttRespVO.Resource::getResId,
-                TaskGanttRespVO.Resource::setResName);
-        fillGanttProjectNames(flatTasks, taskIdToProjectId);
-        return resources;
+        List<TaskGanttRespVO.ResourceGroup> groups = new ArrayList<>(groupMap.values());
+        relationFiller.fillResName(groups, TaskGanttRespVO.ResourceGroup::getResId,
+                TaskGanttRespVO.ResourceGroup::setResName);
+        return groups;
+    }
+
+    /**
+     * 工单维度的分组元数据。
+     *
+     * <p>交期由 Mapper 一次 JOIN 出来，物料名称跨模块调 mdm 门面批量补全。超期判定放在这里而不是前端：
+     * "计划完工晚于交期"是业务口径，两个视图与将来的导出都要一致，各写一份必然走偏。
+     */
+    private List<TaskGanttRespVO.OrderGroup> buildOrderGroups(Long versionId) {
+        List<ApsGanttOrderGroupBO> aggregates = taskMapper.selectGanttOrderGroups(versionId);
+        relationFiller.fillMatName(aggregates, ApsGanttOrderGroupBO::getMatId, ApsGanttOrderGroupBO::setMatName);
+        List<TaskGanttRespVO.OrderGroup> groups = new ArrayList<>(aggregates.size());
+        for (ApsGanttOrderGroupBO aggregate : aggregates) {
+            TaskGanttRespVO.OrderGroup group = new TaskGanttRespVO.OrderGroup();
+            group.setProdOrderId(aggregate.getProdOrderId());
+            group.setProdOrderNo(aggregate.getProdOrderNo());
+            group.setMatCode(aggregate.getMatCode());
+            group.setMatName(aggregate.getMatName());
+            group.setDueDate(aggregate.getDueDate());
+            group.setTaskCount(aggregate.getTaskCount());
+            group.setLoadMinutes(aggregate.getLoadMinutes());
+            group.setPlanStartTime(aggregate.getPlanStartTime());
+            group.setPlanEndTime(aggregate.getPlanEndTime());
+            group.setDelayMinutes(calcDelayMinutes(aggregate.getPlanEndTime(), aggregate.getDueDate()));
+            group.setDelayFlag(group.getDelayMinutes() > 0);
+            groups.add(group);
+        }
+        return groups;
+    }
+
+    /** 超期分钟数：交期缺失（工单投影里没这张单）时按不超期处理，不能拿"没交期"当逾期报警。 */
+    private Integer calcDelayMinutes(LocalDateTime planEndTime, LocalDateTime dueDate) {
+        if (planEndTime == null || dueDate == null || !planEndTime.isAfter(dueDate)) {
+            return 0;
+        }
+        return Math.toIntExact(Duration.between(dueDate, planEndTime).toMinutes());
+    }
+
+    private LocalDateTime minTime(LocalDateTime current, LocalDateTime candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        return current == null || candidate.isBefore(current) ? candidate : current;
+    }
+
+    private LocalDateTime maxTime(LocalDateTime current, LocalDateTime candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        return current == null || candidate.isAfter(current) ? candidate : current;
     }
 
     /**
@@ -315,7 +382,10 @@ public class ApsTaskServiceImpl implements ApsTaskService {
         TaskGanttRespVO.Task bar = new TaskGanttRespVO.Task();
         bar.setId(task.getId());
         bar.setTaskNo(task.getTaskNo());
+        bar.setProdOrderId(task.getProdOrderId());
         bar.setProdOrderNo(task.getProdOrderNo());
+        bar.setResId(task.getResId());
+        bar.setResCode(task.getResCode());
         bar.setOpCode(task.getOpCode());
         bar.setOpName(task.getOpName());
         bar.setStartTime(task.getStartTime());

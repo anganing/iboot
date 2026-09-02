@@ -75,4 +75,40 @@
         WHERE t.deleted = 0 AND t.id = #{id}
     </select>
 
+    <!--
+        甘特图工单维度分组。
+
+        交期与生产物料落在同模块的 aps_projection_order 上，在这里 JOIN 一次取回，避免应用层按工单回查。
+        工单投影按工序拆行，同一工单会命中多行，先在子查询里按工单收敛再 JOIN：直接 JOIN 明细会让任务行
+        按工序数翻倍，COUNT 与 SUM 全部虚高。同一次投影内一张工单的交期与生产物料是一致的，所以取 MIN。
+        工单编号为 0（尚未生成工单）的任务会聚成一个交期为空的分组，前端显示为"未关联工单"。
+    -->
+    <select id="selectGanttOrderGroups"
+            resultType="com.iboot.pf.module.aps.service.task.bo.ApsGanttOrderGroupBO">
+        SELECT
+            t.prod_order_id AS prod_order_id
+            , MIN(t.prod_order_no) AS prod_order_no
+            , COUNT(1) AS task_count
+            , COALESCE(SUM(t.duration_minutes), 0) AS load_minutes
+            , MIN(t.start_time) AS plan_start_time
+            , MAX(t.end_time) AS plan_end_time
+            , MIN(po.mat_id) AS mat_id
+            , MIN(po.mat_code) AS mat_code
+            , MIN(po.due_date) AS due_date
+        FROM aps_task t
+        LEFT JOIN aps_version version ON version.id = t.version_id AND version.deleted = 0
+        LEFT JOIN (
+            SELECT scenario_id, prod_order_id, MIN(mat_id) AS mat_id, MIN(mat_code) AS mat_code
+                 , MIN(due_date) AS due_date
+            FROM aps_projection_order
+            WHERE deleted = 0
+            GROUP BY scenario_id, prod_order_id
+        ) po ON po.scenario_id = version.scenario_id AND po.prod_order_id = t.prod_order_id
+        WHERE t.deleted = 0 AND t.version_id = #{versionId}
+        GROUP BY t.prod_order_id
+        <!-- 交期缺失的分组排在最后：交期紧的工单要先进视野，没交期的不该顶在第一行 -->
+        ORDER BY CASE WHEN MIN(po.due_date) IS NULL THEN 1 ELSE 0 END ASC
+            , MIN(po.due_date) ASC, MIN(t.start_time) ASC
+    </select>
+
 </mapper>

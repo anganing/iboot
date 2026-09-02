@@ -69,6 +69,20 @@ export function getVersion(id: number) {
   return requestClient.get<ApsVersionApi.Version>(`/aps/version/get?id=${id}`);
 }
 
+/** 查询场景当前已发布的排程版本，用于车间侧直接看生效计划；未发布过返回 null */
+export function getPublishedVersion(scenarioId: number) {
+  return requestClient.get<ApsVersionApi.Version | null>(
+    `/aps/version/get-published?scenarioId=${scenarioId}`,
+  );
+}
+
+/** 查询场景下曾经生效过的排程版本（已发布与已被替换），用于车间侧回看历史计划 */
+export function getEffectiveVersionList(scenarioId: number) {
+  return requestClient.get<ApsVersionApi.Version[]>(
+    `/aps/version/list-effective?scenarioId=${scenarioId}`,
+  );
+}
+
 /** 生成排程版本并提交求解，返回新版本编号 */
 export function generateVersion(data: ApsVersionApi.GenerateReq) {
   return requestClient.post<number>('/aps/version/generate', data);

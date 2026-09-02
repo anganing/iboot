@@ -16,6 +16,25 @@ export const GRANULARITY_OPTIONS: Array<{
   { label: '周', value: 'week' },
 ];
 
+/**
+ * 分组维度。
+ *
+ * <p>资源维度回答"每台设备什么时候在干什么、哪台是瓶颈"，工单维度回答"这张工单什么时候能交、卡在哪道工序"。
+ * 工艺依赖沿工单走，一张工单的工序常散落在多台设备上，资源维度下依赖链要跨行画线，所以两种维度都要留。
+ */
+export type GanttGroupBy = 'order' | 'resource';
+
+/** 默认按工单：多数人打开甘特图先问"这张单什么时候能交"，看设备占用是第二步 */
+export const DEFAULT_GROUP_BY: GanttGroupBy = 'order';
+
+export const GROUP_BY_OPTIONS: Array<{
+  label: string;
+  value: GanttGroupBy;
+}> = [
+  { label: '按工单', value: 'order' },
+  { label: '按资源', value: 'resource' },
+];
+
 /** 各粒度下的时间轴列宽，小时粒度列多、单列要窄，否则一天要横滚很久 */
 const COL_WIDTH: Record<GanttGranularity, number> = {
   hour: 40,
@@ -94,6 +113,7 @@ export function getScales(
 /** 任务条配色：锁定（在制）与普通计划必须一眼分得开，否则看不出哪些还能重排 */
 export const TASK_BAR_COLOR = {
   changeover: '#e6a23c',
+  delayed: '#f56c6c',
   locked: '#909399',
   planned: '#409eff',
   started: '#67c23a',
@@ -112,19 +132,24 @@ export function getTaskBarColor(task: ApsTaskApi.GanttTask): string {
     : TASK_BAR_COLOR.planned;
 }
 
-/** 左侧任务列表的列，vtable-gantt 自带 ListTable 渲染 */
-export function getTaskListColumns() {
+/**
+ * 左侧任务列表的列，vtable-gantt 自带 ListTable 渲染。
+ *
+ * <p>标题随维度切换：资源维度下父行是设备、次列给工单，工单维度下父行是工单、次列给交期与设备，
+ * 沿用同一套标题会让人对着"资源 / 工序"读工单号。
+ */
+export function getTaskListColumns(groupBy: GanttGroupBy) {
   return [
     {
       field: 'name',
-      title: '资源 / 工序',
-      width: 220,
+      title: groupBy === 'order' ? '工单 / 工序' : '资源 / 工序',
+      width: 240,
       tree: true,
     },
     {
       field: 'summary',
-      title: '工单 / 负荷',
-      width: 130,
+      title: groupBy === 'order' ? '交期 / 资源' : '工单 / 负荷',
+      width: 170,
     },
   ];
 }

@@ -8,6 +8,7 @@ import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.task.vo.TaskRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.service.task.bo.ApsGanttOrderGroupBO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Delete;
@@ -45,6 +46,15 @@ public interface ApsTaskMapper extends BaseMapperX<ApsTaskDO> {
                 .eq(ApsTaskDO::getVersionId, versionId)
                 .orderByAsc(ApsTaskDO::getResId, ApsTaskDO::getStartTime));
     }
+
+    /**
+     * 按工单聚合某版本的任务，带出交期与生产物料，供甘特图的工单维度分组使用。
+     *
+     * <p>交期落在同模块的 {@code aps_projection_order} 上，按规范在 Mapper 层 JOIN 一次取回，
+     * 不在应用层先查任务再逐单回查。工单投影是按工序拆的（同一工单多行），所以按工单聚合后取 MIN，
+     * 同一工单的交期与生产物料在一次投影内是一致的。
+     */
+    List<ApsGanttOrderGroupBO> selectGanttOrderGroups(@Param("versionId") Long versionId);
 
     /** 按生产工单列出任务，按工单与顺序号排序。 */
     default List<ApsTaskDO> selectListByProdOrderIds(Collection<Long> prodOrderIds) {

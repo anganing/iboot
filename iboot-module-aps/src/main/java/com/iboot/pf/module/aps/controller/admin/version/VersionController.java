@@ -100,6 +100,34 @@ public class VersionController {
         return success(versionService.getVersionPage(pageReqVO));
     }
 
+    /**
+     * 场景当前生效的排程版本。
+     *
+     * <p>权限挂 {@code aps:task:query} 而不是 {@code aps:version:query}：调用方是车间侧的"看生效计划"，
+     * 他们只该看到已发布的计划，不应为了定位版本而拿到整个版本管理的查询权限。
+     */
+    @GetMapping("/get-published")
+    @Operation(summary = "获得场景当前已发布的排程版本")
+    @Parameter(name = "scenarioId", description = "排程场景编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('aps:task:query')")
+    public CommonResult<VersionRespVO> getPublishedVersion(@RequestParam("scenarioId") Long scenarioId) {
+        return success(versionService.getPublishedVersion(scenarioId));
+    }
+
+    /**
+     * 场景下曾经生效过的版本列表。
+     *
+     * <p>同样挂 {@code aps:task:query}：车间侧要回看上一版计划做对比，但不该为此拿到版本管理的查询权限。
+     * 只返回已发布与已被替换，求解失败与待确认的版本从没下过车间。
+     */
+    @GetMapping("/list-effective")
+    @Operation(summary = "获得场景下曾经生效过的排程版本列表")
+    @Parameter(name = "scenarioId", description = "排程场景编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('aps:task:query')")
+    public CommonResult<List<VersionRespVO>> getEffectiveVersionList(@RequestParam("scenarioId") Long scenarioId) {
+        return success(versionService.getEffectiveVersionList(scenarioId));
+    }
+
     @PutMapping("/confirm")
     @Operation(summary = "确认排程版本")
     @Parameter(name = "id", description = "编号", required = true, example = "1")

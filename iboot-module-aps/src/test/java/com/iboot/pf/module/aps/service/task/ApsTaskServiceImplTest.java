@@ -8,9 +8,13 @@ import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
 import com.iboot.pf.module.aps.dal.dataobject.taskdep.ApsTaskDepDO;
 import com.iboot.pf.module.aps.dal.dataobject.tasklock.ApsTaskLockDO;
+import com.iboot.pf.module.aps.dal.dataobject.projection.ApsOrderProjectionDO;
+import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
+import com.iboot.pf.module.aps.dal.mysql.projection.ApsOrderProjectionMapper;
 import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
 import com.iboot.pf.module.aps.dal.mysql.taskdep.ApsTaskDepMapper;
 import com.iboot.pf.module.aps.dal.mysql.tasklock.ApsTaskLockMapper;
+import com.iboot.pf.module.aps.dal.mysql.version.ApsVersionMapper;
 import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskDepTypeEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskLockStatusEnum;
@@ -56,6 +60,7 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
 
     private static final Long VERSION_ID = 100L;
     private static final Long RES_ID = 200L;
+    private static final Long SCENARIO_ID = 300L;
 
     @Resource
     private ApsTaskService taskService;
@@ -65,6 +70,10 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
     private ApsTaskDepMapper taskDepMapper;
     @Resource
     private ApsTaskLockMapper taskLockMapper;
+    @Resource
+    private ApsVersionMapper versionMapper;
+    @Resource
+    private ApsOrderProjectionMapper orderProjectionMapper;
 
     @MockitoBean
     private ApsVersionService versionService;
@@ -83,9 +92,14 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
     }
 
     private Long insertTask(String taskNo, Long resId, LocalDateTime startTime, LocalDateTime endTime, String status) {
+        return insertTask(taskNo, resId, 1L, "MO001", startTime, endTime, status);
+    }
+
+    private Long insertTask(String taskNo, Long resId, Long prodOrderId, String prodOrderNo,
+                            LocalDateTime startTime, LocalDateTime endTime, String status) {
         ApsTaskDO task = ApsTaskDO.builder()
                 .versionId(VERSION_ID).taskNo(taskNo)
-                .prodOrderId(1L).prodOrderNo("MO001").workOrderId(0L).opTaskId(1L).routeOpId(1L)
+                .prodOrderId(prodOrderId).prodOrderNo(prodOrderNo).workOrderId(0L).opTaskId(1L).routeOpId(1L)
                 .opCode("OP010").opName("粗车").plantId(1L).workshopId(1L).projectId(0L).projectTaskId(0L)
                 .resId(resId).resCode("RES-A").startTime(startTime).endTime(endTime)
                 .durationMinutes(60).sequenceNo(1).lockedFlag(false).status(status)
@@ -228,7 +242,7 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testGetTaskGantt_groupsByResourceAndKeepsInVersionLinks() {
+    void testGetTaskGantt_flatTasksWithResourceGroupsAndInVersionLinks() {
         mockVersion();
         Long first = insertTask("T001", RES_ID, LocalDateTime.of(2026, 8, 1, 8, 0),
                 LocalDateTime.of(2026, 8, 1, 10, 0), ApsTaskStatusEnum.PLANNED.name());
@@ -243,21 +257,74 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
         TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
 
         assertEquals(3, respVO.getTaskCount());
-        assertEquals(2, respVO.getResources().size());
+        assertEquals(3, respVO.getTasks().size());
+        assertEquals(2, respVO.getResourceGroups().size());
         assertEquals(LocalDateTime.of(2026, 8, 1, 8, 0), respVO.getMinTime());
         assertEquals(LocalDateTime.of(2026, 8, 1, 12, 0), respVO.getMaxTime());
         assertEquals(1, respVO.getLinks().size());
         assertEquals(first, respVO.getLinks().get(0).getFromTaskId());
         assertEquals(second, respVO.getLinks().get(0).getToTaskId());
-        // Mapper 按资源、开始时间排序，第一个资源上应有两条任务且负荷为两段之和
-        TaskGanttRespVO.Resource main = respVO.getResources().stream()
+        // 分组只带统计，任务在 tasks 里平铺：第一个资源上两条任务，负荷为两段之和，时间跨度取首末
+        TaskGanttRespVO.ResourceGroup main = respVO.getResourceGroups().stream()
                 .filter(row -> RES_ID.equals(row.getResId())).findFirst().orElseThrow();
         assertEquals(2, main.getTaskCount());
         assertEquals(120, main.getLoadMinutes());
-        assertEquals("T001", main.getTasks().get(0).getTaskNo());
-        assertEquals(other, respVO.getResources().stream()
-                .filter(row -> !RES_ID.equals(row.getResId())).findFirst().orElseThrow()
-                .getTasks().get(0).getId());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 8, 0), main.getPlanStartTime());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 11, 0), main.getPlanEndTime());
+        // 任务条自带分组键，前端才能在两种维度上归组
+        assertEquals(2, respVO.getTasks().stream()
+                .filter(bar -> RES_ID.equals(bar.getResId())).count());
+        assertEquals(other, respVO.getTasks().stream()
+                .filter(bar -> !RES_ID.equals(bar.getResId())).findFirst().orElseThrow().getId());
+    }
+
+    @Test
+    void testGetTaskGantt_orderGroupsAggregateAndFlagDelay() {
+        mockVersion();
+        // 同一工单两道工序：分组统计要按工单聚合，不能被工序数放大
+        insertTask("T001", RES_ID, 10L, "MO010", LocalDateTime.of(2026, 8, 1, 8, 0),
+                LocalDateTime.of(2026, 8, 1, 10, 0), ApsTaskStatusEnum.PLANNED.name());
+        insertTask("T002", RES_ID + 1, 10L, "MO010", LocalDateTime.of(2026, 8, 2, 8, 0),
+                LocalDateTime.of(2026, 8, 2, 12, 0), ApsTaskStatusEnum.PLANNED.name());
+        insertTask("T003", RES_ID, 20L, "MO020", LocalDateTime.of(2026, 8, 1, 13, 0),
+                LocalDateTime.of(2026, 8, 1, 15, 0), ApsTaskStatusEnum.PLANNED.name());
+        // MO010 交期早于计划完工 -> 超期；MO020 交期还有富余 -> 不超期
+        insertOrderProjection(10L, "M001", LocalDateTime.of(2026, 8, 1, 18, 0));
+        insertOrderProjection(20L, "M002", LocalDateTime.of(2026, 8, 10, 18, 0));
+
+        TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
+
+        assertEquals(2, respVO.getOrderGroups().size());
+        TaskGanttRespVO.OrderGroup delayed = respVO.getOrderGroups().stream()
+                .filter(row -> "MO010".equals(row.getProdOrderNo())).findFirst().orElseThrow();
+        assertEquals(2, delayed.getTaskCount());
+        assertEquals(120, delayed.getLoadMinutes());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 8, 0), delayed.getPlanStartTime());
+        assertEquals(LocalDateTime.of(2026, 8, 2, 12, 0), delayed.getPlanEndTime());
+        assertEquals("M001", delayed.getMatCode());
+        assertTrue(delayed.getDelayFlag());
+        // 2026-08-01 18:00 到 2026-08-02 12:00 共 18 小时
+        assertEquals(18 * 60, delayed.getDelayMinutes());
+
+        TaskGanttRespVO.OrderGroup onTime = respVO.getOrderGroups().stream()
+                .filter(row -> "MO020".equals(row.getProdOrderNo())).findFirst().orElseThrow();
+        assertFalse(onTime.getDelayFlag());
+        assertEquals(0, onTime.getDelayMinutes());
+    }
+
+    @Test
+    void testGetTaskGantt_orderGroupWithoutProjectionNotTreatedAsDelayed() {
+        mockVersion();
+        insertTask("T001", RES_ID, 30L, "MO030", LocalDateTime.of(2026, 8, 1, 8, 0),
+                LocalDateTime.of(2026, 8, 1, 10, 0), ApsTaskStatusEnum.PLANNED.name());
+
+        TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
+
+        TaskGanttRespVO.OrderGroup group = respVO.getOrderGroups().get(0);
+        // 工单投影里没这张单时交期为空，不能拿"没交期"当逾期报警
+        assertNull(group.getDueDate());
+        assertFalse(group.getDelayFlag());
+        assertEquals(0, group.getDelayMinutes());
     }
 
     @Test
@@ -267,11 +334,19 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
         TaskGanttRespVO respVO = taskService.getTaskGantt(VERSION_ID);
 
         assertEquals(0, respVO.getTaskCount());
-        assertTrue(respVO.getResources().isEmpty());
+        assertTrue(respVO.getTasks().isEmpty());
+        assertTrue(respVO.getResourceGroups().isEmpty());
+        assertTrue(respVO.getOrderGroups().isEmpty());
         assertTrue(respVO.getLinks().isEmpty());
         assertNull(respVO.getMinTime());
     }
 
+    /**
+     * 版本既要 mock 给 Service，也要真实落库。
+     *
+     * <p>Service 通过 versionService 拿版本头信息（已 mock），但工单分组的 SQL 要 JOIN aps_version
+     * 取场景编号去关联工单投影，库里没有这一行交期就查不出来。
+     */
     private void mockVersion() {
         VersionRespVO version = new VersionRespVO();
         version.setId(VERSION_ID);
@@ -280,6 +355,30 @@ class ApsTaskServiceImplTest extends BaseDbUnitTest {
         version.setScenarioName("松江工厂 8 月排程");
         version.setStatus(ApsVersionStatusEnum.SOLVED.name());
         when(versionService.getVersion(VERSION_ID)).thenReturn(version);
+        versionMapper.insert(ApsVersionDO.builder()
+                .id(VERSION_ID)
+                .scenarioId(SCENARIO_ID)
+                .versionNo(1)
+                .status(ApsVersionStatusEnum.SOLVED.name())
+                .build());
+    }
+
+    /** 工单投影按工序拆行，这里插两行同工单：验证分组统计不会被投影行数放大。 */
+    private void insertOrderProjection(Long prodOrderId, String matCode, LocalDateTime dueDate) {
+        for (int seq = 1; seq <= 2; seq++) {
+            orderProjectionMapper.insert(ApsOrderProjectionDO.builder()
+                    .scenarioId(SCENARIO_ID)
+                    .sourceType("OP_TASK")
+                    .sourceId(prodOrderId * 10 + seq)
+                    .sourceNo("SRC" + prodOrderId + seq)
+                    .prodOrderId(prodOrderId)
+                    .matId(prodOrderId)
+                    .matCode(matCode)
+                    .seq(seq)
+                    .dueDate(dueDate)
+                    .priority(1)
+                    .build());
+        }
     }
 
     private void insertDep(Long fromTaskId, Long toTaskId) {

@@ -53,7 +53,11 @@ export namespace ApsTaskApi {
   export interface GanttTask {
     id: number; // 排程任务编号
     taskNo?: string; // 排程任务号
+    prodOrderId?: number; // 生产工单编号，工单维度的分组键
     prodOrderNo?: string; // 生产工单号
+    resId?: number; // 排定生产资源编号，资源维度的分组键
+    resCode?: string; // 资源编码
+    resName?: string; // 资源名称
     opCode?: string; // 工序编码
     opName?: string; // 工序名称
     projectName?: string; // 项目名称
@@ -66,14 +70,30 @@ export namespace ApsTaskApi {
     status?: string; // 状态，字典 aps_task_status
   }
 
-  /** 甘特图的一行：一台生产资源及其上排定的任务 */
-  export interface GanttResource {
+  /** 甘特图的资源分组：一台生产资源 */
+  export interface GanttResourceGroup {
     resId: number; // 资源编号
     resCode?: string; // 资源编码
     resName?: string; // 资源名称
     taskCount?: number; // 资源上的任务条数
     loadMinutes?: number; // 资源上的计划占用分钟合计
-    tasks?: GanttTask[]; // 资源上的任务条
+    planStartTime?: string; // 资源上最早的计划开始时间
+    planEndTime?: string; // 资源上最晚的计划结束时间
+  }
+
+  /** 甘特图的工单分组：一张生产工单 */
+  export interface GanttOrderGroup {
+    prodOrderId: number; // 生产工单编号
+    prodOrderNo?: string; // 生产工单号
+    matCode?: string; // 生产物料编码
+    matName?: string; // 生产物料名称
+    dueDate?: string; // 交期
+    taskCount?: number; // 工单上的任务条数
+    loadMinutes?: number; // 工单上的计划占用分钟合计
+    planStartTime?: string; // 工单最早的计划开始时间
+    planEndTime?: string; // 工单最晚的计划结束时间
+    delayFlag?: boolean; // 是否超期：计划完工晚于交期
+    delayMinutes?: number; // 超期分钟数，未超期为 0
   }
 
   /** 甘特图依赖连线 */
@@ -94,7 +114,9 @@ export namespace ApsTaskApi {
     minTime?: string; // 时间轴左边界
     maxTime?: string; // 时间轴右边界
     taskCount?: number; // 任务总条数
-    resources?: GanttResource[]; // 资源分组
+    tasks?: GanttTask[]; // 任务条，平铺返回
+    resourceGroups?: GanttResourceGroup[]; // 资源分组元数据
+    orderGroups?: GanttOrderGroup[]; // 工单分组元数据
     links?: GanttLink[]; // 依赖连线
   }
 }
