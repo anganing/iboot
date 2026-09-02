@@ -10,7 +10,13 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/** 排程策略 Response VO。 */
+/**
+ * 排程策略 Response VO。
+ *
+ * <p>{@code configJson} 是库里的原始内容，{@code config} 是解析后的结构化配置，供表单直接回填。
+ * 解析失败时 {@code configInvalid} 为真、{@code config} 回落成全默认值：历史废配置也要能打开、能改、能存，
+ * 否则只能靠 DML 去修。
+ */
 @Schema(description = "管理后台 - APS-排程策略 Response VO")
 @Data
 @ExcelIgnoreUnannotated
@@ -37,6 +43,15 @@ public class StrategyRespVO {
 
     @Schema(description = "硬约束、软约束及权重配置，JSON", requiredMode = Schema.RequiredMode.REQUIRED)
     private String configJson;
+
+    @Schema(description = "解析后的求解与约束权重配置")
+    private StrategyConfigVO config;
+
+    @Schema(description = "原始配置是否无法识别", example = "false")
+    private Boolean configInvalid;
+
+    @Schema(description = "原始配置无法识别的原因")
+    private String configInvalidReason;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "DRAFT")
     @ExcelProperty(value = "状态", converter = DictConvert.class)

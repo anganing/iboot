@@ -8,7 +8,7 @@ import com.iboot.pf.framework.common.util.json.JsonUtils;
 import com.iboot.pf.module.aps.dal.dataobject.solversnapshot.ApsSolverSnapshotDO;
 import com.iboot.pf.module.aps.dal.mysql.solversnapshot.ApsSolverSnapshotMapper;
 import com.iboot.pf.module.aps.enums.ApsSnapshotTypeEnum;
-import com.iboot.pf.module.aps.solver.constraint.ApsConstraintNames;
+import com.iboot.pf.module.aps.solver.constraint.ApsConstraintCatalog;
 import com.iboot.pf.module.aps.solver.model.ApsSolution;
 import com.iboot.pf.module.aps.solver.model.ApsSolverResource;
 import com.iboot.pf.module.aps.solver.model.ApsSolverTask;
@@ -97,7 +97,7 @@ public class ApsSolverSnapshotWriter {
             String constraintName = constraintAnalysis.constraintName();
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("constraintName", constraintName);
-            item.put("displayName", ApsConstraintNames.displayName(constraintName));
+            item.put("displayName", ApsConstraintCatalog.displayName(constraintName));
             item.put("weight", constraintAnalysis.weight() == null ? null : constraintAnalysis.weight().toString());
             item.put("score", constraintAnalysis.score() == null ? null : constraintAnalysis.score().toString());
             item.put("matchCount", constraintAnalysis.matchCount());

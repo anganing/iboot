@@ -178,8 +178,7 @@ public class ApsSolveServiceImpl implements ApsSolveService {
             writeConstraintMatch(versionId, solved);
             versionService.markSolved(versionId, score.toString(), score.hardScore(), score.softScore(),
                     StrUtil.format("求解完成，共排定 {} 道工序", taskCount));
-            progressService.reportScore(progress, operatorId, score.toString(),
-                    score.hardScore(), score.softScore());
+            progressService.reportScore(progress, operatorId, score.hardScore(), score.softScore());
             progressService.finish(progress, operatorId, ApsSolveStatusEnum.SUCCESS,
                     StrUtil.format("求解完成，共排定 {} 道工序", taskCount));
         } catch (Exception ex) {
@@ -204,7 +203,7 @@ public class ApsSolveServiceImpl implements ApsSolveService {
                 .withBestSolutionEventConsumer(event -> {
                     HardSoftLongScore bestScore = event.solution().getScore();
                     if (bestScore != null) {
-                        progressService.reportScore(progress, operatorId, bestScore.toString(),
+                        progressService.reportScore(progress, operatorId,
                                 bestScore.hardScore(), bestScore.softScore());
                     }
                 })

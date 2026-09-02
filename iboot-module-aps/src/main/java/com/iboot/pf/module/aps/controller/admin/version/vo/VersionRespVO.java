@@ -43,15 +43,11 @@ public class VersionRespVO {
     @DictFormat(ApsDictTypeConstants.VERSION_STATUS)
     private String status;
 
-    @Schema(description = "求解器综合得分")
-    @ExcelProperty("综合得分")
-    private String score;
-
-    @Schema(description = "硬约束得分")
+    @Schema(description = "硬约束得分，0 表示计划可行；小于 0 判为求解失败，不允许发布")
     @ExcelProperty("硬约束得分")
     private Long hardScore;
 
-    @Schema(description = "软约束得分")
+    @Schema(description = "软约束得分，各软约束加权罚分之和，只在同策略同场景的版本之间可比")
     @ExcelProperty("软约束得分")
     private Long softScore;
 

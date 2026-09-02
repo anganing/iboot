@@ -19,6 +19,7 @@ import {
   ElTag,
   ElTimeline,
   ElTimelineItem,
+  ElTooltip,
 } from 'element-plus';
 
 import { cancelSolve, getSolveProgress } from '#/api/aps/version';
@@ -78,6 +79,11 @@ const progressStatus = computed(() => {
   return status === 'FAILED' || status === 'CANCELLED' ? 'exception' : undefined;
 });
 const logs = computed(() => [...(progress.value?.logs ?? [])].reverse());
+
+/** 得分为空表示还没拿到第一个可行解，显示"-"而不是 0 */
+function formatScore(value?: number) {
+  return typeof value === 'number' ? value.toLocaleString('zh-CN') : '-';
+}
 
 /** WebSocket 只在抽屉打开期间连接，关闭即断开，不占着连接不放 */
 const { data, close, open } = useWebSocket(socketUrl, {
@@ -166,8 +172,25 @@ onUnmounted(() => close());
         <ElDescriptionsItem label="当前状态">
           <ElTag :type="statusType" size="small">{{ statusText }}</ElTag>
         </ElDescriptionsItem>
-        <ElDescriptionsItem label="综合得分">
-          {{ progress?.score || '-' }}
+        <ElDescriptionsItem label="硬约束得分">
+          <ElTooltip
+            content="硬约束违反的罚分总和。0 表示当前最优解可行；小于 0 表示仍有无法回避的冲突，求解结束后版本会判为失败"
+            placement="top"
+          >
+            <span class="cursor-help">{{
+              formatScore(progress?.hardScore)
+            }}</span>
+          </ElTooltip>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="软约束得分">
+          <ElTooltip
+            content="各软约束按权重加权后的罚分总和，越接近 0 越好，求解过程中会持续变小"
+            placement="top"
+          >
+            <span class="cursor-help">{{
+              formatScore(progress?.softScore)
+            }}</span>
+          </ElTooltip>
         </ElDescriptionsItem>
         <ElDescriptionsItem label="开始时间">
           {{ progress?.startTime ? formatDateTime(progress.startTime) : '-' }}

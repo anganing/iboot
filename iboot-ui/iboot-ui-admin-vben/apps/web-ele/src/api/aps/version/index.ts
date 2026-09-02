@@ -11,9 +11,8 @@ export namespace ApsVersionApi {
     scenarioName?: string; // 排程场景名称
     versionNo?: number; // 排程版本号
     status?: string; // 状态，字典 aps_version_status
-    score?: string; // 求解器综合得分
-    hardScore?: number; // 硬约束得分
-    softScore?: number; // 软约束得分
+    hardScore?: number; // 硬约束得分，0 表示计划可行
+    softScore?: number; // 软约束得分，各软约束加权罚分之和
     solveStartTime?: string; // 求解开始时间
     solveEndTime?: string; // 求解结束时间
     publishedTime?: string; // 发布时间
@@ -46,9 +45,8 @@ export namespace ApsVersionApi {
     ratio?: number; // 进度百分比
     step?: number; // 当前步骤
     totalStep?: number; // 总步骤数
-    score?: string; // 当前最优得分
-    hardScore?: number; // 硬约束得分
-    softScore?: number; // 软约束得分
+    hardScore?: number; // 硬约束得分，0 表示当前最优解可行
+    softScore?: number; // 软约束得分，各软约束加权罚分之和
     message?: string; // 最近一条进度说明
     startTime?: string; // 求解开始时间
     occurTime?: string; // 最近一次更新时间

@@ -2,6 +2,7 @@ package com.iboot.pf.module.aps.service.strategy;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyConstraintMetadataRespVO;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyRespVO;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategySaveReqVO;
 import com.iboot.pf.module.aps.dal.dataobject.strategy.ApsStrategyDO;
@@ -60,6 +61,13 @@ public interface ApsStrategyService {
      * @return 排程策略分页
      */
     PageResult<StrategyRespVO> getStrategyPage(StrategyPageReqVO pageReqVO);
+
+    /**
+     * 获得约束元数据，供策略配置表单渲染可调项与默认值
+     *
+     * @return 约束元数据
+     */
+    StrategyConstraintMetadataRespVO getConstraintMetadata();
 
     /**
      * 校验策略存在且已启用，场景引用策略时调用

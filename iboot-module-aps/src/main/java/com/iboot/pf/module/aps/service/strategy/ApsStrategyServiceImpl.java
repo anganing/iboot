@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyConstraintMetadataRespVO;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategyRespVO;
 import com.iboot.pf.module.aps.controller.admin.strategy.vo.StrategySaveReqVO;
 import com.iboot.pf.module.aps.dal.dataobject.strategy.ApsStrategyDO;
@@ -12,6 +13,10 @@ import com.iboot.pf.module.aps.dal.mysql.strategy.ApsStrategyMapper;
 import com.iboot.pf.module.aps.enums.ApsCodeRuleConstants;
 import com.iboot.pf.module.aps.enums.ApsStrategyStatusEnum;
 import com.iboot.pf.module.aps.service.coderule.ApsCodeService;
+import com.iboot.pf.module.aps.solver.ApsConstraintWeightResolver;
+import com.iboot.pf.module.aps.solver.config.ApsConstraintWeight;
+import com.iboot.pf.module.aps.solver.constraint.ApsConstraintCatalog;
+import com.iboot.pf.module.aps.solver.constraint.ApsConstraintDefinition;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +50,8 @@ public class ApsStrategyServiceImpl implements ApsStrategyService {
     public Long createStrategy(StrategySaveReqVO createReqVO) {
         ApsStrategyDO strategy = BeanUtils.toBean(createReqVO, ApsStrategyDO.class);
         strategy.setId(null);
+        // 结构化配置在这里序列化成 config_json，顺带过一遍求解链路的解析器做终检
+        strategy.setConfigJson(ApsStrategyConfigConverter.toConfigJson(createReqVO.getConfig()));
         strategy.setCode(codeService.generate(ApsCodeRuleConstants.STRATEGY, strategy.getCode()));
         validateStrategyUnique(strategy, null);
         strategyMapper.insert(strategy);
@@ -55,6 +62,7 @@ public class ApsStrategyServiceImpl implements ApsStrategyService {
     public void updateStrategy(StrategySaveReqVO updateReqVO) {
         ApsStrategyDO existed = validateStrategyExists(updateReqVO.getId());
         ApsStrategyDO updateObj = BeanUtils.toBean(updateReqVO, ApsStrategyDO.class);
+        updateObj.setConfigJson(ApsStrategyConfigConverter.toConfigJson(updateReqVO.getConfig()));
         // 编码由编码规则分配，更新时不允许改
         updateObj.setCode(existed.getCode());
         validateStrategyUnique(updateObj, updateReqVO.getId());
@@ -84,12 +92,46 @@ public class ApsStrategyServiceImpl implements ApsStrategyService {
 
     @Override
     public StrategyRespVO getStrategy(Long id) {
-        return strategyMapper.selectJoinById(id);
+        StrategyRespVO respVO = strategyMapper.selectJoinById(id);
+        // 列表不解析配置：分页里没人看权重，白解析一遍几十条纯属浪费
+        ApsStrategyConfigConverter.fillConfig(respVO);
+        return respVO;
     }
 
     @Override
     public PageResult<StrategyRespVO> getStrategyPage(StrategyPageReqVO pageReqVO) {
         return strategyMapper.selectPage(pageReqVO);
+    }
+
+    /**
+     * 约束元数据。
+     *
+     * <p>约束清单与默认权重都取自求解侧的单一事实源（{@code ApsConstraintCatalog} 与
+     * {@code ApsConstraintWeightResolver}），前端不再自己维护一份，加约束时只改后端一处。
+     */
+    @Override
+    public StrategyConstraintMetadataRespVO getConstraintMetadata() {
+        StrategyConstraintMetadataRespVO respVO = new StrategyConstraintMetadataRespVO();
+        respVO.setDefaultConfig(ApsStrategyConfigConverter.defaultConfigVO());
+        respVO.setConstraints(ApsConstraintCatalog.definitions().stream()
+                .map(ApsStrategyServiceImpl::toConstraintMetadata)
+                .toList());
+        return respVO;
+    }
+
+    private static StrategyConstraintMetadataRespVO.Constraint toConstraintMetadata(
+            ApsConstraintDefinition definition) {
+        ApsConstraintWeight defaultWeight = ApsConstraintWeightResolver.defaultWeights()
+                .get(definition.constraintName());
+        StrategyConstraintMetadataRespVO.Constraint metadata = new StrategyConstraintMetadataRespVO.Constraint();
+        metadata.setConstraintName(definition.constraintName());
+        metadata.setDisplayName(definition.displayName());
+        metadata.setCategory(definition.category().name());
+        metadata.setCategoryName(definition.category().getName());
+        metadata.setDescription(definition.description());
+        metadata.setDefaultHard(defaultWeight == null ? 0L : defaultWeight.hardOrZero());
+        metadata.setDefaultSoft(defaultWeight == null ? 0L : defaultWeight.softOrZero());
+        return metadata;
     }
 
     @Override

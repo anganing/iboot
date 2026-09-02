@@ -3,11 +3,18 @@ package com.iboot.pf.module.aps.controller.admin.strategy.vo;
 import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.aps.enums.ApsStrategyStatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-/** 排程策略新增/修改 Request VO。 */
+/**
+ * 排程策略新增/修改 Request VO。
+ *
+ * <p>约束权重收结构化的 {@link StrategyConfigVO} 而不是 JSON 字符串：手写 JSON 既没有字段校验，
+ * 也没法让人知道有哪些约束可调，配错了要等到点"生成排程"才报错。
+ */
 @Schema(description = "管理后台 - APS-排程策略新增/修改 Request VO")
 @Data
 public class StrategySaveReqVO {
@@ -34,9 +41,10 @@ public class StrategySaveReqVO {
     @Size(max = 255, message = "优化目标说明长度不能超过 255")
     private String objective;
 
-    @Schema(description = "硬约束、软约束及权重配置，JSON", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "约束权重配置不能为空")
-    private String configJson;
+    @Schema(description = "求解与约束权重配置", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "约束权重配置不能为空")
+    @Valid
+    private StrategyConfigVO config;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "DRAFT")
     @NotEmpty(message = "状态不能为空")

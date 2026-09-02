@@ -38,13 +38,10 @@ public class ApsSolveProgress implements Serializable {
     /** 总步骤数。 */
     private Integer totalStep;
 
-    /** 当前最优得分的可读表示。 */
-    private String score;
-
-    /** 硬约束得分。 */
+    /** 硬约束得分，0 表示当前最优解可行。 */
     private Long hardScore;
 
-    /** 软约束得分。 */
+    /** 软约束得分，各软约束加权罚分之和。 */
     private Long softScore;
 
     /** 最近一条进度说明。 */

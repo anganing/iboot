@@ -79,9 +79,7 @@ public class ApsSolveProgressService {
     }
 
     /** 求解过程中拿到更优解时刷新得分，不推进步骤。 */
-    public void reportScore(ApsSolveProgress progress, Long operatorId, String score,
-                            Long hardScore, Long softScore) {
-        progress.setScore(score);
+    public void reportScore(ApsSolveProgress progress, Long operatorId, Long hardScore, Long softScore) {
         progress.setHardScore(hardScore);
         progress.setSoftScore(softScore);
         progress.setOccurTime(LocalDateTime.now());

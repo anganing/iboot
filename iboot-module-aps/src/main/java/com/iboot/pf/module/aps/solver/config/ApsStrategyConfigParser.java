@@ -38,7 +38,10 @@ public final class ApsStrategyConfigParser {
         try {
             config = JsonUtils.parseObject(configJson, ApsStrategyConfig.class);
         } catch (Exception ex) {
-            throw exception(SOLVE_STRATEGY_CONFIG_INVALID, "JSON 格式非法");
+            // 区分"不是 JSON"与"是 JSON 但结构对不上"：这句提示会直接显示给计划员，
+            // 把结构不匹配的历史配置说成格式非法，只会让人去检查根本没问题的括号
+            throw exception(SOLVE_STRATEGY_CONFIG_INVALID,
+                    JsonUtils.isJsonObject(configJson) ? "配置结构与当前版本不匹配" : "JSON 格式非法");
         }
         if (config == null) {
             throw exception(SOLVE_STRATEGY_CONFIG_INVALID, "内容为空");

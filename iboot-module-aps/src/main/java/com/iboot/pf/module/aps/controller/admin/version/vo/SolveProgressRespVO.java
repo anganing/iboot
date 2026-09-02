@@ -34,13 +34,10 @@ public class SolveProgressRespVO {
     @Schema(description = "总步骤数", example = "4")
     private Integer totalStep;
 
-    @Schema(description = "当前最优得分", example = "0hard/-1200soft")
-    private String score;
-
-    @Schema(description = "硬约束得分", example = "0")
+    @Schema(description = "硬约束得分，0 表示当前最优解可行", example = "0")
     private Long hardScore;
 
-    @Schema(description = "软约束得分", example = "-1200")
+    @Schema(description = "软约束得分，各软约束加权罚分之和", example = "-1200")
     private Long softScore;
 
     @Schema(description = "最近一条进度说明")

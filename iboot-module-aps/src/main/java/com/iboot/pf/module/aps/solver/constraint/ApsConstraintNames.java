@@ -10,7 +10,8 @@ import java.util.List;
  * 历史策略配置与历史快照对不上，所以集中在这里定义，不允许在别处写字面量。
  *
  * <p>用英文而不是中文：{@code ConstraintWeightOverrides} 的键会进 JSON 配置和快照，
- * 中文键在跨系统传输与日志里容易出编码问题。中文名放在 {@link #displayName(String)} 里做展示映射。
+ * 中文键在跨系统传输与日志里容易出编码问题。中文名与业务说明登记在 {@link ApsConstraintCatalog} 里，
+ * 这个接口只管名字，不掺展示逻辑。
  */
 public interface ApsConstraintNames {
 
@@ -56,23 +57,5 @@ public interface ApsConstraintNames {
     List<String> ALL = List.of(RESOURCE_CAPABILITY, OPERATION_PRECEDENCE, PINNED_TASK_IMMUTABLE,
             CALENDAR_CAPACITY, SHADOW_INCONSISTENT, MATERIAL_SHORTAGE, DUE_DATE_DELAY, TOTAL_MAKESPAN,
             PRIORITY_INVERSION, PRECEDENCE_IDLE_GAP, CHANGEOVER_TIME);
-
-    /** 约束名对应的中文说明，用于前端展示与快照可读性。 */
-    static String displayName(String constraintName) {
-        return switch (constraintName) {
-            case RESOURCE_CAPABILITY -> "资源能力不匹配";
-            case OPERATION_PRECEDENCE -> "违反工序前后序";
-            case PINNED_TASK_IMMUTABLE -> "锁定任务被改动";
-            case CALENDAR_CAPACITY -> "超出日历可用产能";
-            case SHADOW_INCONSISTENT -> "工序前后序存在循环等待";
-            case MATERIAL_SHORTAGE -> "物料未齐套";
-            case DUE_DATE_DELAY -> "交期延误";
-            case TOTAL_MAKESPAN -> "总完工时间";
-            case PRIORITY_INVERSION -> "优先级倒挂";
-            case PRECEDENCE_IDLE_GAP -> "工序间等待";
-            case CHANGEOVER_TIME -> "换型时长";
-            default -> constraintName;
-        };
-    }
 
 }

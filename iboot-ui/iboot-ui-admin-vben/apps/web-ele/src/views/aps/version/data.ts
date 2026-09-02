@@ -16,6 +16,16 @@ import {
   APS_STRATEGY_RELATION_PROPS,
 } from '../relation-config';
 
+/**
+ * 得分格式化。
+ *
+ * 求解得分动辄上亿（软分按分钟累加），不加千分位根本数不清位数；未求解完的版本得分为空，
+ * 显示"-"而不是 0，两者含义完全不同。
+ */
+function formatScore(value: unknown) {
+  return typeof value === 'number' ? value.toLocaleString('zh-CN') : '-';
+}
+
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
@@ -90,9 +100,26 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
         props: { type: DICT_TYPE.APS_VERSION_STATUS },
       },
     },
-    { field: 'score', title: '综合得分', minWidth: 140 },
-    { field: 'hardScore', title: '硬约束得分', minWidth: 120 },
-    { field: 'softScore', title: '软约束得分', minWidth: 120 },
+    {
+      field: 'hardScore',
+      title: '硬约束得分',
+      minWidth: 120,
+      titlePrefix: {
+        content:
+          '硬约束违反的罚分总和。0 表示计划可行；小于 0 表示存在无法回避的冲突，版本判为求解失败，不允许发布',
+      },
+      formatter: ({ cellValue }) => formatScore(cellValue),
+    },
+    {
+      field: 'softScore',
+      title: '软约束得分',
+      minWidth: 120,
+      titlePrefix: {
+        content:
+          '各软约束按权重加权后的罚分总和，越接近 0 越好。它的绝对值跟任务数量、策略权重都有关，只在同策略同场景的版本之间比较才有意义',
+      },
+      formatter: ({ cellValue }) => formatScore(cellValue),
+    },
     {
       field: 'solveStartTime',
       title: '求解开始时间',
