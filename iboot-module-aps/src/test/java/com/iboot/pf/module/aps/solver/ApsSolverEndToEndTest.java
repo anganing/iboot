@@ -204,4 +204,43 @@ class ApsSolverEndToEndTest {
         assertEquals(0L, solved.getScore().hardScore(), "带锁定任务的算例仍应可行");
     }
 
+    /**
+     * 在制工序开工于计划起点之前时仍应排出可行解。
+     *
+     * <p>这是线上踩到的场景：MES 的在制工序（RUNNING / QC_WAITING）没有 actualEndTime，
+     * 开工时刻又早于计划窗口起点。若完工时间被回落成"按裁剪后的日历从开工时刻累加"，
+     * 它会被推到计划起点之后，后道工序的实际开工反而更早，operationPrecedence 必然违反，
+     * 整份计划判为无可行解。ApsSolverProblemBuilder 必须在构建输入时就把完工时间推算好。
+     */
+    @Test
+    void shouldStayFeasibleWhenPinnedTaskStartedBeforePlanTime() {
+        ApsSolution problem = buildProblem();
+        // 1 号工单：首道 8/28 开工、8/28 完工（都在计划起点 9/01 之前），二道紧随其后
+        ApsSolverTask first = problem.getTasks().get(0);
+        first.setPinned(true);
+        first.setPinnedResId(1L);
+        first.setPinnedStartTime(PLAN_TIME.minusDays(4));
+        first.setPinnedEndTime(PLAN_TIME.minusDays(4).plusHours(1));
+        ApsSolverResource firstResource = problem.getResources().get(0);
+        firstResource.getTaskList().add(first);
+        firstResource.setFirstUnpinnedIndex(1);
+
+        ApsSolverTask second = problem.getTasks().get(1);
+        second.setPinned(true);
+        second.setPinnedResId(2L);
+        second.setPinnedStartTime(PLAN_TIME.minusDays(3));
+        second.setPinnedEndTime(PLAN_TIME.minusDays(3).plusHours(2));
+        ApsSolverResource secondResource = problem.getResources().get(1);
+        secondResource.getTaskList().add(second);
+        secondResource.setFirstUnpinnedIndex(1);
+
+        ApsSolution solved = solve(problem);
+
+        assertEquals(0L, solved.getScore().hardScore(),
+                "在制工序开工早于计划起点时仍应可行，实际得分：" + solved.getScore());
+        // 后道的完工时间早于前道开工也不该违反：两者都是既成事实
+        assertFalse(second.getPinnedStartTime().isBefore(first.getPinnedEndTime()),
+                "测试数据本身应满足前后序");
+    }
+
 }

@@ -47,6 +47,15 @@ public class ApsSolverResource {
     /** 可用时间窗，按开始时间升序且互不重叠。 */
     private List<ApsTimeWindow> windows = new ArrayList<>();
 
+    /**
+     * 未按计划起点裁剪的完整时间窗，只用于推算在制工序的完工时间。
+     *
+     * <p>{@link #windows} 裁掉了计划起点之前的产能，因为那部分不能再用来排新计划。但已开工工序的
+     * 开工时刻往往早于计划起点，用裁剪后的窗口累加工时会把它的完工时间推到未来，进而让后道工序
+     * 看起来"提前开工"，误伤前后序硬约束。求解本身不读这个字段。
+     */
+    private List<ApsTimeWindow> rawWindows = new ArrayList<>();
+
     /** 工序能力：标准工序编号 -> 能力效率系数。 */
     private Map<Long, BigDecimal> capabilityEfficiencies = new LinkedHashMap<>();
 

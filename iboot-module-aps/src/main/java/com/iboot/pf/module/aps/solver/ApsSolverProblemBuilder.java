@@ -12,6 +12,8 @@ import com.iboot.pf.module.aps.dal.mysql.projection.ApsOrderProjectionMapper;
 import com.iboot.pf.module.aps.dal.mysql.projection.ApsResourceProjectionMapper;
 import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.aps.solver.config.ApsStrategyConfig;
+import com.iboot.pf.module.aps.solver.calculate.ApsCalendarCalculator;
+import com.iboot.pf.module.aps.solver.calculate.ApsDurationCalculator;
 import com.iboot.pf.module.aps.solver.model.ApsSolution;
 import com.iboot.pf.module.aps.solver.model.ApsSolverResource;
 import com.iboot.pf.module.aps.solver.model.ApsSolverTask;
@@ -84,6 +86,7 @@ public class ApsSolverProblemBuilder {
             throw exception(SOLVE_NO_TASK);
         }
         linkPredecessors(tasks);
+        resolvePinnedEndTimes(resources, tasks);
         assignPinnedTasks(resources, tasks);
 
         ApsSolution solution = new ApsSolution();
@@ -132,7 +135,9 @@ public class ApsSolverProblemBuilder {
             resource.setName(first.getResName());
             resource.setEfficiency(master == null ? BigDecimal.ONE : master.getEfficiency());
             resource.setResGroup(master == null ? null : master.getResGroup());
-            resource.setWindows(buildWindows(resourceRows, planTime));
+            List<ApsTimeWindow> rawWindows = buildWindows(resourceRows);
+            resource.setRawWindows(rawWindows);
+            resource.setWindows(clipToPlanTime(rawWindows, planTime));
             resource.setCapabilityEfficiencies(parseCapabilities(first.getCapabilityJson()));
             resource.setChangeoverMinutes(changeoverMap.getOrDefault(resId, Map.of()));
             // 没有任何可用产能的资源不参与排程，留着只会让求解器白试
@@ -143,8 +148,13 @@ public class ApsSolverProblemBuilder {
         return result;
     }
 
-    /** 按“日期 + 班次起止”展开时间窗，过滤掉计划起点之前的部分并按开始时间排序。 */
-    private List<ApsTimeWindow> buildWindows(List<ApsResourceProjectionDO> rows, LocalDateTime planTime) {
+    /**
+     * 按“日期 + 班次起止”展开完整时间窗，按开始时间排序，**不做计划起点裁剪**。
+     *
+     * <p>裁剪由调用方分别处理：排新计划用裁剪后的窗口（过去的产能不能再用），
+     * 推算在制工序完工时间用完整窗口（它的开工时刻本来就在过去）。
+     */
+    private List<ApsTimeWindow> buildWindows(List<ApsResourceProjectionDO> rows) {
         List<ApsTimeWindow> windows = new ArrayList<>();
         Set<LocalDate> shiftCoveredDates = new LinkedHashSet<>();
         for (ApsResourceProjectionDO row : rows) {
@@ -168,8 +178,7 @@ public class ApsSolverProblemBuilder {
             windows.add(new ApsTimeWindow(start, start.plusMinutes(minutes)));
         }
         return windows.stream()
-                .map(window -> clipToPlanTime(window, planTime))
-                .filter(window -> window != null && window.minutes() > 0)
+                .filter(window -> window.minutes() > 0)
                 .sorted(Comparator.comparing(ApsTimeWindow::start))
                 .toList();
     }
@@ -185,8 +194,15 @@ public class ApsSolverProblemBuilder {
         return new ApsTimeWindow(start, end);
     }
 
-    /** 裁掉计划起点之前的产能：已经过去的班次不能再用来排产。 */
-    private ApsTimeWindow clipToPlanTime(ApsTimeWindow window, LocalDateTime planTime) {
+    /** 裁掉计划起点之前的产能：已经过去的班次不能再用来排新计划。 */
+    private List<ApsTimeWindow> clipToPlanTime(List<ApsTimeWindow> windows, LocalDateTime planTime) {
+        return windows.stream()
+                .map(window -> clipWindow(window, planTime))
+                .filter(window -> window != null && window.minutes() > 0)
+                .toList();
+    }
+
+    private ApsTimeWindow clipWindow(ApsTimeWindow window, LocalDateTime planTime) {
         if (!window.end().isAfter(planTime)) {
             return null;
         }
@@ -311,6 +327,8 @@ public class ApsSolverProblemBuilder {
         task.setPinned(Boolean.TRUE.equals(row.getLockedFlag()));
         task.setPinnedResId(row.getResId());
         task.setPinnedStartTime(row.getActualStartTime());
+        // 实际完工时间只在工序真正报完工后才有；未完工的在制工序由 resolvePinnedEndTimes 推算
+        task.setPinnedEndTime(row.getActualEndTime());
         // 能力候选资源按标准工序编号反查；主数据没配能力时留空集合，表示不限制
         task.setEligibleResIds(new LinkedHashSet<>(
                 opToResources.getOrDefault(row.getOpId(), Set.of())));
@@ -348,6 +366,35 @@ public class ApsSolverProblemBuilder {
                 current.getPredecessors().add(previous);
             }
         });
+    }
+
+    /**
+     * 补齐锁定任务的完工时间。
+     *
+     * <p>MES 只在工序报完工后才写 {@code actual_end_time}，在制工序（RUNNING / QC_WAITING）没有它。
+     * 缺这个值时 {@code ApsSolverTask#endTimeSupplier} 会回落到"按资源日历从开工时刻累加工时"，
+     * 而日历窗口已经被 {@code clipToPlanTime} 裁掉了计划起点之前的产能——已开工任务的开工时刻通常
+     * 早于计划起点，累加就从计划起点重新算，把完工时间推到未来，后道工序的实际开工反而更早，
+     * {@code operationPrecedence} 硬约束必然违反，整份计划直接判为无可行解。
+     *
+     * <p>推算口径：从实际开工时刻起，按该资源**未裁剪**的班次窗口累加净工时。资源日历不覆盖时
+     * 退化为自然时间顺延，保证一定能得出一个不早于开工时刻的完工时间。
+     */
+    private void resolvePinnedEndTimes(List<ApsSolverResource> resources, List<ApsSolverTask> tasks) {
+        Map<Long, ApsSolverResource> resourceMap = new LinkedHashMap<>();
+        resources.forEach(resource -> resourceMap.put(resource.getId(), resource));
+        for (ApsSolverTask task : tasks) {
+            if (!task.isPinned() || task.getPinnedStartTime() == null || task.getPinnedEndTime() != null) {
+                continue;
+            }
+            ApsSolverResource resource = resourceMap.get(task.getPinnedResId());
+            int workMinutes = resource == null
+                    ? 0 : ApsDurationCalculator.calculateWorkMinutes(task, resource);
+            LocalDateTime end = resource == null ? null : ApsCalendarCalculator.addWorkingMinutes(
+                    task.getPinnedStartTime(), workMinutes, resource.getRawWindows());
+            // 资源日历排不下这段在制工时：按自然时间顺延，绝不留 null 让它回落到裁剪后的窗口
+            task.setPinnedEndTime(end == null ? task.getPinnedStartTime().plusMinutes(workMinutes) : end);
+        }
     }
 
     /**
