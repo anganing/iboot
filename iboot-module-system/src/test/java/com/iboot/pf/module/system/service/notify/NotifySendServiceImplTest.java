@@ -4,10 +4,14 @@ import cn.hutool.core.map.MapUtil;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.enums.UserTypeEnum;
 import com.iboot.pf.framework.test.core.ut.BaseMockitoUnitTest;
+import com.iboot.pf.module.infra.api.websocket.WebSocketSenderApi;
+import com.iboot.pf.module.system.controller.admin.notify.vo.message.NotifyMessagePushRespVO;
 import com.iboot.pf.module.system.dal.dataobject.notify.NotifyTemplateDO;
+import com.iboot.pf.module.system.enums.WebSocketMessageTypeConstants;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
@@ -33,6 +37,8 @@ class NotifySendServiceImplTest extends BaseMockitoUnitTest {
     private NotifyTemplateService notifyTemplateService;
     @Mock
     private NotifyMessageService notifyMessageService;
+    @Mock
+    private WebSocketSenderApi webSocketSenderApi;
 
     @Test
     public void testSendSingleNotifyToAdmin() {
@@ -185,6 +191,83 @@ class NotifySendServiceImplTest extends BaseMockitoUnitTest {
         );
         // 断言
         assertEquals("暂时不支持该操作，感兴趣可以实现该功能哟！", exception.getMessage());
+    }
+
+    /**
+     * 发送成功后，会通过 WebSocket 定向推送给接收人，并带上该用户当前未读数
+     */
+    @Test
+    public void testSendSingleNotify_pushSuccess() {
+        // 准备参数
+        Long userId = randomLongId();
+        Integer userType = UserTypeEnum.ADMIN.getValue();
+        String templateCode = randomString();
+        Map<String, Object> templateParams = MapUtil.<String, Object>builder().put("code", "1234").build();
+        // mock NotifyTemplateService 的方法
+        NotifyTemplateDO template = randomPojo(NotifyTemplateDO.class, o -> {
+            o.setStatus(CommonStatusEnum.ENABLE.getStatus());
+            o.setContent("验证码为{code}");
+            o.setParams(Lists.newArrayList("code"));
+        });
+        when(notifyTemplateService.getNotifyTemplateByCodeFromCache(eq(templateCode))).thenReturn(template);
+        String content = randomString();
+        when(notifyTemplateService.formatNotifyTemplateContent(eq(template.getContent()), eq(templateParams)))
+                .thenReturn(content);
+        // mock NotifyMessageService 的方法
+        Long messageId = randomLongId();
+        when(notifyMessageService.createNotifyMessage(eq(userId), eq(userType),
+                eq(template), eq(content), eq(templateParams))).thenReturn(messageId);
+        when(notifyMessageService.getUnreadNotifyMessageCount(eq(userId), eq(userType))).thenReturn(3L);
+
+        // 调用
+        Long resultMessageId = notifySendService.sendSingleNotify(userId, userType, templateCode, templateParams);
+
+        // 断言
+        assertEquals(messageId, resultMessageId);
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(webSocketSenderApi).sendObject(eq(userType), eq(userId),
+                eq(WebSocketMessageTypeConstants.NOTIFY_MESSAGE_PUSH), captor.capture());
+        NotifyMessagePushRespVO push = (NotifyMessagePushRespVO) captor.getValue();
+        assertEquals(messageId, push.getId());
+        assertEquals(content, push.getTemplateContent());
+        assertEquals(template.getNickname(), push.getTemplateNickname());
+        assertEquals(template.getType(), push.getTemplateType());
+        assertEquals(3L, push.getUnreadCount());
+    }
+
+    /**
+     * 推送失败不影响站内信本身：推送只是观测手段，不能把业务带崩
+     */
+    @Test
+    public void testSendSingleNotify_pushFailed() {
+        // 准备参数
+        Long userId = randomLongId();
+        Integer userType = UserTypeEnum.ADMIN.getValue();
+        String templateCode = randomString();
+        Map<String, Object> templateParams = MapUtil.<String, Object>builder().put("code", "1234").build();
+        // mock NotifyTemplateService 的方法
+        NotifyTemplateDO template = randomPojo(NotifyTemplateDO.class, o -> {
+            o.setStatus(CommonStatusEnum.ENABLE.getStatus());
+            o.setContent("验证码为{code}");
+            o.setParams(Lists.newArrayList("code"));
+        });
+        when(notifyTemplateService.getNotifyTemplateByCodeFromCache(eq(templateCode))).thenReturn(template);
+        String content = randomString();
+        when(notifyTemplateService.formatNotifyTemplateContent(eq(template.getContent()), eq(templateParams)))
+                .thenReturn(content);
+        // mock NotifyMessageService 的方法
+        Long messageId = randomLongId();
+        when(notifyMessageService.createNotifyMessage(eq(userId), eq(userType),
+                eq(template), eq(content), eq(templateParams))).thenReturn(messageId);
+        when(notifyMessageService.getUnreadNotifyMessageCount(eq(userId), eq(userType)))
+                .thenThrow(new RuntimeException("模拟推送异常"));
+
+        // 调用
+        Long resultMessageId = notifySendService.sendSingleNotify(userId, userType, templateCode, templateParams);
+
+        // 断言：站内信照常返回，且没有发出推送
+        assertEquals(messageId, resultMessageId);
+        verify(webSocketSenderApi, never()).sendObject(anyInt(), anyLong(), anyString(), any());
     }
 
 }

@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.service.notice;
 
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.system.controller.admin.notice.vo.NoticePageReqVO;
@@ -125,6 +126,46 @@ class NoticeServiceImplTest extends BaseDbUnitTest {
     public void testValidateNoticeExists_noExists() {
         assertServiceException(() ->
                 noticeService.validateNoticeExists(randomLongId()), NOTICE_NOT_FOUND);
+    }
+
+    @Test
+    public void testGetEnabledNoticePage_success() {
+        // 插入前置数据：一条开启、一条关闭
+        NoticeDO enabledNotice = randomPojo(NoticeDO.class,
+                o -> o.setStatus(CommonStatusEnum.ENABLE.getStatus()));
+        noticeMapper.insert(enabledNotice);
+        noticeMapper.insert(cloneIgnoreId(enabledNotice,
+                o -> o.setStatus(CommonStatusEnum.DISABLE.getStatus())));
+
+        // 调用
+        PageResult<NoticeDO> pageResult = noticeService.getEnabledNoticePage(new PageParam());
+        // 断言：关闭的公告不该给用户看到
+        assertEquals(1, pageResult.getTotal());
+        assertPojoEquals(enabledNotice, pageResult.getList().get(0));
+    }
+
+    @Test
+    public void testGetEnabledNotice_success() {
+        // 插入前置数据
+        NoticeDO enabledNotice = randomPojo(NoticeDO.class,
+                o -> o.setStatus(CommonStatusEnum.ENABLE.getStatus()));
+        noticeMapper.insert(enabledNotice);
+
+        // 调用并断言
+        NoticeDO notice = noticeService.getEnabledNotice(enabledNotice.getId());
+        assertNotNull(notice);
+        assertPojoEquals(enabledNotice, notice);
+    }
+
+    @Test
+    public void testGetEnabledNotice_disabled() {
+        // 插入前置数据：关闭状态
+        NoticeDO disabledNotice = randomPojo(NoticeDO.class,
+                o -> o.setStatus(CommonStatusEnum.DISABLE.getStatus()));
+        noticeMapper.insert(disabledNotice);
+
+        // 调用并断言：关闭的公告取不到，避免越权读
+        assertNull(noticeService.getEnabledNotice(disabledNotice.getId()));
     }
 
 }

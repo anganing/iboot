@@ -1,5 +1,7 @@
 package com.iboot.pf.module.system.service.notice;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
+import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.system.controller.admin.notice.vo.NoticePageReqVO;
@@ -63,6 +65,16 @@ public class NoticeServiceImpl implements NoticeService {
     @Override
     public NoticeDO getNotice(Long id) {
         return noticeMapper.selectById(id);
+    }
+
+    @Override
+    public PageResult<NoticeDO> getEnabledNoticePage(PageParam pageParam) {
+        return noticeMapper.selectPageByStatus(pageParam, CommonStatusEnum.ENABLE.getStatus());
+    }
+
+    @Override
+    public NoticeDO getEnabledNotice(Long id) {
+        return noticeMapper.selectByIdAndStatus(id, CommonStatusEnum.ENABLE.getStatus());
     }
 
     @VisibleForTesting
