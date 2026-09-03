@@ -11,6 +11,16 @@ const routes: RouteRecordRaw[] = [
       hideInMenu: true,
     },
   },
+  {
+    path: '/system/my-notice',
+    component: () => import('#/views/system/notice/my/index.vue'),
+    name: 'MyNotice',
+    meta: {
+      title: '我的公告',
+      icon: 'lucide:megaphone',
+      hideInMenu: true,
+    },
+  },
 ];
 
 export default routes;
