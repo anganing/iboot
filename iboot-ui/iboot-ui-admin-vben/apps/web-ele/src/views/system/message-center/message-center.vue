@@ -4,8 +4,9 @@ import type { MessageKind } from './use-message-center';
 import type { SystemNoticeApi } from '#/api/system/notice';
 import type { SystemNotifyMessageApi } from '#/api/system/notify/message';
 
-import { computed, watch } from 'vue';
+import { watch } from 'vue';
 
+import { useVbenModal } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { IconifyIcon } from '@vben/icons';
 import { formatDateTime } from '@vben/utils';
@@ -26,6 +27,7 @@ import { RichTextView } from '#/components/rich-text-view';
 import { router } from '#/router';
 import { htmlToText } from '#/utils';
 
+import MessageDetailModal from './message-detail-modal.vue';
 import { useMessageCenter } from './use-message-center';
 
 const messageCenter = useMessageCenter();
@@ -34,33 +36,45 @@ const {
   detail,
   noticeList,
   noticeLoading,
+  noticeUnreadCount,
   notifyList,
   popoverVisible,
   unreadCount,
+  unreadTotal,
 } = messageCenter;
 
-/** 未读数超过 99 就不再显示具体数字，避免把徽标撑变形 */
-const badgeValue = computed(() =>
-  unreadCount.value > 99 ? '99+' : unreadCount.value,
-);
+const [DetailModal, detailModalApi] = useVbenModal({
+  connectedComponent: MessageDetailModal,
+});
 
-/** 打开时按当前 Tab 拉数据；公告 Tab 首次切换时才请求 */
+/**
+ * 每次展开都回到列表态并刷新数据。
+ *
+ * <p>详情只在展开时清，不在收起时清：点「放大查看」会先收起浮层再开弹窗，
+ * 在收起分支里清掉 detail 会让弹窗拿到空内容。
+ */
 watch(popoverVisible, (visible) => {
   if (!visible) {
-    messageCenter.closeDetail();
     return;
   }
+  messageCenter.closeDetail();
   messageCenter.loadUnreadCount();
   messageCenter.loadNotifyList();
   if (activeKind.value === 'notice') {
-    messageCenter.loadNoticeList();
+    showNoticeTab();
   }
 });
+
+/** 公告 Tab 露出即视为看过，徽标随之清零；先等列表回来再记编号 */
+async function showNoticeTab() {
+  await messageCenter.loadNoticeList();
+  messageCenter.markNoticeSeen();
+}
 
 function handleTabChange(name: unknown) {
   messageCenter.closeDetail();
   if (name === 'notice') {
-    messageCenter.loadNoticeList();
+    showNoticeTab();
   }
 }
 
@@ -91,9 +105,16 @@ function navigate(name: string) {
 function handleViewAll(kind: MessageKind) {
   navigate(kind === 'notify' ? 'MyNotifyMessage' : 'MyNotice');
 }
+
+/** 浮层太窄读不下长公告时，放到大窗里看 */
+function handleExpandDetail() {
+  popoverVisible.value = false;
+  detailModalApi.open();
+}
 </script>
 
 <template>
+  <DetailModal />
   <ElPopover
     v-model:visible="popoverVisible"
     :show-arrow="false"
@@ -110,8 +131,8 @@ function handleViewAll(kind: MessageKind) {
             type="button"
           >
             <ElBadge
-              :hidden="unreadCount === 0"
-              :value="badgeValue"
+              :hidden="unreadTotal === 0"
+              :value="unreadTotal"
               class="flex items-center"
             >
               <IconifyIcon class="size-4" icon="lucide:bell" />
@@ -139,6 +160,11 @@ function handleViewAll(kind: MessageKind) {
           "
           :value="detail.tagValue"
         />
+        <ElTooltip content="放大查看" placement="left">
+          <ElButton link @click="handleExpandDetail">
+            <IconifyIcon class="size-4" icon="lucide:maximize-2" />
+          </ElButton>
+        </ElTooltip>
       </div>
       <ElScrollbar class="min-h-0 flex-1">
         <div class="px-3 py-2">
@@ -177,7 +203,17 @@ function handleViewAll(kind: MessageKind) {
         class="message-center-tabs flex-1"
         @tab-change="handleTabChange"
       >
-        <ElTabPane label="站内信" name="notify">
+        <ElTabPane name="notify">
+          <template #label>
+            <span class="flex items-center gap-1.5">
+              站内信
+              <ElBadge
+                v-if="unreadCount > 0"
+                :value="unreadCount"
+                class="message-center-tab-badge"
+              />
+            </span>
+          </template>
           <ElScrollbar height="100%">
             <ElEmpty
               v-if="notifyList.length === 0"
@@ -228,7 +264,17 @@ function handleViewAll(kind: MessageKind) {
           </ElScrollbar>
         </ElTabPane>
 
-        <ElTabPane label="通知公告" name="notice">
+        <ElTabPane name="notice">
+          <template #label>
+            <span class="flex items-center gap-1.5">
+              通知公告
+              <ElBadge
+                v-if="noticeUnreadCount > 0"
+                :value="noticeUnreadCount"
+                class="message-center-tab-badge"
+              />
+            </span>
+          </template>
           <ElScrollbar height="100%">
             <ElEmpty
               v-if="!noticeLoading && noticeList.length === 0"
@@ -327,6 +373,17 @@ function handleViewAll(kind: MessageKind) {
 
   :deep(.el-tab-pane) {
     height: 100%;
+  }
+}
+
+/* Tab 标签里的徽标不含默认插槽，不会绝对定位，这里只压掉多余的行高影响 */
+.message-center-tab-badge {
+  display: inline-flex;
+  vertical-align: middle;
+
+  :deep(.el-badge__content) {
+    position: static;
+    transform: none;
   }
 }
 </style>

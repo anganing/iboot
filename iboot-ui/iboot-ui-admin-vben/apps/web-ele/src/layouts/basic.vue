@@ -3,15 +3,7 @@ import type { SystemNoticeApi } from '#/api/system/notice';
 import type { SystemNotifyMessageApi } from '#/api/system/notify/message';
 import type { SystemTenantApi } from '#/api/system/tenant';
 
-import {
-  computed,
-  getCurrentInstance,
-  h,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
@@ -35,10 +27,9 @@ import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
-import { ElMessage, ElNotification, ElTooltip } from 'element-plus';
+import { ElMessage, ElTooltip } from 'element-plus';
 
 import { getSimpleTenantList } from '#/api/system/tenant';
-import { RichTextView } from '#/components/rich-text-view';
 import { useAppWebSocket } from '#/hooks/use-app-websocket';
 import { $t } from '#/locales';
 import { router } from '#/router';
@@ -61,13 +52,6 @@ const { destroyWatermark, updateWatermark } = useWatermark();
 const { closeOtherTabs, refreshTab } = useTabs();
 const appWebSocket = useAppWebSocket();
 const messageCenter = useMessageCenter();
-/**
- * ElNotification 走 render() 脱离组件树渲染，vnode 默认没有 appContext。
- *
- * <p>不把当前应用上下文传进去，富文本正文里的 v-dompurify-html（app.use 注册的全局指令）
- * 解析不到会被静默跳过，提醒里只剩标题和一个空白正文区。
- */
-const appContext = getCurrentInstance()?.appContext;
 
 const [HelpModal, helpModalApi] = useVbenModal({
   connectedComponent: Help,
@@ -118,18 +102,11 @@ async function handleLogout() {
 }
 
 /**
- * 提醒正文渲染成富文本。
+ * 站内信推送：只更新铃铛徽标，不弹浮动提醒。
  *
- * <p>限高加滚动：公告可能带图片和长段落，糊满半屏就没法继续操作页面了。
+ * <p>推送提醒会盖住正在操作的页面，长富文本尤其挡视线。消息统一收在铃铛里，
+ * 由用户自己决定什么时候看。
  */
-function renderPushContent(content?: string) {
-  return () =>
-    h('div', { class: 'max-h-60 overflow-y-auto' }, [
-      h(RichTextView, { content }),
-    ]);
-}
-
-/** 站内信推送：更新铃铛状态，并弹一条能看到完整富文本的提醒 */
 function handleNotifyMessagePush(
   content: SystemNotifyMessageApi.NotifyMessage & { unreadCount?: number },
 ) {
@@ -137,34 +114,14 @@ function handleNotifyMessagePush(
     return;
   }
   messageCenter.receiveNotifyPush(content);
-  ElNotification(
-    {
-      duration: 8000,
-      message: renderPushContent(content.templateContent),
-      onClick: () => messageCenter.openNotifyDetail(content),
-      title: content.templateNickname || '新站内信',
-      type: 'info',
-    },
-    appContext,
-  );
 }
 
-/** 公告推送：只提醒在线用户，点击后在铃铛浮层里看全文 */
+/** 公告推送：同样只更新徽标，公告条目落到铃铛的通知公告 Tab */
 function handleNoticePush(content: SystemNoticeApi.Notice) {
   if (!content?.id) {
     return;
   }
   messageCenter.receiveNoticePush(content);
-  ElNotification(
-    {
-      duration: 10_000,
-      message: renderPushContent(content.content),
-      onClick: () => messageCenter.openNoticeDetail(content),
-      title: content.title || '新公告',
-      type: 'warning',
-    },
-    appContext,
-  );
 }
 
 /** 打开 IM 聊天 */
@@ -209,11 +166,11 @@ const socketDisposers: Array<() => void> = [];
 onMounted(() => {
   // 获取租户列表
   handleGetTenantList();
-  // 站内信改推送驱动：连接成功（含每次重连）后校准一次未读数，补上断线期间漏掉的推送
+  // 消息改推送驱动：连接成功（含每次重连）后校准两个 Tab 的徽标，补上断线期间漏掉的推送
   socketDisposers.push(
     appWebSocket.onConnected(() => {
       if (userStore.userInfo) {
-        messageCenter.loadUnreadCount();
+        messageCenter.syncBadges();
       }
     }),
     appWebSocket.on(NOTIFY_MESSAGE_PUSH, handleNotifyMessagePush),
