@@ -263,8 +263,20 @@ function buildTaskTags(
   return tags;
 }
 
-/** 底部提示：点不动的时候要在移入时就说清原因，而不是等用户点完弹一个警告 */
-function resolveTaskHint(task: ApsTaskApi.GanttTask, editable: boolean) {
+/**
+ * 底部提示。
+ *
+ * <p>点不动的时候要在移入时就说清原因，而不是等用户点完弹一个警告。只读页面不给提示：
+ * 那里本来就没有调整入口，说"不可调整"等于暗示别处能调，反而让车间去找那个按钮。
+ */
+function resolveTaskHint(
+  task: ApsTaskApi.GanttTask,
+  editable: boolean,
+  readonly: boolean,
+) {
+  if (readonly) {
+    return undefined;
+  }
   if (!editable) {
     return '版本已发布或已被替换，排程结果不可调整';
   }
@@ -277,13 +289,18 @@ function resolveTaskHint(task: ApsTaskApi.GanttTask, editable: boolean) {
 /** 工序条的悬浮详情 */
 export function buildTaskTooltip(
   task: ApsTaskApi.GanttTask,
-  options: { delayFlag?: boolean; editable: boolean; groupBy: GanttGroupBy },
+  options: {
+    delayFlag?: boolean;
+    editable: boolean;
+    groupBy: GanttGroupBy;
+    readonly?: boolean;
+  },
 ): GanttTooltip {
-  const { delayFlag, editable, groupBy } = options;
+  const { delayFlag, editable, groupBy, readonly = false } = options;
   const changeoverMinutes = task.changeoverMinutes ?? 0;
   return {
     color: resolveTaskBarColor(task, groupBy, delayFlag),
-    hint: resolveTaskHint(task, editable),
+    hint: resolveTaskHint(task, editable, readonly),
     icon: 'lucide:settings-2',
     rows: [
       { label: '生产工单', value: task.prodOrderNo || '-' },

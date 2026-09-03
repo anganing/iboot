@@ -41,6 +41,14 @@ public enum ApsVersionStatusEnum implements ArrayValuable<String> {
 
     private static final Set<ApsVersionStatusEnum> IMMUTABLE_STATUSES = Set.of(PUBLISHED, REPLACED);
 
+    /**
+     * 曾经生效过的状态，最新在前。
+     *
+     * <p>车间与 PMC 的"排程结果"页只能查这两种：已发布是当前生效的计划，已被替换是上一版下过车间的计划。
+     * 求解中、求解失败、待确认、已确认从没到过车间，把它们混进去会让人误以为那也是一份计划。
+     */
+    private static final Set<String> EFFECTIVE_STATUSES = Set.of(PUBLISHED.name(), REPLACED.name());
+
     private final String name;
 
     @Override
@@ -73,6 +81,16 @@ public enum ApsVersionStatusEnum implements ArrayValuable<String> {
     /** 是否已确认：只有已确认的版本才允许发布或作为替换的新版本。 */
     public static boolean isConfirmed(String status) {
         return ObjUtil.equal(CONFIRMED.name(), status);
+    }
+
+    /**
+     * 判断状态是否属于曾经生效过。
+     *
+     * <p>空值与白名单外的取值一律返回 {@code false}，由调用方决定回落策略。
+     * 先挡空值是必须的：{@code Set.of} 是不可变集合，{@code contains(null)} 会直接抛 NPE。
+     */
+    public static boolean isEffective(String status) {
+        return status != null && EFFECTIVE_STATUSES.contains(status);
     }
 
 }

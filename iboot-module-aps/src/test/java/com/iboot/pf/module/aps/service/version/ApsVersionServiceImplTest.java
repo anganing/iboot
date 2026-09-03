@@ -1,9 +1,12 @@
 package com.iboot.pf.module.aps.service.version;
 
+import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.ReplaceVersionReqDTO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.EffectiveVersionPageReqVO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.scenario.ApsScenarioDO;
 import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
 import com.iboot.pf.module.aps.dal.mysql.scenario.ApsScenarioMapper;
@@ -37,7 +40,7 @@ import static org.mockito.Mockito.verify;
  * 排程版本 Service 测试。
  *
  * <p>覆盖版本号在场景内连续分配、状态机只允许文档里的迁移、同场景唯一已发布版本、
- * 以及已发布版本的排程结果只读。
+ * 已发布版本的排程结果只读，以及"排程结果"页的生效版本查询白名单。
  */
 @Import({ApsVersionServiceImpl.class, ApsCommandServiceImpl.class})
 class ApsVersionServiceImplTest extends BaseDbUnitTest {
@@ -232,6 +235,87 @@ class ApsVersionServiceImplTest extends BaseDbUnitTest {
     @Test
     void testValidateMutable_notExists() {
         assertServiceException(() -> versionService.validateMutable(randomLongId()), VERSION_NOT_EXISTS);
+    }
+
+    private EffectiveVersionPageReqVO buildEffectivePageReq(String scenarioCode, String status) {
+        EffectiveVersionPageReqVO reqVO = new EffectiveVersionPageReqVO();
+        reqVO.setScenarioCode(scenarioCode);
+        reqVO.setStatus(status);
+        return reqVO;
+    }
+
+    @Test
+    void testGetEffectiveVersionPage_defaultOnlyPublished() {
+        Long scenarioId = insertScenario("APS-SC-A", ApsScenarioStatusEnum.SOLVED.name());
+        insertVersion(scenarioId, 1, ApsVersionStatusEnum.REPLACED);
+        Long publishedId = insertVersion(scenarioId, 2, ApsVersionStatusEnum.PUBLISHED);
+        insertVersion(scenarioId, 3, ApsVersionStatusEnum.SOLVING);
+
+        PageResult<VersionRespVO> pageResult =
+                versionService.getEffectiveVersionPage(buildEffectivePageReq(null, null));
+
+        // 状态留空只看当前生效的计划，已被替换与求解中都不出现
+        assertEquals(1L, pageResult.getTotal());
+        assertEquals(publishedId, pageResult.getList().get(0).getId());
+    }
+
+    @Test
+    void testGetEffectiveVersionPage_replacedOnly() {
+        Long scenarioId = insertScenario("APS-SC-A", ApsScenarioStatusEnum.SOLVED.name());
+        Long replacedId = insertVersion(scenarioId, 1, ApsVersionStatusEnum.REPLACED);
+        insertVersion(scenarioId, 2, ApsVersionStatusEnum.PUBLISHED);
+
+        PageResult<VersionRespVO> pageResult =
+                versionService.getEffectiveVersionPage(buildEffectivePageReq(null, "REPLACED"));
+
+        assertEquals(1L, pageResult.getTotal());
+        assertEquals(replacedId, pageResult.getList().get(0).getId());
+    }
+
+    @Test
+    void testGetEffectiveVersionPage_whitelistFallsBackToPublished() {
+        Long scenarioId = insertScenario("APS-SC-A", ApsScenarioStatusEnum.SOLVED.name());
+        Long publishedId = insertVersion(scenarioId, 1, ApsVersionStatusEnum.PUBLISHED);
+        insertVersion(scenarioId, 2, ApsVersionStatusEnum.SOLVING);
+        insertVersion(scenarioId, 3, ApsVersionStatusEnum.PENDING_CONFIRM);
+
+        PageResult<VersionRespVO> pageResult =
+                versionService.getEffectiveVersionPage(buildEffectivePageReq(null, "SOLVING"));
+
+        // 白名单外的状态回落成只查已发布，构造请求也拿不到还在评审中的版本
+        assertEquals(1L, pageResult.getTotal());
+        assertEquals(publishedId, pageResult.getList().get(0).getId());
+    }
+
+    @Test
+    void testGetEffectiveVersionPage_scenarioCodeLike() {
+        Long matchedScenarioId = insertScenario("APS-SC-MATCH", ApsScenarioStatusEnum.SOLVED.name());
+        Long otherScenarioId = insertScenario("APS-SC-OTHER", ApsScenarioStatusEnum.SOLVED.name());
+        Long matchedId = insertVersion(matchedScenarioId, 1, ApsVersionStatusEnum.PUBLISHED);
+        insertVersion(otherScenarioId, 1, ApsVersionStatusEnum.PUBLISHED);
+
+        PageResult<VersionRespVO> pageResult =
+                versionService.getEffectiveVersionPage(buildEffectivePageReq("MATCH", null));
+
+        assertEquals(1L, pageResult.getTotal());
+        assertEquals(matchedId, pageResult.getList().get(0).getId());
+    }
+
+    @Test
+    void testGetEffectiveVersionPage_fillsScenarioColumns() {
+        Long scenarioId = insertScenario("APS-SC-A", ApsScenarioStatusEnum.SOLVED.name());
+        insertVersion(scenarioId, 1, ApsVersionStatusEnum.PUBLISHED);
+
+        VersionRespVO respVO = versionService
+                .getEffectiveVersionPage(buildEffectivePageReq(null, null)).getList().get(0);
+
+        // 场景的可读字段与计划窗口由 Mapper JOIN 出来，前端不做二次拼接
+        assertEquals("APS-SC-A", respVO.getScenarioCode());
+        assertEquals("八月排程", respVO.getScenarioName());
+        assertEquals(1L, respVO.getPlantId());
+        assertEquals(0L, respVO.getWorkshopId());
+        assertEquals(LocalDateTime.of(2026, 8, 1, 8, 0), respVO.getPlanStartTime());
+        assertEquals(LocalDateTime.of(2026, 8, 31, 20, 0), respVO.getPlanEndTime());
     }
 
 }

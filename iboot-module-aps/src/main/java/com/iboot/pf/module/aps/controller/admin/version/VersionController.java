@@ -8,6 +8,7 @@ import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.framework.security.core.util.SecurityFrameworkUtils;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.EffectiveVersionPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.GenerateVersionReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.SolveProgressRespVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.VersionPageReqVO;
@@ -101,31 +102,18 @@ public class VersionController {
     }
 
     /**
-     * 场景当前生效的排程版本。
+     * 曾经生效过的排程版本分页，供车间与 PMC 的"排程结果"页使用。
      *
-     * <p>权限挂 {@code aps:task:query} 而不是 {@code aps:version:query}：调用方是车间侧的"看生效计划"，
-     * 他们只该看到已发布的计划，不应为了定位版本而拿到整个版本管理的查询权限。
+     * <p>权限挂 {@code aps:task:query} 而不是 {@code aps:version:query}：车间只该看到下过车间的计划，
+     * 不该为了看排程结果而拿到整个版本管理的查询权限——那会连带看到求解失败、待确认的中间版本。
+     * 状态白名单由 Service 收口，这里不做状态判断。
      */
-    @GetMapping("/get-published")
-    @Operation(summary = "获得场景当前已发布的排程版本")
-    @Parameter(name = "scenarioId", description = "排程场景编号", required = true, example = "1")
+    @GetMapping("/page-effective")
+    @Operation(summary = "获得曾经生效过的排程版本分页")
     @PreAuthorize("@ss.hasPermission('aps:task:query')")
-    public CommonResult<VersionRespVO> getPublishedVersion(@RequestParam("scenarioId") Long scenarioId) {
-        return success(versionService.getPublishedVersion(scenarioId));
-    }
-
-    /**
-     * 场景下曾经生效过的版本列表。
-     *
-     * <p>同样挂 {@code aps:task:query}：车间侧要回看上一版计划做对比，但不该为此拿到版本管理的查询权限。
-     * 只返回已发布与已被替换，求解失败与待确认的版本从没下过车间。
-     */
-    @GetMapping("/list-effective")
-    @Operation(summary = "获得场景下曾经生效过的排程版本列表")
-    @Parameter(name = "scenarioId", description = "排程场景编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('aps:task:query')")
-    public CommonResult<List<VersionRespVO>> getEffectiveVersionList(@RequestParam("scenarioId") Long scenarioId) {
-        return success(versionService.getEffectiveVersionList(scenarioId));
+    public CommonResult<PageResult<VersionRespVO>> getEffectiveVersionPage(
+            @Valid EffectiveVersionPageReqVO pageReqVO) {
+        return success(versionService.getEffectiveVersionPage(pageReqVO));
     }
 
     @PutMapping("/confirm")

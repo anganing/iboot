@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 /**
  * 排程版本 Response VO。
  *
- * <p>场景编码与名称由 Mapper JOIN 取出；发布人昵称由 Service 调 system 门面批量补全。
+ * <p>场景编码、名称、工厂与车间编号、计划窗口都由 Mapper JOIN {@code aps_scenario} 取出；
+ * 工厂与车间名称、发布人昵称由 Service 调对方模块的门面批量补全，不跨库 JOIN。
  */
 @Schema(description = "管理后台 - APS-排程版本 Response VO")
 @Data
@@ -33,6 +34,28 @@ public class VersionRespVO {
     @Schema(description = "排程场景名称")
     @ExcelProperty("排程场景")
     private String scenarioName;
+
+    @Schema(description = "工厂编号", example = "1")
+    private Long plantId;
+
+    @Schema(description = "工厂名称")
+    @ExcelProperty("工厂")
+    private String plantName;
+
+    @Schema(description = "车间编号，0 表示全工厂", example = "1")
+    private Long workshopId;
+
+    @Schema(description = "车间名称")
+    @ExcelProperty("车间")
+    private String workshopName;
+
+    @Schema(description = "计划窗口开始时间")
+    @ExcelProperty("计划开始时间")
+    private LocalDateTime planStartTime;
+
+    @Schema(description = "计划窗口结束时间")
+    @ExcelProperty("计划结束时间")
+    private LocalDateTime planEndTime;
 
     @Schema(description = "排程版本号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @ExcelProperty("排程版本号")

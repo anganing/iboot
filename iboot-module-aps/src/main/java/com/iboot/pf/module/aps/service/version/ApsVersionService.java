@@ -4,6 +4,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.ReplaceVersionReqDTO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.EffectiveVersionPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.VersionPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
@@ -38,20 +39,14 @@ public interface ApsVersionService {
     PageResult<VersionRespVO> getVersionPage(VersionPageReqVO pageReqVO);
 
     /**
-     * 获得场景当前已发布的排程版本，供车间侧"看生效计划"使用
+     * 获得曾经生效过的排程版本分页，供车间侧"看排程结果"使用
      *
-     * @param scenarioId 场景编号
-     * @return 已发布版本；场景还没有发布过版本时返回 {@code null}
-     */
-    VersionRespVO getPublishedVersion(Long scenarioId);
-
-    /**
-     * 获得场景下曾经生效过的排程版本列表（已发布与已被替换），最新在前
+     * <p>只返回已发布与已被替换：求解中、求解失败、待确认的版本从没下过车间。
      *
-     * @param scenarioId 场景编号
-     * @return 版本列表
+     * @param pageReqVO 分页查询
+     * @return 曾经生效过的排程版本分页
      */
-    List<VersionRespVO> getEffectiveVersionList(Long scenarioId);
+    PageResult<VersionRespVO> getEffectiveVersionPage(EffectiveVersionPageReqVO pageReqVO);
 
     /**
      * 生成排程版本

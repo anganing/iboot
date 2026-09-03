@@ -6,6 +6,10 @@
         t.*
         , scenario.code AS scenario_code
         , scenario.name AS scenario_name
+        , scenario.plant_id AS plant_id
+        , scenario.workshop_id AS workshop_id
+        , scenario.plan_start_time AS plan_start_time
+        , scenario.plan_end_time AS plan_end_time
     </sql>
 
     <sql id="joinTables">
@@ -50,6 +54,29 @@
         <include refid="selectColumns"/>
         <include refid="joinTables"/>
         WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+    <!--
+        曾经生效过的版本分页。状态集合由 Service 按白名单传入，这里不硬编码状态字符串，
+        免得"能查哪些状态"这条规则散在 XML 与 Java 两处，将来改一处漏一处。
+        排序按发布时间倒序：车间关心的是最近哪一版下过来，不是版本编号的自增顺序。
+    -->
+    <select id="selectEffectiveJoinPage"
+            resultType="com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <where>
+            t.deleted = 0
+            AND t.status IN
+            <foreach collection="statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+            <if test="req.scenarioCode != null and req.scenarioCode != ''">
+                AND scenario.code LIKE CONCAT('%', #{req.scenarioCode}, '%')
+            </if>
+        </where>
+        ORDER BY t.published_time DESC, t.id DESC
     </select>
 
 </mapper>

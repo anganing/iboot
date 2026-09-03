@@ -13,6 +13,8 @@ import {
 } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
+import { DICT_TYPE } from '@vben/constants';
+import { getDictLabel } from '@vben/hooks';
 import { IconifyIcon } from '@vben/icons';
 import { formatDate, formatDateTime } from '@vben/utils';
 
@@ -52,10 +54,17 @@ import {
 /**
  * 排程甘特图视图。
  *
- * <p>独立成组件是为了让甘特图页面和排程版本列表的全屏弹窗共用同一份渲染逻辑，
+ * <p>独立成组件是为了让排程结果页与排程版本列表的全屏弹窗共用同一份渲染逻辑，
  * 版本从哪里选由外层决定，这里只负责按 versionId 取数与画图。
  */
 const props = defineProps<{
+  /**
+   * 只读模式：不响应任务条点击、不挂人工调整弹窗。
+   *
+   * <p>只读由调用页面的身份决定，而不是由版本状态推导。排程结果页面向车间，
+   * 无论版本处于什么状态都不该在那里改计划；将来状态机放宽也不会让这个页面跟着变成可写。
+   */
+  readonly?: boolean;
   /** 排程版本编号，为空时只显示空状态 */
   versionId?: number;
 }>();
@@ -109,8 +118,30 @@ const delayedOrderCount = computed(
     ganttData.value?.orderGroups?.filter((item) => item.delayFlag).length ?? 0,
 );
 const hasData = computed(() => (ganttData.value?.taskCount ?? 0) > 0);
+/** 可调整：只读模式一律为否，否则看版本状态是否已冻结 */
 const editable = computed(
-  () => !IMMUTABLE_STATUS.has(ganttData.value?.versionStatus ?? ''),
+  () =>
+    !props.readonly &&
+    !IMMUTABLE_STATUS.has(ganttData.value?.versionStatus ?? ''),
+);
+/** 版本状态标签：已发布是当前生效，已被替换是历史计划，两者对车间的含义完全不同 */
+const versionStatusTagType = computed(() => {
+  switch (ganttData.value?.versionStatus) {
+    case 'PUBLISHED': {
+      return 'success' as const;
+    }
+    case 'REPLACED': {
+      return 'warning' as const;
+    }
+    default: {
+      return 'primary' as const;
+    }
+  }
+});
+const versionStatusLabel = computed(() =>
+  ganttData.value?.versionStatus
+    ? getDictLabel(DICT_TYPE.APS_VERSION_STATUS, ganttData.value.versionStatus)
+    : '-',
 );
 const timeWindow = computed(() => {
   const data = ganttData.value;
@@ -256,6 +287,7 @@ function toTaskRecord(
       delayFlag,
       editable: editable.value,
       groupBy: groupBy.value,
+      readonly: props.readonly,
     }),
     raw: task,
   };
@@ -454,9 +486,12 @@ async function renderGantt() {
     return;
   }
   const instance = new Gantt(containerRef.value, buildOptions(data) as any);
-  instance.on('click_task_bar', ({ record }: { record: any }) => {
-    handleTaskClick(record);
-  });
+  // 只读模式连监听都不注册：点了没反应比点了弹一句"不允许修改"更诚实
+  if (!props.readonly) {
+    instance.on('click_task_bar', ({ record }: { record: any }) => {
+      handleTaskClick(record);
+    });
+  }
   instance.on('mouseenter_task_bar', handleTaskBarEnter as any);
   instance.on('mouseleave_task_bar', hideTooltip);
   ganttInstance.value = instance;
@@ -603,11 +638,10 @@ onBeforeUnmount(releaseGantt);
 
 <template>
   <div class="flex h-full min-h-0 flex-col gap-3">
-    <AdjustFormModal @success="loadGantt" />
+    <AdjustFormModal v-if="!readonly" @success="loadGantt" />
     <div
       class="bg-card border-border flex flex-wrap items-center gap-3 rounded border p-3"
     >
-      <slot name="toolbar-prefix"></slot>
       <ElLink
         :disabled="!hasData"
         :underline="false"
@@ -699,8 +733,9 @@ onBeforeUnmount(releaseGantt);
         V{{ ganttData.versionNo ?? '-' }}
       </ElDescriptionsItem>
       <ElDescriptionsItem label="版本状态">
-        <ElTag size="small" :type="editable ? 'primary' : 'info'">
-          {{ editable ? '可调整' : '已冻结' }}
+        <!-- 直接给字典标签：车间要认的是"已发布 / 已被替换"，不是内部的可写性判断 -->
+        <ElTag size="small" :type="versionStatusTagType">
+          {{ versionStatusLabel }}
         </ElTag>
       </ElDescriptionsItem>
       <ElDescriptionsItem label="资源 / 工序">

@@ -9,6 +9,12 @@ export namespace ApsVersionApi {
     scenarioId?: number; // 排程场景编号
     scenarioCode?: string; // 排程场景编码
     scenarioName?: string; // 排程场景名称
+    plantId?: number; // 工厂编号
+    plantName?: string; // 工厂名称
+    workshopId?: number; // 车间编号，0 表示全工厂
+    workshopName?: string; // 车间名称
+    planStartTime?: string; // 计划窗口开始时间
+    planEndTime?: string; // 计划窗口结束时间
     versionNo?: number; // 排程版本号
     status?: string; // 状态，字典 aps_version_status
     hardScore?: number; // 硬约束得分，0 表示计划可行
@@ -28,6 +34,12 @@ export namespace ApsVersionApi {
     scenarioId: number; // 排程场景编号
     strategyId?: number; // 排程策略编号，留空则用场景上引用的策略
     remark?: string; // 备注
+  }
+
+  /** 曾经生效过的排程版本分页参数 */
+  export interface EffectivePageReq extends PageParam {
+    scenarioCode?: string; // 排程场景编码，模糊匹配
+    status?: string; // 状态，只允许 PUBLISHED 与 REPLACED
   }
 
   /** 求解进度日志 */
@@ -67,17 +79,17 @@ export function getVersion(id: number) {
   return requestClient.get<ApsVersionApi.Version>(`/aps/version/get?id=${id}`);
 }
 
-/** 查询场景当前已发布的排程版本，用于车间侧直接看生效计划；未发布过返回 null */
-export function getPublishedVersion(scenarioId: number) {
-  return requestClient.get<ApsVersionApi.Version | null>(
-    `/aps/version/get-published?scenarioId=${scenarioId}`,
-  );
-}
-
-/** 查询场景下曾经生效过的排程版本（已发布与已被替换），用于车间侧回看历史计划 */
-export function getEffectiveVersionList(scenarioId: number) {
-  return requestClient.get<ApsVersionApi.Version[]>(
-    `/aps/version/list-effective?scenarioId=${scenarioId}`,
+/**
+ * 查询曾经生效过的排程版本分页（已发布与已被替换）。
+ *
+ * <p>给车间与 PMC 的排程结果页用，权限挂 aps:task:query，不需要版本管理的查询权。
+ */
+export function getEffectiveVersionPage(
+  params: ApsVersionApi.EffectivePageReq,
+) {
+  return requestClient.get<PageResult<ApsVersionApi.Version>>(
+    '/aps/version/page-effective',
+    { params },
   );
 }
 

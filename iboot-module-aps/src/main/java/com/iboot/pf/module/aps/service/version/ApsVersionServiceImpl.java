@@ -2,10 +2,10 @@ package com.iboot.pf.module.aps.service.version;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.aps.api.version.dto.ChangeVersionStatusReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.GenerateVersionReqDTO;
 import com.iboot.pf.module.aps.api.version.dto.ReplaceVersionReqDTO;
+import com.iboot.pf.module.aps.controller.admin.version.vo.EffectiveVersionPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.VersionPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.version.vo.VersionRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.scenario.ApsScenarioDO;
@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -73,38 +74,20 @@ public class ApsVersionServiceImpl implements ApsVersionService {
     }
 
     /**
-     * 场景当前生效的排程版本。
+     * 曾经生效过的排程版本分页。
      *
-     * <p>给车间侧的"看生效计划"用：让不参与排程评审的人从场景直接落到已发布版本，
-     * 而不是在一堆求解失败、已被替换的版本里自己挑。场景还没发布过版本时返回 {@code null} 而不是抛异常，
-     * 因为"这个场景还没发布计划"是正常状态，不是错误。
+     * <p>给车间与 PMC 的"排程结果"页用：他们只该看到下过车间的计划，看不到求解过程里的中间版本。
+     * 状态白名单在这里收口，传进来的值不在白名单内就回落成只查已发布，而不是照原样丢给 Mapper。
+     * 这样即便有人手工构造请求传 {@code SOLVING}，拿到的也只是已发布版本。
      */
     @Override
-    public VersionRespVO getPublishedVersion(Long scenarioId) {
-        if (scenarioId == null) {
-            return null;
-        }
-        ApsVersionDO published = versionMapper.selectPublishedByScenarioId(scenarioId,
-                ApsVersionStatusEnum.PUBLISHED.name());
-        return published == null ? null : getVersion(published.getId());
-    }
-
-    /**
-     * 场景下曾经生效过的版本。
-     *
-     * <p>只含已发布与已被替换：车间侧回看历史计划时，求解失败与待确认的版本从来没有下过车间，
-     * 把它们混进来会让人误以为那也曾是一份计划。
-     */
-    @Override
-    public List<VersionRespVO> getEffectiveVersionList(Long scenarioId) {
-        if (scenarioId == null) {
-            return Collections.emptyList();
-        }
-        List<ApsVersionDO> list = versionMapper.selectEffectiveListByScenarioId(scenarioId,
-                List.of(ApsVersionStatusEnum.PUBLISHED.name(), ApsVersionStatusEnum.REPLACED.name()));
-        List<VersionRespVO> respList = BeanUtils.toBean(list, VersionRespVO.class);
-        fillRelationNames(respList);
-        return respList;
+    public PageResult<VersionRespVO> getEffectiveVersionPage(EffectiveVersionPageReqVO pageReqVO) {
+        Collection<String> statuses = ApsVersionStatusEnum.isEffective(pageReqVO.getStatus())
+                ? List.of(pageReqVO.getStatus())
+                : List.of(ApsVersionStatusEnum.PUBLISHED.name());
+        PageResult<VersionRespVO> pageResult = versionMapper.selectEffectivePage(pageReqVO, statuses);
+        fillRelationNames(pageResult.getList());
+        return pageResult;
     }
 
     @Override
@@ -303,6 +286,8 @@ public class ApsVersionServiceImpl implements ApsVersionService {
      * <p>放在 Service 而非 Controller：Excel 导出复用这里的分页结果，写在 Controller 会丢字段。
      */
     private void fillRelationNames(List<VersionRespVO> list) {
+        relationFiller.fillPlantName(list, VersionRespVO::getPlantId, VersionRespVO::setPlantName);
+        relationFiller.fillWorkshopName(list, VersionRespVO::getWorkshopId, VersionRespVO::setWorkshopName);
         relationFiller.fillUserNickname(list, VersionRespVO::getPublishedBy, VersionRespVO::setPublishedByName);
     }
 
