@@ -17,7 +17,7 @@ import {
 /** 消息种类：站内信与通知公告分两个 Tab */
 export type MessageKind = 'notice' | 'notify';
 
-/** 详情态，浮层与放大弹窗共用同一份结构 */
+/** 详情态，详情弹窗使用 */
 export interface MessageDetail {
   content?: string;
   kind: MessageKind;
@@ -133,7 +133,6 @@ function createMessageCenter() {
   async function openNotifyDetail(
     message: SystemNotifyMessageApi.NotifyMessage,
   ) {
-    activeKind.value = 'notify';
     detail.value = {
       content: message.templateContent,
       kind: 'notify',
@@ -152,7 +151,6 @@ function createMessageCenter() {
    * <p>列表条目已带全文，WebSocket 推送也带；只有拿不到内容时才回查一次。
    */
   async function openNoticeDetail(notice: SystemNoticeApi.Notice) {
-    activeKind.value = 'notice';
     let target = notice;
     if (!target.content && target.id) {
       target = await getMyNoticeDetail(target.id);

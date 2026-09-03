@@ -9,14 +9,19 @@ import { RichTextView } from '#/components/rich-text-view';
 import { useMessageCenter } from './use-message-center';
 
 /**
- * 消息详情大窗。
+ * 消息详情弹窗。
  *
- * <p>铃铛浮层只有 400px 宽，带图片的长公告在里面读起来太挤。这里复用同一份 detail 状态
- * 放大展示，全屏按钮由 useVbenModal 自带。
+ * <p>站内信与公告详情的唯一展示入口：铃铛浮层只有 400px 宽，带图片的长公告在里面读不下，
+ * 点条目一律收起浮层来这里看。全屏按钮由 useVbenModal 自带。
  */
-const { detail } = useMessageCenter();
+const messageCenter = useMessageCenter();
+const { detail } = messageCenter;
 
 const [Modal] = useVbenModal({
+  // 关窗动画播完再清 detail，关闭过程中内容不会先塌成空白
+  onClosed() {
+    messageCenter.closeDetail();
+  },
   showCancelButton: false,
   showConfirmButton: false,
 });

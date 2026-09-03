@@ -23,7 +23,6 @@ import {
 } from 'element-plus';
 
 import { DictTag } from '#/components/dict-tag';
-import { RichTextView } from '#/components/rich-text-view';
 import { router } from '#/router';
 import { htmlToText } from '#/utils';
 
@@ -33,7 +32,6 @@ import { useMessageCenter } from './use-message-center';
 const messageCenter = useMessageCenter();
 const {
   activeKind,
-  detail,
   noticeList,
   noticeLoading,
   noticeUnreadCount,
@@ -47,17 +45,11 @@ const [DetailModal, detailModalApi] = useVbenModal({
   connectedComponent: MessageDetailModal,
 });
 
-/**
- * 每次展开都回到列表态并刷新数据。
- *
- * <p>详情只在展开时清，不在收起时清：点「放大查看」会先收起浮层再开弹窗，
- * 在收起分支里清掉 detail 会让弹窗拿到空内容。
- */
+/** 每次展开都刷新数据，徽标与列表跟着对齐 */
 watch(popoverVisible, (visible) => {
   if (!visible) {
     return;
   }
-  messageCenter.closeDetail();
   messageCenter.loadUnreadCount();
   messageCenter.loadNotifyList();
   if (activeKind.value === 'notice') {
@@ -72,18 +64,27 @@ async function showNoticeTab() {
 }
 
 function handleTabChange(name: unknown) {
-  messageCenter.closeDetail();
   if (name === 'notice') {
     showNoticeTab();
   }
 }
 
-function handleNotifyClick(message: SystemNotifyMessageApi.NotifyMessage) {
-  messageCenter.openNotifyDetail(message);
+/** 详情装载完再收浮层开弹窗，弹窗一出现就是完整内容 */
+function openDetailModal() {
+  popoverVisible.value = false;
+  detailModalApi.open();
 }
 
-function handleNoticeClick(notice: SystemNoticeApi.Notice) {
-  messageCenter.openNoticeDetail(notice);
+async function handleNotifyClick(
+  message: SystemNotifyMessageApi.NotifyMessage,
+) {
+  await messageCenter.openNotifyDetail(message);
+  openDetailModal();
+}
+
+async function handleNoticeClick(notice: SystemNoticeApi.Notice) {
+  await messageCenter.openNoticeDetail(notice);
+  openDetailModal();
 }
 
 async function handleMarkRead(
@@ -104,12 +105,6 @@ function navigate(name: string) {
 
 function handleViewAll(kind: MessageKind) {
   navigate(kind === 'notify' ? 'MyNotifyMessage' : 'MyNotice');
-}
-
-/** 浮层太窄读不下长公告时，放到大窗里看 */
-function handleExpandDetail() {
-  popoverVisible.value = false;
-  detailModalApi.open();
 }
 </script>
 
@@ -142,43 +137,7 @@ function handleExpandDetail() {
       </div>
     </template>
 
-    <!-- 详情态：同一浮层内切换，不跳页也不再弹独立弹窗 -->
-    <div v-if="detail" class="flex h-100 flex-col">
-      <div class="flex items-center gap-2 border-b border-border px-3 py-2">
-        <ElButton link @click="messageCenter.closeDetail()">
-          <IconifyIcon class="size-4" icon="lucide:arrow-left" />
-        </ElButton>
-        <span class="flex-1 truncate text-sm font-medium">
-          {{ detail.title }}
-        </span>
-        <DictTag
-          v-if="detail.tagValue !== undefined"
-          :type="
-            detail.kind === 'notify'
-              ? DICT_TYPE.SYSTEM_NOTIFY_TEMPLATE_TYPE
-              : DICT_TYPE.SYSTEM_NOTICE_TYPE
-          "
-          :value="detail.tagValue"
-        />
-        <ElTooltip content="放大查看" placement="left">
-          <ElButton link @click="handleExpandDetail">
-            <IconifyIcon class="size-4" icon="lucide:maximize-2" />
-          </ElButton>
-        </ElTooltip>
-      </div>
-      <ElScrollbar class="min-h-0 flex-1">
-        <div class="px-3 py-2">
-          <p v-if="detail.time" class="mb-2 text-xs text-muted-foreground">
-            {{ detail.kind === 'notice' ? '发布于' : '发送于' }}
-            {{ formatDateTime(detail.time) }}
-          </p>
-          <RichTextView :content="detail.content" />
-        </div>
-      </ElScrollbar>
-    </div>
-
-    <!-- 列表态 -->
-    <div v-else class="flex h-100 flex-col">
+    <div class="flex h-100 flex-col">
       <div
         class="flex items-center justify-between border-b border-border px-3 py-2"
       >
