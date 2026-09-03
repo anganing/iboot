@@ -113,6 +113,20 @@ watch(
     </div>
 
     <Grid>
+      <template #columnHelp="{ column }">
+        <span class="inline-flex items-center gap-1">
+          {{ column.title }}
+          <ElTooltip placement="top" :show-after="200">
+            <template #content>
+              <div class="max-w-[320px] leading-5">{{ column.params?.help }}</div>
+            </template>
+            <IconifyIcon
+              class="text-muted-foreground size-3.5 shrink-0 cursor-help"
+              icon="lucide:circle-help"
+            />
+          </ElTooltip>
+        </span>
+      </template>
       <template #constraint="{ row }">
         <div class="flex min-w-0 items-center gap-1">
           <span class="truncate" :title="row.displayName">

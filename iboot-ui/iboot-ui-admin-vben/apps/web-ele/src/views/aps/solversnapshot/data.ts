@@ -88,6 +88,11 @@ export function useGridColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.Solve
  * 这张表回答"为什么是这个分数"：每条约束本次生效的权重、命中了多少次、扣掉多少分。
  * 权重列与策略配置页的权重编辑器是同一个量纲（都取正数），计划员才能对着调。
  * 命中次数与扣分允许点表头排序，便于先看谁在拖后腿。
+ *
+ * 表头说明不用 vxe 的 `titlePrefix`，而是走 `header` 插槽 + `ElTooltip`：vxe 自带的 tooltip
+ * 层级取自 `dom-zindex` 计数器（起点 1000），而这张表在弹窗里，弹窗的 `.z-popup` 是 2000，
+ * 气泡会被弹窗盖住只露出探到弹窗外的那一截。ElTooltip 走 Element Plus 的弹层栈（2005），
+ * 与单元格里的约束说明是同一套机制。四列共用一个插槽名，说明文案挂在 `params.help` 上。
  */
 export function useConstraintMatchColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.ConstraintMatchItem>['columns'] {
   return [
@@ -98,14 +103,20 @@ export function useConstraintMatchColumns(): VxeTableGridOptions<ApsSolverSnapsh
       field: 'hardWeight',
       title: '硬权重',
       width: 100,
-      titlePrefix: { content: '本次求解实际生效的硬约束权重。非零即生效，数值大小不影响结果' },
+      params: {
+        help: '本次求解实际生效的硬约束权重。非零即生效，数值大小不影响结果',
+      },
+      slots: { header: 'columnHelp' },
       formatter: ({ cellValue }) => formatNumber(cellValue),
     },
     {
       field: 'softWeight',
       title: '软权重',
       width: 100,
-      titlePrefix: { content: '本次求解实际生效的软约束权重。软约束之间按权重大小相互权衡' },
+      params: {
+        help: '本次求解实际生效的软约束权重。软约束之间按权重大小相互权衡',
+      },
+      slots: { header: 'columnHelp' },
       formatter: ({ cellValue }) => formatNumber(cellValue),
     },
     {
@@ -113,7 +124,10 @@ export function useConstraintMatchColumns(): VxeTableGridOptions<ApsSolverSnapsh
       title: '命中次数',
       width: 110,
       sortable: true,
-      titlePrefix: { content: '该约束被违反的次数。0 次表示这条约束在本次排程里完全满足' },
+      params: {
+        help: '该约束被违反的次数。0 次表示这条约束在本次排程里完全满足',
+      },
+      slots: { header: 'columnHelp' },
       formatter: ({ cellValue }) => formatNumber(cellValue),
     },
     {
@@ -121,15 +135,20 @@ export function useConstraintMatchColumns(): VxeTableGridOptions<ApsSolverSnapsh
       title: '硬分扣分',
       width: 120,
       sortable: true,
-      slots: { default: 'hardScore' },
+      params: {
+        help: '违反硬约束的罚分。不为 0 说明存在无法回避的冲突，版本会判为求解失败',
+      },
+      slots: { default: 'hardScore', header: 'columnHelp' },
     },
     {
       field: 'softScore',
       title: '软分扣分',
       width: 130,
       sortable: true,
-      titlePrefix: { content: '命中次数乘权重后的扣分。绝对值最大的那条就是当前计划的主要代价' },
-      slots: { default: 'softScore' },
+      params: {
+        help: '命中次数乘权重后的扣分。绝对值最大的那条就是当前计划的主要代价',
+      },
+      slots: { default: 'softScore', header: 'columnHelp' },
     },
   ];
 }
