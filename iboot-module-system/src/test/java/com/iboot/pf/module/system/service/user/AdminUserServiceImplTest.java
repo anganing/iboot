@@ -24,7 +24,6 @@ import com.iboot.pf.module.system.dal.dataobject.user.AdminUserDO;
 import com.iboot.pf.module.system.dal.mysql.dept.UserPostMapper;
 import com.iboot.pf.module.system.dal.mysql.user.AdminUserMapper;
 import com.iboot.pf.module.system.enums.common.SexEnum;
-import com.iboot.pf.module.system.mq.producer.user.AdminUserProducer;
 import com.iboot.pf.module.system.service.dept.DeptService;
 import com.iboot.pf.module.system.service.dept.PostService;
 import com.iboot.pf.module.system.service.oauth2.OAuth2TokenService;
@@ -87,8 +86,6 @@ public class AdminUserServiceImplTest extends BaseDbUnitTest {
     private ConfigApi configApi;
     @MockitoBean
     private OAuth2TokenService oauth2TokenService;
-    @MockitoBean
-    private AdminUserProducer adminUserProducer;
 
     @BeforeEach
     public void before() {

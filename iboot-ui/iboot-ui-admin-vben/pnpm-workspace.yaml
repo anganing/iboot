@@ -118,7 +118,6 @@ catalog:
   archiver: ^8.0.0
   axios: ^1.18.0
   axios-mock-adapter: ^2.1.0
-  benz-amr-recorder: ^1.1.5
   bpmn-js: ^18.16.1
   bpmn-js-properties-panel: 5.54.0
   bpmn-js-token-simulation: ^0.39.3
@@ -169,7 +168,6 @@ catalog:
   json-bigint: ^1.0.0
   knip: ^6.17.0
   lefthook: ^2.1.9
-  livekit-client: ^2.18.9
   lodash.clonedeep: ^4.5.0
   markdown-it: ^14.2.0
   markmap-common: ^0.18.9
