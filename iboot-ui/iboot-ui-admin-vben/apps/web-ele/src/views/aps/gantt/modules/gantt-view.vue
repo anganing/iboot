@@ -120,6 +120,52 @@ const timeWindow = computed(() => {
   return `${formatDateTime(data.minTime)} ~ ${formatDateTime(data.maxTime)}`;
 });
 
+/** 按天平移时间轴边界，用来给时间窗留出余量 */
+function shiftDate(time: number | string | undefined, days: number) {
+  const base = time ? new Date(time) : new Date();
+  base.setDate(base.getDate() + days);
+  return formatDate(base);
+}
+
+/**
+ * 时间轴边界。
+ *
+ * <p>左右各留余量：左边一天让首条任务不贴边，右边留五天，否则最后一条任务的条会顶在外框上，
+ * 看不出它到底排到哪天结束。提成 computed 是为了让"今天在不在轴上"的判定和实际渲染共用同一份边界。
+ */
+const timeAxis = computed(() => ({
+  minDate: shiftDate(ganttData.value?.minTime, -1),
+  maxDate: shiftDate(ganttData.value?.maxTime, 5),
+}));
+
+/**
+ * 今天是否落在时间轴上。
+ *
+ * <p>排程窗口整段在未来是常态，历史版本又整段在过去，今天不在轴上时 vtable-gantt 既不画标记线，
+ * scrollToMarkLine 里的 getXByTime 也会把越界时间钳到轴的两端，于是定位会莫名跳到最左或最右。
+ * 三个值都由 formatDate 产出的 YYYY-MM-DD，直接比字符串即可，不必再绕一次 Date 受时区影响。
+ */
+const todayInWindow = computed(() => {
+  const { maxDate, minDate } = timeAxis.value;
+  const today = formatDate(Date.now());
+  return today >= minDate && today <= maxDate;
+});
+
+/**
+ * 定位按钮的落点与文案。
+ *
+ * <p>文案跟着落点变，而不是一律写"今天"：今天不在轴上时按钮仍然有用（小时粒度下横滚几十屏后要回位），
+ * 但落点只能是计划起点，标成"今天"就会让人以为按钮坏了。
+ */
+const locateTarget = computed(() =>
+  todayInWindow.value
+    ? { label: '今天', tip: '定位到今天' }
+    : {
+        label: '起点',
+        tip: `今天不在计划时间窗内，定位到计划起点 ${formatDate(ganttData.value?.minTime)}`,
+      },
+);
+
 /** 按选中维度把平铺任务分到父行下 */
 function buildRecords(data: ApsTaskApi.Gantt) {
   return groupBy.value === 'order' ? buildOrderRecords(data) : buildResourceRecords(data);
@@ -281,13 +327,6 @@ function renderTaskBarLabel({
   return { rootContainer: container, renderDefaultBar: false, renderDefaultText: false };
 }
 
-/** 按天平移时间轴边界，用来给时间窗留出余量 */
-function shiftDate(time: number | string | undefined, days: number) {
-  const base = time ? new Date(time) : new Date();
-  base.setDate(base.getDate() + days);
-  return formatDate(base);
-}
-
 /** 依赖连线 */
 function buildLinks(data: ApsTaskApi.Gantt) {
   return (data.links ?? []).map((link) => ({
@@ -306,10 +345,8 @@ function buildOptions(data: ApsTaskApi.Gantt) {
     tasksShowMode: TYPES.TasksShowMode.Project_Sub_Tasks_Inline,
     projectSubTasksExpandable: true,
     overscrollBehavior: 'none' as const,
-    // 时间窗左右各留出余量：左边一天让首条任务不贴边，右边留五天，
-    // 否则最后一条任务的条会顶在外框上，看不出它到底排到哪天结束
-    minDate: shiftDate(data.minTime, -1),
-    maxDate: shiftDate(data.maxTime, 5),
+    minDate: timeAxis.value.minDate,
+    maxDate: timeAxis.value.maxDate,
     headerRowHeight: 32,
     // 展开态行高给足：自绘标签在窄条里要换行，34 只够一行
     rowHeight: expanded.value ? 44 : 34,
@@ -380,7 +417,9 @@ function buildOptions(data: ApsTaskApi.Gantt) {
     markLine: [
       {
         date: formatDate(Date.now()),
-        scrollToMarkLine: true,
+        // 今天不在轴上时不要让它接管首屏定位：越界日期会被 getXByTime 钳到轴的两端，
+        // 历史版本一打开就滚到最右，看不到计划是从哪儿开始的
+        scrollToMarkLine: todayInWindow.value,
         position: 'left' as const,
         style: { lineColor: '#f56c6c', lineWidth: 1, lineDash: [4, 2] },
       },
@@ -539,9 +578,21 @@ function handleToggleExpandAll() {
   renderGantt();
 }
 
-/** 定位到今天的标记线 */
-function handleLocateToday() {
-  ganttInstance.value?.scrollToMarkLine(new Date());
+/**
+ * 把时间轴滚回参照点。
+ *
+ * <p>今天在计划时间窗内就滚到今天那条标记线，否则滚到计划起点。排程窗口整段在未来（新版本）
+ * 或整段在过去（历史版本）都很常见，这时"今天"不是轴上的一个位置，直接传越界日期会被
+ * getXByTime 钳到轴的两端，表现成莫名跳到最左或最右。
+ *
+ * <p>方法名叫 scrollToMarkLine，但它并不要求传进来的日期上真有标记线：内部就是
+ * getXByTime(date) 再减半个视口宽，等价于"把某个时刻滚到视口中间"。
+ */
+function handleLocate() {
+  const target = todayInWindow.value
+    ? new Date()
+    : new Date(ganttData.value?.minTime ?? Date.now());
+  ganttInstance.value?.scrollToMarkLine(target);
 }
 
 // 外层换版本就重新取数：弹窗形态下组件挂载时版本已经确定，immediate 才能画出第一屏
@@ -596,9 +647,9 @@ onBeforeUnmount(releaseGantt);
           {{ item.label }}
         </ElRadioButton>
       </ElRadioGroup>
-      <ElTooltip content="定位到今天" placement="top">
-        <ElButton :disabled="!hasData" size="small" @click="handleLocateToday">
-          今天
+      <ElTooltip :content="locateTarget.tip" placement="top">
+        <ElButton :disabled="!hasData" size="small" @click="handleLocate">
+          {{ locateTarget.label }}
         </ElButton>
       </ElTooltip>
       <ElTooltip content="重新加载排程结果" placement="top">
