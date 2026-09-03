@@ -73,5 +73,68 @@ export function useGridColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.Solve
       minWidth: 160,
       formatter: 'formatDateTime',
     },
+    {
+      title: '操作',
+      width: 100,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
   ];
+}
+
+/**
+ * 约束命中对照表的列。
+ *
+ * 这张表回答"为什么是这个分数"：每条约束本次生效的权重、命中了多少次、扣掉多少分。
+ * 权重列与策略配置页的权重编辑器是同一个量纲（都取正数），计划员才能对着调。
+ * 命中次数与扣分允许点表头排序，便于先看谁在拖后腿。
+ */
+export function useConstraintMatchColumns(): VxeTableGridOptions<ApsSolverSnapshotApi.ConstraintMatchItem>['columns'] {
+  return [
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'displayName', title: '约束', minWidth: 150, slots: { default: 'constraint' } },
+    { field: 'categoryName', title: '类别', width: 90 },
+    {
+      field: 'hardWeight',
+      title: '硬权重',
+      width: 100,
+      titlePrefix: { content: '本次求解实际生效的硬约束权重。非零即生效，数值大小不影响结果' },
+      formatter: ({ cellValue }) => formatNumber(cellValue),
+    },
+    {
+      field: 'softWeight',
+      title: '软权重',
+      width: 100,
+      titlePrefix: { content: '本次求解实际生效的软约束权重。软约束之间按权重大小相互权衡' },
+      formatter: ({ cellValue }) => formatNumber(cellValue),
+    },
+    {
+      field: 'matchCount',
+      title: '命中次数',
+      width: 110,
+      sortable: true,
+      titlePrefix: { content: '该约束被违反的次数。0 次表示这条约束在本次排程里完全满足' },
+      formatter: ({ cellValue }) => formatNumber(cellValue),
+    },
+    {
+      field: 'hardScore',
+      title: '硬分扣分',
+      width: 120,
+      sortable: true,
+      slots: { default: 'hardScore' },
+    },
+    {
+      field: 'softScore',
+      title: '软分扣分',
+      width: 130,
+      sortable: true,
+      titlePrefix: { content: '命中次数乘权重后的扣分。绝对值最大的那条就是当前计划的主要代价' },
+      slots: { default: 'softScore' },
+    },
+  ];
+}
+
+/** 数值格式化：得分动辄上亿，不加千分位数不清位数；空值显示"-"而不是 0，两者含义不同。 */
+export function formatNumber(value: unknown) {
+  return typeof value === 'number' ? value.toLocaleString('zh-CN') : '-';
 }

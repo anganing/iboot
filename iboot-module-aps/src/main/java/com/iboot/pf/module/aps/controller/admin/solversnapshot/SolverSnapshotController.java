@@ -5,6 +5,7 @@ import com.iboot.pf.framework.common.pojo.CommonResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
+import com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotConstraintMatchRespVO;
 import com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotPageReqVO;
 import com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotRespVO;
 import com.iboot.pf.module.aps.service.solversnapshot.ApsSolverSnapshotService;
@@ -55,6 +56,22 @@ public class SolverSnapshotController {
     public CommonResult<PageResult<SolverSnapshotRespVO>> getSolverSnapshotPage(
             @Valid SolverSnapshotPageReqVO pageReqVO) {
         return success(solverSnapshotService.getSolverSnapshotPage(pageReqVO));
+    }
+
+    /**
+     * 按排程版本取约束命中分析。
+     *
+     * <p>存在 {@code /get} 的情况下还要这个接口，是因为使用场景不同：从排程版本页问"这版为什么是
+     * 这个分数"时，人手上只有 versionId，不该先去快照列表里翻编号。返回的是解析后的对照表，
+     * 而不是原始 JSON。
+     */
+    @GetMapping("/constraint-match")
+    @Operation(summary = "获得排程版本的约束命中分析")
+    @Parameter(name = "versionId", description = "排程版本编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('aps:solver-snapshot:query')")
+    public CommonResult<SolverSnapshotConstraintMatchRespVO> getConstraintMatch(
+            @RequestParam("versionId") Long versionId) {
+        return success(solverSnapshotService.getConstraintMatchByVersionId(versionId));
     }
 
     @GetMapping("/export-excel")

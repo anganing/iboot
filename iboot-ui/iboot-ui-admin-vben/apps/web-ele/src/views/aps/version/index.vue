@@ -18,6 +18,7 @@ import { $t } from '#/locales';
 import GanttModal from '#/views/aps/gantt/modules/gantt-modal.vue';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import ConstraintMatchModal from './modules/constraint-match-modal.vue';
 import GenerateForm from './modules/generate-form.vue';
 import SolveProgressDrawer from './modules/solve-progress-drawer.vue';
 
@@ -30,6 +31,12 @@ const [VersionGanttModal, versionGanttModalApi] = useVbenModal({
   connectedComponent: GanttModal,
   destroyOnClose: true,
 });
+
+const [VersionConstraintMatchModal, versionConstraintMatchModalApi] =
+  useVbenModal({
+    connectedComponent: ConstraintMatchModal,
+    destroyOnClose: true,
+  });
 
 const [ProgressDrawer, progressDrawerApi] = useVbenDrawer({
   connectedComponent: SolveProgressDrawer,
@@ -66,6 +73,16 @@ function handleViewGantt(row: ApsVersionApi.Version) {
     .setData({
       versionId: row.id,
       title: `${row.scenarioName || row.scenarioCode || ''} V${row.versionNo ?? ''}`,
+    })
+    .open();
+}
+
+/** 查看约束命中分析：回答"硬软得分是怎么来的、哪条约束在拖后腿" */
+function handleViewConstraintMatch(row: ApsVersionApi.Version) {
+  versionConstraintMatchModalApi
+    .setData({
+      versionId: row.id,
+      title: `${row.scenarioCode || ''} V${row.versionNo ?? ''}`,
     })
     .open();
 }
@@ -136,6 +153,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <GenerateModal @success="handleGenerated" />
     <ProgressDrawer @finished="handleRefresh" />
     <VersionGanttModal />
+    <VersionConstraintMatchModal />
     <Grid table-title="排程版本列表">
       <template #toolbar-tools>
         <TableAction
@@ -175,6 +193,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:chart-gantt',
               auth: ['aps:task:query'],
               onClick: handleViewGantt.bind(null, row),
+            },
+            {
+              label: '约束命中',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:scale',
+              auth: ['aps:solver-snapshot:query'],
+              onClick: handleViewConstraintMatch.bind(null, row),
             },
             {
               label: '确认',

@@ -23,6 +23,10 @@ public interface ApsSolverSnapshotMapper extends BaseMapperX<ApsSolverSnapshotDO
 
     SolverSnapshotRespVO selectJoinById(@Param("id") Long id);
 
+    /** 某版本某类型的最新一条快照；同一版本可能写过多条，最新那条才是最终结论。 */
+    SolverSnapshotRespVO selectJoinLatestByVersionIdAndType(@Param("versionId") Long versionId,
+                                                            @Param("snapshotType") String snapshotType);
+
     IPage<SolverSnapshotRespVO> selectJoinPage(IPage<SolverSnapshotRespVO> page,
                                                @Param("req") SolverSnapshotPageReqVO reqVO);
 

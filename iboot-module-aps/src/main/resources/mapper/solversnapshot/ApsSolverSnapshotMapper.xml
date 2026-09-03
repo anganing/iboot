@@ -53,4 +53,16 @@
         WHERE t.deleted = 0 AND t.id = #{id}
     </select>
 
+    <select id="selectJoinLatestByVersionIdAndType"
+            resultType="com.iboot.pf.module.aps.controller.admin.solversnapshot.vo.SolverSnapshotRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0
+        AND t.version_id = #{versionId}
+        AND t.snapshot_type = #{snapshotType}
+        ORDER BY t.snapshot_time DESC, t.id DESC
+        LIMIT 1
+    </select>
+
 </mapper>

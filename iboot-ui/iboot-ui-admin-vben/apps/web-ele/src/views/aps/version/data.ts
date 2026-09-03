@@ -148,8 +148,8 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
     },
     {
       title: '操作',
-      // 四个动作：进度、甘特图、确认、发布
-      width: 320,
+      // 五个动作：进度、甘特图、约束命中、确认、发布
+      width: 400,
       fixed: 'right',
       slots: { default: 'actions' },
     },

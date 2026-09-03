@@ -46,6 +46,16 @@ public class SolverSnapshotRespVO {
     @Schema(description = "求解输入、结果或约束命中快照，JSON", requiredMode = Schema.RequiredMode.REQUIRED)
     private String snapshotJson;
 
+    /**
+     * 解析后的约束命中对照表。
+     *
+     * <p>只有 {@code CONSTRAINT_MATCH} 类型的详情接口会填，分页接口一律为空：几十条一起解析没有意义，
+     * 列表上也放不下。放在这里而不是让前端解析 {@code snapshotJson}，是因为那份 JSON 里的权重与得分
+     * 是 Timefold 的分数字符串，属于求解器细节。
+     */
+    @Schema(description = "解析后的约束命中对照表，仅约束命中类型的详情有值")
+    private SolverSnapshotConstraintMatchRespVO constraintMatch;
+
     @Schema(description = "快照内容校验值", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("校验值")
     private String checksum;
