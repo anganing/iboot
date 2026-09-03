@@ -228,6 +228,39 @@ public class AdminUserServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testUpdateUserProfile_removeAvatarUrlQuery() {
+        // mock 数据
+        AdminUserDO dbUser = randomAdminUserDO();
+        userMapper.insert(dbUser);
+        // 准备参数：模拟文件存储器签发的带签名参数的头像地址
+        Long userId = dbUser.getId();
+        UserProfileUpdateReqVO reqVO = randomPojo(UserProfileUpdateReqVO.class, o -> {
+            o.setMobile(randomString());
+            o.setSex(RandomUtil.randomEle(SexEnum.values()).getSex());
+            o.setAvatar("https://www.iocoder.cn/avatar.png?X-Amz-Signature=xxx&X-Amz-Expires=86400");
+        });
+
+        // 调用
+        userService.updateUserProfile(userId, reqVO);
+        // 断言：落库的是去签名地址，避免签名过期后头像打不开
+        AdminUserDO user = userMapper.selectById(userId);
+        assertEquals("https://www.iocoder.cn/avatar.png", user.getAvatar());
+    }
+
+    @Test
+    public void testSignAvatarUrl() {
+        // 准备参数
+        String avatar = "https://www.iocoder.cn/avatar.png";
+        // mock 方法
+        when(fileApi.presignGetUrl(eq(avatar), isNull())).thenReturn(avatar + "?X-Amz-Signature=xxx");
+
+        // 调用并断言：空值原样返回，非空值走存储器重新签发
+        assertNull(userService.signAvatarUrl(null));
+        assertEquals("", userService.signAvatarUrl(""));
+        assertEquals(avatar + "?X-Amz-Signature=xxx", userService.signAvatarUrl(avatar));
+    }
+
+    @Test
     public void testUpdateUserPassword_success() {
         // mock 数据
         AdminUserDO dbUser = randomAdminUserDO(o -> o.setPassword("encode:tudou"));

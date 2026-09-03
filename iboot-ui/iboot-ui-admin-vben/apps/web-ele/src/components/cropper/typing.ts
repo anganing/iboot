@@ -28,6 +28,8 @@ export interface CropperProps {
 export interface CropperAvatarProps {
   width?: number | string;
   value?: string;
+  /** 用户昵称，没有头像图片时用于生成文字头像 */
+  name?: string;
   showBtn?: boolean;
   btnProps?: ButtonProps;
   btnText?: string;

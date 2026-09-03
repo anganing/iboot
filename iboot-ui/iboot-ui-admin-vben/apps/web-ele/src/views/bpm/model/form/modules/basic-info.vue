@@ -9,13 +9,12 @@ import type { SystemUserApi } from '#/api/system/user';
 
 import { ref, watch } from 'vue';
 
-import { useVbenModal } from '@vben/common-ui';
+import { useVbenModal, VbenAvatar } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 import { IconifyIcon } from '@vben/icons';
 
 import {
-  ElAvatar,
   ElButton,
   ElForm,
   ElFormItem,
@@ -340,14 +339,11 @@ defineExpose({ validate });
             :key="user.id"
             class="relative flex h-8 items-center rounded-lg bg-gray-100 pr-2 hover:bg-gray-200 dark:border dark:border-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600"
           >
-            <ElAvatar
+            <VbenAvatar
               class="m-1 size-7"
-              v-if="user.avatar"
+              :alt="user.nickname"
               :src="user.avatar"
             />
-            <ElAvatar class="m-1 size-7" v-else>
-              {{ user.nickname?.substring(0, 1) }}
-            </ElAvatar>
             <span class="text-gray-700 dark:text-gray-200">
               {{ user.nickname }}
             </span>
@@ -398,14 +394,11 @@ defineExpose({ validate });
             :key="user.id"
             class="relative flex h-9 items-center rounded-full bg-gray-100 pr-2 hover:bg-gray-200 dark:border dark:border-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600"
           >
-            <ElAvatar
+            <VbenAvatar
               class="m-1 size-7"
-              v-if="user.avatar"
+              :alt="user.nickname"
               :src="user.avatar"
             />
-            <ElAvatar class="m-1 size-7" v-else>
-              {{ user.nickname?.substring(0, 1) }}
-            </ElAvatar>
             <span class="text-gray-700 dark:text-gray-200">
               {{ user.nickname }}
             </span>

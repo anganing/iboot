@@ -18,38 +18,45 @@ import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 @Mapper
 public interface UserConvert {
 
     UserConvert INSTANCE = Mappers.getMapper(UserConvert.class);
 
-    default List<UserRespVO> convertList(List<AdminUserDO> list, Map<Long, DeptDO> deptMap) {
-        return CollectionUtils.convertList(list, user -> convert(user, deptMap.get(user.getDeptId())));
+    default List<UserRespVO> convertList(List<AdminUserDO> list, Map<Long, DeptDO> deptMap,
+                                        UnaryOperator<String> avatarSigner) {
+        return CollectionUtils.convertList(list, user -> convert(user, deptMap.get(user.getDeptId()), avatarSigner));
     }
 
-    default UserRespVO convert(AdminUserDO user, DeptDO dept) {
+    default UserRespVO convert(AdminUserDO user, DeptDO dept, UnaryOperator<String> avatarSigner) {
         UserRespVO userVO = BeanUtils.toBean(user, UserRespVO.class);
         if (dept != null) {
             userVO.setDeptName(dept.getName());
         }
+        userVO.setAvatar(avatarSigner.apply(userVO.getAvatar()));
         return userVO;
     }
 
-    default List<UserSimpleRespVO> convertSimpleList(List<AdminUserDO> list, Map<Long, DeptDO> deptMap) {
+    default List<UserSimpleRespVO> convertSimpleList(List<AdminUserDO> list, Map<Long, DeptDO> deptMap,
+                                                    UnaryOperator<String> avatarSigner) {
         return CollectionUtils.convertList(list, user -> {
             UserSimpleRespVO userVO = BeanUtils.toBean(user, UserSimpleRespVO.class);
             MapUtils.findAndThen(deptMap, user.getDeptId(), dept -> userVO.setDeptName(dept.getName()));
+            userVO.setAvatar(avatarSigner.apply(userVO.getAvatar()));
             return userVO;
         });
     }
 
     default UserProfileRespVO convert(AdminUserDO user, List<RoleDO> userRoles,
-                                      DeptDO dept, List<PostDO> posts) {
+                                      DeptDO dept, List<PostDO> posts,
+                                      UnaryOperator<String> avatarSigner) {
         UserProfileRespVO userVO = BeanUtils.toBean(user, UserProfileRespVO.class);
         userVO.setRoles(BeanUtils.toBean(userRoles, RoleSimpleRespVO.class));
         userVO.setDept(BeanUtils.toBean(dept, DeptSimpleRespVO.class));
         userVO.setPosts(BeanUtils.toBean(posts, PostSimpleRespVO.class));
+        userVO.setAvatar(avatarSigner.apply(userVO.getAvatar()));
         return userVO;
     }
 

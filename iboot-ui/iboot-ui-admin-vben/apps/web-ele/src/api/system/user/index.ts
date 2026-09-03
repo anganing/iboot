@@ -21,11 +21,6 @@ export namespace SystemUserApi {
     remark: string;
     createTime?: Date;
   }
-
-  /** 用户精简信息 */
-  export interface UserSimple extends User {
-    id: number;
-  }
 }
 
 /** 查询用户管理列表 */
@@ -99,24 +94,4 @@ export function updateUserStatus(id: number, status: number) {
 /** 获取用户精简信息列表 */
 export function getSimpleUserList() {
   return requestClient.get<SystemUserApi.User[]>('/system/user/simple-list');
-}
-
-/** 按用户编号查询用户精简信息 */
-export function getSimpleUser(id: number | string) {
-  return requestClient.get<SystemUserApi.UserSimple>(
-    '/system/user/get-simple',
-    {
-      params: { id },
-    },
-  );
-}
-
-/** 按昵称模糊搜索用户 */
-export function getSimpleUserListByNickname(nickname: string) {
-  return requestClient.get<SystemUserApi.UserSimple[]>(
-    '/system/user/list-by-nickname',
-    {
-      params: { nickname },
-    },
-  );
 }

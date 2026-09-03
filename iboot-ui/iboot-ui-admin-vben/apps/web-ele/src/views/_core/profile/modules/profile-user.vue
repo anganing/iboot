@@ -4,7 +4,6 @@ import type { SystemUserProfileApi } from '#/api/system/user/profile';
 import { computed } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
-import { preferences } from '@vben/preferences';
 import { formatDateTime } from '@vben/utils';
 
 import { ElDescriptions, ElDescriptionsItem, ElTooltip } from 'element-plus';
@@ -21,9 +20,7 @@ const emit = defineEmits<{
   (e: 'success'): void;
 }>();
 
-const avatar = computed(
-  () => props.profile?.avatar || preferences.app.defaultAvatar,
-);
+const avatar = computed(() => props.profile?.avatar || '');
 
 async function handelUpload({
   file,
@@ -48,6 +45,7 @@ async function handelUpload({
       <ElTooltip content="点击上传头像">
         <CropperAvatar
           :show-btn="false"
+          :name="profile.nickname"
           :upload-api="handelUpload"
           :value="avatar"
           :width="120"

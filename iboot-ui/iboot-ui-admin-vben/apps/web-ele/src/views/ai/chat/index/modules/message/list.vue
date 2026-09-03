@@ -6,8 +6,8 @@ import type { AiChatMessageApi } from '#/api/ai/chat/message';
 
 import { computed, nextTick, onMounted, ref, toRefs } from 'vue';
 
+import { VbenAvatar } from '@vben/common-ui';
 import { IconifyIcon, SvgGptIcon } from '@vben/icons';
-import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 import { formatDateTime } from '@vben/utils';
 
@@ -41,9 +41,8 @@ const userStore = useUserStore();
 const messageContainer: any = ref(null);
 const isScrolling = ref(false); // 用于判断用户是否在滚动
 
-const userAvatar = computed(
-  () => userStore.userInfo?.avatar || preferences.app.defaultAvatar,
-);
+const userAvatar = computed(() => userStore.userInfo?.avatar || '');
+const userNickname = computed(() => userStore.userInfo?.nickname || '');
 
 const { list } = toRefs(props); // 定义 emits
 
@@ -175,7 +174,7 @@ onMounted(async () => {
       <!-- 右侧消息：user -->
       <div v-else class="flex flex-row-reverse justify-start">
         <div class="avatar">
-          <ElAvatar :src="userAvatar" :size="28" />
+          <VbenAvatar :alt="userNickname" :src="userAvatar" :size="28" />
         </div>
         <div class="mx-4 flex flex-col text-left">
           <div class="text-left leading-8">

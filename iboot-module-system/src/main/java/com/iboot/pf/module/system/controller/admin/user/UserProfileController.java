@@ -59,7 +59,7 @@ public class UserProfileController {
         DeptDO dept = user.getDeptId() != null ? deptService.getDept(user.getDeptId()) : null;
         // 获得岗位信息
         List<PostDO> posts = CollUtil.isNotEmpty(user.getPostIds()) ? postService.getPostList(user.getPostIds()) : null;
-        return success(UserConvert.INSTANCE.convert(user, userRoles, dept, posts));
+        return success(UserConvert.INSTANCE.convert(user, userRoles, dept, posts, userService::signAvatarUrl));
     }
 
     @PutMapping("/update")

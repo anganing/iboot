@@ -103,7 +103,8 @@ public class AuthController {
         // 1.2 获得角色列表
         Set<Long> roleIds = permissionService.getUserRoleIdListByUserId(getLoginUserId());
         if (CollUtil.isEmpty(roleIds)) {
-            return success(AuthConvert.INSTANCE.convert(user, Collections.emptyList(), Collections.emptyList()));
+            return success(AuthConvert.INSTANCE.convert(user, Collections.emptyList(), Collections.emptyList(),
+                    userService::signAvatarUrl));
         }
         List<RoleDO> roles = roleService.getRoleList(roleIds);
         roles.removeIf(role -> !CommonStatusEnum.ENABLE.getStatus().equals(role.getStatus())); // 移除禁用的角色
@@ -114,7 +115,7 @@ public class AuthController {
         menuList = menuService.filterDisableMenus(menuList);
 
         // 2. 拼接结果返回
-        return success(AuthConvert.INSTANCE.convert(user, roles, menuList));
+        return success(AuthConvert.INSTANCE.convert(user, roles, menuList, userService::signAvatarUrl));
     }
 
     @PostMapping("/register")

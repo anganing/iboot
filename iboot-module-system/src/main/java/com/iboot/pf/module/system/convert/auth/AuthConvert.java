@@ -19,6 +19,7 @@ import org.mapstruct.factory.Mappers;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.filterList;
@@ -29,9 +30,12 @@ public interface AuthConvert {
 
     AuthConvert INSTANCE = Mappers.getMapper(AuthConvert.class);
 
-    default AuthPermissionInfoRespVO convert(AdminUserDO user, List<RoleDO> roleList, List<MenuDO> menuList) {
+    default AuthPermissionInfoRespVO convert(AdminUserDO user, List<RoleDO> roleList, List<MenuDO> menuList,
+                                             UnaryOperator<String> avatarSigner) {
+        AuthPermissionInfoRespVO.UserVO userVO = BeanUtils.toBean(user, AuthPermissionInfoRespVO.UserVO.class);
+        userVO.setAvatar(avatarSigner.apply(userVO.getAvatar()));
         return AuthPermissionInfoRespVO.builder()
-                .user(BeanUtils.toBean(user, AuthPermissionInfoRespVO.UserVO.class))
+                .user(userVO)
                 .roles(convertSet(roleList, RoleDO::getCode))
                 // 权限标识信息
                 .permissions(convertSet(menuList, MenuDO::getPermission))

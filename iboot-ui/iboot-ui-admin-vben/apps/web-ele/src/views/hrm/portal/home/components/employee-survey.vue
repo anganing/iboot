@@ -5,8 +5,10 @@ import type { HrmPortalSalarySlipApi } from '#/api/hrm/portal/salary/slip';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
+import { VbenAvatar } from '@vben/common-ui';
+
 import dayjs from 'dayjs';
-import { ElAvatar, ElButton, ElCard, ElEmpty } from 'element-plus';
+import { ElButton, ElCard, ElEmpty } from 'element-plus';
 
 import { formatHrmDate } from '#/views/hrm/utils/format';
 
@@ -34,9 +36,7 @@ function goSalarySlip() {
   <ElCard class="min-h-[130px]" shadow="never">
     <template v-if="employee">
       <div class="flex items-start gap-8 px-5 py-4">
-        <ElAvatar :size="64" :src="employee.avatar">
-          {{ employee.name?.slice(0, 1) }}
-        </ElAvatar>
+        <VbenAvatar :alt="employee.name" :size="64" :src="employee.avatar" />
         <div class="min-w-0 pt-1">
           <div class="text-xl font-bold">Hi，{{ employee.name }}</div>
           <div class="text-muted-foreground mt-3">

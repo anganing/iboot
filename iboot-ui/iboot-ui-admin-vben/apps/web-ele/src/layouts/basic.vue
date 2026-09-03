@@ -92,9 +92,8 @@ const menus = computed(() => [
   },
 ]);
 
-const avatar = computed(() => {
-  return userStore.userInfo?.avatar ?? preferences.app.defaultAvatar;
-});
+/** 没有头像时交给 VbenAvatar 走文字回退，不再兜一张外链默认图 */
+const avatar = computed(() => userStore.userInfo?.avatar || '');
 
 async function handleLogout() {
   await authStore.logout(false);
@@ -253,7 +252,11 @@ watch(
       </AuthenticationLoginExpiredModal>
     </template>
     <template #lock-screen>
-      <LockScreen :avatar @to-login="handleLogout" />
+      <LockScreen
+        :avatar
+        :text="userStore.userInfo?.nickname"
+        @to-login="handleLogout"
+      />
     </template>
   </BasicLayout>
   <HelpModal />

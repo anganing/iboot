@@ -3,12 +3,13 @@ import type { BpmCommentApi } from '#/api/bpm/comment';
 
 import { ref, watch } from 'vue';
 
+import { VbenAvatar } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictObj } from '@vben/hooks';
 import { IconifyIcon } from '@vben/icons';
 import { formatDateTime } from '@vben/utils';
 
-import { ElAvatar, ElEmpty } from 'element-plus';
+import { ElEmpty } from 'element-plus';
 
 import { getCommentListByProcessInstanceId } from '#/api/bpm/comment';
 import DictTag from '#/components/dict-tag/dict-tag.vue';
@@ -106,14 +107,11 @@ defineExpose({ getList });
         <div class="min-w-0 flex-1">
           <div class="flex min-h-8 items-center gap-2">
             <div class="flex shrink-0 items-center gap-2 font-bold">
-              <ElAvatar
-                v-if="comment.user?.avatar"
+              <VbenAvatar
+                :alt="comment.user?.nickname"
                 :size="28"
-                :src="comment.user.avatar"
+                :src="comment.user?.avatar"
               />
-              <ElAvatar v-else :size="28">
-                {{ comment.user?.nickname?.slice(0, 1) || '?' }}
-              </ElAvatar>
               <span>{{ comment.user?.nickname || '系统' }}</span>
             </div>
             <DictTag :type="DICT_TYPE.BPM_COMMENT_TYPE" :value="comment.type" />

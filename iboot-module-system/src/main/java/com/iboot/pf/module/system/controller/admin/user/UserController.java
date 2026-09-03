@@ -1,7 +1,6 @@
 package com.iboot.pf.module.system.controller.admin.user;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
 import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.common.pojo.CommonResult;
@@ -112,7 +111,8 @@ public class UserController {
         // 拼接数据
         Map<Long, DeptDO> deptMap = deptService.getDeptMap(
                 convertList(pageResult.getList(), AdminUserDO::getDeptId));
-        return success(new PageResult<>(UserConvert.INSTANCE.convertList(pageResult.getList(), deptMap),
+        return success(new PageResult<>(UserConvert.INSTANCE.convertList(pageResult.getList(), deptMap,
+                userService::signAvatarUrl),
                 pageResult.getTotal()));
     }
 
@@ -127,7 +127,7 @@ public class UserController {
         }
         // 拼接数据
         Map<Long, DeptDO> deptMap = deptService.getDeptMap(convertSet(list, AdminUserDO::getDeptId));
-        return success(UserConvert.INSTANCE.convertList(list, deptMap));
+        return success(UserConvert.INSTANCE.convertList(list, deptMap, userService::signAvatarUrl));
     }
 
     @GetMapping({"/list-all-simple", "/simple-list"})
@@ -140,7 +140,7 @@ public class UserController {
         // 拼接数据
         Map<Long, DeptDO> deptMap = deptService.getDeptMap(
                 convertList(list, AdminUserDO::getDeptId));
-        return success(UserConvert.INSTANCE.convertSimpleList(list, deptMap));
+        return success(UserConvert.INSTANCE.convertSimpleList(list, deptMap, userService::signAvatarUrl));
     }
 
     @GetMapping("/get")
@@ -154,7 +154,7 @@ public class UserController {
         }
         // 拼接数据
         DeptDO dept = deptService.getDept(user.getDeptId());
-        return success(UserConvert.INSTANCE.convert(user, dept));
+        return success(UserConvert.INSTANCE.convert(user, dept, userService::signAvatarUrl));
     }
 
     @GetMapping("/export-excel")
@@ -169,7 +169,7 @@ public class UserController {
         Map<Long, DeptDO> deptMap = deptService.getDeptMap(
                 convertList(list, AdminUserDO::getDeptId));
         ExcelUtils.write(response, "用户数据.xls", "数据", UserRespVO.class,
-                UserConvert.INSTANCE.convertList(list, deptMap));
+                UserConvert.INSTANCE.convertList(list, deptMap, userService::signAvatarUrl));
     }
 
     @GetMapping("/get-import-template")
@@ -197,36 +197,6 @@ public class UserController {
                                                       @RequestParam(value = "updateSupport", required = false, defaultValue = "false") Boolean updateSupport) throws Exception {
         List<UserImportExcelVO> list = ExcelUtils.read(file, UserImportExcelVO.class);
         return success(userService.importUserList(list, updateSupport));
-    }
-
-    // ==================== 免鉴权接口（用于 IM 点头像弹名片、加好友搜索等场景） ====================
-
-    @GetMapping("/get-simple")
-    @Operation(summary = "获得用户精简信息", description = "用于点头像弹名片等场景；免鉴权")
-    @Parameter(name = "id", description = "用户编号", required = true, example = "1024")
-    public CommonResult<UserSimpleRespVO> getSimpleUser(@RequestParam("id") Long id) {
-        AdminUserDO user = userService.getUser(id);
-        if (user == null) {
-            return success(null);
-        }
-        // 拼接数据
-        DeptDO dept = user.getDeptId() != null ? deptService.getDept(user.getDeptId()) : null;
-        Map<Long, DeptDO> deptMap = dept != null ? Collections.singletonMap(dept.getId(), dept) : Collections.emptyMap();
-        return success(CollUtil.getFirst(UserConvert.INSTANCE.convertSimpleList(
-                Collections.singletonList(user), deptMap)));
-    }
-
-    @GetMapping("/list-by-nickname")
-    @Operation(summary = "按昵称模糊搜索用户精简信息", description = "用于加好友等场景；免鉴权；当前仅按昵称匹配")
-    @Parameter(name = "nickname", description = "昵称关键词", required = true, example = "芋道")
-    public CommonResult<List<UserSimpleRespVO>> getSimpleUserListByNickname(@RequestParam("nickname") String nickname) {
-        if (StrUtil.isBlank(nickname)) {
-            return success(Collections.emptyList());
-        }
-        // 拼接数据
-        List<AdminUserDO> list = userService.getUserListByNickname(nickname.trim());
-        Map<Long, DeptDO> deptMap = deptService.getDeptMap(convertList(list, AdminUserDO::getDeptId));
-        return success(UserConvert.INSTANCE.convertSimpleList(list, deptMap));
     }
 
 }

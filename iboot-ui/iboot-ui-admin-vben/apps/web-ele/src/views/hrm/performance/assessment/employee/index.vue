@@ -4,12 +4,11 @@ import type { HrmPerformanceAssessmentApi } from '#/api/hrm/performance/assessme
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { confirm, DocAlert, Page } from '@vben/common-ui';
+import { confirm, DocAlert, Page, VbenAvatar } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
 import {
-  ElAvatar as Avatar,
   ElButton as Button,
   ElCard as Card,
   ElMessage as message,
@@ -139,7 +138,7 @@ onMounted(loadPlanOptions);
     <Card class="mb-4 shrink-0">
       <div class="flex items-center gap-4">
         <Button @click="handleBack">返回</Button>
-        <Avatar :size="48">{{ employeeInfo.employeeName?.slice(0, 1) }}</Avatar>
+        <VbenAvatar :alt="employeeInfo.employeeName" :size="48" />
         <div>
           <div class="text-lg font-semibold">
             {{ employeeInfo.employeeName }}

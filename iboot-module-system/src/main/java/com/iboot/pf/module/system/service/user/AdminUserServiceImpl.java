@@ -9,10 +9,12 @@ import com.iboot.pf.framework.common.enums.UserTypeEnum;
 import com.iboot.pf.framework.common.exception.ServiceException;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.collection.CollectionUtils;
+import com.iboot.pf.framework.common.util.http.HttpUtils;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.common.util.validation.ValidationUtils;
 import com.iboot.pf.framework.datapermission.core.util.DataPermissionUtils;
 import com.iboot.pf.module.infra.api.config.ConfigApi;
+import com.iboot.pf.module.infra.api.file.FileApi;
 import com.iboot.pf.module.system.controller.admin.auth.vo.AuthRegisterReqVO;
 import com.iboot.pf.module.system.controller.admin.user.vo.profile.UserProfileUpdatePasswordReqVO;
 import com.iboot.pf.module.system.controller.admin.user.vo.profile.UserProfileUpdateReqVO;
@@ -88,6 +90,9 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Resource
     private ConfigApi configApi;
 
+    @Resource
+    private FileApi fileApi;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     @LogRecord(type = SYSTEM_USER_TYPE, subType = SYSTEM_USER_CREATE_SUB_TYPE, bizNo = "{{#user.id}}",
@@ -107,6 +112,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserDO user = BeanUtils.toBean(createReqVO, AdminUserDO.class);
         user.setStatus(CommonStatusEnum.ENABLE.getStatus()); // 默认开启
         user.setPassword(encodePassword(createReqVO.getPassword())); // 加密密码
+        user.setAvatar(removeAvatarUrlQuery(user.getAvatar())); // 头像去签名，避免存下会过期的签名地址
         userMapper.insert(user);
         // 2.2 插入关联岗位
         if (CollectionUtil.isNotEmpty(user.getPostIds())) {
@@ -155,6 +161,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // 2.1 更新用户
         AdminUserDO updateObj = BeanUtils.toBean(updateReqVO, AdminUserDO.class);
+        updateObj.setAvatar(removeAvatarUrlQuery(updateObj.getAvatar())); // 头像去签名，避免存下会过期的签名地址
         userMapper.updateById(updateObj);
         // 2.2 更新岗位
         updateUserPost(updateReqVO, updateObj);
@@ -194,7 +201,23 @@ public class AdminUserServiceImpl implements AdminUserService {
         validateMobileUnique(id, reqVO.getMobile());
 
         // 2. 执行更新
-        userMapper.updateById(BeanUtils.toBean(reqVO, AdminUserDO.class).setId(id));
+        AdminUserDO updateObj = BeanUtils.toBean(reqVO, AdminUserDO.class).setId(id);
+        updateObj.setAvatar(removeAvatarUrlQuery(updateObj.getAvatar())); // 头像去签名，避免存下会过期的签名地址
+        userMapper.updateById(updateObj);
+    }
+
+    /**
+     * 移除头像地址上的签名参数。
+     *
+     * <p>文件存储器签发的预签名地址 24 小时过期，直接存库会导致头像隔天打不开。
+     */
+    private String removeAvatarUrlQuery(String avatar) {
+        return StrUtil.isEmpty(avatar) ? avatar : HttpUtils.removeUrlQuery(avatar);
+    }
+
+    @Override
+    public String signAvatarUrl(String avatar) {
+        return StrUtil.isEmpty(avatar) ? avatar : fileApi.presignGetUrl(avatar, null);
     }
 
     @Override

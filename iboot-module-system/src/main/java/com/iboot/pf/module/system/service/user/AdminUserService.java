@@ -232,4 +232,14 @@ public interface AdminUserService {
      */
     boolean isPasswordMatch(String rawPassword, String encodedPassword);
 
+    /**
+     * 为头像地址重新签发访问地址。
+     *
+     * <p>库里存的是去签名后的地址，私有桶必须重新签发才能访问；空值原样返回。
+     *
+     * @param avatar 头像地址
+     * @return 可访问的头像地址
+     */
+    String signAvatarUrl(String avatar);
+
 }

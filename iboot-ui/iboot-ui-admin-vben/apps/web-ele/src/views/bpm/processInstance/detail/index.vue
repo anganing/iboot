@@ -4,7 +4,7 @@ import type { SystemUserApi } from '#/api/system/user';
 
 import { nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 
-import { Page, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenModal, VbenAvatar } from '@vben/common-ui';
 import {
   BpmFieldPermissionType,
   BpmModelFormType,
@@ -22,7 +22,6 @@ import {
 import { formatDateTime } from '@vben/utils';
 
 import {
-  ElAvatar,
   ElCard,
   ElCol,
   ElMessage,
@@ -283,17 +282,11 @@ onMounted(async () => {
             <div
               class="flex items-center gap-2 rounded-3xl bg-gray-100 px-2.5 py-1 dark:bg-gray-600"
             >
-              <ElAvatar
+              <VbenAvatar
+                :alt="processInstance?.startUser?.nickname"
                 :size="28"
-                v-if="processInstance?.startUser?.avatar"
                 :src="processInstance?.startUser?.avatar"
               />
-              <ElAvatar
-                :size="28"
-                v-else-if="processInstance?.startUser?.nickname"
-              >
-                {{ processInstance?.startUser?.nickname.substring(0, 1) }}
-              </ElAvatar>
               <span class="text-sm">
                 {{ processInstance?.startUser?.nickname }}
               </span>

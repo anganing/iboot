@@ -13,6 +13,8 @@ import { useDateFormat, useNow } from '@vueuse/core';
 
 interface Props {
   avatar?: string;
+  /** 用户昵称，没有头像图片时用于生成文字头像 */
+  text?: string;
 }
 
 defineOptions({
@@ -21,6 +23,7 @@ defineOptions({
 
 withDefaults(defineProps<Props>(), {
   avatar: '',
+  text: '',
 });
 
 defineEmits<{ toLogin: [] }>();
@@ -129,7 +132,7 @@ useScrollLock();
         @keydown.enter.prevent="handleSubmit"
       >
         <div class="mb-10 flex-col-center w-[90%] max-w-75 px-4">
-          <VbenAvatar :src="avatar" class="enter-x mb-6 size-20" />
+          <VbenAvatar :alt="text" :src="avatar" class="enter-x mb-6 size-20" />
           <div class="enter-x mb-2 w-full items-center">
             <Form />
           </div>

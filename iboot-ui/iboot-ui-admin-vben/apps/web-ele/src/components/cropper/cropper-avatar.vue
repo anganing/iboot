@@ -5,7 +5,7 @@ import type { CropperAvatarProps } from './typing';
 
 import { computed, ref, unref, watch, watchEffect } from 'vue';
 
-import { useVbenModal } from '@vben/common-ui';
+import { useVbenModal, VbenAvatar } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
@@ -75,13 +75,13 @@ defineExpose({
   <div class="inline-block text-center" :style="getStyle">
     <!-- 图片包装器 -->
     <div
-      class="group relative cursor-pointer overflow-hidden rounded-full border border-gray-200 bg-white"
+      class="group border-border bg-background relative cursor-pointer overflow-hidden rounded-full border"
       :style="getImageWrapperStyle"
       @click="openModal"
     >
-      <!-- 遮罩层 -->
+      <!-- 遮罩层：VbenAvatar 根节点是 relative 定位，遮罩需要显式抬高层级才能盖在头像之上 -->
       <div
-        class="duration-400 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black bg-opacity-40 opacity-0 transition-opacity group-hover:opacity-100"
+        class="duration-400 absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-full bg-black bg-opacity-40 opacity-0 transition-opacity group-hover:opacity-100"
         :style="getImageWrapperStyle"
       >
         <IconifyIcon
@@ -95,13 +95,8 @@ defineExpose({
           }"
         />
       </div>
-      <!-- 头像图片 -->
-      <img
-        v-if="sourceValue"
-        :src="sourceValue"
-        alt="avatar"
-        class="h-full w-full object-cover"
-      />
+      <!-- 头像与全站同构：有图显示图片，无图或加载失败回落到文字头像 -->
+      <VbenAvatar :alt="name" :src="sourceValue" class="size-full" />
     </div>
     <!-- 上传按钮 -->
     <ElButton

@@ -5,7 +5,7 @@ import type { BpmProcessInstanceApi } from '#/api/bpm/processInstance';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { useVbenModal } from '@vben/common-ui';
+import { useVbenModal, VbenAvatar } from '@vben/common-ui';
 import {
   BpmCandidateStrategyEnum,
   BpmNodeTypeEnum,
@@ -15,7 +15,6 @@ import { IconifyIcon } from '@vben/icons';
 import { formatDateTime, isEmpty } from '@vben/utils';
 
 import {
-  ElAvatar,
   ElButton,
   ElTimeline,
   ElTimelineItem,
@@ -354,16 +353,12 @@ defineExpose({ setCustomApproveUsers, batchSetCustomApproveUsers });
               :key="user.id || userIndex"
               class="relative flex h-9 items-center gap-2 rounded-3xl bg-gray-100 pr-2 dark:bg-gray-600"
             >
-              <ElAvatar
-                class="!m-1"
+              <VbenAvatar
+                class="m-1"
+                :alt="user.nickname"
                 :size="28"
-                v-if="user.avatar"
                 :src="user.avatar"
               />
-
-              <ElAvatar class="!m-1" :size="28" v-else>
-                <span>{{ user.nickname.substring(0, 1) }}</span>
-              </ElAvatar>
               <span class="text-sm">{{ user.nickname }}</span>
             </div>
           </div>
@@ -386,15 +381,12 @@ defineExpose({ setCustomApproveUsers, batchSetCustomApproveUsers });
                       task.assigneeUser?.avatar || task.assigneeUser?.nickname
                     "
                   >
-                    <ElAvatar
-                      class="!m-1"
+                    <VbenAvatar
+                      class="m-1"
+                      :alt="task.assigneeUser?.nickname"
                       :size="28"
-                      v-if="task.assigneeUser?.avatar"
                       :src="task.assigneeUser?.avatar"
                     />
-                    <ElAvatar class="!m-1" :size="28" v-else>
-                      {{ task.assigneeUser?.nickname.substring(0, 1) }}
-                    </ElAvatar>
                     {{ task.assigneeUser?.nickname }}
                   </template>
                   <template
@@ -402,15 +394,12 @@ defineExpose({ setCustomApproveUsers, batchSetCustomApproveUsers });
                       task.ownerUser?.avatar || task.ownerUser?.nickname
                     "
                   >
-                    <ElAvatar
-                      class="!m-1"
+                    <VbenAvatar
+                      class="m-1"
+                      :alt="task.ownerUser?.nickname"
                       :size="28"
-                      v-if="task.ownerUser?.avatar"
                       :src="task.ownerUser?.avatar"
                     />
-                    <ElAvatar class="!m-1" :size="28" v-else>
-                      {{ task.ownerUser?.nickname.substring(0, 1) }}
-                    </ElAvatar>
                     {{ task.ownerUser?.nickname }}
                   </template>
 
@@ -451,15 +440,12 @@ defineExpose({ setCustomApproveUsers, batchSetCustomApproveUsers });
               :key="userIndex"
               class="relative flex h-8 items-center rounded-3xl pr-2"
             >
-              <ElAvatar
-                class="!m-1"
+              <VbenAvatar
+                class="m-1"
+                :alt="user.nickname"
                 :size="28"
-                v-if="user.avatar"
                 :src="user.avatar"
               />
-              <ElAvatar class="!m-1" :size="28" v-else>
-                {{ user.nickname.substring(0, 1) }}
-              </ElAvatar>
               <span class="text-sm">
                 {{ user.nickname }}
               </span>

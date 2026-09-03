@@ -37,14 +37,14 @@ public class AdminUserApiImpl implements AdminUserApi {
     @DataPermission(enable = false) // 忽略数据权限，避免因为过滤，导致无法查询用户。类似：https://github.com/YunaiV/ruoyi-vue-pro/issues/1051
     public AdminUserRespDTO getUser(Long id) {
         AdminUserDO user = userService.getUser(id);
-        return BeanUtils.toBean(user, AdminUserRespDTO.class);
+        return signAvatar(BeanUtils.toBean(user, AdminUserRespDTO.class));
     }
 
     @Override
     @DataPermission(enable = false) // 忽略数据权限，指定手机号的 API 查询用于跨模块数据拼接
     public AdminUserRespDTO getUserByMobile(String mobile) {
         AdminUserDO user = userService.getUserByMobile(mobile);
-        return BeanUtils.toBean(user, AdminUserRespDTO.class);
+        return signAvatar(BeanUtils.toBean(user, AdminUserRespDTO.class));
     }
 
     @Override
@@ -64,38 +64,53 @@ public class AdminUserApiImpl implements AdminUserApi {
         // 2. 获取部门对应的用户信息
         List<AdminUserDO> users = userService.getUserListByDeptIds(deptIds);
         users.removeIf(item -> ObjUtil.equal(item.getId(), id)); // 排除自己
-        return BeanUtils.toBean(users, AdminUserRespDTO.class);
+        return signAvatars(BeanUtils.toBean(users, AdminUserRespDTO.class));
     }
 
     @Override
     public List<AdminUserRespDTO> getUserList(Collection<Long> ids) {
         return DataPermissionUtils.executeIgnore(() -> { // 禁用数据权限。原因是，一般基于指定 id 的 API 查询，都是数据拼接为主
             List<AdminUserDO> users = userService.getUserList(ids);
-            return BeanUtils.toBean(users, AdminUserRespDTO.class);
+            return signAvatars(BeanUtils.toBean(users, AdminUserRespDTO.class));
         });
     }
 
     @Override
     public List<AdminUserRespDTO> getUserListByDeptIds(Collection<Long> deptIds) {
         List<AdminUserDO> users = userService.getUserListByDeptIds(deptIds);
-        return BeanUtils.toBean(users, AdminUserRespDTO.class);
+        return signAvatars(BeanUtils.toBean(users, AdminUserRespDTO.class));
     }
 
     @Override
     public List<AdminUserRespDTO> getUserListByPostIds(Collection<Long> postIds) {
         List<AdminUserDO> users = userService.getUserListByPostIds(postIds);
-        return BeanUtils.toBean(users, AdminUserRespDTO.class);
+        return signAvatars(BeanUtils.toBean(users, AdminUserRespDTO.class));
     }
 
     @Override
     public List<AdminUserRespDTO> getUserListByNickname(String nickname) {
         List<AdminUserDO> users = userService.getUserListByNickname(nickname);
-        return BeanUtils.toBean(users, AdminUserRespDTO.class);
+        return signAvatars(BeanUtils.toBean(users, AdminUserRespDTO.class));
     }
 
     @Override
     public void validateUserList(Collection<Long> ids) {
         userService.validateUserList(ids);
+    }
+
+    /**
+     * 为头像重新签发访问地址。库里存的是去签名地址，私有桶必须重签才能访问
+     */
+    private AdminUserRespDTO signAvatar(AdminUserRespDTO user) {
+        if (user != null) {
+            user.setAvatar(userService.signAvatarUrl(user.getAvatar()));
+        }
+        return user;
+    }
+
+    private List<AdminUserRespDTO> signAvatars(List<AdminUserRespDTO> users) {
+        users.forEach(this::signAvatar);
+        return users;
     }
 
 }

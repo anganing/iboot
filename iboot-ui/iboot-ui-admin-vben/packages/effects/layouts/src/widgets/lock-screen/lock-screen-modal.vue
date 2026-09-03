@@ -92,6 +92,7 @@ async function handleSubmit() {
       <div class="w-full">
         <div class="ml-2 flex w-full flex-col items-center">
           <VbenAvatar
+            :alt="text"
             :src="avatar"
             class="size-20"
             dot-class="bottom-0 right-1 border-2 size-4 bg-green-500"
