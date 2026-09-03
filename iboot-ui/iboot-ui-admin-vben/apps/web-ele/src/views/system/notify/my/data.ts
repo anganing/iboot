@@ -1,15 +1,10 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { DescriptionItemSchema } from '#/components/description';
-
-import { h } from 'vue';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
-import { formatDateTime } from '@vben/utils';
 
-import { DictTag } from '#/components/dict-tag';
-import { getRangePickerDefaultProps } from '#/utils';
+import { getRangePickerDefaultProps, htmlToText } from '#/utils';
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -68,6 +63,8 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       field: 'templateContent',
       title: '消息内容',
       minWidth: 300,
+      // 站内信内容是富文本，单元格里要剥成纯文本
+      formatter: ({ cellValue }) => htmlToText(cellValue, 80),
     },
     {
       field: 'readStatus',
@@ -89,49 +86,6 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       width: 130,
       fixed: 'right',
       slots: { default: 'actions' },
-    },
-  ];
-}
-
-export function useDetailSchema(): DescriptionItemSchema[] {
-  return [
-    {
-      field: 'templateNickname',
-      label: '发送人',
-    },
-    {
-      field: 'createTime',
-      label: '发送时间',
-      render: (val) => formatDateTime(val) as string,
-    },
-    {
-      field: 'templateType',
-      label: '消息类型',
-      render: (val) => {
-        return h(DictTag, {
-          type: DICT_TYPE.SYSTEM_NOTIFY_TEMPLATE_TYPE,
-          value: val,
-        });
-      },
-    },
-    {
-      field: 'readStatus',
-      label: '是否已读',
-      render: (val) => {
-        return h(DictTag, {
-          type: DICT_TYPE.INFRA_BOOLEAN_STRING,
-          value: val,
-        });
-      },
-    },
-    {
-      field: 'readTime',
-      label: '阅读时间',
-      render: (val) => formatDateTime(val) as string,
-    },
-    {
-      field: 'templateContent',
-      label: '消息内容',
     },
   ];
 }

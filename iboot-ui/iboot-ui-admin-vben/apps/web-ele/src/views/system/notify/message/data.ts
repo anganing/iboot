@@ -9,7 +9,8 @@ import { getDictOptions } from '@vben/hooks';
 import { formatDateTime } from '@vben/utils';
 
 import { DictTag } from '#/components/dict-tag';
-import { getRangePickerDefaultProps } from '#/utils';
+import { RichTextView } from '#/components/rich-text-view';
+import { getRangePickerDefaultProps, htmlToText } from '#/utils';
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -103,6 +104,8 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       field: 'templateContent',
       title: '模版内容',
       minWidth: 200,
+      // 模版内容是富文本，单元格里要剥成纯文本
+      formatter: ({ cellValue }) => htmlToText(cellValue, 80),
     },
     {
       field: 'templateParams',
@@ -191,6 +194,7 @@ export function useDetailSchema(): DescriptionItemSchema[] {
     {
       field: 'templateContent',
       label: '模版内容',
+      render: (val) => h(RichTextView, { content: val }),
     },
     {
       field: 'templateParams',

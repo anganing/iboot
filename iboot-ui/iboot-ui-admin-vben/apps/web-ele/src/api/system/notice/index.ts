@@ -57,3 +57,18 @@ export function deleteNoticeList(ids: number[]) {
 export function pushNotice(id: number) {
   return requestClient.post(`/system/notice/push?id=${id}`);
 }
+
+/** 查询我的公告分页，只返回开启状态的公告，所有登录用户可见 */
+export function getMyNoticePage(params: PageParam) {
+  return requestClient.get<PageResult<SystemNoticeApi.Notice>>(
+    '/system/notice/my-page',
+    { params },
+  );
+}
+
+/** 查询我的公告详情，只返回开启状态的公告 */
+export function getMyNotice(id: number) {
+  return requestClient.get<SystemNoticeApi.Notice>(
+    `/system/notice/get-my?id=${id}`,
+  );
+}

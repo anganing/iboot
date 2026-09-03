@@ -4,18 +4,13 @@ import type { SystemNotifyMessageApi } from '#/api/system/notify/message';
 import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
+import { DICT_TYPE } from '@vben/constants';
+import { formatDateTime } from '@vben/utils';
 
-import { useDescription } from '#/components/description';
-
-import { useDetailSchema } from '../data';
+import { DictTag } from '#/components/dict-tag';
+import { RichTextView } from '#/components/rich-text-view';
 
 const formData = ref<SystemNotifyMessageApi.NotifyMessage>();
-
-const [Descriptions] = useDescription({
-  border: true,
-  column: 1,
-  schema: useDetailSchema(),
-});
 
 const [Modal, modalApi] = useVbenModal({
   async onOpenChange(isOpen: boolean) {
@@ -41,10 +36,29 @@ const [Modal, modalApi] = useVbenModal({
 <template>
   <Modal
     title="站内信详情"
-    class="w-1/3"
+    class="w-[720px]"
     :show-cancel-button="false"
     :show-confirm-button="false"
   >
-    <Descriptions :data="formData" />
+    <div v-if="formData" class="flex flex-col gap-3 px-4 pb-2">
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-base font-medium">
+          {{ formData.templateNickname }}
+        </span>
+        <DictTag
+          :type="DICT_TYPE.SYSTEM_NOTIFY_TEMPLATE_TYPE"
+          :value="formData.templateType"
+        />
+      </div>
+      <div class="text-xs text-muted-foreground">
+        发送于 {{ formatDateTime(formData.createTime) }}
+      </div>
+      <div class="border-t border-border pt-3">
+        <RichTextView :content="formData.templateContent" />
+      </div>
+      <div v-if="formData.readTime" class="text-xs text-muted-foreground">
+        已读于 {{ formatDateTime(formData.readTime) }}
+      </div>
+    </div>
   </Modal>
 </template>

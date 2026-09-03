@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
+import type { SystemNoticeApi } from '#/api/system/notice';
+import type { SystemNotifyMessageApi } from '#/api/system/notify/message';
 import type { SystemTenantApi } from '#/api/system/tenant';
 
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
@@ -28,7 +30,7 @@ import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { formatDateTime, openWindow } from '@vben/utils';
 
-import { ElMessage, ElTooltip } from 'element-plus';
+import { ElButton, ElMessage, ElNotification, ElTooltip } from 'element-plus';
 
 import {
   getUnreadNotifyMessageCount,
@@ -37,10 +39,19 @@ import {
   updateNotifyMessageRead,
 } from '#/api/system/notify/message';
 import { getSimpleTenantList } from '#/api/system/tenant';
+import { RichTextView } from '#/components/rich-text-view';
+import { useAppWebSocket } from '#/hooks/use-app-websocket';
 import { $t } from '#/locales';
 import { router } from '#/router';
 import { useAuthStore } from '#/store';
+import { htmlToText } from '#/utils';
 import LoginForm from '#/views/_core/authentication/login.vue';
+import NoticeDetail from '#/views/system/notice/my/modules/detail.vue';
+import NotifyMessageDetail from '#/views/system/notify/my/modules/detail.vue';
+
+/** WebSocket 消息类型，与后端 WebSocketMessageTypeConstants 对齐 */
+const NOTIFY_MESSAGE_PUSH = 'notify-message-push';
+const NOTICE_PUSH = 'notice-push';
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -48,6 +59,7 @@ const accessStore = useAccessStore();
 const { hasAccessByCodes } = useAccess();
 const { destroyWatermark, updateWatermark } = useWatermark();
 const { closeOtherTabs, refreshTab } = useTabs();
+const appWebSocket = useAppWebSocket();
 
 const notifications = ref<NotificationItem[]>([]);
 const unreadCount = ref(0);
@@ -55,6 +67,14 @@ const showDot = computed(() => unreadCount.value > 0);
 
 const [HelpModal, helpModalApi] = useVbenModal({
   connectedComponent: Help,
+});
+const [NotifyDetailModal, notifyDetailModalApi] = useVbenModal({
+  connectedComponent: NotifyMessageDetail,
+  destroyOnClose: true,
+});
+const [NoticeDetailModal, noticeDetailModalApi] = useVbenModal({
+  connectedComponent: NoticeDetail,
+  destroyOnClose: true,
 });
 const { isDark } = usePreferences();
 
@@ -101,6 +121,22 @@ async function handleLogout() {
   await authStore.logout(false);
 }
 
+/** 站内信转成铃铛条目，raw 留着给详情弹窗用 */
+function toNotificationItem(
+  message: SystemNotifyMessageApi.NotifyMessage,
+): NotificationItem {
+  return {
+    avatar: preferences.app.defaultAvatar,
+    date: formatDateTime(message.createTime) as string,
+    id: message.id,
+    isRead: false,
+    message: message.templateContent,
+    raw: message,
+    templateType: message.templateType,
+    title: message.templateNickname,
+  };
+}
+
 /** 获得未读消息数 */
 async function handleNotificationGetUnreadCount() {
   unreadCount.value = await getUnreadNotifyMessageCount();
@@ -109,14 +145,7 @@ async function handleNotificationGetUnreadCount() {
 /** 获得消息列表 */
 async function handleNotificationGetList() {
   const list = await getUnreadNotifyMessageList();
-  notifications.value = list.map((item) => ({
-    avatar: preferences.app.defaultAvatar,
-    date: formatDateTime(item.createTime) as string,
-    isRead: false,
-    id: item.id,
-    message: item.templateContent,
-    title: item.templateNickname,
-  }));
+  notifications.value = list.map((item) => toNotificationItem(item));
 }
 
 /** 跳转我的站内信 */
@@ -146,6 +175,52 @@ async function handleNotificationRead(item: NotificationItem) {
   await updateNotifyMessageRead([item.id]);
   await handleNotificationGetUnreadCount();
   notifications.value = notifications.value.filter((n) => n.id !== item.id);
+}
+
+/** 点击某条消息：标记已读并打开详情 */
+async function handleNotificationClick(item: NotificationItem) {
+  notifyDetailModalApi.setData(item.raw ?? item).open();
+  if (!item.isRead) {
+    await handleNotificationRead(item);
+  }
+}
+
+/** 站内信推送：未读数由后端一起带回来，前端不本地自增，多标签页才不会各算一套 */
+function handleNotifyMessagePush(
+  content: SystemNotifyMessageApi.NotifyMessage & { unreadCount?: number },
+) {
+  if (!content?.id) {
+    return;
+  }
+  unreadCount.value = content.unreadCount ?? unreadCount.value + 1;
+  notifications.value = [
+    toNotificationItem(content),
+    ...notifications.value.filter((item) => item.id !== content.id),
+  ];
+  ElNotification({
+    duration: 5000,
+    message: htmlToText(content.templateContent, 100),
+    onClick: () => handleNotificationClick(toNotificationItem(content)),
+    title: content.templateNickname || '新站内信',
+    type: 'info',
+  });
+}
+
+/** 公告推送：提醒里直接看全文，错过了还能去「我的公告」页回看 */
+function handleNoticePush(content: SystemNoticeApi.Notice) {
+  if (!content?.id) {
+    return;
+  }
+  ElNotification({
+    duration: 8000,
+    message: htmlToText(content.content, 100),
+    onClick: () => {
+      // 推送已带全量内容，直接开弹窗，不必再跳页回查
+      noticeDetailModalApi.setData({ notice: content }).open();
+    },
+    title: content.title || '新公告',
+    type: 'warning',
+  });
 }
 
 /** 处理通知打开 */
@@ -193,20 +268,29 @@ async function handleTenantChange(tenant: SystemTenantApi.Tenant) {
 }
 
 // ========== 初始化 ==========
+/** WebSocket 订阅的取消函数，卸载时逐个释放 */
+const socketDisposers: Array<() => void> = [];
+
 onMounted(() => {
-  // 首次加载未读数量
-  handleNotificationGetUnreadCount();
   // 获取租户列表
   handleGetTenantList();
-  // 轮询刷新未读数量
-  setInterval(
-    () => {
+  // 站内信改推送驱动：连接成功（含每次重连）后校准一次未读数，补上断线期间漏掉的推送
+  socketDisposers.push(
+    appWebSocket.onConnected(() => {
       if (userStore.userInfo) {
         handleNotificationGetUnreadCount();
       }
-    },
-    1000 * 60 * 2,
+    }),
+    appWebSocket.on(NOTIFY_MESSAGE_PUSH, handleNotifyMessagePush),
+    appWebSocket.on(NOTICE_PUSH, handleNoticePush),
   );
+  appWebSocket.open();
+});
+
+onBeforeUnmount(() => {
+  socketDisposers.forEach((dispose) => dispose());
+  socketDisposers.length = 0;
+  appWebSocket.close();
 });
 
 watch(
@@ -271,7 +355,54 @@ watch(
         @view-all="handleNotificationViewAll"
         @open="handleNotificationOpen"
         @read="handleNotificationRead"
-      />
+        @on-click="handleNotificationClick"
+      >
+        <!--
+          覆盖 content 插槽以富文本渲染消息内容。
+          注意框架层把默认的未读圆点与操作按钮嵌在 content 默认内容里，覆盖后要自己补上。
+        -->
+        <template #content="{ item }">
+          <span
+            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground"
+          >
+            <IconifyIcon
+              class="size-4"
+              :icon="
+                item.templateType === 1
+                  ? 'lucide:megaphone'
+                  : 'lucide:bell-ring'
+              "
+            />
+          </span>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <p class="truncate font-semibold">{{ item.title }}</p>
+            <!-- 富文本内容限高裁切：line-clamp 会把 prose 段落改成 -webkit-box，这里用 max-height -->
+            <div class="max-h-10 overflow-hidden">
+              <RichTextView
+                class="text-xs text-muted-foreground"
+                :content="item.message"
+              />
+            </div>
+            <p class="text-xs text-muted-foreground">{{ item.date }}</p>
+          </div>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            <span
+              v-if="!item.isRead"
+              class="size-2 rounded-sm bg-primary"
+              title="未读"
+            ></span>
+            <ElButton
+              v-if="!item.isRead"
+              link
+              size="small"
+              type="primary"
+              @click.stop="handleNotificationRead(item)"
+            >
+              标记已读
+            </ElButton>
+          </div>
+        </template>
+      </Notification>
     </template>
     <template #header-right-1>
       <div v-if="tenantEnable">
@@ -307,4 +438,6 @@ watch(
     </template>
   </BasicLayout>
   <HelpModal />
+  <NotifyDetailModal />
+  <NoticeDetailModal />
 </template>

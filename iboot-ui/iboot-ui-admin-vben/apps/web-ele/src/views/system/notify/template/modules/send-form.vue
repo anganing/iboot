@@ -9,6 +9,7 @@ import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
 import { sendNotify } from '#/api/system/notify/template';
+import { RichTextView } from '#/components/rich-text-view';
 import { $t } from '#/locales';
 
 import { useSendNotifyFormSchema } from '../data';
@@ -79,7 +80,6 @@ const [Modal, modalApi] = useVbenModal({
     formApi.setState({ schema });
     // 设置到 values
     await formApi.setValues({
-      content: data.content,
       templateCode: data.code,
     });
   },
@@ -107,6 +107,13 @@ function buildFormSchema() {
 
 <template>
   <Modal title="测试发送站内信">
-    <Form class="mx-4" />
+    <div class="mx-4 flex flex-col gap-3">
+      <!-- 模板内容只做预览：内容在模板管理里维护，这里不该编辑 -->
+      <div class="rounded border border-border p-3">
+        <div class="mb-2 text-xs text-muted-foreground">模板内容</div>
+        <RichTextView :content="formData?.content" />
+      </div>
+      <Form />
+    </div>
   </Modal>
 </template>

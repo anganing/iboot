@@ -6,7 +6,7 @@ import { getDictOptions } from '@vben/hooks';
 
 import { z } from '#/adapter/form';
 import { getSimpleUserList } from '#/api/system/user';
-import { getRangePickerDefaultProps } from '#/utils';
+import { getRangePickerDefaultProps, htmlToText } from '#/utils';
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -49,9 +49,9 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'content',
       label: '模板内容',
-      component: 'Textarea',
+      component: 'RichTextarea',
       componentProps: {
-        placeholder: '请输入模板内容',
+        height: 300,
       },
       rules: 'required',
     },
@@ -148,14 +148,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useSendNotifyFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'content',
-      label: '模板内容',
-      component: 'Textarea',
-      componentProps: {
-        disabled: true,
-      },
-    },
-    {
       fieldName: 'templateCode',
       label: '模板编码',
       component: 'Input',
@@ -246,6 +238,8 @@ export function useGridColumns(): VxeTableGridOptions['columns'] {
       field: 'content',
       title: '模板内容',
       minWidth: 200,
+      // 模板内容是富文本，单元格里要剥成纯文本
+      formatter: ({ cellValue }) => htmlToText(cellValue, 80),
     },
     {
       field: 'type',
