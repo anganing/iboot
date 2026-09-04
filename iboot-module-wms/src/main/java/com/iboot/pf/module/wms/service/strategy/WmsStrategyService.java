@@ -66,4 +66,11 @@ public interface WmsStrategyService {
      */
     PageResult<StrategyRespVO> getStrategyPage(StrategyPageReqVO pageReqVO);
 
+    /**
+     * 获得策略字段元数据：每种策略类型能筛什么、能按什么排、默认配置长什么样
+     *
+     * @return 字段元数据
+     */
+    StrategyFieldMetadataRespVO getFieldMetadata();
+
 }

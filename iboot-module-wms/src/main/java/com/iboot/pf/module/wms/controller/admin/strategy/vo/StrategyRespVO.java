@@ -40,9 +40,23 @@ public class StrategyRespVO {
     @ExcelProperty("策略版本号")
     private String versionNo;
 
-    @Schema(description = "策略条件与排序规则配置", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ExcelProperty("策略条件与排序规则配置")
+    /**
+     * 库里的原始配置内容，只读。
+     *
+     * <p>不导出到 Excel：一格里塞一坨 JSON，看的人还得自己解析。页面上要用的是下面解析好的
+     * {@link #config}，这个字段留着只为排查问题时能看到库里到底存了什么。
+     */
+    @Schema(description = "库里的原始配置内容，只读")
     private String configJson;
+
+    @Schema(description = "解析后的策略配置")
+    private StrategyConfigVO config;
+
+    @Schema(description = "原始配置是否无法识别", example = "false")
+    private Boolean configInvalid;
+
+    @Schema(description = "原始配置无法识别的原因")
+    private String configInvalidReason;
 
     @Schema(description = "优先级，数值越大越优先", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("优先级，数值越大越优先")

@@ -25,6 +25,11 @@
             <if test="req.strategyType != null and req.strategyType != ''">
                 AND t.strategy_type = #{req.strategyType}
             </if>
+            <!-- 精确匹配而不是把全局策略一起带出来：搜索条件的直觉是等于，
+                 想看某个仓库实际会命中哪条策略是另一回事，不该混进列表筛选 -->
+            <if test="req.whId != null">
+                AND t.wh_id = #{req.whId}
+            </if>
             <if test="req.status != null and req.status != ''">
                 AND t.status = #{req.status}
             </if>

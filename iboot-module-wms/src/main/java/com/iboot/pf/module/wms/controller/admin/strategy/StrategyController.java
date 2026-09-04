@@ -84,6 +84,19 @@ public class StrategyController {
         return success(wmsStrategyService.getStrategyPage(pageReqVO));
     }
 
+    /**
+     * 策略字段元数据。
+     *
+     * <p>权限沿用策略查询：它只是"每种类型能筛什么、能按什么排"的静态说明，打开策略表单就要用，
+     * 不值得单独建一个权限项。
+     */
+    @GetMapping("/field-metadata")
+    @Operation(summary = "获得WMS-仓储策略字段元数据")
+    @PreAuthorize("@ss.hasPermission('wms:strategy:query')")
+    public CommonResult<StrategyFieldMetadataRespVO> getFieldMetadata() {
+        return success(wmsStrategyService.getFieldMetadata());
+    }
+
     @GetMapping("/export-excel")
     @Operation(summary = "导出WMS-仓储策略 Excel")
     @PreAuthorize("@ss.hasPermission('wms:strategy:export')")

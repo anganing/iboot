@@ -11,8 +11,14 @@ import { RelationSelect } from '#/components/relation-select';
 import { getRangePickerDefaultProps } from '#/utils';
 
 import { WH_RELATION_PROPS } from '../relation-config';
+import StrategyConfigEditor from './modules/strategy-config-editor.vue';
 
-/** 新增/修改的表单 */
+/**
+ * 新增/修改的表单。
+ *
+ * <p>策略配置不是一个 JSON 文本域，而是由后端字段元数据驱动的结构化编辑器：手写 JSON 既不知道
+ * 这个策略类型能筛哪些字段，也要等策略真正执行才知道配错了。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -98,13 +104,17 @@ export function useFormSchema(): VbenFormSchema[] {
       defaultValue: 'DRAFT',
     },
     {
-      fieldName: 'configJson',
+      fieldName: 'config',
       label: '策略配置',
-      component: 'Textarea',
-      componentProps: {
-        placeholder: '按 JSON 填写条件与排序规则',
-        rows: 6,
+      component: markRaw(StrategyConfigEditor),
+      // 策略类型决定能筛哪些字段、能按哪些字段排，切换类型时编辑器要跟着换清单
+      dependencies: {
+        triggerFields: ['strategyType'],
+        componentProps: (values) => ({
+          strategyType: values.strategyType,
+        }),
       },
+      formItemClass: 'col-span-2',
     },
     {
       fieldName: 'remark',

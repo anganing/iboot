@@ -14,6 +14,9 @@ public interface WmsDictTypeConstants {
     /** Boolean 是否类型，来自 infra 模块。 */
     String BOOLEAN_STRING = "infra_boolean_string";
 
+    /** 物料类型，来自 mdm 模块。仓储策略按物料类型筛候选时要拿它渲染下拉。 */
+    String MAT_TYPE = "mdm_mat_type";
+
     String WH_TYPE = "wms_wh_type";
 
     String MANAGED_BY = "wms_managed_by";

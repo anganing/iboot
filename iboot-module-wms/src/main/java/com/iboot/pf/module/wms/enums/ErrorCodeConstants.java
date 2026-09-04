@@ -105,6 +105,9 @@ public interface ErrorCodeConstants {
     ErrorCode DEVICE_TASK_NO_DUPLICATE = new ErrorCode(1_063_013_001, "设备任务号已存在");
     ErrorCode STRATEGY_NOT_EXISTS = new ErrorCode(1_063_014_000, "仓储策略不存在");
     ErrorCode STRATEGY_CODE_DUPLICATE = new ErrorCode(1_063_014_001, "同类型下策略编码与版本已存在");
+    ErrorCode STRATEGY_TYPE_UNSUPPORTED = new ErrorCode(1_063_014_002, "不支持的仓储策略类型");
+    ErrorCode STRATEGY_CONFIG_INVALID = new ErrorCode(1_063_014_003, "仓储策略配置解析失败：{}");
+    ErrorCode STRATEGY_CONFIG_INCOMPLETE = new ErrorCode(1_063_014_004, "策略配置不完整，无法启用：{}");
 
     // ========== 单据编号唯一性 ==========
     ErrorCode ARRIVAL_NO_DUPLICATE = new ErrorCode(1_063_011_002, "到货登记单号已存在");

@@ -29,6 +29,23 @@ export const WH_RELATION_PROPS = {
   valueField: 'id',
 };
 
+/**
+ * 按编码选仓库，仓储策略的来源仓库用它。
+ *
+ * 与 {@link WH_RELATION_PROPS} 的区别只有存的值：这里存编码而不是主键，策略配置才能在环境之间搬。
+ * 刻意不给 detailUri——RelationSelect 没有它时会走 pageUri 拉一页再本地按 valueField 匹配回显，
+ * 正好绕开"按编码查详情"这个后端没有的接口。
+ */
+export const WH_CODE_RELATION_PROPS = {
+  columns: WH_RELATION_PROPS.columns,
+  dialogTitle: '选择来源仓库',
+  displayFields: ['code', 'name'],
+  pageUri: '/wms/wh/page',
+  placeholder: '请选择来源仓库',
+  queryFields: WH_RELATION_PROPS.queryFields,
+  valueField: 'code',
+};
+
 export const ZONE_RELATION_PROPS = {
   columns: [
     { field: 'code', label: '库区编码', minWidth: 140 },

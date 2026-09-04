@@ -27,4 +27,11 @@ public enum WmsStrategyTypeEnum implements ArrayValuable<String> {
         return ARRAYS;
     }
 
+    /** 按名称解析；无法识别时返回 {@code null}，由调用方决定是拒绝还是回落。 */
+    public static WmsStrategyTypeEnum of(String strategyType) {
+        return Arrays.stream(values())
+                .filter(item -> item.name().equals(strategyType))
+                .findFirst().orElse(null);
+    }
+
 }
