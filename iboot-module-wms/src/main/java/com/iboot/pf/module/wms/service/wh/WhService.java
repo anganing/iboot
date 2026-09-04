@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.wh;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.wh.WhDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

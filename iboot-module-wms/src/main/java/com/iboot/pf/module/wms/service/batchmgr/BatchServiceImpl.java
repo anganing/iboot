@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -40,7 +40,7 @@ public class BatchServiceImpl implements BatchService {
     @Override
     public Long createBatch(BatchSaveReqVO createReqVO) {
         // 插入
-        BatchDO batch = BeanUtils.toBean(createReqVO, BatchDO.class);
+        WmsBatchDO batch = BeanUtils.toBean(createReqVO, WmsBatchDO.class);
         batch.setId(null);
         batch.setLotNo(codeService.generate(WmsCodeRuleConstants.BATCH_LOT, batch.getLotNo()));
         validateBatchUnique(batch, null);
@@ -79,7 +79,7 @@ public class BatchServiceImpl implements BatchService {
         // 校验存在
         validateBatchExists(updateReqVO.getId());
         // 更新
-        BatchDO updateObj = BeanUtils.toBean(updateReqVO, BatchDO.class);
+        WmsBatchDO updateObj = BeanUtils.toBean(updateReqVO, WmsBatchDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateBatchUnique(updateObj, updateReqVO.getId());
         batchMapper.updateById(updateObj);
@@ -120,8 +120,8 @@ public class BatchServiceImpl implements BatchService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateBatchUnique(BatchDO batch, Long excludeId) {
-        BatchDO existed = batchMapper.selectByMatIdAndLotNo(batch.getMatId(), batch.getLotNo());
+    private void validateBatchUnique(WmsBatchDO batch, Long excludeId) {
+        WmsBatchDO existed = batchMapper.selectByMatIdAndLotNo(batch.getMatId(), batch.getLotNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

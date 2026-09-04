@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.countorder.CountOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -19,7 +19,7 @@ import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.countorder.CountOrderMapper;
 import com.iboot.pf.module.wms.dal.mysql.countorderline.CountOrderLineMapper;
-import com.iboot.pf.module.wms.dal.dataobject.invbalance.InvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -48,7 +48,7 @@ public class CountOrderServiceImpl implements CountOrderService {
     @Override
     public Long createCountOrder(CountOrderSaveReqVO createReqVO) {
         // 插入
-        CountOrderDO countOrder = BeanUtils.toBean(createReqVO, CountOrderDO.class);
+        WmsCountOrderDO countOrder = BeanUtils.toBean(createReqVO, WmsCountOrderDO.class);
         countOrder.setId(null);
         countOrder.setCountNo(codeService.generate(WmsCodeRuleConstants.COUNT_ORDER, countOrder.getCountNo()));
         validateCountOrderUnique(countOrder, null);
@@ -87,7 +87,7 @@ public class CountOrderServiceImpl implements CountOrderService {
         // 校验存在
         validateCountOrderExists(updateReqVO.getId());
         // 更新
-        CountOrderDO updateObj = BeanUtils.toBean(updateReqVO, CountOrderDO.class);
+        WmsCountOrderDO updateObj = BeanUtils.toBean(updateReqVO, WmsCountOrderDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateCountOrderUnique(updateObj, updateReqVO.getId());
         countOrderMapper.updateById(updateObj);
@@ -144,7 +144,7 @@ public class CountOrderServiceImpl implements CountOrderService {
         validateCountOrderExists(createReqVO.getOrderId());
         validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
         validateBalanceUnique(createReqVO.getOrderId(), createReqVO.getBalanceId(), null);
-        CountOrderLineDO countOrderLine = BeanUtils.toBean(createReqVO, CountOrderLineDO.class);
+        WmsCountOrderLineDO countOrderLine = BeanUtils.toBean(createReqVO, WmsCountOrderLineDO.class);
         countOrderLine.setId(null);
         // 盘点明细的物料、批次、库位与账面数量都来自余额快照，不由用户填写
         fillFromBalance(countOrderLine);
@@ -158,7 +158,7 @@ public class CountOrderServiceImpl implements CountOrderService {
         validateCountOrderLineExists(updateReqVO.getId());
         validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
         validateBalanceUnique(updateReqVO.getOrderId(), updateReqVO.getBalanceId(), updateReqVO.getId());
-        CountOrderLineDO countOrderLine = BeanUtils.toBean(updateReqVO, CountOrderLineDO.class);
+        WmsCountOrderLineDO countOrderLine = BeanUtils.toBean(updateReqVO, WmsCountOrderLineDO.class);
         fillFromBalance(countOrderLine);
         countOrderLineMapper.updateById(countOrderLine);
     }
@@ -188,7 +188,7 @@ public class CountOrderServiceImpl implements CountOrderService {
 
     /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
     private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
-        CountOrderLineDO existed = countOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        WmsCountOrderLineDO existed = countOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -197,7 +197,7 @@ public class CountOrderServiceImpl implements CountOrderService {
 
     /** 同一盘点单里一个库存余额只能盘一次：唯一索引是 (order_id, balance_id, deleted)。 */
     private void validateBalanceUnique(Long orderId, Long balanceId, Long excludeId) {
-        CountOrderLineDO existed = countOrderLineMapper.selectByOrderIdAndBalanceId(orderId, balanceId);
+        WmsCountOrderLineDO existed = countOrderLineMapper.selectByOrderIdAndBalanceId(orderId, balanceId);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -208,8 +208,8 @@ public class CountOrderServiceImpl implements CountOrderService {
      * 从库存余额快照回填盘点维度与账面数量，并按实盘数量算差异。
      * 账面数量必须来自余额而不是前端，否则差异算出来没有意义。
      */
-    private void fillFromBalance(CountOrderLineDO line) {
-        InvBalanceDO balance = invBalanceMapper.selectById(line.getBalanceId());
+    private void fillFromBalance(WmsCountOrderLineDO line) {
+        WmsInvBalanceDO balance = invBalanceMapper.selectById(line.getBalanceId());
         if (balance == null) {
             throw exception(INV_BALANCE_NOT_EXISTS);
         }
@@ -241,8 +241,8 @@ public class CountOrderServiceImpl implements CountOrderService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateCountOrderUnique(CountOrderDO countOrder, Long excludeId) {
-        CountOrderDO existed = countOrderMapper.selectByCountNo(countOrder.getCountNo());
+    private void validateCountOrderUnique(WmsCountOrderDO countOrder, Long excludeId) {
+        WmsCountOrderDO existed = countOrderMapper.selectByCountNo(countOrder.getCountNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

@@ -6,7 +6,7 @@ import java.util.*;
 import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
-import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.wms.enums.WmsCountTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;

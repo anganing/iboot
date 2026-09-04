@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.containermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.containermgr.ContainerDO;
+import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -40,7 +40,7 @@ public class ContainerServiceImpl implements ContainerService {
     @Override
     public Long createContainer(ContainerSaveReqVO createReqVO) {
         // 插入
-        ContainerDO container = BeanUtils.toBean(createReqVO, ContainerDO.class);
+        WmsContainerDO container = BeanUtils.toBean(createReqVO, WmsContainerDO.class);
         container.setId(null);
         container.setContainerNo(codeService.generate(WmsCodeRuleConstants.CONTAINER, container.getContainerNo()));
         validateContainerUnique(container, null);
@@ -79,7 +79,7 @@ public class ContainerServiceImpl implements ContainerService {
         // 校验存在
         validateContainerExists(updateReqVO.getId());
         // 更新
-        ContainerDO updateObj = BeanUtils.toBean(updateReqVO, ContainerDO.class);
+        WmsContainerDO updateObj = BeanUtils.toBean(updateReqVO, WmsContainerDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateContainerUnique(updateObj, updateReqVO.getId());
         containerMapper.updateById(updateObj);
@@ -120,8 +120,8 @@ public class ContainerServiceImpl implements ContainerService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateContainerUnique(ContainerDO container, Long excludeId) {
-        ContainerDO existed = containerMapper.selectByContainerNo(container.getContainerNo());
+    private void validateContainerUnique(WmsContainerDO container, Long excludeId) {
+        WmsContainerDO existed = containerMapper.selectByContainerNo(container.getContainerNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

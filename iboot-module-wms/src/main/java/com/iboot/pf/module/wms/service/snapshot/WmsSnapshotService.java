@@ -4,12 +4,12 @@ import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.mdm.api.uom.UomApi;
 import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
-import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
-import com.iboot.pf.module.wms.dal.dataobject.containermgr.ContainerDO;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
-import com.iboot.pf.module.wms.dal.mysql.batchmgr.BatchMapper;
-import com.iboot.pf.module.wms.dal.mysql.containermgr.ContainerMapper;
-import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
+import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
+import com.iboot.pf.module.wms.dal.mysql.batch.WmsBatchMapper;
+import com.iboot.pf.module.wms.dal.mysql.container.WmsContainerMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -38,11 +38,11 @@ public class WmsSnapshotService {
     @Resource
     private UomApi uomApi;
     @Resource
-    private LocMapper locMapper;
+    private WmsLocMapper locMapper;
     @Resource
-    private BatchMapper batchMapper;
+    private WmsBatchMapper batchMapper;
     @Resource
-    private ContainerMapper containerMapper;
+    private WmsContainerMapper containerMapper;
 
     /** 取物料快照，不存在直接报错，避免脏外键落库。 */
     public MaterialRespDTO requireMaterial(Long matId) {
@@ -68,7 +68,7 @@ public class WmsSnapshotService {
         if (locId == null || locId == 0L) {
             return null;
         }
-        LocDO loc = locMapper.selectById(locId);
+        WmsLocDO loc = locMapper.selectById(locId);
         if (loc == null) {
             throw exception(LOC_NOT_EXISTS);
         }
@@ -80,7 +80,7 @@ public class WmsSnapshotService {
         if (batchId == null || batchId == 0L) {
             return null;
         }
-        BatchDO batch = batchMapper.selectById(batchId);
+        WmsBatchDO batch = batchMapper.selectById(batchId);
         if (batch == null) {
             throw exception(BATCH_NOT_EXISTS);
         }
@@ -92,7 +92,7 @@ public class WmsSnapshotService {
         if (containerId == null || containerId == 0L) {
             return;
         }
-        ContainerDO container = containerMapper.selectById(containerId);
+        WmsContainerDO container = containerMapper.selectById(containerId);
         if (container == null) {
             throw exception(CONTAINER_NOT_EXISTS);
         }

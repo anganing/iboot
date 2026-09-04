@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.util.*;
 import jakarta.validation.constraints.*;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;

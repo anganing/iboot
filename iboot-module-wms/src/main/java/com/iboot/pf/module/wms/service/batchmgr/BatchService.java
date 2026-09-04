@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.batchmgr;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

@@ -2,11 +2,11 @@ package com.iboot.pf.module.wms.service.inordermgr;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.inordermgr.InOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.inordermgr.InOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderLineSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.inorderline.InOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
@@ -90,7 +90,7 @@ class InOrderServiceImplTest extends BaseDbUnitTest {
     void testCreateInOrder_blankNoFilledByRule() {
         Long id = inOrderService.createInOrder(buildReqVO(null));
 
-        InOrderDO entity = inOrderMapper.selectById(id);
+        WmsInOrderDO entity = inOrderMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("IN0001", entity.getInNo());
     }
@@ -168,7 +168,7 @@ class InOrderServiceImplTest extends BaseDbUnitTest {
         Long lineId = inOrderService.createInOrderLine(buildLineReqVO(parentId, 10));
 
         // 物料与单位快照写入时落库，列表查询不再回查 mdm
-        InOrderLineDO line = inOrderLineMapper.selectById(lineId);
+        WmsInOrderLineDO line = inOrderLineMapper.selectById(lineId);
         assertNotNull(line);
         assertEquals("M-001", line.getMatCode());
         assertEquals("物料A", line.getMatName());

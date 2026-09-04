@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.loc;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.loc.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

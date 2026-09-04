@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
+import com.iboot.pf.module.wms.dal.dataobject.lock.WmsInvLockDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -46,7 +46,7 @@ public class InvLockServiceImpl implements InvLockService {
     @Override
     public Long createInvLock(InvLockSaveReqVO createReqVO) {
         // 插入
-        InvLockDO invLock = BeanUtils.toBean(createReqVO, InvLockDO.class);
+        WmsInvLockDO invLock = BeanUtils.toBean(createReqVO, WmsInvLockDO.class);
         invLock.setId(null);
         invLock.setLockNo(codeService.generate(WmsCodeRuleConstants.LOCK, invLock.getLockNo()));
         validateInvLockUnique(invLock, null);
@@ -85,7 +85,7 @@ public class InvLockServiceImpl implements InvLockService {
         // 校验存在
         validateInvLockExists(updateReqVO.getId());
         // 更新
-        InvLockDO updateObj = BeanUtils.toBean(updateReqVO, InvLockDO.class);
+        WmsInvLockDO updateObj = BeanUtils.toBean(updateReqVO, WmsInvLockDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateInvLockUnique(updateObj, updateReqVO.getId());
         invLockMapper.updateById(updateObj);
@@ -146,8 +146,8 @@ public class InvLockServiceImpl implements InvLockService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateInvLockUnique(InvLockDO invLock, Long excludeId) {
-        InvLockDO existed = invLockMapper.selectByLockNo(invLock.getLockNo());
+    private void validateInvLockUnique(WmsInvLockDO invLock, Long excludeId) {
+        WmsInvLockDO existed = invLockMapper.selectByLockNo(invLock.getLockNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

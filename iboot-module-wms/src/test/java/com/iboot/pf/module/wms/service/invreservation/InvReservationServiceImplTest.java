@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invreservation;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.wms.controller.admin.invreservation.vo.InvReservationSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.invreservation.InvReservationDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.module.wms.dal.mysql.invreservation.InvReservationMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
@@ -77,7 +77,7 @@ class InvReservationServiceImplTest extends BaseDbUnitTest {
     void testCreateInvReservation_blankNoFilledByRule() {
         Long id = invReservationService.createInvReservation(buildReqVO(null));
 
-        InvReservationDO entity = invReservationMapper.selectById(id);
+        WmsInvReservationDO entity = invReservationMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("RSV0001", entity.getReservationNo());
     }

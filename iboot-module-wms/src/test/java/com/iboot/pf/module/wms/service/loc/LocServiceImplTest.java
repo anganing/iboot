@@ -2,7 +2,7 @@ package com.iboot.pf.module.wms.service.loc;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.loc.vo.LocSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsDimensionCheckModeEnum;
@@ -63,7 +63,7 @@ class LocServiceImplTest extends BaseDbUnitTest {
     void testCreateLoc_blankCodeFilledByRule() {
         Long id = locService.createLoc(buildReqVO(null));
 
-        LocDO entity = locMapper.selectById(id);
+        WmsLocDO entity = locMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("LOC0001", entity.getCode());
     }

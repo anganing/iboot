@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.countorder.CountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
  * @author iboot
  */
 @Mapper
-public interface CountOrderMapper extends BaseMapperX<CountOrderDO> {
+public interface CountOrderMapper extends BaseMapperX<WmsCountOrderDO> {
 
     default PageResult<CountOrderRespVO> selectPage(CountOrderPageReqVO reqVO) {
         IPage<CountOrderRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface CountOrderMapper extends BaseMapperX<CountOrderDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default CountOrderDO selectByCountNo(String countNo) {
-        return selectOne(CountOrderDO::getCountNo, countNo);
+    default WmsCountOrderDO selectByCountNo(String countNo) {
+        return selectOne(WmsCountOrderDO::getCountNo, countNo);
     }
 
 }

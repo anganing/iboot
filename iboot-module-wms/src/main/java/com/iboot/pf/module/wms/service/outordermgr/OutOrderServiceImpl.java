@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.outordermgr.OutOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -50,7 +50,7 @@ public class OutOrderServiceImpl implements OutOrderService {
     @Override
     public Long createOutOrder(OutOrderSaveReqVO createReqVO) {
         // 插入
-        OutOrderDO outOrder = BeanUtils.toBean(createReqVO, OutOrderDO.class);
+        WmsOutOrderDO outOrder = BeanUtils.toBean(createReqVO, WmsOutOrderDO.class);
         outOrder.setId(null);
         outOrder.setOutNo(codeService.generate(WmsCodeRuleConstants.OUT_ORDER, outOrder.getOutNo()));
         validateOutOrderUnique(outOrder, null);
@@ -89,7 +89,7 @@ public class OutOrderServiceImpl implements OutOrderService {
         // 校验存在
         validateOutOrderExists(updateReqVO.getId());
         // 更新
-        OutOrderDO updateObj = BeanUtils.toBean(updateReqVO, OutOrderDO.class);
+        WmsOutOrderDO updateObj = BeanUtils.toBean(updateReqVO, WmsOutOrderDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateOutOrderUnique(updateObj, updateReqVO.getId());
         outOrderMapper.updateById(updateObj);
@@ -145,7 +145,7 @@ public class OutOrderServiceImpl implements OutOrderService {
     public Long createOutOrderLine(OutOrderLineSaveReqVO createReqVO) {
         validateOutOrderExists(createReqVO.getOrderId());
         validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
-        OutOrderLineDO outOrderLine = BeanUtils.toBean(createReqVO, OutOrderLineDO.class);
+        WmsOutOrderLineDO outOrderLine = BeanUtils.toBean(createReqVO, WmsOutOrderLineDO.class);
         outOrderLine.setId(null);
         fillLineSnapshot(outOrderLine);
         // 分配、拣选、过账数量都由作业推进，创建时归零
@@ -161,7 +161,7 @@ public class OutOrderServiceImpl implements OutOrderService {
         // 校验存在
         validateOutOrderLineExists(updateReqVO.getId());
         validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
-        OutOrderLineDO outOrderLine = BeanUtils.toBean(updateReqVO, OutOrderLineDO.class);
+        WmsOutOrderLineDO outOrderLine = BeanUtils.toBean(updateReqVO, WmsOutOrderLineDO.class);
         fillLineSnapshot(outOrderLine);
         outOrderLineMapper.updateById(outOrderLine);
     }
@@ -191,7 +191,7 @@ public class OutOrderServiceImpl implements OutOrderService {
 
     /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
     private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
-        OutOrderLineDO existed = outOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        WmsOutOrderLineDO existed = outOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -199,7 +199,7 @@ public class OutOrderServiceImpl implements OutOrderService {
     }
 
     /** 明细上的物料、单位、来源库位、批次快照统一由快照服务补全。 */
-    private void fillLineSnapshot(OutOrderLineDO line) {
+    private void fillLineSnapshot(WmsOutOrderLineDO line) {
         MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
         line.setMatCode(material.getCode());
         line.setMatName(material.getName());
@@ -222,8 +222,8 @@ public class OutOrderServiceImpl implements OutOrderService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateOutOrderUnique(OutOrderDO outOrder, Long excludeId) {
-        OutOrderDO existed = outOrderMapper.selectByOutNo(outOrder.getOutNo());
+    private void validateOutOrderUnique(WmsOutOrderDO outOrder, Long excludeId) {
+        WmsOutOrderDO existed = outOrderMapper.selectByOutNo(outOrder.getOutNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

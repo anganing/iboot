@@ -2,7 +2,7 @@ package com.iboot.pf.module.wms.service.zone;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.zone.vo.ZoneSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
@@ -63,7 +63,7 @@ class ZoneServiceImplTest extends BaseDbUnitTest {
     void testCreateZone_blankCodeFilledByRule() {
         Long id = zoneService.createZone(buildReqVO(null));
 
-        ZoneDO entity = zoneMapper.selectById(id);
+        WmsZoneDO entity = zoneMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("ZN0001", entity.getCode());
     }

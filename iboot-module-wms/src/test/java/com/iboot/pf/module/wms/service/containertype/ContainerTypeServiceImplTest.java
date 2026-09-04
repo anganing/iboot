@@ -2,7 +2,7 @@ package com.iboot.pf.module.wms.service.containertype;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.containertype.vo.ContainerTypeSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.containertype.ContainerTypeDO;
+import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerTypeDO;
 import com.iboot.pf.module.wms.dal.mysql.containertype.ContainerTypeMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
@@ -58,7 +58,7 @@ class ContainerTypeServiceImplTest extends BaseDbUnitTest {
     void testCreateContainerType_blankCodeFilledByRule() {
         Long id = containerTypeService.createContainerType(buildReqVO(null));
 
-        ContainerTypeDO entity = containerTypeMapper.selectById(id);
+        WmsContainerTypeDO entity = containerTypeMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("CT0001", entity.getCode());
     }

@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.wh.WhDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.wh.vo.*;
  * @author iboot
  */
 @Mapper
-public interface WhMapper extends BaseMapperX<WhDO> {
+public interface WhMapper extends BaseMapperX<WmsWhDO> {
 
     default PageResult<WhRespVO> selectPage(WhPageReqVO reqVO) {
         IPage<WhRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -29,8 +29,8 @@ public interface WhMapper extends BaseMapperX<WhDO> {
     /**
      * 按库存组织 + 编码查询，唯一索引 uk_wms_wh_org_code_deleted 的应用层前置校验。
      */
-    default WhDO selectByInvOrgIdAndCode(Long invOrgId, String code) {
-        return selectOne(WhDO::getInvOrgId, invOrgId, WhDO::getCode, code);
+    default WmsWhDO selectByInvOrgIdAndCode(Long invOrgId, String code) {
+        return selectOne(WmsWhDO::getInvOrgId, invOrgId, WmsWhDO::getCode, code);
     }
 
     WhRespVO selectJoinById(@Param("id") Long id);

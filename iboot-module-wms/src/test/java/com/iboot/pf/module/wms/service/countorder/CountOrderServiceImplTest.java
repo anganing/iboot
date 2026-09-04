@@ -3,9 +3,9 @@ package com.iboot.pf.module.wms.service.countorder;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.CountOrderLineSaveReqVO;
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.CountOrderSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.countorder.CountOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
-import com.iboot.pf.module.wms.dal.dataobject.invbalance.InvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.mysql.countorder.CountOrderMapper;
 import com.iboot.pf.module.wms.dal.mysql.countorderline.CountOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
@@ -80,7 +80,7 @@ class CountOrderServiceImplTest extends BaseDbUnitTest {
 
     /** 预置一条库存余额，盘点明细的维度与账面数量都来自它。 */
     private Long seedBalance(String matCode, BigDecimal qtyOnhand) {
-        InvBalanceDO balance = new InvBalanceDO();
+        WmsInvBalanceDO balance = new WmsInvBalanceDO();
         balance.setInvOrgId(1L);
         balance.setPlantId(1L);
         balance.setWhId(1L);
@@ -121,7 +121,7 @@ class CountOrderServiceImplTest extends BaseDbUnitTest {
     void testCreateCountOrder_blankNoFilledByRule() {
         Long id = countOrderService.createCountOrder(buildReqVO(null));
 
-        CountOrderDO order = countOrderMapper.selectById(id);
+        WmsCountOrderDO order = countOrderMapper.selectById(id);
         assertNotNull(order);
         assertEquals("CNT0001", order.getCountNo());
     }
@@ -163,7 +163,7 @@ class CountOrderServiceImplTest extends BaseDbUnitTest {
                 buildLineReqVO(orderId, 10, balanceId, new BigDecimal("95")));
 
         // 账面数量必须来自余额，差异按实盘算，前端传什么都不影响
-        CountOrderLineDO line = countOrderLineMapper.selectById(lineId);
+        WmsCountOrderLineDO line = countOrderLineMapper.selectById(lineId);
         assertNotNull(line);
         assertEquals("M-001", line.getMatCode());
         assertEquals("LOC-1", line.getLocCode());

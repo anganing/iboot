@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.transferorder.TransferOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -51,7 +51,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     @Override
     public Long createTransferOrder(TransferOrderSaveReqVO createReqVO) {
         // 插入
-        TransferOrderDO transferOrder = BeanUtils.toBean(createReqVO, TransferOrderDO.class);
+        WmsTransferOrderDO transferOrder = BeanUtils.toBean(createReqVO, WmsTransferOrderDO.class);
         transferOrder.setId(null);
         transferOrder.setTransferNo(codeService.generate(WmsCodeRuleConstants.TRANSFER_ORDER, transferOrder.getTransferNo()));
         validateTransferOrderUnique(transferOrder, null);
@@ -90,7 +90,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
         // 校验存在
         validateTransferOrderExists(updateReqVO.getId());
         // 更新
-        TransferOrderDO updateObj = BeanUtils.toBean(updateReqVO, TransferOrderDO.class);
+        WmsTransferOrderDO updateObj = BeanUtils.toBean(updateReqVO, WmsTransferOrderDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateTransferOrderUnique(updateObj, updateReqVO.getId());
         transferOrderMapper.updateById(updateObj);
@@ -146,7 +146,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     public Long createTransferOrderLine(TransferOrderLineSaveReqVO createReqVO) {
         validateTransferOrderExists(createReqVO.getOrderId());
         validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
-        TransferOrderLineDO transferOrderLine = BeanUtils.toBean(createReqVO, TransferOrderLineDO.class);
+        WmsTransferOrderLineDO transferOrderLine = BeanUtils.toBean(createReqVO, WmsTransferOrderLineDO.class);
         transferOrderLine.setId(null);
         fillLineSnapshot(transferOrderLine);
         // 搬运与过账数量由作业推进，创建时归零
@@ -161,7 +161,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
         // 校验存在
         validateTransferOrderLineExists(updateReqVO.getId());
         validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
-        TransferOrderLineDO transferOrderLine = BeanUtils.toBean(updateReqVO, TransferOrderLineDO.class);
+        WmsTransferOrderLineDO transferOrderLine = BeanUtils.toBean(updateReqVO, WmsTransferOrderLineDO.class);
         fillLineSnapshot(transferOrderLine);
         transferOrderLineMapper.updateById(transferOrderLine);
     }
@@ -191,7 +191,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
 
     /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
     private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
-        TransferOrderLineDO existed = transferOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        WmsTransferOrderLineDO existed = transferOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -199,7 +199,7 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     }
 
     /** 明细上的物料、单位、批次快照补全，库存范围为空时按公共库存兜底。 */
-    private void fillLineSnapshot(TransferOrderLineDO line) {
+    private void fillLineSnapshot(WmsTransferOrderLineDO line) {
         MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
         line.setMatCode(material.getCode());
         line.setMatName(material.getName());
@@ -222,8 +222,8 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateTransferOrderUnique(TransferOrderDO transferOrder, Long excludeId) {
-        TransferOrderDO existed = transferOrderMapper.selectByTransferNo(transferOrder.getTransferNo());
+    private void validateTransferOrderUnique(WmsTransferOrderDO transferOrder, Long excludeId) {
+        WmsTransferOrderDO existed = transferOrderMapper.selectByTransferNo(transferOrder.getTransferNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.*;
  * @author iboot
  */
 @Mapper
-public interface BatchMapper extends BaseMapperX<BatchDO> {
+public interface BatchMapper extends BaseMapperX<WmsBatchDO> {
 
     default PageResult<BatchRespVO> selectPage(BatchPageReqVO reqVO) {
         IPage<BatchRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface BatchMapper extends BaseMapperX<BatchDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default BatchDO selectByMatIdAndLotNo(Long matId, String lotNo) {
-        return selectOne(BatchDO::getMatId, matId, BatchDO::getLotNo, lotNo);
+    default WmsBatchDO selectByMatIdAndLotNo(Long matId, String lotNo) {
+        return selectOne(WmsBatchDO::getMatId, matId, WmsBatchDO::getLotNo, lotNo);
     }
 
 }

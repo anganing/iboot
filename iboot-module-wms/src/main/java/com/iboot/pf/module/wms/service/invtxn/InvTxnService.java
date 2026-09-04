@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invtxn;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.invtxn.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invtxn.InvTxnDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

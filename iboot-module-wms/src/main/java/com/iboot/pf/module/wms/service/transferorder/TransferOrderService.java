@@ -3,8 +3,8 @@ package com.iboot.pf.module.wms.service.transferorder;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.transferorder.TransferOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

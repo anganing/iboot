@@ -19,7 +19,7 @@ import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
 import com.iboot.pf.module.wms.dal.mysql.wave.WaveMapper;
 import com.iboot.pf.module.wms.dal.mysql.waveline.WaveLineMapper;
-import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -205,7 +205,7 @@ public class WaveServiceImpl implements WaveService {
 
     /** 出库明细必须存在且属于所选出库单，避免波次挂到别的单据上。 */
     private void validateOutOrderLine(Long outOrderId, Long outOrderLineId) {
-        OutOrderLineDO line = outOrderLineMapper.selectById(outOrderLineId);
+        WmsOutOrderLineDO line = outOrderLineMapper.selectById(outOrderLineId);
         if (line == null) {
             throw exception(OUT_ORDER_LINE_NOT_EXISTS);
         }

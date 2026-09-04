@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.transferorder.TransferOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.transferorder.vo.*;
  * @author iboot
  */
 @Mapper
-public interface TransferOrderMapper extends BaseMapperX<TransferOrderDO> {
+public interface TransferOrderMapper extends BaseMapperX<WmsTransferOrderDO> {
 
     default PageResult<TransferOrderRespVO> selectPage(TransferOrderPageReqVO reqVO) {
         IPage<TransferOrderRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface TransferOrderMapper extends BaseMapperX<TransferOrderDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default TransferOrderDO selectByTransferNo(String transferNo) {
-        return selectOne(TransferOrderDO::getTransferNo, transferNo);
+    default WmsTransferOrderDO selectByTransferNo(String transferNo) {
+        return selectOne(WmsTransferOrderDO::getTransferNo, transferNo);
     }
 
 }

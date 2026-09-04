@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.inordermgr.InOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -50,7 +50,7 @@ public class InOrderServiceImpl implements InOrderService {
     @Override
     public Long createInOrder(InOrderSaveReqVO createReqVO) {
         // 插入
-        InOrderDO inOrder = BeanUtils.toBean(createReqVO, InOrderDO.class);
+        WmsInOrderDO inOrder = BeanUtils.toBean(createReqVO, WmsInOrderDO.class);
         inOrder.setId(null);
         inOrder.setInNo(codeService.generate(WmsCodeRuleConstants.IN_ORDER, inOrder.getInNo()));
         validateInOrderUnique(inOrder, null);
@@ -89,7 +89,7 @@ public class InOrderServiceImpl implements InOrderService {
         // 校验存在
         validateInOrderExists(updateReqVO.getId());
         // 更新
-        InOrderDO updateObj = BeanUtils.toBean(updateReqVO, InOrderDO.class);
+        WmsInOrderDO updateObj = BeanUtils.toBean(updateReqVO, WmsInOrderDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateInOrderUnique(updateObj, updateReqVO.getId());
         inOrderMapper.updateById(updateObj);
@@ -145,7 +145,7 @@ public class InOrderServiceImpl implements InOrderService {
     public Long createInOrderLine(InOrderLineSaveReqVO createReqVO) {
         validateInOrderExists(createReqVO.getOrderId());
         validateLineNoUnique(createReqVO.getOrderId(), createReqVO.getLineNo(), null);
-        InOrderLineDO inOrderLine = BeanUtils.toBean(createReqVO, InOrderLineDO.class);
+        WmsInOrderLineDO inOrderLine = BeanUtils.toBean(createReqVO, WmsInOrderLineDO.class);
         inOrderLine.setId(null);
         fillLineSnapshot(inOrderLine);
         // 数量进度由过账推进，创建时归零
@@ -160,7 +160,7 @@ public class InOrderServiceImpl implements InOrderService {
         // 校验存在
         validateInOrderLineExists(updateReqVO.getId());
         validateLineNoUnique(updateReqVO.getOrderId(), updateReqVO.getLineNo(), updateReqVO.getId());
-        InOrderLineDO inOrderLine = BeanUtils.toBean(updateReqVO, InOrderLineDO.class);
+        WmsInOrderLineDO inOrderLine = BeanUtils.toBean(updateReqVO, WmsInOrderLineDO.class);
         fillLineSnapshot(inOrderLine);
         inOrderLineMapper.updateById(inOrderLine);
     }
@@ -190,7 +190,7 @@ public class InOrderServiceImpl implements InOrderService {
 
     /** 明细行号唯一：唯一索引是 (order_id, line_no, deleted)。 */
     private void validateLineNoUnique(Long orderId, Integer lineNo, Long excludeId) {
-        InOrderLineDO existed = inOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
+        WmsInOrderLineDO existed = inOrderLineMapper.selectByOrderIdAndLineNo(orderId, lineNo);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -198,7 +198,7 @@ public class InOrderServiceImpl implements InOrderService {
     }
 
     /** 明细上的物料、单位、库位、批次快照统一由快照服务补全。 */
-    private void fillLineSnapshot(InOrderLineDO line) {
+    private void fillLineSnapshot(WmsInOrderLineDO line) {
         MaterialRespDTO material = snapshotService.requireMaterial(line.getMatId());
         line.setMatCode(material.getCode());
         line.setMatName(material.getName());
@@ -221,8 +221,8 @@ public class InOrderServiceImpl implements InOrderService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateInOrderUnique(InOrderDO inOrder, Long excludeId) {
-        InOrderDO existed = inOrderMapper.selectByInNo(inOrder.getInNo());
+    private void validateInOrderUnique(WmsInOrderDO inOrder, Long excludeId) {
+        WmsInOrderDO existed = inOrderMapper.selectByInNo(inOrder.getInNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.containertype.ContainerTypeDO;
+import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerTypeDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.containertype.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.containertype.vo.*;
  * @author iboot
  */
 @Mapper
-public interface ContainerTypeMapper extends BaseMapperX<ContainerTypeDO> {
+public interface ContainerTypeMapper extends BaseMapperX<WmsContainerTypeDO> {
 
     default PageResult<ContainerTypeRespVO> selectPage(ContainerTypePageReqVO reqVO) {
         IPage<ContainerTypeRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface ContainerTypeMapper extends BaseMapperX<ContainerTypeDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default ContainerTypeDO selectByCode(String code) {
-        return selectOne(ContainerTypeDO::getCode, code);
+    default WmsContainerTypeDO selectByCode(String code) {
+        return selectOne(WmsContainerTypeDO::getCode, code);
     }
 
 }

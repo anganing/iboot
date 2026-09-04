@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.containertype.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.containertype.ContainerTypeDO;
+import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerTypeDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -40,7 +40,7 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
     @Override
     public Long createContainerType(ContainerTypeSaveReqVO createReqVO) {
         // 插入
-        ContainerTypeDO containerType = BeanUtils.toBean(createReqVO, ContainerTypeDO.class);
+        WmsContainerTypeDO containerType = BeanUtils.toBean(createReqVO, WmsContainerTypeDO.class);
         containerType.setId(null);
         containerType.setCode(codeService.generate(WmsCodeRuleConstants.CONTAINER_TYPE, containerType.getCode()));
         validateContainerTypeUnique(containerType, null);
@@ -79,7 +79,7 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
         // 校验存在
         validateContainerTypeExists(updateReqVO.getId());
         // 更新
-        ContainerTypeDO updateObj = BeanUtils.toBean(updateReqVO, ContainerTypeDO.class);
+        WmsContainerTypeDO updateObj = BeanUtils.toBean(updateReqVO, WmsContainerTypeDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateContainerTypeUnique(updateObj, updateReqVO.getId());
         containerTypeMapper.updateById(updateObj);
@@ -120,8 +120,8 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateContainerTypeUnique(ContainerTypeDO containerType, Long excludeId) {
-        ContainerTypeDO existed = containerTypeMapper.selectByCode(containerType.getCode());
+    private void validateContainerTypeUnique(WmsContainerTypeDO containerType, Long excludeId) {
+        WmsContainerTypeDO existed = containerTypeMapper.selectByCode(containerType.getCode());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

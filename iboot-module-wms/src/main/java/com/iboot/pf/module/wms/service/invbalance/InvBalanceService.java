@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invbalance;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.invbalance.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invbalance.InvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

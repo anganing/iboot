@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.loc.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -40,7 +40,7 @@ public class LocServiceImpl implements LocService {
     @Override
     public Long createLoc(LocSaveReqVO createReqVO) {
         // 插入
-        LocDO loc = BeanUtils.toBean(createReqVO, LocDO.class);
+        WmsLocDO loc = BeanUtils.toBean(createReqVO, WmsLocDO.class);
         loc.setId(null);
         loc.setCode(codeService.generate(WmsCodeRuleConstants.LOC, loc.getCode()));
         validateLocUnique(loc, null);
@@ -79,7 +79,7 @@ public class LocServiceImpl implements LocService {
         // 校验存在
         validateLocExists(updateReqVO.getId());
         // 更新
-        LocDO updateObj = BeanUtils.toBean(updateReqVO, LocDO.class);
+        WmsLocDO updateObj = BeanUtils.toBean(updateReqVO, WmsLocDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateLocUnique(updateObj, updateReqVO.getId());
         locMapper.updateById(updateObj);
@@ -120,8 +120,8 @@ public class LocServiceImpl implements LocService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateLocUnique(LocDO loc, Long excludeId) {
-        LocDO existed = locMapper.selectByWhIdAndCode(loc.getWhId(), loc.getCode());
+    private void validateLocUnique(WmsLocDO loc, Long excludeId) {
+        WmsLocDO existed = locMapper.selectByWhIdAndCode(loc.getWhId(), loc.getCode());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

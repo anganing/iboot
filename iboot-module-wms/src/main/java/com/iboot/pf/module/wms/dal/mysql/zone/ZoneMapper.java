@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.zone.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.zone.vo.*;
  * @author iboot
  */
 @Mapper
-public interface ZoneMapper extends BaseMapperX<ZoneDO> {
+public interface ZoneMapper extends BaseMapperX<WmsZoneDO> {
 
     default PageResult<ZoneRespVO> selectPage(ZonePageReqVO reqVO) {
         IPage<ZoneRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface ZoneMapper extends BaseMapperX<ZoneDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default ZoneDO selectByWhIdAndCode(Long whId, String code) {
-        return selectOne(ZoneDO::getWhId, whId, ZoneDO::getCode, code);
+    default WmsZoneDO selectByWhIdAndCode(Long whId, String code) {
+        return selectOne(WmsZoneDO::getWhId, whId, WmsZoneDO::getCode, code);
     }
 
 }

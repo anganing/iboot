@@ -8,9 +8,9 @@ import com.iboot.pf.module.mdm.api.org.dto.PlantRespDTO;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.WhPageReqVO;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.WhRespVO;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.WhSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
-import com.iboot.pf.module.wms.dal.dataobject.wh.WhDO;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
 import com.iboot.pf.module.wms.dal.mysql.wh.WhMapper;
 import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
@@ -117,7 +117,7 @@ class WhServiceImplTest extends BaseDbUnitTest {
     void testCreateWh_blankCodeFilledByRule() {
         Long id = whService.createWh(buildReqVO(null));
 
-        WhDO wh = whMapper.selectById(id);
+        WmsWhDO wh = whMapper.selectById(id);
         assertNotNull(wh);
         assertEquals("WH0001", wh.getCode());
         assertEquals(WmsWhTypeEnum.ASRS.name(), wh.getWhType());
@@ -182,7 +182,7 @@ class WhServiceImplTest extends BaseDbUnitTest {
     @Test
     void testDeleteWh_hasZoneRejected() {
         Long id = whService.createWh(buildReqVO("WH-A"));
-        zoneMapper.insert(new ZoneDO().setWhId(id).setCode("ZN-1").setName("原料区")
+        zoneMapper.insert(new WmsZoneDO().setWhId(id).setCode("ZN-1").setName("原料区")
                 .setStatus(CommonStatusEnum.ENABLE.getStatus()));
 
         assertServiceException(() -> whService.deleteWh(id), WH_HAS_ZONE);
@@ -191,7 +191,7 @@ class WhServiceImplTest extends BaseDbUnitTest {
     @Test
     void testDeleteWh_hasLocRejected() {
         Long id = whService.createWh(buildReqVO("WH-A"));
-        locMapper.insert(new LocDO().setWhId(id).setZoneId(0L).setCode("LOC-1"));
+        locMapper.insert(new WmsLocDO().setWhId(id).setZoneId(0L).setCode("LOC-1"));
 
         assertServiceException(() -> whService.deleteWh(id), WH_HAS_LOC);
     }
@@ -200,7 +200,7 @@ class WhServiceImplTest extends BaseDbUnitTest {
     void testDeleteWhList_hasZoneRejected() {
         Long first = whService.createWh(buildReqVO("WH-A"));
         Long second = whService.createWh(buildReqVO("WH-B"));
-        zoneMapper.insert(new ZoneDO().setWhId(second).setCode("ZN-1").setName("原料区")
+        zoneMapper.insert(new WmsZoneDO().setWhId(second).setCode("ZN-1").setName("原料区")
                 .setStatus(CommonStatusEnum.ENABLE.getStatus()));
 
         // 批量删除同样要逐个检查下级占用，否则会留下孤儿库区

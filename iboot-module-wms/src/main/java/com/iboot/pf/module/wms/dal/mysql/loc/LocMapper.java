@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.loc.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.loc.vo.*;
  * @author iboot
  */
 @Mapper
-public interface LocMapper extends BaseMapperX<LocDO> {
+public interface LocMapper extends BaseMapperX<WmsLocDO> {
 
     default PageResult<LocRespVO> selectPage(LocPageReqVO reqVO) {
         IPage<LocRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface LocMapper extends BaseMapperX<LocDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default LocDO selectByWhIdAndCode(Long whId, String code) {
-        return selectOne(LocDO::getWhId, whId, LocDO::getCode, code);
+    default WmsLocDO selectByWhIdAndCode(Long whId, String code) {
+        return selectOne(WmsLocDO::getWhId, whId, WmsLocDO::getCode, code);
     }
 
 }

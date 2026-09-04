@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
+import com.iboot.pf.module.wms.dal.dataobject.lock.WmsInvLockDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.invlock.vo.*;
  * @author iboot
  */
 @Mapper
-public interface InvLockMapper extends BaseMapperX<InvLockDO> {
+public interface InvLockMapper extends BaseMapperX<WmsInvLockDO> {
 
     default PageResult<InvLockRespVO> selectPage(InvLockPageReqVO reqVO) {
         IPage<InvLockRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface InvLockMapper extends BaseMapperX<InvLockDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default InvLockDO selectByLockNo(String lockNo) {
-        return selectOne(InvLockDO::getLockNo, lockNo);
+    default WmsInvLockDO selectByLockNo(String lockNo) {
+        return selectOne(WmsInvLockDO::getLockNo, lockNo);
     }
 
 }

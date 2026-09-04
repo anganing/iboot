@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invlock;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
+import com.iboot.pf.module.wms.dal.dataobject.lock.WmsInvLockDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

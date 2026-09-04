@@ -2,11 +2,11 @@ package com.iboot.pf.module.wms.service.transferorder;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.transferorder.TransferOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.transferorder.TransferOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderLineSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.transferorderline.TransferOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
@@ -86,7 +86,7 @@ class TransferOrderServiceImplTest extends BaseDbUnitTest {
     void testCreateTransferOrder_blankNoFilledByRule() {
         Long id = transferOrderService.createTransferOrder(buildReqVO(null));
 
-        TransferOrderDO entity = transferOrderMapper.selectById(id);
+        WmsTransferOrderDO entity = transferOrderMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("TR0001", entity.getTransferNo());
     }
@@ -166,7 +166,7 @@ class TransferOrderServiceImplTest extends BaseDbUnitTest {
         Long lineId = transferOrderService.createTransferOrderLine(buildLineReqVO(parentId, 10));
 
         // 物料与单位快照写入时落库，列表查询不再回查 mdm
-        TransferOrderLineDO line = transferOrderLineMapper.selectById(lineId);
+        WmsTransferOrderLineDO line = transferOrderLineMapper.selectById(lineId);
         assertNotNull(line);
         assertEquals("M-001", line.getMatCode());
         assertEquals("物料A", line.getMatName());

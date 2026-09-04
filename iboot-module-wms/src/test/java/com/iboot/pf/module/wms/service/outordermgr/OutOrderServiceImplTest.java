@@ -2,11 +2,11 @@ package com.iboot.pf.module.wms.service.outordermgr;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.outordermgr.OutOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.outordermgr.OutOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderLineSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
@@ -88,7 +88,7 @@ class OutOrderServiceImplTest extends BaseDbUnitTest {
     void testCreateOutOrder_blankNoFilledByRule() {
         Long id = outOrderService.createOutOrder(buildReqVO(null));
 
-        OutOrderDO entity = outOrderMapper.selectById(id);
+        WmsOutOrderDO entity = outOrderMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("OUT0001", entity.getOutNo());
     }
@@ -166,7 +166,7 @@ class OutOrderServiceImplTest extends BaseDbUnitTest {
         Long lineId = outOrderService.createOutOrderLine(buildLineReqVO(parentId, 10));
 
         // 物料与单位快照写入时落库，列表查询不再回查 mdm
-        OutOrderLineDO line = outOrderLineMapper.selectById(lineId);
+        WmsOutOrderLineDO line = outOrderLineMapper.selectById(lineId);
         assertNotNull(line);
         assertEquals("M-001", line.getMatCode());
         assertEquals("物料A", line.getMatName());

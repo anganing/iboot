@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.zone;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.zone.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

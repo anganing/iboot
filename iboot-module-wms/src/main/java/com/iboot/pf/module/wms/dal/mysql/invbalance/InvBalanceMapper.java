@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.invbalance.InvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.invbalance.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.invbalance.vo.*;
  * @author iboot
  */
 @Mapper
-public interface InvBalanceMapper extends BaseMapperX<InvBalanceDO> {
+public interface InvBalanceMapper extends BaseMapperX<WmsInvBalanceDO> {
 
     default PageResult<InvBalanceRespVO> selectPage(InvBalancePageReqVO reqVO) {
         IPage<InvBalanceRespVO> mpPage = MyBatisUtils.buildPage(reqVO);

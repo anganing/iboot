@@ -2,7 +2,7 @@ package com.iboot.pf.module.wms.service.batchmgr;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.BatchSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.batchmgr.BatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
 import com.iboot.pf.module.wms.dal.mysql.batchmgr.BatchMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
@@ -60,7 +60,7 @@ class BatchServiceImplTest extends BaseDbUnitTest {
     void testCreateBatch_blankCodeFilledByRule() {
         Long id = batchService.createBatch(buildReqVO(null));
 
-        BatchDO entity = batchMapper.selectById(id);
+        WmsBatchDO entity = batchMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("LOT0001", entity.getLotNo());
     }

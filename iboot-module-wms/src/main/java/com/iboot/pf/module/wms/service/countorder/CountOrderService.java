@@ -3,8 +3,8 @@ package com.iboot.pf.module.wms.service.countorder;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.countorder.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.countorder.CountOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.countorderline.CountOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

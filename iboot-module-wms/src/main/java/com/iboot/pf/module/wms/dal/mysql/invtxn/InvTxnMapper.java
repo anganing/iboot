@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.invtxn.InvTxnDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.invtxn.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.invtxn.vo.*;
  * @author iboot
  */
 @Mapper
-public interface InvTxnMapper extends BaseMapperX<InvTxnDO> {
+public interface InvTxnMapper extends BaseMapperX<WmsInvTxnDO> {
 
     default PageResult<InvTxnRespVO> selectPage(InvTxnPageReqVO reqVO) {
         IPage<InvTxnRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface InvTxnMapper extends BaseMapperX<InvTxnDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default InvTxnDO selectByTxnNo(String txnNo) {
-        return selectOne(InvTxnDO::getTxnNo, txnNo);
+    default WmsInvTxnDO selectByTxnNo(String txnNo) {
+        return selectOne(WmsInvTxnDO::getTxnNo, txnNo);
     }
 
 }

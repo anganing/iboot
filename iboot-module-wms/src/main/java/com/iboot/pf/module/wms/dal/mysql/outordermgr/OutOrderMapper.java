@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.outordermgr.OutOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
  * @author iboot
  */
 @Mapper
-public interface OutOrderMapper extends BaseMapperX<OutOrderDO> {
+public interface OutOrderMapper extends BaseMapperX<WmsOutOrderDO> {
 
     default PageResult<OutOrderRespVO> selectPage(OutOrderPageReqVO reqVO) {
         IPage<OutOrderRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface OutOrderMapper extends BaseMapperX<OutOrderDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default OutOrderDO selectByOutNo(String outNo) {
-        return selectOne(OutOrderDO::getOutNo, outNo);
+    default WmsOutOrderDO selectByOutNo(String outNo) {
+        return selectOne(WmsOutOrderDO::getOutNo, outNo);
     }
 
 }

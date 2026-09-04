@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invreservation;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invreservation.InvReservationDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

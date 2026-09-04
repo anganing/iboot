@@ -3,8 +3,8 @@ package com.iboot.pf.module.wms.service.outordermgr;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.outordermgr.OutOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.outorderline.OutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 

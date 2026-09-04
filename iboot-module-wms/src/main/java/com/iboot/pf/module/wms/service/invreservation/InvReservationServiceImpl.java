@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.invreservation.InvReservationDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -46,7 +46,7 @@ public class InvReservationServiceImpl implements InvReservationService {
     @Override
     public Long createInvReservation(InvReservationSaveReqVO createReqVO) {
         // 插入
-        InvReservationDO invReservation = BeanUtils.toBean(createReqVO, InvReservationDO.class);
+        WmsInvReservationDO invReservation = BeanUtils.toBean(createReqVO, WmsInvReservationDO.class);
         invReservation.setId(null);
         invReservation.setReservationNo(codeService.generate(WmsCodeRuleConstants.RESERVATION, invReservation.getReservationNo()));
         validateInvReservationUnique(invReservation, null);
@@ -85,7 +85,7 @@ public class InvReservationServiceImpl implements InvReservationService {
         // 校验存在
         validateInvReservationExists(updateReqVO.getId());
         // 更新
-        InvReservationDO updateObj = BeanUtils.toBean(updateReqVO, InvReservationDO.class);
+        WmsInvReservationDO updateObj = BeanUtils.toBean(updateReqVO, WmsInvReservationDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateInvReservationUnique(updateObj, updateReqVO.getId());
         invReservationMapper.updateById(updateObj);
@@ -146,8 +146,8 @@ public class InvReservationServiceImpl implements InvReservationService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateInvReservationUnique(InvReservationDO invReservation, Long excludeId) {
-        InvReservationDO existed = invReservationMapper.selectByReservationNo(invReservation.getReservationNo());
+    private void validateInvReservationUnique(WmsInvReservationDO invReservation, Long excludeId) {
+        WmsInvReservationDO existed = invReservationMapper.selectByReservationNo(invReservation.getReservationNo());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

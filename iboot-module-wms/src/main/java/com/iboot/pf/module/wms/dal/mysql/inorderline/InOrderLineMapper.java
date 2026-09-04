@@ -10,7 +10,7 @@ import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderLinePageReqVO;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderLineRespVO;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,17 +20,17 @@ import org.apache.ibatis.annotations.Param;
  * @author iboot
  */
 @Mapper
-public interface InOrderLineMapper extends BaseMapperX<InOrderLineDO> {
+public interface InOrderLineMapper extends BaseMapperX<WmsInOrderLineDO> {
 
-    default PageResult<InOrderLineDO> selectPage(PageParam reqVO, Long orderId) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<InOrderLineDO>()
-            .eq(InOrderLineDO::getOrderId, orderId)
-            .orderByAsc(InOrderLineDO::getLineNo));
+    default PageResult<WmsInOrderLineDO> selectPage(PageParam reqVO, Long orderId) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<WmsInOrderLineDO>()
+            .eq(WmsInOrderLineDO::getOrderId, orderId)
+            .orderByAsc(WmsInOrderLineDO::getLineNo));
     }
 
     /** 按入库单 + 行号查询，唯一索引 uk_wms_in_order_line_no_deleted 的应用层前置校验。 */
-    default InOrderLineDO selectByOrderIdAndLineNo(Long orderId, Integer lineNo) {
-        return selectOne(InOrderLineDO::getOrderId, orderId, InOrderLineDO::getLineNo, lineNo);
+    default WmsInOrderLineDO selectByOrderIdAndLineNo(Long orderId, Integer lineNo) {
+        return selectOne(WmsInOrderLineDO::getOrderId, orderId, WmsInOrderLineDO::getLineNo, lineNo);
     }
 
     /** 分页查询明细，JOIN 出库位、容器等可读字段，前端不再二次拼接。 */
@@ -46,11 +46,11 @@ public interface InOrderLineMapper extends BaseMapperX<InOrderLineDO> {
                                            @Param("req") InOrderLinePageReqVO reqVO);
 
     default int deleteByOrderId(Long orderId) {
-        return delete(InOrderLineDO::getOrderId, orderId);
+        return delete(WmsInOrderLineDO::getOrderId, orderId);
     }
 
 	default int deleteByOrderIds(List<Long> orderIds) {
-	    return deleteBatch(InOrderLineDO::getOrderId, orderIds);
+	    return deleteBatch(WmsInOrderLineDO::getOrderId, orderIds);
 	}
 
 }

@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.wh.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.wh.WhDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -20,8 +20,8 @@ import com.iboot.pf.module.mdm.api.org.dto.PlantRespDTO;
 import com.iboot.pf.module.wms.dal.mysql.wh.WhMapper;
 import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
 import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
-import com.iboot.pf.module.wms.dal.dataobject.loc.LocDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
@@ -57,7 +57,7 @@ public class WhServiceImpl implements WhService {
         // 校验组织与工厂存在、编码在同组织内唯一
         validateInvOrgAndPlant(createReqVO.getInvOrgId(), createReqVO.getPlantId());
         // 插入
-        WhDO wh = BeanUtils.toBean(createReqVO, WhDO.class);
+        WmsWhDO wh = BeanUtils.toBean(createReqVO, WmsWhDO.class);
         wh.setId(null);
         wh.setCode(codeService.generate(WmsCodeRuleConstants.WH, wh.getCode()));
         validateCodeUnique(wh.getInvOrgId(), wh.getCode(), null);
@@ -99,7 +99,7 @@ public class WhServiceImpl implements WhService {
         // 改自己不能撞自己，所以排除自身编号
         validateCodeUnique(updateReqVO.getInvOrgId(), updateReqVO.getCode(), updateReqVO.getId());
         // 更新
-        WhDO updateObj = BeanUtils.toBean(updateReqVO, WhDO.class);
+        WmsWhDO updateObj = BeanUtils.toBean(updateReqVO, WmsWhDO.class);
         whMapper.updateById(updateObj);
     }
 
@@ -134,7 +134,7 @@ public class WhServiceImpl implements WhService {
      * 编码唯一性：唯一索引是 (inv_org_id, code, deleted)，这里做前置校验给出可读提示。
      */
     private void validateCodeUnique(Long invOrgId, String code, Long excludeId) {
-        WhDO existed = whMapper.selectByInvOrgIdAndCode(invOrgId, code);
+        WmsWhDO existed = whMapper.selectByInvOrgIdAndCode(invOrgId, code);
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }
@@ -154,10 +154,10 @@ public class WhServiceImpl implements WhService {
     }
 
     private void validateWhUnused(Long id) {
-        if (zoneMapper.selectCount(ZoneDO::getWhId, id) > 0) {
+        if (zoneMapper.selectCount(WmsZoneDO::getWhId, id) > 0) {
             throw exception(WH_HAS_ZONE);
         }
-        if (locMapper.selectCount(LocDO::getWhId, id) > 0) {
+        if (locMapper.selectCount(WmsLocDO::getWhId, id) > 0) {
             throw exception(WH_HAS_LOC);
         }
     }

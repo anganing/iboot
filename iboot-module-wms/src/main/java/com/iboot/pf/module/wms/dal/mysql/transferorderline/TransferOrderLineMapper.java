@@ -10,7 +10,7 @@ import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderLinePageReqVO;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderLineRespVO;
-import com.iboot.pf.module.wms.dal.dataobject.transferorderline.TransferOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,17 +20,17 @@ import org.apache.ibatis.annotations.Param;
  * @author iboot
  */
 @Mapper
-public interface TransferOrderLineMapper extends BaseMapperX<TransferOrderLineDO> {
+public interface TransferOrderLineMapper extends BaseMapperX<WmsTransferOrderLineDO> {
 
-    default PageResult<TransferOrderLineDO> selectPage(PageParam reqVO, Long orderId) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<TransferOrderLineDO>()
-            .eq(TransferOrderLineDO::getOrderId, orderId)
-            .orderByAsc(TransferOrderLineDO::getLineNo));
+    default PageResult<WmsTransferOrderLineDO> selectPage(PageParam reqVO, Long orderId) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<WmsTransferOrderLineDO>()
+            .eq(WmsTransferOrderLineDO::getOrderId, orderId)
+            .orderByAsc(WmsTransferOrderLineDO::getLineNo));
     }
 
     /** 按转移单 + 行号查询，唯一索引 uk_wms_transfer_line_no_deleted 的应用层前置校验。 */
-    default TransferOrderLineDO selectByOrderIdAndLineNo(Long orderId, Integer lineNo) {
-        return selectOne(TransferOrderLineDO::getOrderId, orderId, TransferOrderLineDO::getLineNo, lineNo);
+    default WmsTransferOrderLineDO selectByOrderIdAndLineNo(Long orderId, Integer lineNo) {
+        return selectOne(WmsTransferOrderLineDO::getOrderId, orderId, WmsTransferOrderLineDO::getLineNo, lineNo);
     }
 
     /** 分页查询明细，JOIN 出来源/目标库位、容器等可读字段。 */
@@ -46,11 +46,11 @@ public interface TransferOrderLineMapper extends BaseMapperX<TransferOrderLineDO
                                                  @Param("req") TransferOrderLinePageReqVO reqVO);
 
     default int deleteByOrderId(Long orderId) {
-        return delete(TransferOrderLineDO::getOrderId, orderId);
+        return delete(WmsTransferOrderLineDO::getOrderId, orderId);
     }
 
 	default int deleteByOrderIds(List<Long> orderIds) {
-	    return deleteBatch(TransferOrderLineDO::getOrderId, orderIds);
+	    return deleteBatch(WmsTransferOrderLineDO::getOrderId, orderIds);
 	}
 
 }

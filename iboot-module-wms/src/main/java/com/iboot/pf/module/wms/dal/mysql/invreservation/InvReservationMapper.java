@@ -7,7 +7,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
-import com.iboot.pf.module.wms.dal.dataobject.invreservation.InvReservationDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
@@ -18,7 +18,7 @@ import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
  * @author iboot
  */
 @Mapper
-public interface InvReservationMapper extends BaseMapperX<InvReservationDO> {
+public interface InvReservationMapper extends BaseMapperX<WmsInvReservationDO> {
 
     default PageResult<InvReservationRespVO> selectPage(InvReservationPageReqVO reqVO) {
         IPage<InvReservationRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
@@ -32,8 +32,8 @@ public interface InvReservationMapper extends BaseMapperX<InvReservationDO> {
 
 
     /** 唯一索引的应用层前置校验，命中说明业务编码重复。 */
-    default InvReservationDO selectByReservationNo(String reservationNo) {
-        return selectOne(InvReservationDO::getReservationNo, reservationNo);
+    default WmsInvReservationDO selectByReservationNo(String reservationNo) {
+        return selectOne(WmsInvReservationDO::getReservationNo, reservationNo);
     }
 
 }

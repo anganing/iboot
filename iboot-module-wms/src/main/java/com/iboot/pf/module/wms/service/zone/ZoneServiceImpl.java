@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.iboot.pf.module.wms.controller.admin.zone.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.zone.ZoneDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
@@ -40,7 +40,7 @@ public class ZoneServiceImpl implements ZoneService {
     @Override
     public Long createZone(ZoneSaveReqVO createReqVO) {
         // 插入
-        ZoneDO zone = BeanUtils.toBean(createReqVO, ZoneDO.class);
+        WmsZoneDO zone = BeanUtils.toBean(createReqVO, WmsZoneDO.class);
         zone.setId(null);
         zone.setCode(codeService.generate(WmsCodeRuleConstants.ZONE, zone.getCode()));
         validateZoneUnique(zone, null);
@@ -79,7 +79,7 @@ public class ZoneServiceImpl implements ZoneService {
         // 校验存在
         validateZoneExists(updateReqVO.getId());
         // 更新
-        ZoneDO updateObj = BeanUtils.toBean(updateReqVO, ZoneDO.class);
+        WmsZoneDO updateObj = BeanUtils.toBean(updateReqVO, WmsZoneDO.class);
         // 改自己不能撞自己，所以排除自身编号
         validateZoneUnique(updateObj, updateReqVO.getId());
         zoneMapper.updateById(updateObj);
@@ -120,8 +120,8 @@ public class ZoneServiceImpl implements ZoneService {
     /**
      * 唯一性校验：数据库唯一索引是最终保证，这里前置校验只为给出可读提示。
      */
-    private void validateZoneUnique(ZoneDO zone, Long excludeId) {
-        ZoneDO existed = zoneMapper.selectByWhIdAndCode(zone.getWhId(), zone.getCode());
+    private void validateZoneUnique(WmsZoneDO zone, Long excludeId) {
+        WmsZoneDO existed = zoneMapper.selectByWhIdAndCode(zone.getWhId(), zone.getCode());
         if (existed == null || existed.getId().equals(excludeId)) {
             return;
         }

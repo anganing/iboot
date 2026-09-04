@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.invlock;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.InvLockSaveReqVO;
-import com.iboot.pf.module.wms.dal.dataobject.invlock.InvLockDO;
+import com.iboot.pf.module.wms.dal.dataobject.lock.WmsInvLockDO;
 import com.iboot.pf.module.wms.dal.mysql.invlock.InvLockMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsLockStatusEnum;
@@ -78,7 +78,7 @@ class InvLockServiceImplTest extends BaseDbUnitTest {
     void testCreateInvLock_blankNoFilledByRule() {
         Long id = invLockService.createInvLock(buildReqVO(null));
 
-        InvLockDO entity = invLockMapper.selectById(id);
+        WmsInvLockDO entity = invLockMapper.selectById(id);
         assertNotNull(entity);
         assertEquals("LCK0001", entity.getLockNo());
     }

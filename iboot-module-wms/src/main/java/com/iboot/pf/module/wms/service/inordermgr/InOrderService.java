@@ -3,8 +3,8 @@ package com.iboot.pf.module.wms.service.inordermgr;
 import java.util.*;
 import jakarta.validation.*;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.inordermgr.InOrderDO;
-import com.iboot.pf.module.wms.dal.dataobject.inorderline.InOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 
