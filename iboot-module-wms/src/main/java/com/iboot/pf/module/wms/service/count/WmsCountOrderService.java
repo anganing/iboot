@@ -5,6 +5,7 @@ import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsCreateCountOrderBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsSubmitCountResultBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 
 import java.util.List;
 
@@ -18,6 +19,28 @@ public interface WmsCountOrderService {
      * @return 盘点单编号；幂等命中时返回原单据编号
      */
     Long createCountOrder(WmsCreateCountOrderBO bo);
+
+    /**
+     * 修改盘点单，只有新建状态可以改。
+     *
+     * <p>盘点行是按账面快照生成的，不是人录的，所以改盘点范围（仓库、库区、物料）后
+     * 旧行整批删除、按新范围重新生成，`snapshot_time` 也一并刷新。
+     *
+     * @param orderId 盘点单编号
+     * @param bo      新的盘点范围，字段集与创建时相同
+     */
+    void updateCountOrder(Long orderId, WmsCreateCountOrderBO bo);
+
+    /** 删除盘点单，只有新建状态可以删，头与行一起逻辑删除。 */
+    void deleteCountOrder(Long orderId);
+
+    /**
+     * 冻结盘点范围，新建推进到已冻结，幂等。
+     *
+     * <p>逐行按账面数量做 {@code FREEZE} 过账，冻结量进 {@code qty_frozen} 从而反映在可用量里。
+     * 冻结不是打个标记：盘点期间如果可用量不变，照样能把正在盘的货领走，盘完就对不上了。
+     */
+    void freezeCountOrder(WmsSubmitOrderBO bo);
 
     /** 提交实盘结果，计算差异数量 = 实盘数量 - 账面数量。 */
     void submitCountResult(WmsSubmitCountResultBO bo);

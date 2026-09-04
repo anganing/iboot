@@ -22,6 +22,7 @@ import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsCreateCountOrderBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsSubmitCountResultBO;
 import com.iboot.pf.module.wms.service.inorder.WmsInOrderServiceImpl;
+import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryServiceImpl;
 import com.iboot.pf.module.wms.service.outorder.WmsOutOrderServiceImpl;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseServiceImpl;
@@ -36,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_FREEZE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_MODIFY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,9 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.when;
 
-/** 盘点流程测试：生成盘点行、提交差异、差异确认走单据过账不直接改余额。 */
+/** 盘点流程测试：生成盘点行、冻结范围、改单删单、提交差异、差异确认走单据过账不直接改余额。 */
 @Import({WmsCountOrderServiceImpl.class, WmsWarehouseServiceImpl.class, WmsInventoryServiceImpl.class,
-        WmsInOrderServiceImpl.class, WmsOutOrderServiceImpl.class, WmsBatchServiceImpl.class, WmsCodeService.class})
+        WmsInOrderServiceImpl.class, WmsOutOrderServiceImpl.class, WmsBatchServiceImpl.class, WmsCodeService.class,
+        com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class})
 class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private static final Long WH = 1L;
@@ -148,6 +152,123 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private WmsCountOrderLineDO firstLine(Long orderId) {
         return wmsCountOrderLineMapper.selectListByOrderId(orderId).get(0);
+    }
+
+    private com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO freezeBO(Long orderId, String key) {
+        com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO bo =
+                new com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO();
+        bo.setIdempotencyKey(key);
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("CNT-0001");
+        bo.setOrderId(orderId);
+        return bo;
+    }
+
+    private WmsInvBalanceDO requireBalance() {
+        return wmsInvBalanceMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
+                        .eq(WmsInvBalanceDO::getMatId, MAT)
+                        .eq(WmsInvBalanceDO::getLocId, LOC)).stream().findFirst().orElse(null);
+    }
+
+    @Test
+    void testFreeze_postsFreezeAndCutsAvailableQty() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        // 单据推进到已冻结
+        assertEquals(WmsOrderStatusEnum.FROZEN.name(), wmsCountOrderMapper.selectById(id).getStatus());
+        // 冻结走 FREEZE 过账：只加 qty_frozen，不动 qty_onhand，可用量因此下降
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("100")));
+        assertEquals(0, balance.getQtyFrozen().compareTo(new BigDecimal("100")));
+        assertEquals(0, WmsInventoryService.availableQtyOf(balance).compareTo(BigDecimal.ZERO),
+                "盘点期间可用量应为 0，否则正在盘的货还能被领走");
+    }
+
+    @Test
+    void testFreeze_idempotent() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        // 同一幂等键重复冻结：命令层直接返回，冻结量不翻倍
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        assertEquals(0, requireBalance().getQtyFrozen().compareTo(new BigDecimal("100")),
+                "重复冻结不应把冻结量叠加成 200");
+    }
+
+    @Test
+    void testFreeze_nonDraft_rejected() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        // 换幂等键才会真正执行动作，此时状态已是 FROZEN
+        assertServiceException(() -> countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:1")),
+                COUNT_ORDER_CANNOT_FREEZE);
+    }
+
+    @Test
+    void testSubmitResult_afterFreeze() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        // 冻结后录实盘是常规路径，状态校验要放行 FROZEN
+        countOrderService.submitCountResult(submitBO(id, firstLine(id).getId(), new BigDecimal("90")));
+        assertEquals(WmsOrderStatusEnum.COUNTING.name(), wmsCountOrderMapper.selectById(id).getStatus());
+        assertEquals(0, firstLine(id).getDiffQty().compareTo(new BigDecimal("-10")));
+    }
+
+    @Test
+    void testUpdate_regeneratesLines() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long oldLineId = firstLine(id).getId();
+
+        WmsCreateCountOrderBO update = createCountBO();
+        update.setBlindCountFlag(true);
+        countOrderService.updateCountOrder(id, update);
+
+        // 盘点行按新范围整批重建，旧行不复用
+        assertEquals(null, wmsCountOrderLineMapper.selectById(oldLineId));
+        assertEquals(1, wmsCountOrderLineMapper.selectListByOrderId(id).size());
+        WmsCountOrderDO order = wmsCountOrderMapper.selectById(id);
+        assertEquals("CNT-0001", order.getCountNo());
+        assertEquals(Boolean.TRUE, order.getBlindCountFlag());
+    }
+
+    @Test
+    void testUpdate_nonDraft_rejected() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        assertServiceException(() -> countOrderService.updateCountOrder(id, createCountBO()),
+                COUNT_ORDER_CANNOT_MODIFY);
+    }
+
+    @Test
+    void testDelete_draftOnly() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        countOrderService.deleteCountOrder(id);
+
+        assertEquals(null, wmsCountOrderMapper.selectById(id));
+        assertEquals(0, wmsCountOrderLineMapper.selectListByOrderId(id).size());
+    }
+
+    @Test
+    void testDelete_nonDraft_rejected() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+
+        assertServiceException(() -> countOrderService.deleteCountOrder(id), COUNT_ORDER_CANNOT_MODIFY);
     }
 
     @Test

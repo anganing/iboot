@@ -4,6 +4,7 @@ import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
 
 import java.util.List;
@@ -18,6 +19,23 @@ public interface WmsOutOrderService {
      * @return 出库单编号；幂等命中时返回原单据编号
      */
     Long createOutOrder(WmsCreateOutOrderBO bo);
+
+    /**
+     * 修改出库单，只有新建状态可以改。
+     *
+     * <p>行按全量替换处理：旧行整批删除后按新参数重建。已提交的单据不许改数量与库位，
+     * 要改先取消再重开。
+     *
+     * @param orderId 出库单编号
+     * @param bo      新的单据内容，字段集与创建时相同
+     */
+    void updateOutOrder(Long orderId, WmsCreateOutOrderBO bo);
+
+    /** 删除出库单，只有新建状态可以删，头与行一起逻辑删除。 */
+    void deleteOutOrder(Long orderId);
+
+    /** 提交出库单，新建推进到已提交，幂等。 */
+    void submitOutOrder(WmsSubmitOrderBO bo);
 
     /** 取消出库单，只有新建状态可以取消。 */
     void cancelOutOrder(WmsCancelOrderBO bo);

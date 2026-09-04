@@ -129,4 +129,15 @@ public interface ErrorCodeConstants {
     ErrorCode INV_TXN_NO_DUPLICATE = new ErrorCode(1_063_004_007, "库存流水号已存在");
     ErrorCode INV_BALANCE_DIMENSION_DUPLICATE = new ErrorCode(1_063_004_008, "相同库存维度的余额已存在");
 
+    // ========== 单据状态推进（T0-06 追加） ==========
+    ErrorCode IN_ORDER_CANNOT_SUBMIT = new ErrorCode(1_063_007_008, "只有新建状态的入库单可以提交");
+    ErrorCode IN_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_007_009, "只有新建状态的入库单可以修改或删除");
+    ErrorCode OUT_ORDER_CANNOT_SUBMIT = new ErrorCode(1_063_008_008, "只有新建状态的出库单可以提交");
+    ErrorCode OUT_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_008_009, "只有新建状态的出库单可以修改或删除");
+    ErrorCode TRANSFER_ORDER_CANNOT_SUBMIT = new ErrorCode(1_063_009_009, "只有新建状态的转移单可以提交");
+    ErrorCode TRANSFER_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_009_010, "只有新建状态的转移单可以修改或删除");
+    ErrorCode COUNT_ORDER_CANNOT_FREEZE = new ErrorCode(1_063_010_007, "只有新建状态的盘点单可以冻结盘点范围");
+    ErrorCode COUNT_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_010_008, "只有新建状态的盘点单可以修改或删除");
+    ErrorCode COUNT_ORDER_LINE_EMPTY = new ErrorCode(1_063_010_009, "盘点单至少包含一条明细");
+
 }

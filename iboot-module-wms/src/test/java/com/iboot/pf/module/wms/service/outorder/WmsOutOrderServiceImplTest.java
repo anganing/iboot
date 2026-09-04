@@ -6,6 +6,7 @@ import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
@@ -35,6 +36,8 @@ import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceExc
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_AVAILABLE_QTY_NOT_ENOUGH;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_CANCEL;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_CONFIRM;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_SUBMIT;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,9 +45,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyCollection;
 
-/** 出库单流程测试：创建、取消、过账、可用量不足拒绝。 */
+/** 出库单流程测试：创建、改单、删单、提交、取消、过账、可用量不足拒绝。 */
 @Import({WmsOutOrderServiceImpl.class, WmsWarehouseServiceImpl.class,
-        WmsInventoryServiceImpl.class, WmsCodeService.class})
+        WmsInventoryServiceImpl.class, WmsCodeService.class,
+        com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class})
 class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
 
     private static final Long WH = 1L;
@@ -138,6 +142,87 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
         bo.setSourceBizNo("MO-1");
         bo.setOrderId(orderId);
         return bo;
+    }
+
+    private com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO submitOrderBO(Long orderId, String key) {
+        com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO bo =
+                new com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO();
+        bo.setIdempotencyKey(key);
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("OUT-0001");
+        bo.setOrderId(orderId);
+        return bo;
+    }
+
+    @Test
+    void testSubmit_draftToSubmitted_andIdempotent() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+
+        outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:0"));
+        assertEquals(WmsOrderStatusEnum.SUBMITTED.name(), wmsOutOrderMapper.selectById(id).getStatus());
+
+        // 同一幂等键重复提交：命令层直接返回，不再执行动作
+        outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:0"));
+        assertEquals(WmsOrderStatusEnum.SUBMITTED.name(), wmsOutOrderMapper.selectById(id).getStatus());
+    }
+
+    @Test
+    void testSubmit_nonDraft_rejected() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:0"));
+
+        // 换幂等键才会真正执行动作，此时状态已是 SUBMITTED
+        assertServiceException(() -> outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:1")),
+                OUT_ORDER_CANNOT_SUBMIT);
+    }
+
+    @Test
+    void testUpdate_replacesLines() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        Long oldLineId = wmsOutOrderLineMapper.selectListByOrderId(id).get(0).getId();
+
+        WmsCreateOutOrderBO update = createOutBO(new BigDecimal("60"));
+        update.getLines().get(0).setLineNo(20);
+        outOrderService.updateOutOrder(id, update);
+
+        List<WmsOutOrderLineDO> lines = wmsOutOrderLineMapper.selectListByOrderId(id);
+        assertEquals(1, lines.size());
+        assertEquals(20, lines.get(0).getLineNo());
+        assertEquals(0, lines.get(0).getPlanQty().compareTo(new BigDecimal("60")));
+        assertEquals(null, wmsOutOrderLineMapper.selectById(oldLineId));
+        assertEquals("OUT-0001", wmsOutOrderMapper.selectById(id).getOutNo());
+    }
+
+    @Test
+    void testUpdate_nonDraft_rejected() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:0"));
+
+        assertServiceException(() -> outOrderService.updateOutOrder(id, createOutBO(new BigDecimal("60"))),
+                OUT_ORDER_CANNOT_MODIFY);
+    }
+
+    @Test
+    void testDelete_draftOnly() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        outOrderService.deleteOutOrder(id);
+
+        assertEquals(null, wmsOutOrderMapper.selectById(id));
+        assertEquals(0, wmsOutOrderLineMapper.selectListByOrderId(id).size());
+    }
+
+    @Test
+    void testDelete_nonDraft_rejected() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        outOrderService.submitOutOrder(submitOrderBO(id, "UI:OUT-0001:SUBMIT:0"));
+
+        assertServiceException(() -> outOrderService.deleteOutOrder(id), OUT_ORDER_CANNOT_MODIFY);
     }
 
     @Test

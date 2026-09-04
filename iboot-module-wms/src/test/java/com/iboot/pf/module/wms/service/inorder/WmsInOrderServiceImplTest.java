@@ -20,10 +20,12 @@ import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
 import com.iboot.pf.module.wms.service.batch.WmsBatchServiceImpl;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl;
 import com.iboot.pf.module.wms.service.inorder.bo.WmsCreateInOrderBO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryServiceImpl;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,8 @@ import java.util.Map;
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_CANCEL;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_CONFIRM;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_SUBMIT;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,9 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyCollection;
 
-/** 入库单流程测试：创建（批次注册幂等）、取消、过账。 */
+/** 入库单流程测试：创建（批次注册幂等）、改单、删单、提交、取消、过账。 */
 @Import({WmsInOrderServiceImpl.class, WmsWarehouseServiceImpl.class, WmsBatchServiceImpl.class,
-        WmsInventoryServiceImpl.class, WmsCodeService.class})
+        WmsInventoryServiceImpl.class, WmsCodeService.class, WmsCommandServiceImpl.class})
 class WmsInOrderServiceImplTest extends BaseDbUnitTest {
 
     @Resource
@@ -149,6 +153,84 @@ class WmsInOrderServiceImplTest extends BaseDbUnitTest {
         WmsCreateInOrderBO bo = createInBO(new BigDecimal("100"));
         bo.setLines(List.of());
         assertServiceException(() -> inOrderService.createInOrder(bo), IN_ORDER_LINE_EMPTY);
+    }
+
+    private WmsSubmitOrderBO submitBO(Long orderId, String key) {
+        WmsSubmitOrderBO bo = new WmsSubmitOrderBO();
+        bo.setIdempotencyKey(key);
+        bo.setSourceModule("UI");
+        bo.setSourceBizNo("IN-0001");
+        bo.setOrderId(orderId);
+        return bo;
+    }
+
+    @Test
+    void testSubmit_draftToSubmitted_andIdempotent() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+
+        inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:0"));
+        assertEquals(WmsOrderStatusEnum.SUBMITTED.name(), wmsInOrderMapper.selectById(id).getStatus());
+
+        // 同一幂等键重复提交：命令层直接返回，不再执行动作，因此不会因状态已变而抛错
+        inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:0"));
+        assertEquals(WmsOrderStatusEnum.SUBMITTED.name(), wmsInOrderMapper.selectById(id).getStatus());
+    }
+
+    @Test
+    void testSubmit_nonDraft_rejected() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:0"));
+
+        // 换幂等键才会真正执行动作，此时状态已是 SUBMITTED，应被状态校验拦住
+        assertServiceException(() -> inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:1")),
+                IN_ORDER_CANNOT_SUBMIT);
+    }
+
+    @Test
+    void testUpdate_replacesLines() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        Long oldLineId = wmsInOrderLineMapper.selectListByOrderId(id).get(0).getId();
+
+        WmsCreateInOrderBO update = createInBO(new BigDecimal("60"));
+        update.getLines().get(0).setLineNo(20);
+        inOrderService.updateInOrder(id, update);
+
+        // 行整批替换：旧行不在了，新行按新数量与行号重建
+        List<WmsInOrderLineDO> lines = wmsInOrderLineMapper.selectListByOrderId(id);
+        assertEquals(1, lines.size());
+        assertEquals(20, lines.get(0).getLineNo());
+        assertEquals(0, lines.get(0).getPlanQty().compareTo(new BigDecimal("60")));
+        assertEquals(null, wmsInOrderLineMapper.selectById(oldLineId));
+        // 单号与状态是单据身份，改单不动
+        WmsInOrderDO order = wmsInOrderMapper.selectById(id);
+        assertEquals("IN-0001", order.getInNo());
+        assertEquals(WmsOrderStatusEnum.DRAFT.name(), order.getStatus());
+    }
+
+    @Test
+    void testUpdate_nonDraft_rejected() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:0"));
+
+        assertServiceException(() -> inOrderService.updateInOrder(id, createInBO(new BigDecimal("60"))),
+                IN_ORDER_CANNOT_MODIFY);
+    }
+
+    @Test
+    void testDelete_draftOnly() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        inOrderService.deleteInOrder(id);
+
+        assertEquals(null, wmsInOrderMapper.selectById(id));
+        assertEquals(0, wmsInOrderLineMapper.selectListByOrderId(id).size());
+    }
+
+    @Test
+    void testDelete_nonDraft_rejected() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        inOrderService.submitInOrder(submitBO(id, "UI:IN-0001:SUBMIT:0"));
+
+        assertServiceException(() -> inOrderService.deleteInOrder(id), IN_ORDER_CANNOT_MODIFY);
     }
 
     @Test

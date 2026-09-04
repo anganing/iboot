@@ -13,12 +13,16 @@ import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.command.WmsCommandService;
+import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
@@ -33,6 +37,8 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_AVAILABLE_QTY_NOT_ENOUGH;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_CANCEL;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_CONFIRM;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_SUBMIT;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LOC_REQUIRED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_NOT_EXISTS;
@@ -53,6 +59,8 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
     private WmsInventoryService inventoryService;
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private WmsCommandService commandService;
     @Resource
     private MaterialApi materialApi;
 
@@ -81,6 +89,13 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
         order.setStatus(WmsOrderStatusEnum.DRAFT.name());
         wmsOutOrderMapper.insert(order);
 
+        insertLines(order, bo, materialMap);
+        return order.getId();
+    }
+
+    /** 按参数建出库行。创建与修改共用：修改走行的全量替换，建行规则与创建时必须一致。 */
+    private void insertLines(WmsOutOrderDO order, WmsCreateOutOrderBO bo,
+                             Map<Long, MaterialRespDTO> materialMap) {
         for (WmsCreateOutOrderBO.Line line : bo.getLines()) {
             if (line.getPlanQty() == null || line.getPlanQty().compareTo(BigDecimal.ZERO) <= 0) {
                 throw exception(QTY_MUST_BE_POSITIVE);
@@ -97,7 +112,76 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
             lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
             wmsOutOrderLineMapper.insert(lineDO);
         }
-        return order.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateOutOrder(Long orderId, WmsCreateOutOrderBO bo) {
+        WmsOutOrderDO order = requireDraft(orderId);
+        if (CollUtil.isEmpty(bo.getLines())) {
+            throw exception(OUT_ORDER_LINE_EMPTY);
+        }
+        List<Long> materialIds = bo.getLines().stream().map(WmsCreateOutOrderBO.Line::getMatId).toList();
+        materialApi.validateMaterialList(materialIds);
+        Map<Long, MaterialRespDTO> materialMap = materialApi.getMaterialMap(materialIds);
+        warehouseService.validateWh(bo.getWhId());
+
+        // 单号、状态、创建幂等键保持原值：它们是单据身份，不随内容改
+        WmsWhDO wh = warehouseService.getWh(bo.getWhId());
+        WmsOutOrderDO update = BeanUtils.toBean(bo, WmsOutOrderDO.class);
+        update.setId(order.getId());
+        update.setOutNo(order.getOutNo());
+        update.setStatus(order.getStatus());
+        update.setIdempotencyKey(order.getIdempotencyKey());
+        update.setSourceType(bo.getSourceModule());
+        update.setSourceBizNo(bo.getSourceBizNo());
+        update.setWhCode(wh == null ? null : wh.getCode());
+        wmsOutOrderMapper.updateById(update);
+
+        for (WmsOutOrderLineDO old : wmsOutOrderLineMapper.selectListByOrderId(order.getId())) {
+            wmsOutOrderLineMapper.deleteById(old.getId());
+        }
+        insertLines(update, bo, materialMap);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteOutOrder(Long orderId) {
+        requireDraft(orderId);
+        for (WmsOutOrderLineDO line : wmsOutOrderLineMapper.selectListByOrderId(orderId)) {
+            wmsOutOrderLineMapper.deleteById(line.getId());
+        }
+        wmsOutOrderMapper.deleteById(orderId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitOutOrder(WmsSubmitOrderBO bo) {
+        commandService.executeVoid(WmsCommandTypeEnum.SUBMIT_OUT_ORDER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsOutOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+                        throw exception(OUT_ORDER_CANNOT_SUBMIT);
+                    }
+                    if (CollUtil.isEmpty(wmsOutOrderLineMapper.selectListByOrderId(order.getId()))) {
+                        throw exception(OUT_ORDER_LINE_EMPTY);
+                    }
+                    order.setStatus(WmsOrderStatusEnum.SUBMITTED.name());
+                    if (bo.getRemark() != null) {
+                        order.setRemark(bo.getRemark());
+                    }
+                    wmsOutOrderMapper.updateById(order);
+                });
+    }
+
+    /** 取单据并校验处于新建状态。改单与删单的共同前置：已提交的单据不许改行、改数量、改库位。 */
+    private WmsOutOrderDO requireDraft(Long orderId) {
+        WmsOutOrderDO order = requireOrder(orderId, null);
+        if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+            throw exception(OUT_ORDER_CANNOT_MODIFY);
+        }
+        return order;
     }
 
     @Override

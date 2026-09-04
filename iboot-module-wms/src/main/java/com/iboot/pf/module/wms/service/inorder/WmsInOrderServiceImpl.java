@@ -17,12 +17,16 @@ import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.batch.WmsBatchService;
 import com.iboot.pf.module.wms.service.batch.bo.RegisterBatchBO;
+import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.command.WmsCommandService;
+import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
 import com.iboot.pf.module.wms.service.inorder.bo.WmsCreateInOrderBO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -35,6 +39,8 @@ import java.util.Map;
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_CANCEL;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_CONFIRM;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_CANNOT_SUBMIT;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_LOC_REQUIRED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.IN_ORDER_NOT_EXISTS;
@@ -57,6 +63,8 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
     private WmsInventoryService inventoryService;
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private WmsCommandService commandService;
     @Resource
     private MaterialApi materialApi;
 
@@ -87,6 +95,13 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
         order.setStatus(WmsOrderStatusEnum.DRAFT.name());
         wmsInOrderMapper.insert(order);
 
+        insertLines(order, bo, materialMap);
+        return order.getId();
+    }
+
+    /** 按参数建入库行。创建与修改共用：修改走行的全量替换，建行规则与创建时必须一致。 */
+    private void insertLines(WmsInOrderDO order, WmsCreateInOrderBO bo,
+                             Map<Long, MaterialRespDTO> materialMap) {
         for (WmsCreateInOrderBO.Line line : bo.getLines()) {
             if (line.getPlanQty() == null || line.getPlanQty().compareTo(BigDecimal.ZERO) <= 0) {
                 throw exception(QTY_MUST_BE_POSITIVE);
@@ -100,7 +115,7 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
             lineDO.setCompletedQty(BigDecimal.ZERO);
             lineDO.setPostedQty(BigDecimal.ZERO);
             lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
-            // 创建阶段注册批次并回填 batchId，此时调用方传入的批次扩展信息仍然可用
+            // 建行阶段注册批次并回填 batchId，此时调用方传入的批次扩展信息仍然可用
             if (lineDO.getBatchId() == null) {
                 lineDO.setBatchId(registerBatch(order, line, materialMap.get(line.getMatId())));
                 lineDO.setLotNo(line.getLotNo() == null || line.getLotNo().isEmpty()
@@ -108,7 +123,80 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
             }
             wmsInOrderLineMapper.insert(lineDO);
         }
-        return order.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateInOrder(Long orderId, WmsCreateInOrderBO bo) {
+        WmsInOrderDO order = requireDraft(orderId);
+        if (CollUtil.isEmpty(bo.getLines())) {
+            throw exception(IN_ORDER_LINE_EMPTY);
+        }
+        List<Long> materialIds = bo.getLines().stream().map(WmsCreateInOrderBO.Line::getMatId).toList();
+        materialApi.validateMaterialList(materialIds);
+        Map<Long, MaterialRespDTO> materialMap = materialApi.getMaterialMap(materialIds);
+        warehouseService.validateWh(bo.getWhId());
+
+        // 单号、状态、创建幂等键保持原值：它们是单据身份，不随内容改。
+        // updateById 只写非空字段，与 codegen 侧行为一致，清空某个可选外键要靠调用方传 0 而不是 null。
+        WmsWhDO wh = warehouseService.getWh(bo.getWhId());
+        WmsInOrderDO update = BeanUtils.toBean(bo, WmsInOrderDO.class);
+        update.setId(order.getId());
+        update.setInNo(order.getInNo());
+        update.setStatus(order.getStatus());
+        update.setIdempotencyKey(order.getIdempotencyKey());
+        update.setSourceType(bo.getSourceModule());
+        update.setSourceBizNo(bo.getSourceBizNo());
+        update.setWhCode(wh == null ? null : wh.getCode());
+        update.setQualityStatus(bo.getQualityStatus() == null || bo.getQualityStatus().isEmpty()
+                ? WmsQualityStatusEnum.QUALIFIED.name() : bo.getQualityStatus());
+        wmsInOrderMapper.updateById(update);
+
+        // 行全量替换：逐行比对容易漏掉删行的情况，且行号可能整体重排
+        for (WmsInOrderLineDO old : wmsInOrderLineMapper.selectListByOrderId(order.getId())) {
+            wmsInOrderLineMapper.deleteById(old.getId());
+        }
+        insertLines(update, bo, materialMap);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteInOrder(Long orderId) {
+        requireDraft(orderId);
+        for (WmsInOrderLineDO line : wmsInOrderLineMapper.selectListByOrderId(orderId)) {
+            wmsInOrderLineMapper.deleteById(line.getId());
+        }
+        wmsInOrderMapper.deleteById(orderId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitInOrder(WmsSubmitOrderBO bo) {
+        commandService.executeVoid(WmsCommandTypeEnum.SUBMIT_IN_ORDER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsInOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+                        throw exception(IN_ORDER_CANNOT_SUBMIT);
+                    }
+                    if (CollUtil.isEmpty(wmsInOrderLineMapper.selectListByOrderId(order.getId()))) {
+                        throw exception(IN_ORDER_LINE_EMPTY);
+                    }
+                    order.setStatus(WmsOrderStatusEnum.SUBMITTED.name());
+                    if (bo.getRemark() != null) {
+                        order.setRemark(bo.getRemark());
+                    }
+                    wmsInOrderMapper.updateById(order);
+                });
+    }
+
+    /** 取单据并校验处于新建状态。改单与删单的共同前置：已提交的单据不许改行、改数量、改库位。 */
+    private WmsInOrderDO requireDraft(Long orderId) {
+        WmsInOrderDO order = requireOrder(orderId, null);
+        if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+            throw exception(IN_ORDER_CANNOT_MODIFY);
+        }
+        return order;
     }
 
     @Override

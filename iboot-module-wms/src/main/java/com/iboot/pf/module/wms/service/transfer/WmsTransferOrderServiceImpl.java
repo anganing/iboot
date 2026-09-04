@@ -12,11 +12,15 @@ import com.iboot.pf.module.wms.enums.WmsConstants;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.command.WmsCommandService;
+import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.transfer.bo.WmsCreateTransferOrderBO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -29,6 +33,8 @@ import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_CANNOT_CANCEL;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_CANNOT_CONFIRM;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_CANNOT_SUBMIT;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_LOC_REQUIRED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.TRANSFER_ORDER_NOT_EXISTS;
@@ -47,6 +53,8 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
     private WmsInventoryService inventoryService;
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private WmsCommandService commandService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -67,6 +75,12 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
         order.setStatus(WmsOrderStatusEnum.DRAFT.name());
         wmsTransferOrderMapper.insert(order);
 
+        insertLines(order, bo);
+        return order.getId();
+    }
+
+    /** 按参数建转移行。创建与修改共用：修改走行的全量替换，建行规则与创建时必须一致。 */
+    private void insertLines(WmsTransferOrderDO order, WmsCreateTransferOrderBO bo) {
         for (WmsCreateTransferOrderBO.Line line : bo.getLines()) {
             if (line.getPlanQty() == null || line.getPlanQty().compareTo(BigDecimal.ZERO) <= 0) {
                 throw exception(QTY_MUST_BE_POSITIVE);
@@ -83,7 +97,69 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
             lineDO.setStatus(WmsOrderLineStatusEnum.DRAFT.name());
             wmsTransferOrderLineMapper.insert(lineDO);
         }
-        return order.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTransferOrder(Long orderId, WmsCreateTransferOrderBO bo) {
+        WmsTransferOrderDO order = requireDraft(orderId);
+        if (CollUtil.isEmpty(bo.getLines())) {
+            throw exception(TRANSFER_ORDER_LINE_EMPTY);
+        }
+        // 单号、状态、创建幂等键保持原值：它们是单据身份，不随内容改
+        WmsTransferOrderDO update = BeanUtils.toBean(bo, WmsTransferOrderDO.class);
+        update.setId(order.getId());
+        update.setTransferNo(order.getTransferNo());
+        update.setStatus(order.getStatus());
+        update.setIdempotencyKey(order.getIdempotencyKey());
+        update.setSourceType(bo.getSourceModule());
+        update.setSourceBizNo(bo.getSourceBizNo());
+        wmsTransferOrderMapper.updateById(update);
+
+        for (WmsTransferOrderLineDO old : wmsTransferOrderLineMapper.selectListByOrderId(order.getId())) {
+            wmsTransferOrderLineMapper.deleteById(old.getId());
+        }
+        insertLines(update, bo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTransferOrder(Long orderId) {
+        requireDraft(orderId);
+        for (WmsTransferOrderLineDO line : wmsTransferOrderLineMapper.selectListByOrderId(orderId)) {
+            wmsTransferOrderLineMapper.deleteById(line.getId());
+        }
+        wmsTransferOrderMapper.deleteById(orderId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitTransferOrder(WmsSubmitOrderBO bo) {
+        commandService.executeVoid(WmsCommandTypeEnum.SUBMIT_TRANSFER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsTransferOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+                        throw exception(TRANSFER_ORDER_CANNOT_SUBMIT);
+                    }
+                    if (CollUtil.isEmpty(wmsTransferOrderLineMapper.selectListByOrderId(order.getId()))) {
+                        throw exception(TRANSFER_ORDER_LINE_EMPTY);
+                    }
+                    order.setStatus(WmsOrderStatusEnum.SUBMITTED.name());
+                    if (bo.getRemark() != null) {
+                        order.setRemark(bo.getRemark());
+                    }
+                    wmsTransferOrderMapper.updateById(order);
+                });
+    }
+
+    /** 取单据并校验处于新建状态。改单与删单的共同前置：已提交的单据不许改行、改数量、改库位。 */
+    private WmsTransferOrderDO requireDraft(Long orderId) {
+        WmsTransferOrderDO order = requireOrder(orderId, null);
+        if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+            throw exception(TRANSFER_ORDER_CANNOT_MODIFY);
+        }
+        return order;
     }
 
     @Override

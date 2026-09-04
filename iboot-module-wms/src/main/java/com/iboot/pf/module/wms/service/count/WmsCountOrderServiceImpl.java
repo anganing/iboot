@@ -7,12 +7,17 @@ import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
+import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsSourceBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsSourceModuleEnum;
+import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.command.WmsCommandService;
+import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsCreateCountOrderBO;
 import com.iboot.pf.module.wms.service.count.bo.WmsSubmitCountResultBO;
@@ -20,7 +25,9 @@ import com.iboot.pf.module.wms.service.inorder.WmsInOrderService;
 import com.iboot.pf.module.wms.service.inorder.bo.WmsCreateInOrderBO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
+import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
+import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.WmsOutOrderService;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
@@ -36,6 +43,9 @@ import java.util.Set;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_FREEZE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_MODIFY;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
@@ -61,6 +71,8 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
     private WmsOutOrderService outOrderService;
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private WmsCommandService commandService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -127,9 +139,121 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void updateCountOrder(Long orderId, WmsCreateCountOrderBO bo) {
+        WmsCountOrderDO order = requireDraft(orderId);
+        warehouseService.validateWh(bo.getWhId());
+
+        // 单号、状态、创建幂等键保持原值：它们是单据身份，不随盘点范围改
+        WmsCountOrderDO update = BeanUtils.toBean(bo, WmsCountOrderDO.class);
+        update.setId(order.getId());
+        update.setCountNo(order.getCountNo());
+        update.setStatus(order.getStatus());
+        update.setIdempotencyKey(order.getIdempotencyKey());
+        update.setZoneId(bo.getZoneId() == null ? 0L : bo.getZoneId());
+        update.setProjectId(bo.getProjectId() == null ? 0L : bo.getProjectId());
+        // 盘点范围变了，账面快照必须重取，否则 book_qty 还是旧范围的数
+        update.setSnapshotTime(LocalDateTime.now());
+        wmsCountOrderMapper.updateById(update);
+
+        // 盘点行是按账面快照生成的、不是人录的，所以整批重建而不是逐行改
+        for (WmsCountOrderLineDO old : wmsCountOrderLineMapper.selectListByOrderId(order.getId())) {
+            wmsCountOrderLineMapper.deleteById(old.getId());
+        }
+        generateLines(update, bo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteCountOrder(Long orderId) {
+        requireDraft(orderId);
+        for (WmsCountOrderLineDO line : wmsCountOrderLineMapper.selectListByOrderId(orderId)) {
+            wmsCountOrderLineMapper.deleteById(line.getId());
+        }
+        wmsCountOrderMapper.deleteById(orderId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void freezeCountOrder(WmsSubmitOrderBO bo) {
+        commandService.executeVoid(WmsCommandTypeEnum.FREEZE_COUNT,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+                        throw exception(COUNT_ORDER_CANNOT_FREEZE);
+                    }
+                    List<WmsCountOrderLineDO> lines = wmsCountOrderLineMapper.selectListByOrderId(order.getId());
+                    if (CollUtil.isEmpty(lines)) {
+                        throw exception(COUNT_ORDER_LINE_EMPTY);
+                    }
+                    Long plantId = warehouseService.getWh(order.getWhId()).getPlantId();
+                    for (WmsCountOrderLineDO line : lines) {
+                        // 账面为 0 的行没有实物可冻，跳过；否则 post 会因数量非正抛错
+                        if (nvl(line.getBookQty()).compareTo(BigDecimal.ZERO) <= 0) {
+                            continue;
+                        }
+                        String postKey = String.format("%s:%s:FREEZE:%d", WmsSourceModuleEnum.UI.name(),
+                                order.getCountNo(), line.getLineNo());
+                        inventoryService.post(buildFreezePostBO(order, line, plantId, postKey));
+                    }
+                    order.setStatus(WmsOrderStatusEnum.FROZEN.name());
+                    if (bo.getRemark() != null) {
+                        order.setRemark(bo.getRemark());
+                    }
+                    wmsCountOrderMapper.updateById(order);
+                });
+    }
+
+    /** 取单据并校验处于新建状态。改单与删单的共同前置：已冻结的盘点单不许改范围。 */
+    private WmsCountOrderDO requireDraft(Long orderId) {
+        WmsCountOrderDO order = requireOrder(orderId, null);
+        if (!WmsOrderStatusEnum.isDraft(order.getStatus())) {
+            throw exception(COUNT_ORDER_CANNOT_MODIFY);
+        }
+        return order;
+    }
+
+    /**
+     * 构造盘点冻结的过账参数。
+     *
+     * <p>{@code FREEZE} 走 {@code applyStatusChange}，只加 {@code qty_frozen} 不动 {@code qty_onhand}，
+     * 所以来源与目标的质量状态、项目维度都填同一个值。
+     */
+    private WmsInvPostBO buildFreezePostBO(WmsCountOrderDO order, WmsCountOrderLineDO line,
+                                           Long plantId, String postKey) {
+        WmsInvPostBO postBO = new WmsInvPostBO();
+        postBO.setTxnType(WmsTxnTypeEnum.FREEZE.name());
+        postBO.setBizType(WmsSourceBizTypeEnum.COUNT_FREEZE.name());
+        postBO.setBizNo(order.getCountNo());
+        postBO.setBizLineNo(String.valueOf(line.getLineNo()));
+        postBO.setIdempotencyKey(postKey);
+        postBO.setQty(line.getBookQty());
+        postBO.setInvOrgId(order.getInvOrgId());
+        postBO.setPlantId(plantId);
+        postBO.setWhId(order.getWhId());
+        postBO.setFromLocId(line.getLocId());
+        postBO.setFromLocCode(line.getLocCode());
+        postBO.setQualityStatusFrom(line.getQualityStatus());
+        postBO.setQualityStatusTo(line.getQualityStatus());
+        postBO.setProjectIdFrom(line.getProjectId());
+        postBO.setProjectTaskIdFrom(line.getProjectTaskId());
+        postBO.setMatId(line.getMatId());
+        postBO.setMatCode(line.getMatCode());
+        postBO.setMatName(line.getMatName());
+        postBO.setBatchId(line.getBatchId());
+        postBO.setLotNo(line.getLotNo());
+        postBO.setContainerId(line.getContainerId());
+        postBO.setRemark("盘点冻结");
+        return postBO;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void submitCountResult(WmsSubmitCountResultBO bo) {
         WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getCountNo());
+        // 允许 FROZEN 与 COUNTING：冻结后录实盘是常规路径，不冻结直接盘（DRAFT）也放行
         if (!WmsOrderStatusEnum.DRAFT.name().equals(order.getStatus())
+                && !WmsOrderStatusEnum.FROZEN.name().equals(order.getStatus())
                 && !WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())) {
             throw exception(COUNT_ORDER_STATUS_INVALID);
         }
