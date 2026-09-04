@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper">
+
+    <sql id="selectColumns">
+        t.*
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_wh t
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.invOrgId != null">
+                AND t.inv_org_id = #{req.invOrgId}
+            </if>
+            <if test="req.plantId != null">
+                AND t.plant_id = #{req.plantId}
+            </if>
+            <if test="req.code != null and req.code != ''">
+                AND t.code = #{req.code}
+            </if>
+            <if test="req.name != null and req.name != ''">
+                AND t.name LIKE CONCAT('%', #{req.name}, '%')
+            </if>
+            <if test="req.whType != null and req.whType != ''">
+                AND t.wh_type = #{req.whType}
+            </if>
+            <if test="req.managedBy != null and req.managedBy != ''">
+                AND t.managed_by = #{req.managedBy}
+            </if>
+            <if test="req.externalSystemCode != null and req.externalSystemCode != ''">
+                AND t.external_system_code = #{req.externalSystemCode}
+            </if>
+            <if test="req.status != null">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.wms.controller.admin.wh.vo.WhRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.wms.controller.admin.wh.vo.WhRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

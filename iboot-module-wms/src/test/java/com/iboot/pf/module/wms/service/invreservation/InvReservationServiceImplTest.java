@@ -4,7 +4,7 @@ import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.wms.controller.admin.invreservation.vo.InvReservationSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
-import com.iboot.pf.module.wms.dal.mysql.invreservation.InvReservationMapper;
+import com.iboot.pf.module.wms.dal.mysql.reservation.WmsInvReservationMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsReservationStatusEnum;
@@ -36,7 +36,7 @@ class InvReservationServiceImplTest extends BaseDbUnitTest {
     @Resource
     private InvReservationService invReservationService;
     @Resource
-    private InvReservationMapper invReservationMapper;
+    private WmsInvReservationMapper invReservationMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

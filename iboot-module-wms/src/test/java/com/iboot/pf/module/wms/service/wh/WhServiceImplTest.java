@@ -11,9 +11,9 @@ import com.iboot.pf.module.wms.controller.admin.wh.vo.WhSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
-import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
-import com.iboot.pf.module.wms.dal.mysql.wh.WhMapper;
-import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsZoneMapper;
 import com.iboot.pf.module.wms.enums.WmsManagedByEnum;
 import com.iboot.pf.module.wms.enums.WmsWhTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
@@ -55,11 +55,11 @@ class WhServiceImplTest extends BaseDbUnitTest {
     @Resource
     private WhService whService;
     @Resource
-    private WhMapper whMapper;
+    private WmsWhMapper whMapper;
     @Resource
-    private ZoneMapper zoneMapper;
+    private WmsZoneMapper zoneMapper;
     @Resource
-    private LocMapper locMapper;
+    private WmsLocMapper locMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

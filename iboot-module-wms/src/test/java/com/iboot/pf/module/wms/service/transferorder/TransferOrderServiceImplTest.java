@@ -3,11 +3,11 @@ package com.iboot.pf.module.wms.service.transferorder;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderDO;
-import com.iboot.pf.module.wms.dal.mysql.transferorder.TransferOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.transferorder.vo.TransferOrderLineSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.transfer.WmsTransferOrderLineDO;
-import com.iboot.pf.module.wms.dal.mysql.transferorderline.TransferOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
@@ -43,9 +43,9 @@ class TransferOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private TransferOrderService transferOrderService;
     @Resource
-    private TransferOrderMapper transferOrderMapper;
+    private WmsTransferOrderMapper transferOrderMapper;
     @Resource
-    private TransferOrderLineMapper transferOrderLineMapper;
+    private WmsTransferOrderLineMapper transferOrderLineMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

@@ -18,7 +18,7 @@ import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.invlock.InvLockMapper;
+import com.iboot.pf.module.wms.dal.mysql.lock.WmsInvLockMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -41,7 +41,7 @@ public class InvLockServiceImpl implements InvLockService {
     @Resource
     private MaterialApi materialApi;
     @Resource
-    private InvLockMapper invLockMapper;
+    private WmsInvLockMapper invLockMapper;
 
     @Override
     public Long createInvLock(InvLockSaveReqVO createReqVO) {

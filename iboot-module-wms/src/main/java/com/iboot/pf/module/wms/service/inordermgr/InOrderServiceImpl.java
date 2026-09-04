@@ -17,8 +17,8 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.inordermgr.InOrderMapper;
-import com.iboot.pf.module.wms.dal.mysql.inorderline.InOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderLineMapper;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
 
@@ -41,9 +41,9 @@ public class InOrderServiceImpl implements InOrderService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private InOrderMapper inOrderMapper;
+    private WmsInOrderMapper inOrderMapper;
     @Resource
-    private InOrderLineMapper inOrderLineMapper;
+    private WmsInOrderLineMapper inOrderLineMapper;
     @Resource
     private WmsSnapshotService snapshotService;
 

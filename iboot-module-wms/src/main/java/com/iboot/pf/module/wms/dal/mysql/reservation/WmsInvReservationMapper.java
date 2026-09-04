@@ -3,6 +3,11 @@ package com.iboot.pf.module.wms.dal.mysql.reservation;
 import com.iboot.pf.framework.mybatis.core.mapper.BaseMapperX;
 import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
+import com.iboot.pf.framework.common.pojo.PageResult;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /** 库存预留 Mapper。 */
 @Mapper
@@ -17,4 +22,13 @@ public interface WmsInvReservationMapper extends BaseMapperX<WmsInvReservationDO
         return selectOne(WmsInvReservationDO::getReservationNo, reservationNo);
     }
 
+    default PageResult<InvReservationRespVO> selectPage(InvReservationPageReqVO reqVO) {
+        IPage<InvReservationRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
+    }
+
+    InvReservationRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<InvReservationRespVO> selectJoinPage(IPage<InvReservationRespVO> page, @Param("req") InvReservationPageReqVO reqVO);
 }

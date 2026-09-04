@@ -6,9 +6,9 @@ import com.iboot.pf.module.wms.controller.admin.countorder.vo.CountOrderSaveReqV
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
-import com.iboot.pf.module.wms.dal.mysql.countorder.CountOrderMapper;
-import com.iboot.pf.module.wms.dal.mysql.countorderline.CountOrderLineMapper;
-import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsCountTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
@@ -46,11 +46,11 @@ class CountOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private CountOrderService countOrderService;
     @Resource
-    private CountOrderMapper countOrderMapper;
+    private WmsCountOrderMapper countOrderMapper;
     @Resource
-    private CountOrderLineMapper countOrderLineMapper;
+    private WmsCountOrderLineMapper countOrderLineMapper;
     @Resource
-    private InvBalanceMapper invBalanceMapper;
+    private WmsInvBalanceMapper invBalanceMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

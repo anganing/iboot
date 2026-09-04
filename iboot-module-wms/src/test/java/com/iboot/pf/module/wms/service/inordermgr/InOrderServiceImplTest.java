@@ -3,11 +3,11 @@ package com.iboot.pf.module.wms.service.inordermgr;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderDO;
-import com.iboot.pf.module.wms.dal.mysql.inordermgr.InOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderLineSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
-import com.iboot.pf.module.wms.dal.mysql.inorderline.InOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
@@ -43,9 +43,9 @@ class InOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private InOrderService inOrderService;
     @Resource
-    private InOrderMapper inOrderMapper;
+    private WmsInOrderMapper inOrderMapper;
     @Resource
-    private InOrderLineMapper inOrderLineMapper;
+    private WmsInOrderLineMapper inOrderLineMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

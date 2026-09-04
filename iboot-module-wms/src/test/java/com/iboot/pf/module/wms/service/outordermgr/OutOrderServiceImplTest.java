@@ -3,11 +3,11 @@ package com.iboot.pf.module.wms.service.outordermgr;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
-import com.iboot.pf.module.wms.dal.mysql.outordermgr.OutOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.controller.admin.outordermgr.vo.OutOrderLineSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
-import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 import com.iboot.pf.module.wms.enums.WmsHookModeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
@@ -43,9 +43,9 @@ class OutOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private OutOrderService outOrderService;
     @Resource
-    private OutOrderMapper outOrderMapper;
+    private WmsOutOrderMapper outOrderMapper;
     @Resource
-    private OutOrderLineMapper outOrderLineMapper;
+    private WmsOutOrderLineMapper outOrderLineMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

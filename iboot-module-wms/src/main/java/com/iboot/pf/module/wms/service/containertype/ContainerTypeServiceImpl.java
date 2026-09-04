@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.containertype.ContainerTypeMapper;
+import com.iboot.pf.module.wms.dal.mysql.container.WmsContainerTypeMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -35,7 +35,7 @@ public class ContainerTypeServiceImpl implements ContainerTypeService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private ContainerTypeMapper containerTypeMapper;
+    private WmsContainerTypeMapper containerTypeMapper;
 
     @Override
     public Long createContainerType(ContainerTypeSaveReqVO createReqVO) {

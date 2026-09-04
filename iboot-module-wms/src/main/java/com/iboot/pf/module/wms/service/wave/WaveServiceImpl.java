@@ -20,7 +20,7 @@ import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.dal.mysql.wave.WaveMapper;
 import com.iboot.pf.module.wms.dal.mysql.waveline.WaveLineMapper;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
-import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -43,7 +43,7 @@ public class WaveServiceImpl implements WaveService {
     @Resource
     private WaveLineMapper waveLineMapper;
     @Resource
-    private OutOrderLineMapper outOrderLineMapper;
+    private WmsOutOrderLineMapper outOrderLineMapper;
 
     @Override
     public Long createWave(WaveSaveReqVO createReqVO) {

@@ -17,8 +17,8 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.outordermgr.OutOrderMapper;
-import com.iboot.pf.module.wms.dal.mysql.outorderline.OutOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
 
@@ -41,9 +41,9 @@ public class OutOrderServiceImpl implements OutOrderService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private OutOrderMapper outOrderMapper;
+    private WmsOutOrderMapper outOrderMapper;
     @Resource
-    private OutOrderLineMapper outOrderLineMapper;
+    private WmsOutOrderLineMapper outOrderLineMapper;
     @Resource
     private WmsSnapshotService snapshotService;
 

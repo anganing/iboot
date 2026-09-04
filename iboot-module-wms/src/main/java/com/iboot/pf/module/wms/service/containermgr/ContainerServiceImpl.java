@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.containermgr.ContainerMapper;
+import com.iboot.pf.module.wms.dal.mysql.container.WmsContainerMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -35,7 +35,7 @@ public class ContainerServiceImpl implements ContainerService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private ContainerMapper containerMapper;
+    private WmsContainerMapper containerMapper;
 
     @Override
     public Long createContainer(ContainerSaveReqVO createReqVO) {

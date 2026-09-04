@@ -4,7 +4,7 @@ import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.wms.controller.admin.invlock.vo.InvLockSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.lock.WmsInvLockDO;
-import com.iboot.pf.module.wms.dal.mysql.invlock.InvLockMapper;
+import com.iboot.pf.module.wms.dal.mysql.lock.WmsInvLockMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsLockStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
@@ -36,7 +36,7 @@ class InvLockServiceImplTest extends BaseDbUnitTest {
     @Resource
     private InvLockService invLockService;
     @Resource
-    private InvLockMapper invLockMapper;
+    private WmsInvLockMapper invLockMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

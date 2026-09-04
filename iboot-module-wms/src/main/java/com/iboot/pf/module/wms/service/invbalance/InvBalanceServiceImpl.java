@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 
 import com.iboot.pf.module.mdm.api.project.ProjectApi;
 import com.iboot.pf.module.mdm.api.project.dto.ProjectRespDTO;
-import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.enums.WmsConstants;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -35,7 +35,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_BALANCE_NOT_E
 public class InvBalanceServiceImpl implements InvBalanceService {
 
     @Resource
-    private InvBalanceMapper invBalanceMapper;
+    private WmsInvBalanceMapper invBalanceMapper;
     @Resource
     private ProjectApi projectApi;
 

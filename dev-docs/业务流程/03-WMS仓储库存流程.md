@@ -22,8 +22,8 @@ WMS 有 18 张表同时存在两套 DO、两套 Mapper、两套 Service。这不
 | 层 | 领域侧（`Wms` 前缀） | codegen 侧（无前缀） | 合计 |
 | --- | --- | --- | --- |
 | DO | 19 | ~~23~~ → 5 | ~~42~~ → 24 |
-| Mapper | 19 | 23 | 42 |
-| Mapper XML | 0 | 24 | 24 |
+| Mapper | 19 | ~~23~~ → 5 | ~~42~~ → 24 |
+| Mapper XML | ~~0~~ → 19 | ~~24~~ → 5 | 24 |
 | Service 接口 | 13 | 17 | 30 |
 | ServiceImpl | 11 | 17 | 28 |
 | Controller | 0 | 18 | 18 |
@@ -31,7 +31,7 @@ WMS 有 18 张表同时存在两套 DO、两套 Mapper、两套 Service。这不
 
 **18 张表的两套 DO，字段逐个比对完全一致**，无一例外——从 `wms_wh` 的 10 个字段到 `wms_inv_txn` 的 33 个字段，两侧声明的字段集合一字不差。所以这是纯粹的内容重复，删掉任意一套都不会丢字段，这是后面所有删除动作的安全前提。
 
-**DO 层已收口（见"最小代价执行路径"第一步）**：18 个重复的 codegen DO 已删除，一张表现在只有一个 DO 类。codegen 侧剩下的 5 个 DO 是单套表自己的（`ArrivalDO`、`ArrivalLineDO`、`DeviceTaskDO`、`WaveDO`、`WaveLineDO`），不存在重复。Mapper、Service、Controller 三层的重复仍在，收口方案见下。
+**DO 与 Mapper 两层已收口**（见"最小代价执行路径"第一步与第三步）：18 个重复的 codegen DO 与 18 个重复的 codegen Mapper 已删除，一张表现在只有一个 DO、一个 Mapper、一个 XML。codegen 侧剩下的 5 个 DO 与 5 个 Mapper 是单套表自己的（`Arrival`、`ArrivalLine`、`DeviceTask`、`Wave`、`WaveLine`），不存在重复。**Service 与 Controller 两层的重复仍在**，收口方案见下。
 
 ### 谁在跑
 
@@ -159,9 +159,24 @@ void cancelInOrder(WmsCancelOrderBO bo);
 
 Controller 保留 `/page`、`/get`、`/export-excel` 接 codegen Service（XML JOIN 与跨模块补全都在这里），`/create`、`/update`、`/delete` 改为 VO 转 BO 后调领域 Service，并新增 `/submit`、`/confirm`、`/cancel` 动作端点。A 类配置表的 CRUD 全套不动。
 
-**第三步（可选）：合并 Mapper。**
+**第三步：合并 Mapper。【已完成】**
 
-两套 Mapper 的方法并不重复——codegen 侧是 XML 的 `selectJoinPage` / `selectJoinById`，领域侧是 `selectByDim` / `selectBalancePage` 这类业务查询。要彻底收口，把 XML 方法声明挪进领域 Mapper，24 个 XML 改 `namespace` 指向领域 Mapper 全类名即可，Mapper 从 42 个降到 24 个。这一步只减文件数，不改行为，可以缓做。
+两套 Mapper 的方法基本互补——codegen 侧是 XML 支撑的 `selectPage` / `selectJoinById` / `selectJoinPage` 与唯一性校验，领域侧是 `selectByDim` / `selectBalanceList` / `selectTxnList` 这类业务查询。真正重名的只有 6 个（`selectByInNo` `selectByOutNo` `selectByTransferNo` `selectByCountNo` `selectByLockNo` `selectByReservationNo`），逐字比对实现完全相同，合并时直接去重。
+
+做法是让领域 Mapper 吸收 codegen 侧的方法，而不是反过来：领域 Mapper 的路径与类名不变，引用它的领域 Service 零改动，git diff 表现为领域 Mapper 增行、codegen Mapper 整个删除。
+
+| 步骤 | 内容 |
+| --- | --- |
+| 1 | 领域 Mapper 吸收 codegen 独有的方法（每个 3 到 8 个）并补齐 `import` |
+| 2 | 24 个 XML 里的 18 个移动到领域 Mapper 对应目录并同名，`namespace` 改指领域 Mapper 全类名 |
+| 3 | codegen Service 与测试类注入的 Mapper 改成领域 Mapper（27 个文件） |
+| 4 | 删除 18 个 codegen Mapper 与随之清空的目录 |
+
+结果：**Mapper 接口 42 → 24，XML 仍 24 个**，每张表一个 Mapper 一个 XML。剩下 5 个不带 `Wms` 前缀的是单套表自己的（`ArrivalMapper` `ArrivalLineMapper` `DeviceTaskMapper` `WaveMapper` `WaveLineMapper`）。
+
+XML 没有显式配置 `mapper-locations`，走 MyBatis Plus 默认的 `classpath*:/mapper/**/*.xml`，所以移动目录不需要改任何配置。
+
+一处遗留的分层问题：合并后领域 Mapper 会 `import` controller 层的 `XxxRespVO` / `XxxPageReqVO`（`selectJoinPage` 的返回类型就是 RespVO）。这是芋道 codegen 的既有做法，全仓一致，本次只是把它从 codegen Mapper 挪到了领域 Mapper，没有新增违规，但 `dal` 依赖 `controller` 这个方向是反的，将来若要彻底理清需要引入 dal 层自己的查询结果对象。
 
 **不要做：去掉 `Wms` 前缀。** 理由见上一节。
 

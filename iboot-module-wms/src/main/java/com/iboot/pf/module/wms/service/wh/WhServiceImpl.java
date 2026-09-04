@@ -17,9 +17,9 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.api.org.OrgApi;
 import com.iboot.pf.module.mdm.api.org.dto.InvOrgRespDTO;
 import com.iboot.pf.module.mdm.api.org.dto.PlantRespDTO;
-import com.iboot.pf.module.wms.dal.mysql.wh.WhMapper;
-import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
-import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsZoneMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsZoneDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
@@ -42,11 +42,11 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 public class WhServiceImpl implements WhService {
 
     @Resource
-    private WhMapper whMapper;
+    private WmsWhMapper whMapper;
     @Resource
-    private ZoneMapper zoneMapper;
+    private WmsZoneMapper zoneMapper;
     @Resource
-    private LocMapper locMapper;
+    private WmsLocMapper locMapper;
     @Resource
     private WmsCodeService codeService;
     @Resource

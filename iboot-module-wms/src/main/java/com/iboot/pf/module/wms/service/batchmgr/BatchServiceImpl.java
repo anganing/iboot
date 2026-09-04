@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.batchmgr.BatchMapper;
+import com.iboot.pf.module.wms.dal.mysql.batch.WmsBatchMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -35,7 +35,7 @@ public class BatchServiceImpl implements BatchService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private BatchMapper batchMapper;
+    private WmsBatchMapper batchMapper;
 
     @Override
     public Long createBatch(BatchSaveReqVO createReqVO) {

@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -35,7 +35,7 @@ public class LocServiceImpl implements LocService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private LocMapper locMapper;
+    private WmsLocMapper locMapper;
 
     @Override
     public Long createLoc(LocSaveReqVO createReqVO) {

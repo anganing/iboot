@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , arrival.arrival_no AS arrival_arrival_no
+        , wh.name AS wh_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_in_order t
+        LEFT JOIN wms_arrival arrival ON arrival.id = t.arrival_id AND arrival.deleted = 0
+        LEFT JOIN wms_wh wh ON wh.id = t.wh_id AND wh.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.inNo != null and req.inNo != ''">
+                AND t.in_no = #{req.inNo}
+            </if>
+            <if test="req.bizType != null and req.bizType != ''">
+                AND t.biz_type = #{req.bizType}
+            </if>
+            <if test="req.sourceBizNo != null and req.sourceBizNo != ''">
+                AND t.source_biz_no = #{req.sourceBizNo}
+            </if>
+            <if test="req.supplierId != null">
+                AND t.supplier_id = #{req.supplierId}
+            </if>
+            <if test="req.projectId != null">
+                AND t.project_id = #{req.projectId}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.wms.controller.admin.inordermgr.vo.InOrderRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

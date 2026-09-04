@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iboot.pf.module.wms.dal.mysql.lock.WmsInvLockMapper">
+
+    <sql id="selectColumns">
+        t.*
+        , wh.code AS wh_code
+        , wh.name AS wh_name
+        , loc.code AS loc_code
+        , batch.lot_no AS lot_no
+    </sql>
+
+    <sql id="joinTables">
+        FROM wms_inv_lock t
+        LEFT JOIN wms_wh wh ON wh.id = t.wh_id AND wh.deleted = 0
+        LEFT JOIN wms_loc loc ON loc.id = t.loc_id AND loc.deleted = 0
+        LEFT JOIN wms_batch batch ON batch.id = t.batch_id AND batch.deleted = 0
+    </sql>
+
+    <sql id="whereConditions">
+        <where>
+            t.deleted = 0
+            <if test="req.lockNo != null and req.lockNo != ''">
+                AND t.lock_no = #{req.lockNo}
+            </if>
+            <if test="req.bizType != null and req.bizType != ''">
+                AND t.biz_type = #{req.bizType}
+            </if>
+            <if test="req.bizNo != null and req.bizNo != ''">
+                AND t.biz_no = #{req.bizNo}
+            </if>
+            <if test="req.locId != null">
+                AND t.loc_id = #{req.locId}
+            </if>
+            <if test="req.matId != null">
+                AND t.mat_id = #{req.matId}
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND t.status = #{req.status}
+            </if>
+            <if test="req.createTime != null and req.createTime.length == 2">
+                AND t.create_time BETWEEN #{req.createTime[0]} AND #{req.createTime[1]}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectJoinPage" resultType="com.iboot.pf.module.wms.controller.admin.invlock.vo.InvLockRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        <include refid="whereConditions"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectJoinById" resultType="com.iboot.pf.module.wms.controller.admin.invlock.vo.InvLockRespVO">
+        SELECT
+        <include refid="selectColumns"/>
+        <include refid="joinTables"/>
+        WHERE t.deleted = 0 AND t.id = #{id}
+    </select>
+
+</mapper>

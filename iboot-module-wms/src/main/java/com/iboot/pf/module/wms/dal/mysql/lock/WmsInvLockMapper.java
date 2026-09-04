@@ -7,6 +7,11 @@ import com.iboot.pf.module.wms.service.lock.bo.WmsLockQueryBO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
+import com.iboot.pf.module.wms.controller.admin.invlock.vo.*;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
+import com.iboot.pf.framework.common.pojo.PageResult;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /** 库存冻结记录 Mapper。 */
 @Mapper
@@ -33,4 +38,13 @@ public interface WmsInvLockMapper extends BaseMapperX<WmsInvLockDO> {
                 .orderByDesc(WmsInvLockDO::getId));
     }
 
+    default PageResult<InvLockRespVO> selectPage(InvLockPageReqVO reqVO) {
+        IPage<InvLockRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
+    }
+
+    InvLockRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<InvLockRespVO> selectJoinPage(IPage<InvLockRespVO> page, @Param("req") InvLockPageReqVO reqVO);
 }

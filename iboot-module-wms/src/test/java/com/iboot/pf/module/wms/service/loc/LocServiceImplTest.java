@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.loc;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.loc.vo.LocSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
-import com.iboot.pf.module.wms.dal.mysql.loc.LocMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsDimensionCheckModeEnum;
 import com.iboot.pf.module.wms.enums.WmsLocStatusEnum;
@@ -34,7 +34,7 @@ class LocServiceImplTest extends BaseDbUnitTest {
     @Resource
     private LocService locService;
     @Resource
-    private LocMapper locMapper;
+    private WmsLocMapper locMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

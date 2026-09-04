@@ -10,6 +10,10 @@ import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
+import com.iboot.pf.module.wms.controller.admin.invbalance.vo.*;
+import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /** 多维库存余额 Mapper。 */
 @Mapper
@@ -59,4 +63,13 @@ public interface WmsInvBalanceMapper extends BaseMapperX<WmsInvBalanceDO> {
                 .orderByDesc(WmsInvBalanceDO::getId);
     }
 
+    default PageResult<InvBalanceRespVO> selectPage(InvBalancePageReqVO reqVO) {
+        IPage<InvBalanceRespVO> mpPage = MyBatisUtils.buildPage(reqVO);
+        selectJoinPage(mpPage, reqVO);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
+    }
+
+    InvBalanceRespVO selectJoinById(@Param("id") Long id);
+
+    IPage<InvBalanceRespVO> selectJoinPage(IPage<InvBalanceRespVO> page, @Param("req") InvBalancePageReqVO reqVO);
 }

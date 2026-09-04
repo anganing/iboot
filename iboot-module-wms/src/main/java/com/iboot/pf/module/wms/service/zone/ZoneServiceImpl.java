@@ -16,7 +16,7 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.zone.ZoneMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsZoneMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -35,7 +35,7 @@ public class ZoneServiceImpl implements ZoneService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private ZoneMapper zoneMapper;
+    private WmsZoneMapper zoneMapper;
 
     @Override
     public Long createZone(ZoneSaveReqVO createReqVO) {

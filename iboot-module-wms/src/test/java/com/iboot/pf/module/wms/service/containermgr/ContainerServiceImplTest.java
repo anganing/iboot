@@ -3,7 +3,7 @@ package com.iboot.pf.module.wms.service.containermgr;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.containermgr.vo.ContainerSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.container.WmsContainerDO;
-import com.iboot.pf.module.wms.dal.mysql.containermgr.ContainerMapper;
+import com.iboot.pf.module.wms.dal.mysql.container.WmsContainerMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.enums.WmsContainerStatusEnum;
 import jakarta.annotation.Resource;
@@ -32,7 +32,7 @@ class ContainerServiceImplTest extends BaseDbUnitTest {
     @Resource
     private ContainerService containerService;
     @Resource
-    private ContainerMapper containerMapper;
+    private WmsContainerMapper containerMapper;
 
     @MockitoBean
     private WmsCodeService codeService;

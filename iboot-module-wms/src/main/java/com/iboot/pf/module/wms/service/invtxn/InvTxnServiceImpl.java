@@ -7,7 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import com.iboot.pf.module.wms.controller.admin.invtxn.vo.*;
 import com.iboot.pf.framework.common.pojo.PageResult;
 
-import com.iboot.pf.module.wms.dal.mysql.invtxn.InvTxnMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_TXN_NOT_EXISTS;
@@ -24,7 +24,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_TXN_NOT_EXIST
 public class InvTxnServiceImpl implements InvTxnService {
 
     @Resource
-    private InvTxnMapper invTxnMapper;
+    private WmsInvTxnMapper invTxnMapper;
 
     @Override
     public InvTxnRespVO getInvTxn(Long id) {

@@ -17,8 +17,8 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.transferorder.TransferOrderMapper;
-import com.iboot.pf.module.wms.dal.mysql.transferorderline.TransferOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.transfer.WmsTransferOrderLineMapper;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.enums.WmsStockScopeEnum;
 import com.iboot.pf.module.wms.service.snapshot.WmsSnapshotService;
@@ -42,9 +42,9 @@ public class TransferOrderServiceImpl implements TransferOrderService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private TransferOrderMapper transferOrderMapper;
+    private WmsTransferOrderMapper transferOrderMapper;
     @Resource
-    private TransferOrderLineMapper transferOrderLineMapper;
+    private WmsTransferOrderLineMapper transferOrderLineMapper;
     @Resource
     private WmsSnapshotService snapshotService;
 

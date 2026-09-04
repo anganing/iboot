@@ -18,7 +18,7 @@ import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.invreservation.InvReservationMapper;
+import com.iboot.pf.module.wms.dal.mysql.reservation.WmsInvReservationMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -41,7 +41,7 @@ public class InvReservationServiceImpl implements InvReservationService {
     @Resource
     private MaterialApi materialApi;
     @Resource
-    private InvReservationMapper invReservationMapper;
+    private WmsInvReservationMapper invReservationMapper;
 
     @Override
     public Long createInvReservation(InvReservationSaveReqVO createReqVO) {

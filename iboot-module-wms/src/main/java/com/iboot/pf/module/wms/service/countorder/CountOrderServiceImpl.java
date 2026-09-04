@@ -17,10 +17,10 @@ import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.enums.WmsCodeRuleConstants;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 
-import com.iboot.pf.module.wms.dal.mysql.countorder.CountOrderMapper;
-import com.iboot.pf.module.wms.dal.mysql.countorderline.CountOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
-import com.iboot.pf.module.wms.dal.mysql.invbalance.InvBalanceMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
@@ -39,11 +39,11 @@ public class CountOrderServiceImpl implements CountOrderService {
     @Resource
     private WmsCodeService codeService;
     @Resource
-    private CountOrderMapper countOrderMapper;
+    private WmsCountOrderMapper countOrderMapper;
     @Resource
-    private CountOrderLineMapper countOrderLineMapper;
+    private WmsCountOrderLineMapper countOrderLineMapper;
     @Resource
-    private InvBalanceMapper invBalanceMapper;
+    private WmsInvBalanceMapper invBalanceMapper;
 
     @Override
     public Long createCountOrder(CountOrderSaveReqVO createReqVO) {
