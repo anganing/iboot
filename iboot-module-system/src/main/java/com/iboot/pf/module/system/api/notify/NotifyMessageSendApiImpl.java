@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.notify;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.notify.dto.NotifySendSingleToUserReqDTO;
 import com.iboot.pf.module.system.service.notify.NotifySendService;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import jakarta.annotation.Resource;
  * @author xrcoder
  */
 @Service
+@DataPermission(enable = false)
 public class NotifyMessageSendApiImpl implements NotifyMessageSendApi {
 
     @Resource

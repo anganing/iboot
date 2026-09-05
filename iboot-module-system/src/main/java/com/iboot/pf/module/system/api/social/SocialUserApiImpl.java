@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.social;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.social.dto.SocialUserBindReqDTO;
 import com.iboot.pf.module.system.api.social.dto.SocialUserRespDTO;
 import com.iboot.pf.module.system.api.social.dto.SocialUserUnbindReqDTO;
@@ -16,6 +17,7 @@ import jakarta.annotation.Resource;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class SocialUserApiImpl implements SocialUserApi {
 
     @Resource

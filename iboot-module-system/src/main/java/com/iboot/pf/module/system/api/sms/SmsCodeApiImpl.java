@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.sms;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.sms.dto.code.SmsCodeValidateReqDTO;
 import com.iboot.pf.module.system.api.sms.dto.code.SmsCodeSendReqDTO;
 import com.iboot.pf.module.system.api.sms.dto.code.SmsCodeUseReqDTO;
@@ -16,6 +17,7 @@ import jakarta.annotation.Resource;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class SmsCodeApiImpl implements SmsCodeApi {
 
     @Resource

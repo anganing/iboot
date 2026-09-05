@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.dict;
 
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import com.iboot.pf.module.system.dal.dataobject.dict.DictDataDO;
 import com.iboot.pf.module.system.service.dict.DictDataService;
@@ -16,6 +17,7 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class DictDataApiImpl implements DictDataApi {
 
     @Resource

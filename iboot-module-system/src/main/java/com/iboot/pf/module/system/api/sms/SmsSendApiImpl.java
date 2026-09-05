@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.sms;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.sms.dto.send.SmsSendSingleToUserReqDTO;
 import com.iboot.pf.module.system.service.sms.SmsSendService;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import jakarta.annotation.Resource;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class SmsSendApiImpl implements SmsSendApi {
 
     @Resource

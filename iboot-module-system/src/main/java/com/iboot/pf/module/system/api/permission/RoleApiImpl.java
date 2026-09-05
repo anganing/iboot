@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.permission;
 
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.permission.dto.RoleRespDTO;
 import com.iboot.pf.module.system.dal.dataobject.permission.RoleDO;
 import com.iboot.pf.module.system.service.permission.RoleService;
@@ -16,6 +17,7 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class RoleApiImpl implements RoleApi {
 
     @Resource

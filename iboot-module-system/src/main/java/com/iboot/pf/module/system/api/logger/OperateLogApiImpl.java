@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.logger;
 
 import com.iboot.pf.framework.common.pojo.PageResult;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.common.biz.system.logger.dto.OperateLogCreateReqDTO;
 import com.iboot.pf.module.system.api.logger.dto.OperateLogPageReqDTO;
@@ -19,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class OperateLogApiImpl implements OperateLogApi {
 
     @Resource

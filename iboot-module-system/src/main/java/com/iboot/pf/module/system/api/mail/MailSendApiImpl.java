@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.mail;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.mail.dto.MailSendSingleToUserReqDTO;
 import com.iboot.pf.module.system.service.mail.MailSendService;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import jakarta.annotation.Resource;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class MailSendApiImpl implements MailSendApi {
 
     @Resource

@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.social.dto.*;
 import com.iboot.pf.module.system.enums.social.SocialTypeEnum;
 import com.iboot.pf.module.system.service.social.SocialClientService;
@@ -29,6 +30,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
 @Service
 @Validated
 @Slf4j
+@DataPermission(enable = false)
 public class SocialClientApiImpl implements SocialClientApi {
 
     @Resource

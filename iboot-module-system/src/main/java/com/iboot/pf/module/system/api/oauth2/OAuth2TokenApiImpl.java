@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.oauth2;
 
 import com.iboot.pf.framework.common.biz.system.oauth2.OAuth2TokenCommonApi;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.common.biz.system.oauth2.dto.OAuth2AccessTokenCheckRespDTO;
 import com.iboot.pf.framework.common.biz.system.oauth2.dto.OAuth2AccessTokenCreateReqDTO;
@@ -17,6 +18,7 @@ import jakarta.annotation.Resource;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class OAuth2TokenApiImpl implements OAuth2TokenCommonApi {
 
     @Resource

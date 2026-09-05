@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.permission;
 
 import com.iboot.pf.framework.common.biz.system.permission.dto.DeptDataPermissionRespDTO;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.service.permission.PermissionService;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.Set;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class PermissionApiImpl implements PermissionApi {
 
     @Resource

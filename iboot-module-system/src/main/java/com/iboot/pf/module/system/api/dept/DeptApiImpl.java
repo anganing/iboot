@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.dept;
 
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.dept.dto.DeptRespDTO;
 import com.iboot.pf.module.system.dal.dataobject.dept.DeptDO;
 import com.iboot.pf.module.system.service.dept.DeptService;
@@ -16,6 +17,7 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class DeptApiImpl implements DeptApi {
 
     @Resource

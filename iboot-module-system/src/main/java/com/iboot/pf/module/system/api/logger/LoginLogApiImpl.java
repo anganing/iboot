@@ -1,5 +1,6 @@
 package com.iboot.pf.module.system.api.logger;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.api.logger.dto.LoginLogCreateReqDTO;
 import com.iboot.pf.module.system.service.logger.LoginLogService;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import jakarta.annotation.Resource;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class LoginLogApiImpl implements LoginLogApi {
 
     @Resource

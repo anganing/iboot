@@ -26,6 +26,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class AdminUserApiImpl implements AdminUserApi {
 
     @Resource

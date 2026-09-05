@@ -1,6 +1,7 @@
 package com.iboot.pf.module.system.api.tenant;
 
 import com.iboot.pf.framework.common.biz.system.tenant.TenantCommonApi;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.system.service.tenant.TenantService;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class TenantApiImpl implements TenantCommonApi {
 
     @Resource
