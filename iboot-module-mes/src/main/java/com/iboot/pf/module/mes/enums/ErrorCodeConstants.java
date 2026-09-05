@@ -47,6 +47,13 @@ public interface ErrorCodeConstants {
     ErrorCode OP_TASK_NO_DUPLICATE = new ErrorCode(1_064_002_003, "工序任务号已存在");
     ErrorCode OP_TASK_ROUTE_OP_DUPLICATE = new ErrorCode(1_064_002_004, "同一作业工单下该路线工序已生成任务");
     ErrorCode OP_TASK_HAS_DISPATCH = new ErrorCode(1_064_002_005, "工序任务下存在派工任务，不能删除");
+    ErrorCode OP_TASK_PREV_NOT_DONE = new ErrorCode(1_064_002_006, "前序工序未完工：{}");
+    ErrorCode OP_TASK_NOT_KITTED = new ErrorCode(1_064_002_007, "开工前必发料未发齐：{}");
+    ErrorCode OP_TASK_FAI_NOT_PASSED =
+            new ErrorCode(1_064_002_008, "首件检验未通过，工序({})不能继续加工：{}");
+    ErrorCode OP_TASK_RES_UNAVAILABLE = new ErrorCode(1_064_002_009, "资源({})不可用：{}");
+    ErrorCode OP_TASK_SKILL_NOT_MATCH = new ErrorCode(1_064_002_010, "操作者技能不满足工序({})要求：{}");
+    ErrorCode OP_TASK_TOOL_NOT_READY = new ErrorCode(1_064_002_011, "工序({})所需工装不可用：{}");
 
     // ========== 质量共用 ==========
     ErrorCode QUALITY_QTY_INVALID = new ErrorCode(1_064_003_000, "合格数量与不合格数量之和必须等于抽检数量");
@@ -86,6 +93,12 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_064_013_007, "物料({})可用量不足，本次申请 {}，当前可用 {}");
     ErrorCode MATERIAL_REQ_WAREHOUSE_REQUIRED =
             new ErrorCode(1_064_013_008, "领退补料申请必须指定库存组织与仓库");
+    ErrorCode MATERIAL_REQ_LOC_REQUIRED =
+            new ErrorCode(1_064_013_009, "物料({})未指定库位，确认发料前请指定库位");
+    ErrorCode MATERIAL_REQ_CONFIRM_QTY_EXCEEDED =
+            new ErrorCode(1_064_013_010, "物料({})本次确认 {}，超过剩余待处理量 {}");
+    ErrorCode MATERIAL_REQ_CONFIRM_QTY_EMPTY =
+            new ErrorCode(1_064_013_011, "本次确认数量全部为零，没有可发料的明细行");
 
     // ========== 生产报工 ==========
     ErrorCode PROD_REPORT_NOT_EXISTS = new ErrorCode(1_064_014_000, "生产报工记录不存在");

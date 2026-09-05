@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mes.service.materialreq;
 
+import com.iboot.pf.module.mes.service.materialreq.bo.MesConfirmMaterialReqBO;
 import com.iboot.pf.module.mes.service.materialreq.bo.MesCreateMaterialReqBO;
 import com.iboot.pf.module.mes.service.materialreq.bo.MesMaterialReqActionBO;
 
@@ -47,6 +48,21 @@ public interface MesMaterialReqDomainService {
      * @param bo 动作参数，幂等键格式 {@code UI:{申请单号}:SUBMIT_MATERIAL_REQ:0}
      */
     void submitMaterialReq(MesMaterialReqActionBO bo);
+
+    /**
+     * 确认领退补料申请：{@code SUBMITTED} -&gt; {@code WMS_PROCESSING} -&gt; {@code DONE} 或 {@code PARTIAL}。
+     *
+     * <p>这是三段里唯一改动在库量的一段。领料与补料建出库单 {@code PROD_ISSUE_OUT} 并过账，
+     * 行上带提交阶段拿到的预留编号，WMS 过账后据此核销预留——现存下降、预留核销，
+     * 两者抵消所以可用量不变；漏传预留编号的话预留永不核销，可用量永久偏低。
+     * 退料建入库单 {@code PROD_RETURN_IN} 并过账，现存上升。
+     *
+     * <p>确认是一次性动作：幂等键整单固定，重复确认直接命中幂等不产生第二笔过账。
+     * 本次确认量小于申请量时单据落 {@code PARTIAL}，剩余量另开补料单，不挂在原单上等。
+     *
+     * @param bo 确认参数，幂等键格式 {@code MES:{申请单号}:CONFIRM_MATERIAL_REQ:0}
+     */
+    void confirmMaterialReq(MesConfirmMaterialReqBO bo);
 
     /**
      * 取消领退补料申请，置 {@code CANCELLED}。

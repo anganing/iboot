@@ -177,6 +177,18 @@ public class CreateOutOrderReqDTO extends WmsCommandReqDTO {
         @Schema(description = "容器编号")
         private Long containerId;
 
+        /**
+         * 关联库存预留编号，0 或留空表示无预留。
+         *
+         * <p>MES 领料这类"先建预留再出库"的场景传入，出库过账后据此核销预留
+         * （见 {@code WmsOutOrderServiceImpl.consumeReservation}）。不传的话预留永不核销，
+         * 出库已扣现存而预留仍占着可用量，可用量会永久偏低，就是双重占用。
+         *
+         * <p>与内部 BO 的 {@code reservationId} 同名，由 {@code BeanUtils.toBean} 自动映射。
+         */
+        @Schema(description = "关联库存预留编号", example = "0")
+        private Long reservationId;
+
         /** 备注。 */
         @Schema(description = "备注")
         private String remark;
