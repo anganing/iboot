@@ -64,6 +64,18 @@ export const WMS_ARRIVAL_LINE_STATUS = {
   CANCELLED: 'CANCELLED',
 } as const;
 
+/** 盘点明细状态，与后端 WmsCountLineStatusEnum 对齐（字典 wms_count_line_status） */
+export const WMS_COUNT_LINE_STATUS = {
+  /** 待盘点，行刚按余额快照生成 */
+  PENDING: 'PENDING',
+  /** 已盘点，实盘等于账面 */
+  COUNTED: 'COUNTED',
+  /** 有差异，实盘不等于账面，等确认差异 */
+  DIFF: 'DIFF',
+  /** 差异已过账，已生成盘盈入库单或盘亏出库单 */
+  ADJUSTED: 'ADJUSTED',
+} as const;
+
 /**
  * 是否新建态。
  *
@@ -101,6 +113,16 @@ export function canConfirmCountDiff(status?: string) {
     status === WMS_ORDER_STATUS.COUNTING ||
     status === WMS_ORDER_STATUS.DIFF_CONFIRMED
   );
+}
+
+/**
+ * 盘点行是否有差异。
+ *
+ * `diffQty` 是服务端在提交实盘时算出来的（实盘 - 账面），行状态随之置 `DIFF`；
+ * 界面按状态判断而不是自己比数量，避免盲盘单据上界面拿不到账面数量时判断口径不一致。
+ */
+export function isCountLineDiff(status?: string) {
+  return status === WMS_COUNT_LINE_STATUS.DIFF;
 }
 
 /** 到货登记是否草稿态：编辑、删除、确认到货都只放行草稿 */
