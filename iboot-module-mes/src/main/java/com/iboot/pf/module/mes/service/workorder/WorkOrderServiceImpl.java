@@ -66,6 +66,8 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         // 工厂、车间、项目、生产工单号都从生产工单继承，避免两边不一致
         inheritFromProdOrder(workOrder);
         snapshotService.validateWc(workOrder.getWcId());
+        // 状态不由表单维护，新建一律落 PENDING，后续由下属工序任务的执行动作推进
+        workOrder.setStatus(MesWorkOrderStatusEnum.PENDING.name());
         // 进度数量与齐套状态由业务动作推进，创建时归零
         workOrder.setCompletedQty(MesConstants.ZERO_QTY);
         workOrder.setKitStatus(MesKitStatusEnum.UNCHECKED.name());
@@ -82,8 +84,9 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             throw exception(WORK_ORDER_STATUS_INVALID);
         }
         WorkOrderDO updateObj = BeanUtils.toBean(updateReqVO, WorkOrderDO.class);
-        // 工单号、进度、齐套、实际时间、乐观锁都不由表单维护
+        // 工单号、状态、进度、齐套、实际时间、乐观锁都不由表单维护
         updateObj.setWorkOrderNo(existed.getWorkOrderNo());
+        updateObj.setStatus(existed.getStatus());
         updateObj.setCompletedQty(existed.getCompletedQty());
         updateObj.setKitStatus(existed.getKitStatus());
         updateObj.setActualStartTime(existed.getActualStartTime());

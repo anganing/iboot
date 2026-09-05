@@ -20,6 +20,9 @@ import java.time.LocalDateTime;
  * <p>不出现在表单里的字段：作业工单号、工序编码与名称、工序顺序、并行组、关键工序标记、执行模式
  * 都由后端从作业工单与路线工序带出；完成与报废数量由报工推进；实际时间由业务动作写入；
  * 前后序任务编号由工序链生成时维护。
+ *
+ * <p><b>状态不在表单里</b>：工序任务状态只能由执行动作推进（开工、暂停、恢复、完工、跳序），
+ * 创建时由 Service 兜底为 {@link MesOpTaskStatusEnum#PENDING}，改单时保持原值。
  */
 @Schema(description = "管理后台 - MES-工序任务新增/修改 Request VO")
 @Data
@@ -63,11 +66,6 @@ public class OpTaskSaveReqVO {
 
     @Schema(description = "计划结束时间")
     private LocalDateTime plannedEndTime;
-
-    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "PENDING")
-    @NotEmpty(message = "状态不能为空")
-    @InEnum(MesOpTaskStatusEnum.class)
-    private String status;
 
     @Schema(description = "备注")
     @Size(max = 500, message = "备注长度不能超过 500")

@@ -31,6 +31,14 @@ public interface ErrorCodeConstants {
     ErrorCode PROD_ORDER_NO_DUPLICATE = new ErrorCode(1_064_001_002, "生产工单号已存在");
     ErrorCode PROD_ORDER_HAS_WORK_ORDER = new ErrorCode(1_064_001_003, "生产工单下存在作业工单，不能删除");
     ErrorCode PROD_ORDER_QTY_INVALID = new ErrorCode(1_064_001_004, "计划生产数量必须大于零");
+    ErrorCode PROD_ORDER_VERSION_SNAPSHOT_LOCKED =
+            new ErrorCode(1_064_001_005, "生产工单已下达，锁定的 BOM 与工艺路线版本不允许修改");
+    ErrorCode PROD_ORDER_ROUTE_OP_EMPTY =
+            new ErrorCode(1_064_001_006, "工艺路线下没有工序，无法展开作业工单与工序任务");
+    ErrorCode PROD_ORDER_CONCURRENT_CONFLICT =
+            new ErrorCode(1_064_001_007, "生产工单正被其他操作更新，请刷新后重试");
+    ErrorCode PROD_ORDER_WORKSHOP_REQUIRED =
+            new ErrorCode(1_064_001_008, "生产工单未指派车间，下达前请先指定车间");
 
     // ========== 工序任务 ==========
     ErrorCode OP_TASK_STATUS_INVALID = new ErrorCode(1_064_002_000, "工序任务当前状态不允许该操作");
@@ -48,6 +56,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROD_DEMAND_NO_DUPLICATE = new ErrorCode(1_064_010_001, "生产需求编号已存在");
     ErrorCode PROD_DEMAND_STATUS_INVALID = new ErrorCode(1_064_010_002, "生产需求当前状态不允许该操作");
     ErrorCode PROD_DEMAND_HAS_PROD_ORDER = new ErrorCode(1_064_010_003, "生产需求已生成生产工单，不能删除");
+    ErrorCode PROD_DEMAND_TO_ORDER_QTY_EXCEEDED = new ErrorCode(1_064_010_004, "本次转单数量超出生产需求的未转单数量");
 
     // ========== 作业工单 ==========
     ErrorCode WORK_ORDER_NOT_EXISTS = new ErrorCode(1_064_011_000, "作业工单不存在");
@@ -57,6 +66,12 @@ public interface ErrorCodeConstants {
 
     // ========== 齐套快照 ==========
     ErrorCode KIT_SNAPSHOT_NOT_EXISTS = new ErrorCode(1_064_012_000, "齐套快照不存在");
+    ErrorCode KIT_CHECK_SCOPE_TARGET_REQUIRED =
+            new ErrorCode(1_064_012_001, "齐套检查范围({})不合法，必须是 PROD_ORDER、WORK_ORDER 或 OP_TASK");
+    ErrorCode KIT_CHECK_BOM_DEPTH_EXCEEDED =
+            new ErrorCode(1_064_012_002, "虚拟件展开层数超过 {} 层，请检查 BOM 是否存在循环引用");
+    ErrorCode KIT_CHECK_PHANTOM_BOM_MISSING =
+            new ErrorCode(1_064_012_003, "虚拟件物料({})没有生效 BOM 或 BOM 无明细，无法向下展开子件");
 
     // ========== 领退补料申请 ==========
     ErrorCode MATERIAL_REQ_NOT_EXISTS = new ErrorCode(1_064_013_000, "领退补料申请不存在");
@@ -65,6 +80,12 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_REQ_LINE_NO_DUPLICATE = new ErrorCode(1_064_013_003, "同一申请下行号已存在");
     ErrorCode MATERIAL_REQ_STATUS_INVALID = new ErrorCode(1_064_013_004, "领退补料申请当前状态不允许该操作");
     ErrorCode MATERIAL_REQ_RETURN_BATCH_REQUIRED = new ErrorCode(1_064_013_005, "退料明细必须指定批次");
+    ErrorCode MATERIAL_REQ_LINE_EMPTY =
+            new ErrorCode(1_064_013_006, "领退补料申请没有明细行，请检查 BOM 或工序用料配置");
+    ErrorCode MATERIAL_REQ_AVAILABLE_QTY_INSUFFICIENT =
+            new ErrorCode(1_064_013_007, "物料({})可用量不足，本次申请 {}，当前可用 {}");
+    ErrorCode MATERIAL_REQ_WAREHOUSE_REQUIRED =
+            new ErrorCode(1_064_013_008, "领退补料申请必须指定库存组织与仓库");
 
     // ========== 生产报工 ==========
     ErrorCode PROD_REPORT_NOT_EXISTS = new ErrorCode(1_064_014_000, "生产报工记录不存在");

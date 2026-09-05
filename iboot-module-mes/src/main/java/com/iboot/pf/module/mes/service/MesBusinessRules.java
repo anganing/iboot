@@ -1,7 +1,6 @@
 package com.iboot.pf.module.mes.service;
 
 import com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil;
-import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -9,54 +8,21 @@ import java.math.RoundingMode;
 import static com.iboot.pf.module.mes.enums.MesConstants.QTY_SCALE;
 
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_REPORT_QTY_INVALID;
-import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QUALITY_QTY_INVALID;
 
 /**
- * MES 领域不变量。规则集中定义，供各领域 Service 复用。
+ * MES 领域不变量。数量类规则集中定义，供各领域 Service 复用。
  *
- * <p>状态取值一律引用 {@link MesOpTaskStatusEnum} 这类枚举，不写字符串字面量；
- * 数量精度统一取库表的 decimal(20,6)。
+ * <p>数量精度统一取库表的 decimal(20,6)。
+ *
+ * <p>状态迁移不在本类，三个状态机各自独立：
+ * {@link com.iboot.pf.module.mes.enums.MesProdOrderStateMachine}、
+ * {@link com.iboot.pf.module.mes.enums.MesWorkOrderStateMachine}、
+ * {@link com.iboot.pf.module.mes.enums.MesOpTaskStateMachine}。
  */
 public final class MesBusinessRules {
 
     private MesBusinessRules() {
-    }
-
-    /** 开工动作。 */
-    public static final String ACTION_START = "start";
-    /** 暂停动作。 */
-    public static final String ACTION_PAUSE = "pause";
-    /** 完工动作。 */
-    public static final String ACTION_FINISH = "finish";
-    /** 跳序动作。 */
-    public static final String ACTION_SKIP = "skip";
-
-    /**
-     * 返回工序任务状态迁移后的状态。
-     *
-     * <p>合法迁移：待排产/待开工/已暂停 -> 开工；待排产/待开工 -> 跳序；加工中 -> 暂停；加工中/已暂停 -> 完工。
-     * 其余组合直接拒绝，避免终态被二次推进。
-     */
-    public static String nextOpTaskStatus(String currentStatus, String action) {
-        MesOpTaskStatusEnum target = resolveOpTaskTarget(currentStatus, action);
-        if (target == null) {
-            throw ServiceExceptionUtil.exception(OP_TASK_STATUS_INVALID);
-        }
-        return target.name();
-    }
-
-    private static MesOpTaskStatusEnum resolveOpTaskTarget(String currentStatus, String action) {
-        boolean notStarted = MesOpTaskStatusEnum.isNotStarted(currentStatus);
-        boolean running = MesOpTaskStatusEnum.RUNNING.name().equals(currentStatus);
-        boolean paused = MesOpTaskStatusEnum.PAUSED.name().equals(currentStatus);
-        return switch (action) {
-            case ACTION_START -> notStarted || paused ? MesOpTaskStatusEnum.RUNNING : null;
-            case ACTION_SKIP -> notStarted ? MesOpTaskStatusEnum.SKIPPED : null;
-            case ACTION_PAUSE -> running ? MesOpTaskStatusEnum.PAUSED : null;
-            case ACTION_FINISH -> running || paused ? MesOpTaskStatusEnum.DONE : null;
-            default -> null;
-        };
     }
 
     /** 校验工序任务完工数量：合格数 + 报废数 = 计划数。 */

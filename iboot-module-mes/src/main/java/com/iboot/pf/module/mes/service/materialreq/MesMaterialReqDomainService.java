@@ -1,0 +1,62 @@
+package com.iboot.pf.module.mes.service.materialreq;
+
+import com.iboot.pf.module.mes.service.materialreq.bo.MesCreateMaterialReqBO;
+import com.iboot.pf.module.mes.service.materialreq.bo.MesMaterialReqActionBO;
+
+/**
+ * 领退补料申请领域动作。
+ *
+ * <p>与 codegen 的 {@link MaterialReqService} 并存：codegen Service 负责手工建单改单与查询，
+ * 本服务负责按用料关系展开明细，以及一切带库存后果的状态推进。
+ *
+ * <p>领料分三段，每段的库存后果必须分清（见 {@code dev-docs/业务流程/04-MES生产执行流程.md}
+ * 的"流程四：领料三段"，以领 100 个、初始现存 500 为例）：
+ *
+ * <table>
+ *     <tr><th>阶段</th><th>在库</th><th>预留</th><th>可用量</th></tr>
+ *     <tr><td>申请后 DRAFT</td><td>500</td><td>0</td><td>500</td></tr>
+ *     <tr><td>提交后 SUBMITTED</td><td>500</td><td>100</td><td>400</td></tr>
+ *     <tr><td>确认后 DONE</td><td>400</td><td>0</td><td>400</td></tr>
+ * </table>
+ *
+ * <p>确认后可用量不变（400 → 400）才是对的：料已经从仓库出到车间，仓库可用量本来就该是 400。
+ * 如果确认后变成 300，说明预留没被核销，就是双重占用。
+ */
+public interface MesMaterialReqDomainService {
+
+    /**
+     * 创建领退补料申请，落 {@code DRAFT}，无库存后果。
+     *
+     * <p>明细留空时按用料关系展开：给了工序任务取该工序的路线用料，否则取整单 BOM。
+     * 倒冲件不出现在明细里（报工时反冲），虚拟件被展开成子件。
+     *
+     * @param bo 创建参数，幂等键格式 {@code UI:{工单号}:CREATE_REQ:0}
+     * @return 领退补料申请编号；幂等命中时返回首次创建的那张
+     */
+    Long createMaterialReq(MesCreateMaterialReqBO bo);
+
+    /**
+     * 提交领退补料申请：{@code DRAFT} -&gt; {@code SUBMITTED}。
+     *
+     * <p>领料与补料逐行调 WMS 预留，把料留住（可用量下降），预留编号记在行上；
+     * 退料不预留——退料是往仓库还货，占用可用量没有意义。
+     *
+     * <p>任一行可用量不足则整单回滚，错误信息带缺料物料编码：留一半预留比全不留更难收拾，
+     * 车间也无法从"部分提交"的单据判断能不能开工。
+     *
+     * @param bo 动作参数，幂等键格式 {@code UI:{申请单号}:SUBMIT_MATERIAL_REQ:0}
+     */
+    void submitMaterialReq(MesMaterialReqActionBO bo);
+
+    /**
+     * 取消领退补料申请，置 {@code CANCELLED}。
+     *
+     * <p>{@code DRAFT} 直接取消；{@code SUBMITTED} 先逐行释放预留再取消，
+     * 不释放就等于把可用量永久占住，别的工单再也领不到这批料。
+     * 已交给 WMS（{@code WMS_PROCESSING} 及之后）的单据不允许取消，料已经在路上或已出库。
+     *
+     * @param bo 动作参数，幂等键格式 {@code UI:{申请单号}:CANCEL_MATERIAL_REQ:0}
+     */
+    void cancelMaterialReq(MesMaterialReqActionBO bo);
+
+}

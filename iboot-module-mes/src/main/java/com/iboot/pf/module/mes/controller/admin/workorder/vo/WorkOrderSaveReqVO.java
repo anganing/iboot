@@ -1,10 +1,8 @@
 package com.iboot.pf.module.mes.controller.admin.workorder.vo;
 
-import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -17,6 +15,9 @@ import java.time.LocalDateTime;
  *
  * <p>不出现在表单里的字段：生产工单号快照由后端带出；已完成数量由工序任务推进；
  * 实际开工与完工时间由业务动作写入；齐套状态由齐套检查写入；乐观锁版本由框架维护。
+ *
+ * <p><b>状态不在表单里</b>：作业工单状态由下属工序任务的执行动作推进，创建时由 Service 兜底为
+ * {@link MesWorkOrderStatusEnum#PENDING}，改单时保持原值。
  */
 @Schema(description = "管理后台 - MES-作业工单新增/修改 Request VO")
 @Data
@@ -47,11 +48,6 @@ public class WorkOrderSaveReqVO {
 
     @Schema(description = "计划结束时间")
     private LocalDateTime plannedEndTime;
-
-    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "PENDING")
-    @NotEmpty(message = "状态不能为空")
-    @InEnum(MesWorkOrderStatusEnum.class)
-    private String status;
 
     @Schema(description = "备注")
     @Size(max = 500, message = "备注长度不能超过 500")

@@ -10,7 +10,7 @@ import java.util.Arrays;
 /**
  * 工序任务状态。与字典 {@code mes_op_task_status} 一致。
  *
- * <p>状态迁移由 {@link com.iboot.pf.module.mes.service.MesBusinessRules} 统一裁决，
+ * <p>状态迁移由 {@link MesOpTaskStateMachine} 统一裁决，
  * 这里只声明合法取值与几个语义判定，避免各处散落字符串比较。
  */
 @Getter

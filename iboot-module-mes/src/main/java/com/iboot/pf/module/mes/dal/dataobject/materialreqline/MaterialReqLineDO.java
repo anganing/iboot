@@ -86,6 +86,14 @@ public class MaterialReqLineDO extends BaseDO {
      */
     private String lotNo;
     /**
+     * 关联库存预留编号，0 表示无预留，来自 wms_inv_reservation
+     *
+     * <p>提交领料时逐行调 WMS 预留门面拿到，确认出库时带给出库单核销预留，取消时按它释放预留。
+     * 不落这一列的话，取消申请就找不到该释放哪笔预留，可用量会被永久占住。
+     * 退料行恒为 0：退料是往仓库还货，不占用可用量。
+     */
+    private Long reservationId;
+    /**
      * 是否必须在开工前发料
      */
     private Boolean mustIssueBeforeStart;

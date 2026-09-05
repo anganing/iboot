@@ -1,18 +1,21 @@
 package com.iboot.pf.module.mes.api.optask;
 
-import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
-import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.FinishReq;
-import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.StatusReq;
 import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
+import com.iboot.pf.module.mes.api.optask.dto.OpTaskFinishReqDTO;
 import com.iboot.pf.module.mes.api.optask.dto.OpTaskRespDTO;
+import com.iboot.pf.module.mes.api.optask.dto.OpTaskSkipReqDTO;
+import com.iboot.pf.module.mes.api.optask.dto.OpTaskStatusReqDTO;
+import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.service.optask.OpTaskService;
 import com.iboot.pf.module.mes.service.workorder.WorkOrderService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +24,15 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMap;
 
 /** 工序任务 API 实现。 */
-@Service @Validated
+@Service
+@Validated
 public class OpTaskApiImpl implements OpTaskApi {
-    @Resource private OpTaskService opTaskService;
-    @Resource private WorkOrderService workOrderService;
+
+    @Resource
+    private OpTaskService opTaskService;
+
+    @Resource
+    private WorkOrderService workOrderService;
 
     @Override
     @DataPermission(enable = false)
@@ -51,15 +59,30 @@ public class OpTaskApiImpl implements OpTaskApi {
         return opTaskService.applySchedule(reqDTO);
     }
 
-    @Override public void startOpTask(StatusReq reqDTO) { throw new UnsupportedOperationException("工序开工命令尚未接入领域规则"); }
-    @Override public void pauseOpTask(StatusReq reqDTO) { throw new UnsupportedOperationException("工序暂停命令尚未接入领域规则"); }
-    @Override public void finishOpTask(FinishReq reqDTO) { throw new UnsupportedOperationException("工序完工命令尚未接入领域规则"); }
-    @Override public void skipOpTask(StatusReq reqDTO) { throw new UnsupportedOperationException("工序跳过命令尚未接入领域规则"); }
+    @Override
+    public void startOpTask(OpTaskStatusReqDTO reqDTO) {
+        throw new UnsupportedOperationException("工序开工命令尚未接入领域规则");
+    }
 
-    private List<OpTaskRespDTO> convertWithProdOrder(List<com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO> tasks) {
+    @Override
+    public void pauseOpTask(OpTaskStatusReqDTO reqDTO) {
+        throw new UnsupportedOperationException("工序暂停命令尚未接入领域规则");
+    }
+
+    @Override
+    public void finishOpTask(OpTaskFinishReqDTO reqDTO) {
+        throw new UnsupportedOperationException("工序完工命令尚未接入领域规则");
+    }
+
+    @Override
+    public void skipOpTask(OpTaskSkipReqDTO reqDTO) {
+        throw new UnsupportedOperationException("工序跳过命令尚未接入领域规则");
+    }
+
+    private List<OpTaskRespDTO> convertWithProdOrder(List<OpTaskDO> tasks) {
         List<OpTaskRespDTO> result = BeanUtils.toBean(tasks, OpTaskRespDTO.class);
         Map<Long, WorkOrderDO> workOrderMap = convertMap(
-                workOrderService.getWorkOrderList(convertList(tasks, com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO::getWorkOrderId)),
+                workOrderService.getWorkOrderList(convertList(tasks, OpTaskDO::getWorkOrderId)),
                 WorkOrderDO::getId);
         for (OpTaskRespDTO task : result) {
             WorkOrderDO workOrder = workOrderMap.get(task.getWorkOrderId());
@@ -67,4 +90,5 @@ public class OpTaskApiImpl implements OpTaskApi {
         }
         return result;
     }
+
 }

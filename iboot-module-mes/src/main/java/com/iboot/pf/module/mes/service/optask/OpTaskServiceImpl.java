@@ -75,6 +75,8 @@ public class OpTaskServiceImpl implements OpTaskService {
         opTask.setTaskNo(codeService.generate(MesCodeRuleConstants.OP_TASK, opTask.getTaskNo()));
         fillFromWorkOrderAndRouteOp(opTask);
         snapshotService.validateRes(opTask.getResId());
+        // 状态不由表单维护，新建一律落 PENDING，后续只能由开工、暂停、完工、跳序等动作推进
+        opTask.setStatus(MesOpTaskStatusEnum.PENDING.name());
         // 进度数量由报工推进，工序链由生成逻辑维护，创建时归零
         opTask.setCompletedQty(MesConstants.ZERO_QTY);
         opTask.setScrapQty(MesConstants.ZERO_QTY);
@@ -95,8 +97,9 @@ public class OpTaskServiceImpl implements OpTaskService {
             throw exception(OP_TASK_STATUS_INVALID);
         }
         OpTaskDO updateObj = BeanUtils.toBean(updateReqVO, OpTaskDO.class);
-        // 任务号、进度数量、工序链、实际时间、乐观锁都不由表单维护
+        // 任务号、状态、进度数量、工序链、实际时间、乐观锁都不由表单维护
         updateObj.setTaskNo(existed.getTaskNo());
+        updateObj.setStatus(existed.getStatus());
         updateObj.setCompletedQty(existed.getCompletedQty());
         updateObj.setScrapQty(existed.getScrapQty());
         updateObj.setPrevTaskId(existed.getPrevTaskId());

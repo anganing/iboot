@@ -1,20 +1,34 @@
 package com.iboot.pf.module.mes.api.rework;
 
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
-import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.CreateReq;
-import com.iboot.pf.module.mes.api.dto.MesRespDTO;
-import com.iboot.pf.module.mes.service.MesApiService;
-import jakarta.annotation.Resource;
+import com.iboot.pf.module.mes.api.rework.dto.CreateReworkReqDTO;
+import com.iboot.pf.module.mes.api.rework.dto.ReworkRespDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
 import java.util.Collection;
 import java.util.List;
 
 /** 返工任务 API 实现。 */
-@Service @Validated
+@Service
+@Validated
 public class ReworkApiImpl implements ReworkApi {
-    @Resource private MesApiService service;
-    @Override public Long createRework(CreateReq reqDTO) { return service.create("rework", reqDTO); }
-    @Override @DataPermission(enable = false) public MesRespDTO getRework(Long id) { return service.get("rework", id); }
-    @Override @DataPermission(enable = false) public List<MesRespDTO> getReworkList(Collection<Long> ids) { return service.list("rework", ids); }
+
+    @Override
+    public Long createRework(CreateReworkReqDTO reqDTO) {
+        throw new UnsupportedOperationException("返工任务创建命令尚未接入领域规则");
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public ReworkRespDTO getRework(Long id) {
+        throw new UnsupportedOperationException("返工任务查询尚未接入领域 Service");
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public List<ReworkRespDTO> getReworkList(Collection<Long> ids) {
+        throw new UnsupportedOperationException("返工任务查询尚未接入领域 Service");
+    }
+
 }

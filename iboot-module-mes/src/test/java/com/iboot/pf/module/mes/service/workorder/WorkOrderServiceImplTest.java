@@ -92,9 +92,17 @@ class WorkOrderServiceImplTest extends BaseDbUnitTest {
         reqVO.setProdOrderId(prodOrderId);
         reqVO.setWcId(3L);
         reqVO.setPlannedQty(new BigDecimal("100"));
-        reqVO.setStatus(MesWorkOrderStatusEnum.PENDING.name());
         reqVO.setRemark("单测数据");
         return reqVO;
+    }
+
+    /**
+     * 表单不再带状态，需要非初始状态的场景直接改库。
+     *
+     * <p>作业工单状态由下属工序任务的执行动作推进，测试里也不许绕表单塞状态。
+     */
+    private void pushStatus(Long id, String status) {
+        workOrderMapper.updateById(new WorkOrderDO().setId(id).setStatus(status));
     }
 
     @Test
@@ -110,6 +118,22 @@ class WorkOrderServiceImplTest extends BaseDbUnitTest {
         assertEquals(2L, workOrder.getWorkshopId());
         assertEquals(0, workOrder.getCompletedQty().compareTo(BigDecimal.ZERO));
         assertEquals(MesKitStatusEnum.UNCHECKED.name(), workOrder.getKitStatus());
+        // 状态不由表单维护，新建一律落 PENDING
+        assertEquals(MesWorkOrderStatusEnum.PENDING.name(), workOrder.getStatus());
+    }
+
+    @Test
+    void testUpdateWorkOrder_statusNotOverwritten() {
+        Long id = workOrderService.createWorkOrder(buildReqVO("WO-A"));
+        pushStatus(id, MesWorkOrderStatusEnum.RUNNING.name());
+
+        WorkOrderSaveReqVO updateReqVO = buildReqVO("WO-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("计划调整");
+        workOrderService.updateWorkOrder(updateReqVO);
+
+        // 改单不碰状态：车间正在作业的工单不能被表单一键改回待处理
+        assertEquals(MesWorkOrderStatusEnum.RUNNING.name(), workOrderMapper.selectById(id).getStatus());
     }
 
     @Test
@@ -145,9 +169,8 @@ class WorkOrderServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testUpdateWorkOrder_finalStatusRejected() {
-        WorkOrderSaveReqVO createReqVO = buildReqVO("WO-A");
-        createReqVO.setStatus(MesWorkOrderStatusEnum.DONE.name());
-        Long id = workOrderService.createWorkOrder(createReqVO);
+        Long id = workOrderService.createWorkOrder(buildReqVO("WO-A"));
+        pushStatus(id, MesWorkOrderStatusEnum.DONE.name());
 
         WorkOrderSaveReqVO updateReqVO = buildReqVO("WO-A");
         updateReqVO.setId(id);

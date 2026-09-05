@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mes.service.prodorder;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.mdm.api.bom.dto.BomRespDTO;
@@ -39,6 +40,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_HAS_WO
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_NO_DUPLICATE;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_VERSION_SNAPSHOT_LOCKED;
 
 /**
  * MES-生产工单 Service 实现类
@@ -70,6 +72,8 @@ public class ProdOrderServiceImpl implements ProdOrderService {
         prodOrder.setDemandId(prodOrder.getDemandId() == null ? MesConstants.NONE_ID : prodOrder.getDemandId());
         validateForeignKeys(prodOrder);
         fillSnapshot(prodOrder);
+        // 状态不由表单维护，新建工单一律落 DRAFT，后续只能由下达等领域动作推进
+        prodOrder.setStatus(MesProdOrderStatusEnum.DRAFT.name());
         // 进度数量由报工推进，齐套状态由齐套检查写入，创建时归零
         prodOrder.setCompletedQty(MesConstants.ZERO_QTY);
         prodOrder.setScrapQty(MesConstants.ZERO_QTY);
@@ -121,7 +125,6 @@ public class ProdOrderServiceImpl implements ProdOrderService {
         reqVO.setRouteId(route.getId());
         reqVO.setDueDate(importItem.getDueDate());
         reqVO.setPriority(importItem.getPriority() == null ? 0 : importItem.getPriority());
-        reqVO.setStatus(MesProdOrderStatusEnum.DRAFT.name());
         reqVO.setRemark(importItem.getRemark());
         return reqVO;
     }
@@ -134,8 +137,9 @@ public class ProdOrderServiceImpl implements ProdOrderService {
             throw exception(PROD_ORDER_STATUS_INVALID);
         }
         ProdOrderDO updateObj = BeanUtils.toBean(updateReqVO, ProdOrderDO.class);
-        // 工单号、进度数量、齐套状态、时间戳、乐观锁都不由表单维护
+        // 工单号、状态、进度数量、齐套状态、时间戳、乐观锁都不由表单维护
         updateObj.setOrderNo(existed.getOrderNo());
+        updateObj.setStatus(existed.getStatus());
         updateObj.setCompletedQty(existed.getCompletedQty());
         updateObj.setScrapQty(existed.getScrapQty());
         updateObj.setKitStatus(existed.getKitStatus());
@@ -144,9 +148,37 @@ public class ProdOrderServiceImpl implements ProdOrderService {
         updateObj.setActualEndTime(existed.getActualEndTime());
         updateObj.setVersion(existed.getVersion());
         updateObj.setDemandId(updateObj.getDemandId() == null ? MesConstants.NONE_ID : updateObj.getDemandId());
+        boolean draft = MesProdOrderStatusEnum.isDraft(existed.getStatus());
+        if (!draft) {
+            validateVersionSnapshotLocked(existed, updateObj);
+        }
         validateForeignKeys(updateObj);
         fillSnapshot(updateObj);
+        if (!draft) {
+            // fillSnapshot 会按 bomId / routeId 从主数据回读版本号。下达之后必须沿用下达那一刻的快照，
+            // 否则主数据把已发布版本的版本号改了，一次改备注就把在制工单的执行依据换掉了。
+            updateObj.setBomVersion(existed.getBomVersion());
+            updateObj.setRouteVersion(existed.getRouteVersion());
+        }
         prodOrderMapper.updateById(updateObj);
+    }
+
+    /**
+     * 下达之后四个版本快照不可改。
+     *
+     * <p>下达那一刻起这张工单的执行依据就固定了，之后主数据改 BOM、改工艺都不影响在制工单，这是基石 #8。
+     * 表单只提交 {@code bomId} 与 {@code routeId}，两个版本号由 {@link #fillSnapshot} 回读补全，
+     * 因此拦住这两个编号就锁住了 {@code bom_id} {@code bom_version} {@code route_id} {@code route_version}
+     * 四个字段。
+     *
+     * <p>为什么是报错而不是静默沿用原值：计划员改了 BOM 却收不到任何提示，会以为在制工单已经换了版本，
+     * 照新 BOM 去备料。
+     */
+    private void validateVersionSnapshotLocked(ProdOrderDO existed, ProdOrderDO updateObj) {
+        if (!ObjUtil.equal(existed.getBomId(), updateObj.getBomId())
+                || !ObjUtil.equal(existed.getRouteId(), updateObj.getRouteId())) {
+            throw exception(PROD_ORDER_VERSION_SNAPSHOT_LOCKED);
+        }
     }
 
     @Override

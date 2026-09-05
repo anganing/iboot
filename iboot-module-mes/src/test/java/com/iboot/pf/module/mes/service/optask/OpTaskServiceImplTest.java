@@ -95,9 +95,17 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
         reqVO.setSkipPolicy(MesSkipPolicyEnum.NOT_ALLOWED.name());
         reqVO.setPlannedQty(new BigDecimal("100"));
         reqVO.setResId(MesConstants.NONE_ID);
-        reqVO.setStatus(MesOpTaskStatusEnum.PENDING.name());
         reqVO.setRemark("单测数据");
         return reqVO;
+    }
+
+    /**
+     * 表单不再带状态，需要非初始状态的场景直接改库。
+     *
+     * <p>工序任务状态只能由开工、暂停、完工、跳序等动作推进，测试里也不许绕表单塞状态。
+     */
+    private void pushStatus(Long id, String status) {
+        opTaskMapper.updateById(OpTaskDO.builder().id(id).status(status).build());
     }
 
     @Test
@@ -117,6 +125,22 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
         assertEquals(MesOpExecModeEnum.SEQUENTIAL.name(), opTask.getExecMode());
         assertEquals(0, opTask.getCompletedQty().compareTo(BigDecimal.ZERO));
         assertEquals(MesConstants.NONE_ID, opTask.getPrevTaskId());
+        // 状态不由表单维护，新建一律落 PENDING
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), opTask.getStatus());
+    }
+
+    @Test
+    void testUpdateOpTask_statusNotOverwritten() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        pushStatus(id, MesOpTaskStatusEnum.RUNNING.name());
+
+        OpTaskSaveReqVO updateReqVO = buildReqVO("OPT-A", 31L);
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("计划调整");
+        opTaskService.updateOpTask(updateReqVO);
+
+        // 改单不碰状态：加工中的工序不能被表单一键改回待排产
+        assertEquals(MesOpTaskStatusEnum.RUNNING.name(), opTaskMapper.selectById(id).getStatus());
     }
 
     @Test
@@ -152,9 +176,8 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testUpdateOpTask_finalStatusRejected() {
-        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
-        createReqVO.setStatus(MesOpTaskStatusEnum.DONE.name());
-        Long id = opTaskService.createOpTask(createReqVO);
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        pushStatus(id, MesOpTaskStatusEnum.DONE.name());
 
         OpTaskSaveReqVO updateReqVO = buildReqVO("OPT-A", 31L);
         updateReqVO.setId(id);
@@ -180,9 +203,8 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testDeleteOpTask_runningRejected() {
-        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
-        createReqVO.setStatus(MesOpTaskStatusEnum.RUNNING.name());
-        Long id = opTaskService.createOpTask(createReqVO);
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        pushStatus(id, MesOpTaskStatusEnum.RUNNING.name());
 
         assertServiceException(() -> opTaskService.deleteOpTask(id), OP_TASK_STATUS_INVALID);
     }
@@ -238,9 +260,8 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testApplySchedule_skipsStartedTask() {
-        OpTaskSaveReqVO createReqVO = buildReqVO("OPT-A", 31L);
-        createReqVO.setStatus(MesOpTaskStatusEnum.RUNNING.name());
-        Long running = opTaskService.createOpTask(createReqVO);
+        Long running = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        pushStatus(running, MesOpTaskStatusEnum.RUNNING.name());
         Long pending = opTaskService.createOpTask(buildReqVO("OPT-B", 32L));
 
         ApplyScheduleReqDTO reqDTO = buildApplyReqVO(running, 900L,

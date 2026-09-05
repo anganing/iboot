@@ -10,14 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class MesBusinessRulesTest {
 
     @Test
-    void shouldFollowOpTaskStateMachine() {
-        assertEquals("RUNNING", MesBusinessRules.nextOpTaskStatus("PENDING", "start"));
-        assertEquals("PAUSED", MesBusinessRules.nextOpTaskStatus("RUNNING", "pause"));
-        assertEquals("DONE", MesBusinessRules.nextOpTaskStatus("PAUSED", "finish"));
-        assertThrows(RuntimeException.class, () -> MesBusinessRules.nextOpTaskStatus("DONE", "start"));
-    }
-
-    @Test
     void shouldValidateReportAndQualityQuantities() {
         MesBusinessRules.validateFinishQty(dec("10"), dec("9"), dec("1"));
         assertThrows(RuntimeException.class, () -> MesBusinessRules.validateFinishQty(dec("10"), dec("8"), dec("1")));

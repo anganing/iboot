@@ -1,18 +1,28 @@
 package com.iboot.pf.module.mes.api.kit;
 
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
-import com.iboot.pf.module.mes.api.dto.MesCommandDTOs.KitReq;
-import com.iboot.pf.module.mes.api.dto.MesRespDTO;
-import com.iboot.pf.module.mes.service.MesApiService;
-import jakarta.annotation.Resource;
+import com.iboot.pf.module.mes.api.kit.dto.KitCheckReqDTO;
+import com.iboot.pf.module.mes.api.kit.dto.KitCheckRespDTO;
+import com.iboot.pf.module.mes.api.kit.dto.KitSnapshotRespDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
 import java.util.List;
 
 /** 齐套快照 API 实现。库存可用量由 WMS InventoryApi 提供。 */
-@Service @Validated
+@Service
+@Validated
 public class KitSnapshotApiImpl implements KitSnapshotApi {
-    @Resource private MesApiService service;
-    @Override public MesRespDTO checkKitSnapshot(KitReq reqDTO) { return service.checkKit(reqDTO); }
-    @Override @DataPermission(enable = false) public List<MesRespDTO> getKitSnapshotList(Long prodOrderId) { return service.listBy("kit", "prodOrderId", List.of(prodOrderId)); }
+
+    @Override
+    public KitCheckRespDTO checkKitSnapshot(KitCheckReqDTO reqDTO) {
+        throw new UnsupportedOperationException("齐套检查命令尚未接入领域规则");
+    }
+
+    @Override
+    @DataPermission(enable = false)
+    public List<KitSnapshotRespDTO> getKitSnapshotList(Long prodOrderId) {
+        throw new UnsupportedOperationException("齐套快照查询尚未接入领域 Service");
+    }
+
 }

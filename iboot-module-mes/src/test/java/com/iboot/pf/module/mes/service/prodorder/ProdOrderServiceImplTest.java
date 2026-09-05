@@ -87,9 +87,17 @@ class ProdOrderServiceImplTest extends BaseDbUnitTest {
         reqVO.setRouteId(21L);
         reqVO.setDueDate(LocalDateTime.now().plusDays(10));
         reqVO.setPriority(0);
-        reqVO.setStatus(MesProdOrderStatusEnum.DRAFT.name());
         reqVO.setRemark("单测数据");
         return reqVO;
+    }
+
+    /**
+     * 表单不再带状态，需要非初始状态的场景直接改库。
+     *
+     * <p>这正是 T0-04 的用意：状态只能由领域动作推进，测试里也不许绕表单塞状态。
+     */
+    private void pushStatus(Long id, String status) {
+        prodOrderMapper.updateById(new ProdOrderDO().setId(id).setStatus(status));
     }
 
     @Test
@@ -107,6 +115,22 @@ class ProdOrderServiceImplTest extends BaseDbUnitTest {
         assertEquals(0, order.getScrapQty().compareTo(BigDecimal.ZERO));
         assertEquals(MesKitStatusEnum.UNCHECKED.name(), order.getKitStatus());
         assertEquals(MesConstants.INIT_VERSION, order.getVersion());
+        // 状态不由表单维护，新建一律落 DRAFT
+        assertEquals(MesProdOrderStatusEnum.DRAFT.name(), order.getStatus());
+    }
+
+    @Test
+    void testUpdateProdOrder_statusNotOverwritten() {
+        Long id = prodOrderService.createProdOrder(buildReqVO("PO-A"));
+        pushStatus(id, MesProdOrderStatusEnum.RELEASED.name());
+
+        ProdOrderSaveReqVO updateReqVO = buildReqVO("PO-A");
+        updateReqVO.setId(id);
+        updateReqVO.setRemark("交期调整");
+        prodOrderService.updateProdOrder(updateReqVO);
+
+        // 改单不碰状态：表单能改状态就意味着下达、齐套、领料、报工全部环节都可以被绕过
+        assertEquals(MesProdOrderStatusEnum.RELEASED.name(), prodOrderMapper.selectById(id).getStatus());
     }
 
     @Test
@@ -126,9 +150,8 @@ class ProdOrderServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testUpdateProdOrder_finalStatusRejected() {
-        ProdOrderSaveReqVO createReqVO = buildReqVO("PO-A");
-        createReqVO.setStatus(MesProdOrderStatusEnum.CLOSED.name());
-        Long id = prodOrderService.createProdOrder(createReqVO);
+        Long id = prodOrderService.createProdOrder(buildReqVO("PO-A"));
+        pushStatus(id, MesProdOrderStatusEnum.CLOSED.name());
 
         ProdOrderSaveReqVO updateReqVO = buildReqVO("PO-A");
         updateReqVO.setId(id);
@@ -154,9 +177,8 @@ class ProdOrderServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testDeleteProdOrder_releasedRejected() {
-        ProdOrderSaveReqVO createReqVO = buildReqVO("PO-A");
-        createReqVO.setStatus(MesProdOrderStatusEnum.RELEASED.name());
-        Long id = prodOrderService.createProdOrder(createReqVO);
+        Long id = prodOrderService.createProdOrder(buildReqVO("PO-A"));
+        pushStatus(id, MesProdOrderStatusEnum.RELEASED.name());
 
         // 已下达的工单下面挂着作业工单与工序任务，不允许删
         assertServiceException(() -> prodOrderService.deleteProdOrder(id), PROD_ORDER_STATUS_INVALID);

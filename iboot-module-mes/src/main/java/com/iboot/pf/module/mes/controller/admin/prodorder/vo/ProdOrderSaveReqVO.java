@@ -1,11 +1,8 @@
 package com.iboot.pf.module.mes.controller.admin.prodorder.vo;
 
-import com.iboot.pf.framework.common.validation.InEnum;
-import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -19,6 +16,10 @@ import java.time.LocalDateTime;
  * <p>不出现在表单里的字段：物料与单位快照、BOM 与工艺路线版本快照由后端从 mdm 门面取值补全；
  * 已完成数量、累计报废数量由报工推进，创建时归零；下达、实际开工、实际完工时间由业务动作写入；
  * 齐套状态由齐套检查写入；乐观锁版本由框架维护。
+ *
+ * <p><b>状态不在表单里</b>：工单状态只能由领域动作推进（下达、挂起、恢复、关闭、取消），
+ * 创建时由 Service 兜底为 {@code DRAFT}，改单时保持原值。表单能填状态等于任何流程校验都可以
+ * 被绕过——界面上一步就能把新建工单改成已关闭，跳过下达、齐套、领料、报工全部环节。
  */
 @Schema(description = "管理后台 - MES-生产工单新增/修改 Request VO")
 @Data
@@ -79,11 +80,6 @@ public class ProdOrderSaveReqVO {
     @NotNull(message = "优先级不能为空")
     @Min(value = 0, message = "优先级不能小于零")
     private Integer priority;
-
-    @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "DRAFT")
-    @NotEmpty(message = "状态不能为空")
-    @InEnum(MesProdOrderStatusEnum.class)
-    private String status;
 
     @Schema(description = "备注")
     @Size(max = 500, message = "备注长度不能超过 500")
