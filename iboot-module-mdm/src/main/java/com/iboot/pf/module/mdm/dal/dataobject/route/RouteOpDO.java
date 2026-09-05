@@ -72,6 +72,10 @@ public class RouteOpDO extends BaseDO {
      */
     private Boolean faiFlag;
     /**
+     * 跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED
+     */
+    private String skipPolicy;
+    /**
      * 备注
      */
     private String remark;

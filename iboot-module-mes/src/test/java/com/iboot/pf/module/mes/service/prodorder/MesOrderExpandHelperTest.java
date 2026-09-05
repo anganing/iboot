@@ -284,6 +284,50 @@ class MesOrderExpandHelperTest extends BaseDbUnitTest {
         assertServiceException(() -> expandHelper.expand(order), OP_NOT_EXISTS);
     }
 
+    @Test
+    void testExpand_skipPolicySnapshotAllowWithReason() {
+        // 准备：路线工序配置"填原因即可跳序"
+        ProdOrderDO order = mockRoute(List.of(
+                routeOp(ROUTE_OP_CUT, 10, 41L, WC_CUT, null, false,
+                        MesSkipPolicyEnum.ALLOW_WITH_REASON.name())));
+
+        // 调用
+        expandHelper.expand(order);
+
+        // 断言：下达时把路线上的跳序策略快照到工序任务，而不是写死 NOT_ALLOWED
+        assertEquals(MesSkipPolicyEnum.ALLOW_WITH_REASON.name(),
+                taskOf(tasksOf(order.getId()), ROUTE_OP_CUT).getSkipPolicy());
+    }
+
+    @Test
+    void testExpand_skipPolicySnapshotApprovalRequired() {
+        // 准备：路线工序配置"需审批后跳序"
+        ProdOrderDO order = mockRoute(List.of(
+                routeOp(ROUTE_OP_CUT, 10, 41L, WC_CUT, null, false,
+                        MesSkipPolicyEnum.APPROVAL_REQUIRED.name())));
+
+        // 调用
+        expandHelper.expand(order);
+
+        // 断言：快照值与路线配置一致
+        assertEquals(MesSkipPolicyEnum.APPROVAL_REQUIRED.name(),
+                taskOf(tasksOf(order.getId()), ROUTE_OP_CUT).getSkipPolicy());
+    }
+
+    @Test
+    void testExpand_skipPolicyNullFallsBackToNotAllowed() {
+        // 准备：老工艺路线没有 skip_policy，门面返回 null
+        ProdOrderDO order = mockRoute(List.of(
+                routeOp(ROUTE_OP_CUT, 10, 41L, WC_CUT, null, false, null)));
+
+        // 调用
+        expandHelper.expand(order);
+
+        // 断言：兜底 NOT_ALLOWED——mes_op_task.skip_policy 是 NOT NULL 列，落 null 会直接插不进去
+        assertEquals(MesSkipPolicyEnum.NOT_ALLOWED.name(),
+                taskOf(tasksOf(order.getId()), ROUTE_OP_CUT).getSkipPolicy());
+    }
+
     /**
      * 04 文档"工序串联规则"的原型路线：下料 -&gt; 加工 -&gt; （喷漆 ‖ 标识） -&gt; 精加工。
      *
@@ -309,6 +353,14 @@ class MesOrderExpandHelperTest extends BaseDbUnitTest {
         routeOp.setWcId(wcId);
         routeOp.setParallelGroup(parallelGroup);
         routeOp.setKeyFlag(keyFlag);
+        return routeOp;
+    }
+
+    /** 带跳序策略的路线工序桩：跳序策略用例专用，在既有桩的基础上补设 skipPolicy。 */
+    private RouteOpRespDTO routeOp(Long id, int seq, Long opId, Long wcId,
+                                   String parallelGroup, boolean keyFlag, String skipPolicy) {
+        RouteOpRespDTO routeOp = routeOp(id, seq, opId, wcId, parallelGroup, keyFlag);
+        routeOp.setSkipPolicy(skipPolicy);
         return routeOp;
     }
 

@@ -48,4 +48,7 @@ public class RouteOpRespDTO {
     /** 是否首件检验 */
     private Boolean faiFlag;
 
+    /** 跳序策略：NOT_ALLOWED、ALLOW_WITH_REASON、APPROVAL_REQUIRED */
+    private String skipPolicy;
+
 }

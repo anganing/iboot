@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -53,6 +54,10 @@ public class RouteOpSaveReqVO {
     @Schema(description = "是否首件检验", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "是否首件检验不能为空")
     private Boolean faiFlag;
+
+    @Schema(description = "跳序策略", example = "NOT_ALLOWED")
+    @Pattern(regexp = "NOT_ALLOWED|ALLOW_WITH_REASON|APPROVAL_REQUIRED", message = "跳序策略取值不正确")
+    private String skipPolicy;
 
     @Schema(description = "备注")
     private String remark;

@@ -161,7 +161,8 @@ public class MesOrderExpandHelper {
                     .nextTaskId(MesConstants.NONE_ID)
                     .execMode(resolveExecMode(routeOp))
                     .qcMode(MesQcModeEnum.NONE.name())
-                    .skipPolicy(MesSkipPolicyEnum.NOT_ALLOWED.name())
+                    .skipPolicy(StrUtil.blankToDefault(
+                            routeOp.getSkipPolicy(), MesSkipPolicyEnum.NOT_ALLOWED.name()))
                     .keyFlag(Boolean.TRUE.equals(routeOp.getKeyFlag()))
                     .plannedQty(order.getQty())
                     .completedQty(MesConstants.ZERO_QTY)
