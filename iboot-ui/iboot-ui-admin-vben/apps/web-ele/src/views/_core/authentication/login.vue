@@ -130,12 +130,10 @@ const formSchema = computed((): VbenFormSchema[] => {
       },
       fieldName: 'tenantId',
       label: $t('authentication.tenant'),
-      // 租户不再由用户手选，改为 fetchTenantList 自动选中，故去掉必选校验
+      rules: z.string().min(1, { message: $t('authentication.tenantTip') }),
       dependencies: {
         triggerFields: ['tenantId'],
-        // 关闭租户选择的渲染（v-if 语义）：租户编号仍由 fetchTenantList 写入 accessStore，
-        // 并由请求拦截器带在 tenant-id 请求头上，后端多租户不受影响
-        if: false,
+        if: tenantEnable,
         trigger(values) {
           if (values.tenantId) {
             accessStore.setTenantId(Number(values.tenantId));
