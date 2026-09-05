@@ -36,6 +36,7 @@ export namespace MdmRouteApi {
     parallelGroup?: string;
     keyFlag: boolean;
     faiFlag: boolean;
+    skipPolicy?: string;
     remark?: string;
     materialCount?: number;
     materials?: RouteOpMaterial[];

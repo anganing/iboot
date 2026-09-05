@@ -255,6 +255,16 @@ export function useRouteOpFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'skipPolicy',
+      label: '跳序策略',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.MES_SKIP_POLICY, 'string'),
+        placeholder: '为空按不允许跳序处理',
+        clearable: true,
+      },
+    },
+    {
       fieldName: 'remark',
       label: '备注',
       component: 'Input',

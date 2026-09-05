@@ -23,6 +23,7 @@ public class RouteOpRespVO {
     private String parallelGroup;
     private Boolean keyFlag;
     private Boolean faiFlag;
+    private String skipPolicy;
     private String remark;
     private LocalDateTime createTime;
     private Integer materialCount;

@@ -122,6 +122,15 @@ const operationColumns: VxeTableGridOptions<MdmRouteApi.RouteOp>['columns'] = [
   { field: 'seq', title: '序号', width: 70 },
   { field: 'opCode', title: '工序编码', minWidth: 120 },
   { field: 'opName', title: '工序名称', minWidth: 140 },
+  {
+    field: 'skipPolicy',
+    title: '跳序策略',
+    minWidth: 110,
+    cellRender: {
+      name: 'CellDict',
+      props: { type: DICT_TYPE.MES_SKIP_POLICY },
+    },
+  },
   { field: 'materialCount', title: '用料数', width: 80 },
   {
     title: '操作',

@@ -71,6 +71,7 @@
             <result property="parallelGroup" column="ro_parallel_group"/>
             <result property="keyFlag" column="ro_key_flag"/>
             <result property="faiFlag" column="ro_fai_flag"/>
+            <result property="skipPolicy" column="ro_skip_policy"/>
             <result property="remark" column="ro_remark"/>
             <result property="createTime" column="ro_create_time"/>
             <result property="materialCount" column="ro_material_count"/>
@@ -111,6 +112,7 @@
         ro.parallel_group AS ro_parallel_group,
         ro.key_flag AS ro_key_flag,
         ro.fai_flag AS ro_fai_flag,
+        ro.skip_policy AS ro_skip_policy,
         ro.remark AS ro_remark,
         ro.create_time AS ro_create_time,
         COUNT(rom.id) OVER (PARTITION BY ro.id) AS ro_material_count,
