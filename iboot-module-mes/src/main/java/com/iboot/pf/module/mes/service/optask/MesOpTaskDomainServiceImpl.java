@@ -22,6 +22,8 @@ import com.iboot.pf.module.mes.enums.MesWorkOrderStateMachine;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.MesBusinessRules;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
+import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainService;
+import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskActionBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
@@ -84,6 +86,8 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
     private MesStartGateChecker startGateChecker;
     @Resource
     private MesProgressPropagator progressPropagator;
+    @Resource
+    private MesOpSkipDomainService opSkipDomainService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -118,10 +122,29 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
     }
 
     @Override
-    public void skipOpTask(MesOpTaskActionBO bo) {
-        throw new UnsupportedOperationException(
-                "跳序实现在 T1-17：要按 skip_policy 分三种策略处置（拒绝 / 填原因立即生效 / 走 BPM 审批）"
-                        + "并写 mes_op_skip_record，与另外四个动作不是一个量级");
+    @Transactional(rollbackFor = Exception.class)
+    public void skipOpTask(MesOpSkipBO bo) {
+        OpTaskDO task = requireOpTask(bo.getOpTaskId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.SKIP_OP_TASK, task.getTaskNo());
+        commandService.executeVoid(MesCommandTypeEnum.SKIP_OP_TASK, command,
+                () -> doSkip(task, bo, command.getIdempotencyKey()));
+    }
+
+    /**
+     * 跳序：策略分流与跳过记录交给跳序域，后序推进留在本类。
+     *
+     * <p>为什么不整个搬到跳序域：{@link #advanceNextTasks} 已经处理了并行组的两处语义
+     * （本工序在组里时同组全跳完才推后序、后序在组里时整组一起推，且组的范围按生产工单取），
+     * 在跳序域另写一份必然漏掉其中之一。跳序在这一点上与完工完全同构——都是"本工序不再占着后序"。
+     *
+     * <p>{@code APPROVAL_REQUIRED} 时跳序域返回未生效，这里连后序都不推：审批没过，这道工序还在链上。
+     */
+    private void doSkip(OpTaskDO task, MesOpSkipBO bo, String idempotencyKey) {
+        WorkOrderDO workOrder = requireWorkOrder(task.getWorkOrderId());
+        if (!opSkipDomainService.skip(task, workOrder.getProdOrderId(), bo, idempotencyKey)) {
+            return;
+        }
+        advanceNextTasks(task, workOrder.getProdOrderId(), idempotencyKey);
     }
 
     /**

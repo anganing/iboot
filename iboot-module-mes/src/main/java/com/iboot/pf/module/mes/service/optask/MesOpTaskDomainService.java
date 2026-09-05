@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mes.service.optask;
 
+import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskActionBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
 
@@ -63,13 +64,17 @@ public interface MesOpTaskDomainService {
     /**
      * 跳序：{@code PENDING} / {@code READY} -&gt; {@code SKIPPED}。
      *
-     * <p>**本任务只声明接口，实现在 T1-17**：跳序要按 {@code skip_policy} 分三种策略处置
-     * （直接拒绝 / 填原因立即生效 / 走 BPM 审批），还要写 {@code mes_op_skip_record}，
-     * 与另外四个动作不是一个量级，混在本任务里做会把两件事都做半截。
+     * <p>按 {@code mes_op_task.skip_policy} 分三路，策略对照表见
+     * {@link com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainService}：
+     * {@code NOT_ALLOWED} 直接拒绝；{@code ALLOW_WITH_REASON} 写跳过记录、工序转 {@code SKIPPED}、
+     * 写 {@code SKIP} 流水、把后序推到 {@code READY}；{@code APPROVAL_REQUIRED} 只写待审批记录，
+     * <b>工序状态一行不动</b>。
      *
-     * @param bo 动作参数，幂等键格式 {@code UI:{taskNo}:SKIP_OP_TASK:0}
-     * @throws UnsupportedOperationException 实现落在 T1-17
+     * <p>入口留在本服务而不是全都搬到跳序域：后序推进要用完工那一份逻辑（后序在并行组里要整组一起推、
+     * 组的范围按生产工单取），另写一份必然漏掉其中一件。
+     *
+     * @param bo 跳序参数，幂等键格式 {@code UI:{taskNo}:SKIP_OP_TASK:0}
      */
-    void skipOpTask(MesOpTaskActionBO bo);
+    void skipOpTask(MesOpSkipBO bo);
 
 }

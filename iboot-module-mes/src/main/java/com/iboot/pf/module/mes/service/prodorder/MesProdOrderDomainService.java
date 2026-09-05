@@ -1,6 +1,8 @@
 package com.iboot.pf.module.mes.service.prodorder;
 
+import com.iboot.pf.module.mes.service.prodorder.bo.MesCloseOrderBO;
 import com.iboot.pf.module.mes.service.prodorder.bo.MesOrderActionBO;
+import com.iboot.pf.module.mes.service.prodorder.bo.MesOrderCloseResultBO;
 import com.iboot.pf.module.mes.service.prodorder.bo.MesReleaseOrderBO;
 
 /**
@@ -47,5 +49,20 @@ public interface MesProdOrderDomainService {
      * @param bo 动作参数，幂等键格式 {@code UI:{orderNo}:CANCEL_PROD_ORDER:0}
      */
     void cancelProdOrder(MesOrderActionBO bo);
+
+    /**
+     * 关闭生产工单：{@code DONE} -&gt; {@code CLOSED}，并做账目收尾。
+     *
+     * <p>四件事缺一件账就不平（{@link MesOrderCloseHelper}）：释放仍挂在未确认领料申请上的剩余预留、
+     * 按实际产量给倒冲件反冲扣料、需求下全部工单收尾时回写需求 {@code DONE}、写一条 {@code COMPLETE} 流水。
+     * 不释放预留，那部分可用量会被一张已收尾的工单永久占着；不反冲，倒冲件的消耗一分钱都不入账。
+     *
+     * <p><b>多余领料不自动退回</b>，只把清单返回给调用方。车间关单时料可能还在工位上，
+     * 自动退料等于把还在用的料从账上收走。
+     *
+     * @param bo 关闭参数，幂等键格式 {@code UI:{orderNo}:CLOSE_PROD_ORDER:0}
+     * @return 未退回的多余领料清单
+     */
+    MesOrderCloseResultBO closeProdOrder(MesCloseOrderBO bo);
 
 }

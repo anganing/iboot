@@ -45,12 +45,21 @@ public enum MesCommandTypeEnum {
     FINISH_OP_TASK,
     /** 工序跳序。 */
     SKIP_OP_TASK,
+    /** 撤销工序跳序。 */
+    REVOKE_OP_SKIP,
     /**
      * 取消报工。
      *
      * <p>提交报工不在这里：{@code mes_prod_report} 自带 {@code idempotency_key} 唯一索引，走列判重。
      * 取消改的是那条记录的状态，没有新载体可落键，因此进命令记录。
      */
-    CANCEL_PROD_REPORT
+    CANCEL_PROD_REPORT,
+    /**
+     * 完工入库。
+     *
+     * <p>MES 侧没有承载入库的业务表，因此走命令记录：{@code result_id} 落 WMS 入库单编号，
+     * 重复下发时直接返回首次那张单，不会产生第二笔过账。
+     */
+    FINISH_INBOUND
 
 }

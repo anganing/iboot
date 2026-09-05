@@ -32,6 +32,7 @@ class MesOpTaskStateMachineTest {
             MesOpTaskStateMachine.ACTION_FINISH,
             MesOpTaskStateMachine.ACTION_HOLD,
             MesOpTaskStateMachine.ACTION_SKIP,
+            MesOpTaskStateMachine.ACTION_REVOKE_SKIP,
             MesOpTaskStateMachine.ACTION_CANCEL);
 
     @Test
@@ -131,7 +132,13 @@ class MesOpTaskStateMachineTest {
 
     @Test
     void shouldRejectAnyActionOnSkipped() {
-        assertRejectAllActions(MesOpTaskStatusEnum.SKIPPED);
+        // 已跳过只接受 revokeSkip（撤销跳序退回待开工），其余动作全拒。
+        // 它与 DONE / CANCELLED 的区别就在这一条出边上：做完的活和取消的活回不来，跳过的活可以捡回来
+        ALL_ACTIONS.stream()
+                .filter(action -> !MesOpTaskStateMachine.ACTION_REVOKE_SKIP.equals(action))
+                .forEach(action -> assertReject(MesOpTaskStatusEnum.SKIPPED, action));
+        assertEquals(MesOpTaskStatusEnum.READY.name(), MesOpTaskStateMachine.next(
+                MesOpTaskStatusEnum.SKIPPED.name(), MesOpTaskStateMachine.ACTION_REVOKE_SKIP));
     }
 
     @Test
@@ -175,13 +182,33 @@ class MesOpTaskStateMachineTest {
     @Test
     void shouldReportTerminalStatus() {
         assertTrue(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.DONE.name()));
-        assertTrue(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.SKIPPED.name()));
         assertTrue(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.CANCELLED.name()));
+        // SKIPPED 在状态机口径下不是终态：跳序可撤销，有 revokeSkip 一条出边。
+        // MesOpTaskStatusEnum.isFinal(SKIPPED) 仍是 true，那是"表单不可再改"的另一套口径
+        assertFalse(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.SKIPPED.name()));
         assertFalse(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.PENDING.name()));
         assertFalse(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.RUNNING.name()));
         assertFalse(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.QC_WAITING.name()));
         assertFalse(MesOpTaskStateMachine.isTerminal(MesOpTaskStatusEnum.HOLD.name()));
         assertFalse(MesOpTaskStateMachine.isTerminal("NOT_A_STATUS"));
+    }
+
+    @Test
+    void shouldRevokeSkipBackToReady() {
+        // 撤销跳序：跳过记录置 REVOKED、工序退回待开工重新排队。这条边让 SKIPPED 不再是终态
+        assertEquals(MesOpTaskStatusEnum.READY.name(), MesOpTaskStateMachine.next(
+                MesOpTaskStatusEnum.SKIPPED.name(), MesOpTaskStateMachine.ACTION_REVOKE_SKIP));
+        // 真终态没有这条出边
+        assertServiceException(() -> MesOpTaskStateMachine.next(
+                        MesOpTaskStatusEnum.DONE.name(), MesOpTaskStateMachine.ACTION_REVOKE_SKIP),
+                OP_TASK_STATUS_INVALID);
+        assertServiceException(() -> MesOpTaskStateMachine.next(
+                        MesOpTaskStatusEnum.CANCELLED.name(), MesOpTaskStateMachine.ACTION_REVOKE_SKIP),
+                OP_TASK_STATUS_INVALID);
+        // 没跳过的工序也撤不了
+        assertServiceException(() -> MesOpTaskStateMachine.next(
+                        MesOpTaskStatusEnum.READY.name(), MesOpTaskStateMachine.ACTION_REVOKE_SKIP),
+                OP_TASK_STATUS_INVALID);
     }
 
     @Test

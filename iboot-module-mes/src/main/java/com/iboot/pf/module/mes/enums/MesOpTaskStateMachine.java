@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mes.enums;
 
+import cn.hutool.core.util.ObjUtil;
 import com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil;
 
 import java.util.Map;
@@ -9,8 +10,8 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_IN
 /**
  * 工序任务状态机。工序任务是执行、报工、检验的最小单位，状态只能由领域动作经本类推进，不允许表单直填。
  *
- * <p>迁移表逐条对应 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"工序任务 9 态"状态图，共 14 条边
- * （其中 PENDING -&gt; READY 有 applySchedule 与 prevDone 两个动作入口，故 15 个状态动作组合）：
+ * <p>迁移表逐条对应 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"工序任务 9 态"状态图，共 15 条边
+ * （其中 PENDING -&gt; READY 有 applySchedule 与 prevDone 两个动作入口，故 16 个状态动作组合）：
  * <pre>
  * PENDING    -- applySchedule / prevDone --&gt; READY
  * PENDING    -- skip            --&gt; SKIPPED      PENDING    -- cancel --&gt; CANCELLED
@@ -21,10 +22,16 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_IN
  * RUNNING    -- finish          --&gt; DONE
  * RUNNING    -- hold            --&gt; HOLD         HOLD       -- resume --&gt; RUNNING
  * QC_WAITING -- qcPass          --&gt; RUNNING      QC_WAITING -- qcPassAndFinish --&gt; DONE
+ * SKIPPED    -- revokeSkip      --&gt; READY
  * </pre>
  *
  * <p>PENDING 与 READY 的区别是 APS 闭环的关键：PENDING 还没有计划时间与资源，READY 表示计划已下达可以干。
  * 两者合称未开工态，语义由 {@link MesOpTaskStatusEnum#isNotStarted} 定义，也正是允许 skip 与 cancel 的两个状态。
+ *
+ * <p><b>SKIPPED 不是终态</b>：跳序可以撤销（{@code mes_op_skip_record} 落 {@code REVOKED}，工序退回 READY
+ * 重新排进队列），所以它有 revokeSkip 这条出边。与 DONE / CANCELLED 不同——那两个是真终态，做完的活和取消的活
+ * 都回不来。这条边由 T1-17 的撤销跳序动作驱动；补边之前撤销只能用条件更新绕开本类，那是唯一一处绕开状态机的
+ * 写法，补边后已改为经本类裁决。
  *
  * <p>状态取值一律引用 {@link MesOpTaskStatusEnum}，不写字符串字面量。非法组合抛
  * {@link ErrorCodeConstants#OP_TASK_STATUS_INVALID}，不返回 null。
@@ -53,6 +60,8 @@ public final class MesOpTaskStateMachine {
     public static final String ACTION_HOLD = "hold";
     /** 跳序：仅未开工态允许，是否放行还要看 skip_policy。 */
     public static final String ACTION_SKIP = "skip";
+    /** 撤销跳序：跳过记录置 REVOKED，工序退回待开工重新排进队列。 */
+    public static final String ACTION_REVOKE_SKIP = "revokeSkip";
     /** 随工单取消：仅未开工态允许。 */
     public static final String ACTION_CANCEL = "cancel";
 
@@ -78,7 +87,9 @@ public final class MesOpTaskStateMachine {
                     ACTION_QC_PASS, MesOpTaskStatusEnum.RUNNING.name(),
                     ACTION_QC_PASS_AND_FINISH, MesOpTaskStatusEnum.DONE.name()),
             MesOpTaskStatusEnum.HOLD.name(), Map.of(
-                    ACTION_RESUME, MesOpTaskStatusEnum.RUNNING.name()));
+                    ACTION_RESUME, MesOpTaskStatusEnum.RUNNING.name()),
+            MesOpTaskStatusEnum.SKIPPED.name(), Map.of(
+                    ACTION_REVOKE_SKIP, MesOpTaskStatusEnum.READY.name()));
 
     private MesOpTaskStateMachine() {
     }
@@ -100,12 +111,17 @@ public final class MesOpTaskStateMachine {
     }
 
     /**
-     * 是否终态：已完工、已跳过、已取消，三者都没有出边。
+     * 是否终态：已完工与已取消，两者都没有出边。
      *
-     * <p>口径与 {@link MesOpTaskStatusEnum#isFinal} 一致，直接复用避免两处漂移。
+     * <p>注意与 {@link MesOpTaskStatusEnum#isFinal} 的差别：那里把 SKIPPED 也算终态（表单不可再改，
+     * 见 {@code OpTaskServiceImpl} 的编辑拦截），而状态机里 SKIPPED 有 revokeSkip 一条出边——跳序可以
+     * 撤销、工序退回待开工重新排队，所以状态机口径下它不是终态。同样的语义分岔在
+     * {@link MesProdOrderStateMachine#isTerminal} 与 {@link MesProdOrderStatusEnum#isFinal} 之间也存在
+     * （那里是 DONE）。
      */
     public static boolean isTerminal(String status) {
-        return MesOpTaskStatusEnum.isFinal(status);
+        return ObjUtil.equal(MesOpTaskStatusEnum.DONE.name(), status)
+                || ObjUtil.equal(MesOpTaskStatusEnum.CANCELLED.name(), status);
     }
 
     /**

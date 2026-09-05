@@ -2,10 +2,12 @@ package com.iboot.pf.module.mes.service.optask;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.command.MesCommandRecordMapper;
+import com.iboot.pf.module.mes.dal.mysql.opskiprecord.OpSkipRecordMapper;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
 import com.iboot.pf.module.mes.dal.mysql.wiptxn.WipTxnMapper;
@@ -16,14 +18,20 @@ import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesKitStatusEnum;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
+import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
+import com.iboot.pf.module.mes.enums.MesSkipReasonTypeEnum;
+import com.iboot.pf.module.mes.enums.MesSkipRecordStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
+import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainServiceImpl;
+import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskActionBO;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateContext;
+import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.MesProgressPropagator;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import jakarta.annotation.Resource;
@@ -51,7 +59,6 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_IN
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -71,7 +78,7 @@ import static org.mockito.Mockito.when;
  * {@code PENDING -> RUNNING} 这条边，一步到位就说明有人绕开状态机硬写了状态。
  */
 @Import({MesOpTaskDomainServiceImpl.class, MesProgressPropagator.class,
-        MesCommandServiceImpl.class, MesWipTxnRecorder.class})
+        MesCommandServiceImpl.class, MesWipTxnRecorder.class, MesOpSkipDomainServiceImpl.class})
 class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final String SOURCE_MODULE = "UI";
@@ -97,9 +104,14 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
     private WipTxnMapper wipTxnMapper;
     @Resource
     private MesCommandRecordMapper commandRecordMapper;
+    @Resource
+    private OpSkipRecordMapper opSkipRecordMapper;
 
     @MockitoBean
     private MesStartGateChecker startGateChecker;
+    /** 完工入库由 T1-15 接在生产工单转 DONE 那一步，本类只验状态与流水，把它 mock 掉。 */
+    @MockitoBean
+    private MesFinishInboundService finishInboundService;
     @MockitoBean
     private MesCodeService codeService;
 
@@ -512,12 +524,55 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testSkipOpTask_notImplementedInThisTask() {
-        // 跳序只留接口：三种 skip_policy 的处置与 mes_op_skip_record 在 T1-17
-        OpTaskDO task = insertTask(runningWorkOrder(), 10, "下料", null, MesOpTaskStatusEnum.READY);
+    void testSkipOpTask_effectiveAdvancesNextTask() {
+        // 准备：下料（填原因即可跳序）-> 折弯（待排产）。三种策略的落库形态由 T1-17 的测试类覆盖，
+        // 这里只验本类负责的那一半：转调跳序域之后，后序推进走的是完工那一份逻辑
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null, MesOpTaskStatusEnum.READY);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null, MesOpTaskStatusEnum.PENDING);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        setSkipPolicy(cut, MesSkipPolicyEnum.ALLOW_WITH_REASON);
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> domainService.skipOpTask(actionBO(task, null)));
+        // 调用
+        domainService.skipOpTask(skipBO(cut, MesSkipReasonTypeEnum.NOT_APPLICABLE, "该型号不需要下料", null));
+
+        // 断言：工序转已跳过、后序转待开工，跳过记录已生效
+        assertEquals(MesOpTaskStatusEnum.SKIPPED.name(), opTaskMapper.selectById(cut.getId()).getStatus());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+        assertEquals(1L, opSkipRecordMapper.selectCount());
+        OpSkipRecordDO record = opSkipRecordMapper.selectList().get(0);
+        assertEquals(MesSkipRecordStatusEnum.EFFECTIVE.name(), record.getStatus());
+        // 两条流水：本工序的 SKIP 与后序就绪的 MOVE，后者证明复用的是 advanceNextTasks 那一份
+        List<WipTxnDO> cutTxns = txnsOf(MesBizTypeEnum.OP_TASK, cut.getTaskNo());
+        assertEquals(1, cutTxns.size());
+        assertEquals(MesWipTxnTypeEnum.SKIP.name(), cutTxns.get(0).getTxnType());
+        List<WipTxnDO> bendTxns = txnsOf(MesBizTypeEnum.OP_TASK, bend.getTaskNo());
+        assertEquals(1, bendTxns.size());
+        assertEquals(MesWipTxnTypeEnum.MOVE.name(), bendTxns.get(0).getTxnType());
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), bendTxns.get(0).getFromStatus());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), bendTxns.get(0).getToStatus());
+    }
+
+    @Test
+    void testSkipOpTask_approvalRequiredKeepsNextPending() {
+        // 准备：同一条链，但下料要审批才能跳
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null, MesOpTaskStatusEnum.READY);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null, MesOpTaskStatusEnum.PENDING);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        setSkipPolicy(cut, MesSkipPolicyEnum.APPROVAL_REQUIRED);
+
+        // 调用
+        domainService.skipOpTask(skipBO(cut, MesSkipReasonTypeEnum.PROCESS_CHANGE, "工艺变更", "后序无影响"));
+
+        // 断言：审批没过，工序与后序一行都不动，只留一条待审批记录、零流水。
+        // 后序若被推到 READY，等于审批人还没看车间就已经跳过去了
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(cut.getId()).getStatus());
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+        assertEquals(1L, opSkipRecordMapper.selectCount());
+        assertEquals(0L, wipTxnMapper.selectCount());
     }
 
     @Test
@@ -736,6 +791,25 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
         task.setCompletedQty(new BigDecimal(completedQty)).setScrapQty(new BigDecimal(scrapQty));
         opTaskMapper.updateById(new OpTaskDO().setId(task.getId())
                 .setCompletedQty(task.getCompletedQty()).setScrapQty(task.getScrapQty()));
+    }
+
+    /** 给跳序策略：下达时一律落 NOT_ALLOWED，要跳序必须先把策略改掉。不动 version。 */
+    private void setSkipPolicy(OpTaskDO task, MesSkipPolicyEnum policy) {
+        task.setSkipPolicy(policy.name());
+        opTaskMapper.updateById(new OpTaskDO().setId(task.getId()).setSkipPolicy(policy.name()));
+    }
+
+    /** 跳序参数，影响说明只在需审批时必填。 */
+    private MesOpSkipBO skipBO(OpTaskDO task, MesSkipReasonTypeEnum reasonType,
+                               String reason, String effectRemark) {
+        MesOpSkipBO bo = new MesOpSkipBO();
+        bo.setOpTaskId(task.getId());
+        bo.setSourceModule(SOURCE_MODULE);
+        bo.setSourceBizNo(task.getTaskNo());
+        bo.setSkipReasonType(reasonType.name());
+        bo.setReason(reason);
+        bo.setEffectRemark(effectRemark);
+        return bo;
     }
 
     /**

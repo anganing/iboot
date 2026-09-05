@@ -15,6 +15,7 @@ import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStateMachine;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
+import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import com.iboot.pf.module.mes.service.wiptxn.bo.MesWipTxnBO;
 import jakarta.annotation.Resource;
@@ -67,6 +68,8 @@ public class MesProgressPropagator {
     private ProdOrderMapper prodOrderMapper;
     @Resource
     private MesWipTxnRecorder wipTxnRecorder;
+    @Resource
+    private MesFinishInboundService finishInboundService;
 
     /**
      * 把一次数量变化推进到三级，并按数量与状态判定作业工单、生产工单是否完工。
@@ -203,6 +206,9 @@ public class MesProgressPropagator {
         recordDoneTxn(order.getId(), MesConstants.NONE_ID, trigger, completedQty,
                 fromStatus, toStatus, MesBizTypeEnum.PROD_ORDER, order.getOrderNo(),
                 idempotencyKey + KEY_SEPARATOR + KEY_PROD_ORDER_DONE);
+        // 工单一转 DONE 就把成品入库（04 文档流程七）：入库量取"已完工减已入库"的剩余，
+        // 成品物料没配默认仓库与库位时静默跳过，不拿主数据缺失去挡车间完工
+        finishInboundService.autoInboundOnOrderDone(order.getId(), trigger.getWorkOrderId());
     }
 
     /**

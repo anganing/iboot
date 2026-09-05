@@ -21,7 +21,9 @@ import com.iboot.pf.module.mes.enums.MesProdOrderStateMachine;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStateMachine;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
+import com.iboot.pf.module.mes.service.prodorder.bo.MesCloseOrderBO;
 import com.iboot.pf.module.mes.service.prodorder.bo.MesOrderActionBO;
+import com.iboot.pf.module.mes.service.prodorder.bo.MesOrderCloseResultBO;
 import com.iboot.pf.module.mes.service.prodorder.bo.MesReleaseOrderBO;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
@@ -72,6 +74,8 @@ public class MesProdOrderDomainServiceImpl implements MesProdOrderDomainService 
     private MesWipTxnRecorder wipTxnRecorder;
     @Resource
     private MesOrderExpandHelper expandHelper;
+    @Resource
+    private MesOrderCloseHelper closeHelper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -101,6 +105,37 @@ public class MesProdOrderDomainServiceImpl implements MesProdOrderDomainService 
     public void cancelProdOrder(MesOrderActionBO bo) {
         execute(bo, MesCommandTypeEnum.CANCEL_PROD_ORDER, MesProdOrderStateMachine.ACTION_CANCEL,
                 MesWipTxnTypeEnum.SKIP, this::cascadeCancel);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MesOrderCloseResultBO closeProdOrder(MesCloseOrderBO bo) {
+        ProdOrderDO order = requireProdOrder(bo.getProdOrderId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.CLOSE_PROD_ORDER, order.getOrderNo());
+        commandService.executeVoid(MesCommandTypeEnum.CLOSE_PROD_ORDER, command,
+                () -> doClose(order, bo, command.getIdempotencyKey()));
+        // 清单在幂等外算：它是只读结论且不受关闭影响（关闭不退料），放进 executeVoid 里的话
+        // 幂等命中时 lambda 不执行，重复请求会拿到一张空清单，而车间手上明明还有料
+        return closeHelper.inspectUnreturned(order);
+    }
+
+    /**
+     * 关闭的两步：推状态与账目收尾。
+     *
+     * <p>状态先推：{@code DONE -> CLOSED} 由状态机裁决，非 {@code DONE} 在这一步就被拦下，
+     * 一笔预留都不会被释放。收尾在后：它要动 WMS 的库存，只有确认这张工单真的能关才动手。
+     *
+     * <p>流水记 {@code COMPLETE} 且数量记整单完成数：关闭是工单生命周期的收尾，
+     * 与工序完工同类型，由 {@code from/to} 状态区分。
+     */
+    private void doClose(ProdOrderDO order, MesCloseOrderBO bo, String idempotencyKey) {
+        String fromStatus = order.getStatus();
+        String toStatus = MesProdOrderStateMachine.next(fromStatus, MesProdOrderStateMachine.ACTION_CLOSE);
+        advanceProdOrder(order, ProdOrderDO.builder().status(toStatus).build());
+        order.setStatus(toStatus);
+        closeHelper.settle(order, bo, idempotencyKey);
+        recordOrderTxn(order, MesWipTxnTypeEnum.COMPLETE, fromStatus, toStatus,
+                order.getCompletedQty(), idempotencyKey, bo.getReason());
     }
 
     /**

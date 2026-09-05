@@ -22,10 +22,12 @@ import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
+import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainServiceImpl;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
+import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesCancelReportBO;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesSubmitReportBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
@@ -106,6 +108,12 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
 
     @MockitoBean
     private MesStartGateChecker startGateChecker;
+    /** 完工入库由 T1-15 接在生产工单转 DONE 那一步，本类只验推进口径，把它 mock 掉。 */
+    @MockitoBean
+    private MesFinishInboundService finishInboundService;
+    /** 跳序由 T1-17 实现，本类装 T1-13 的工序动作只为触发上卷，跳序域用不到。 */
+    @MockitoBean
+    private MesOpSkipDomainService opSkipDomainService;
     @MockitoBean
     private MesCodeService codeService;
 

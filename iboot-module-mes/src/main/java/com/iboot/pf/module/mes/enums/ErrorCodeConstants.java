@@ -39,6 +39,14 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_064_001_007, "生产工单正被其他操作更新，请刷新后重试");
     ErrorCode PROD_ORDER_WORKSHOP_REQUIRED =
             new ErrorCode(1_064_001_008, "生产工单未指派车间，下达前请先指定车间");
+    ErrorCode PROD_ORDER_INBOUND_QTY_EXCEEDED =
+            new ErrorCode(1_064_001_009, "生产工单({})本次完工入库 {}，累计入库 {} 超过已完工数量 {}");
+    ErrorCode PROD_ORDER_INBOUND_STOCK_REQUIRED =
+            new ErrorCode(1_064_001_010, "成品物料({})未配置默认仓库与默认库位，无法完工入库");
+    ErrorCode PROD_ORDER_BACKFLUSH_STOCK_REQUIRED =
+            new ErrorCode(1_064_001_011, "倒冲物料({})未配置默认仓库与默认库位，无法反冲扣料");
+    ErrorCode PROD_ORDER_BACKFLUSH_WH_CONFLICT =
+            new ErrorCode(1_064_001_012, "倒冲物料({})的默认仓库互不相同，关闭工单时请指定统一的发料仓库");
 
     // ========== 工序任务 ==========
     ErrorCode OP_TASK_STATUS_INVALID = new ErrorCode(1_064_002_000, "工序任务当前状态不允许该操作");
@@ -184,6 +192,11 @@ public interface ErrorCodeConstants {
     ErrorCode OP_SKIP_NOT_ALLOWED = new ErrorCode(1_064_025_001, "该工序任务的跳序策略不允许跳过");
     ErrorCode OP_SKIP_APPROVER_REQUIRED = new ErrorCode(1_064_025_002, "审批通过或驳回时必须填写审批人");
     ErrorCode OP_SKIP_APPROVE_REQUIRED = new ErrorCode(1_064_025_003, "该工序任务跳序需要审批通过后才能生效");
+    ErrorCode OP_SKIP_REASON_REQUIRED = new ErrorCode(1_064_025_004, "跳序必须填写原因类型与原因说明");
+    ErrorCode OP_SKIP_EFFECT_REMARK_REQUIRED =
+            new ErrorCode(1_064_025_005, "需审批的跳序必须填写对后续工序、质检及排程的影响说明");
+    ErrorCode OP_SKIP_RECORD_STATUS_INVALID =
+            new ErrorCode(1_064_025_006, "工序跳过记录当前状态不允许该操作");
 
     // ========== RGV 工位流转任务 ==========
     ErrorCode RGV_TASK_NOT_EXISTS = new ErrorCode(1_064_026_000, "RGV 工位流转任务不存在");
