@@ -3,7 +3,9 @@ package com.iboot.pf.module.mes.service.optask.gate.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateContext;
@@ -33,6 +35,9 @@ public class PrevDoneChecker implements MesStartGateItem {
 
     @Resource
     private OpTaskMapper opTaskMapper;
+
+    @Resource
+    private WorkOrderMapper workOrderMapper;
 
     @Override
     public String name() {
@@ -70,13 +75,41 @@ public class PrevDoneChecker implements MesStartGateItem {
     /**
      * 要等的前序集合：前序不在并行组里就只等它，在并行组里就等同组全部。
      *
-     * <p>同组范围限定在同一作业工单内：{@code parallel_group} 只是个字符串标记，
-     * 不限工单的话别的工单里同名的并行组也会被算进来。
+     * <p><b>同组范围是同一生产工单，不是同一作业工单。</b>下达时 {@code MesOrderExpandHelper.groupIntoSteps}
+     * 按 {@code parallel_group} 在整条路线内分组，而作业工单是按工作中心建的，所以同一个并行组的工序
+     * 会因工作中心不同落进不同的作业工单——04 文档的"喷漆 ‖ 标识"就是这种情形（喷漆在喷漆房、标识在
+     * 打标工位）。按作业工单取组会把这种并行组切成两个单元素组，"同组全部完成"退化成"代表工序完成"，
+     * 装配会在标识还没做完时就被放行。
+     *
+     * <p>取法与 {@code MesOpTaskDomainServiceImpl.advanceNextTasks} 保持同一口径：先按前序所属作业工单
+     * 反查生产工单，再取该生产工单名下全部作业工单的工序任务，最后在内存里按 {@code parallel_group} 过滤。
+     * 多两次查询只发生在"前序确实在并行组里"的情况下，且门禁是低频动作。
+     *
+     * <p>组内查不到任何记录时退化成只有自己：{@code parallel_group} 是自由字符串，数据不全时门禁不该
+     * 因此把人挡住。
      */
     private List<OpTaskDO> requiredTasks(OpTaskDO prev) {
         if (StrUtil.isBlank(prev.getParallelGroup())) {
             return List.of(prev);
         }
+        WorkOrderDO workOrder = workOrderMapper.selectById(prev.getWorkOrderId());
+        if (workOrder == null || workOrder.getProdOrderId() == null) {
+            // 作业工单查不到时退回作业工单范围，至少不比改动前差
+            return groupTasksInWorkOrder(prev);
+        }
+        List<Long> workOrderIds = workOrderMapper
+                .selectListByProdOrderIds(List.of(workOrder.getProdOrderId()))
+                .stream().map(WorkOrderDO::getId).toList();
+        if (workOrderIds.isEmpty()) {
+            return groupTasksInWorkOrder(prev);
+        }
+        List<OpTaskDO> groupTasks = opTaskMapper.selectListByWorkOrderIds(workOrderIds).stream()
+                .filter(item -> prev.getParallelGroup().equals(item.getParallelGroup()))
+                .toList();
+        return CollUtil.isEmpty(groupTasks) ? List.of(prev) : groupTasks;
+    }
+
+    private List<OpTaskDO> groupTasksInWorkOrder(OpTaskDO prev) {
         List<OpTaskDO> groupTasks = opTaskMapper.selectList(
                 OpTaskDO::getWorkOrderId, prev.getWorkOrderId(),
                 OpTaskDO::getParallelGroup, prev.getParallelGroup());

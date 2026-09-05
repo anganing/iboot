@@ -2,11 +2,15 @@ package com.iboot.pf.module.mes.service.optask.gate.impl;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateContext;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 
@@ -22,17 +26,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>失败用例断言的不只是抛错，还断言消息里带得出工序号与工序名称：车间拿到"前序未完工"四个字
  * 什么也做不了，必须知道是哪一道没做完。
+ *
+ * <p>并行组的两个用例是本类的要害：同组范围是**同一生产工单**而不是同一作业工单。作业工单按工作
+ * 中心建，同一并行组的工序会落进不同的作业工单（04 文档的"喷漆 ‖ 标识"），按作业工单取组会让后序
+ * 在只完成一道并行工序时就放行。
  */
 @Import(PrevDoneChecker.class)
 class PrevDoneCheckerTest extends BaseDbUnitTest {
 
-    private static final Long WORK_ORDER_ID = 9001L;
+    private static final Long PROD_ORDER_ID = 8001L;
+    private static final Long OTHER_PROD_ORDER_ID = 8002L;
     private static final String GROUP_A = "GA";
 
     @Resource
     private PrevDoneChecker checker;
     @Resource
     private OpTaskMapper opTaskMapper;
+    @Resource
+    private WorkOrderMapper workOrderMapper;
+
+    /** 同一生产工单下的两张作业工单，对应两个工作中心 */
+    private Long workOrderId;
+    private Long siblingWorkOrderId;
+    /** 另一张生产工单的作业工单，用来验证跨生产工单的隔离 */
+    private Long otherOrderWorkOrderId;
+
+    @BeforeEach
+    void setUp() {
+        workOrderId = insertWorkOrder(PROD_ORDER_ID, 501L).getId();
+        siblingWorkOrderId = insertWorkOrder(PROD_ORDER_ID, 502L).getId();
+        otherOrderWorkOrderId = insertWorkOrder(OTHER_PROD_ORDER_ID, 501L).getId();
+    }
 
     @Test
     void testEnabled_firstOpTaskSkipped() {
@@ -107,24 +131,78 @@ class PrevDoneCheckerTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testCheck_parallelGroupScopedToSameWorkOrder() {
-        // 准备：另一张作业工单里有同名并行组且未完工。parallel_group 只是字符串标记，
-        // 不限工单的话别的工单的同名组会被算进来，把本来能开的工挡住
-        OpTaskDO groupDone = insertTask(10, "粗车", MesConstants.NONE_ID, GROUP_A, MesOpTaskStatusEnum.DONE);
-        OpTaskDO otherWorkOrderTask = insertTask(10, "别单粗车", MesConstants.NONE_ID, GROUP_A,
+    void testCheck_parallelGroupSpansWorkOrdersRequiresAllDone() {
+        // 准备：并行组跨两张作业工单——喷漆在喷漆房、标识在打标工位，同属 GROUP_A。
+        // 这是 04 文档"喷漆 ‖ 标识"的原型，也是下达时按整条路线分组、作业工单按工作中心建的必然结果
+        OpTaskDO paintDone = insertTask(workOrderId, 30, "喷漆", MesConstants.NONE_ID, GROUP_A,
+                MesOpTaskStatusEnum.DONE);
+        insertTask(siblingWorkOrderId, 30, "标识", MesConstants.NONE_ID, GROUP_A,
                 MesOpTaskStatusEnum.RUNNING);
-        opTaskMapper.updateById(new OpTaskDO().setId(otherWorkOrderTask.getId())
-                .setWorkOrderId(WORK_ORDER_ID + 1));
-        OpTaskDO current = insertTask(20, "精车", groupDone.getId(), null, MesOpTaskStatusEnum.READY);
+        OpTaskDO assemble = insertTask(workOrderId, 40, "装配", paintDone.getId(), null,
+                MesOpTaskStatusEnum.READY);
+
+        // 调用并断言：按作业工单取组会取不到"标识"这道，装配会被误放行。
+        // 同组范围必须是同一生产工单，消息里列出的正是另一张作业工单里那道未完工的工序
+        assertServiceException(() -> checker.check(assemble, new MesStartGateContext()),
+                OP_TASK_PREV_NOT_DONE, "第30道 标识（加工中）");
+    }
+
+    @Test
+    void testCheck_parallelGroupSpansWorkOrdersAllDonePassed() {
+        // 准备：跨作业工单的并行组两道都完工
+        OpTaskDO paintDone = insertTask(workOrderId, 30, "喷漆", MesConstants.NONE_ID, GROUP_A,
+                MesOpTaskStatusEnum.DONE);
+        insertTask(siblingWorkOrderId, 30, "标识", MesConstants.NONE_ID, GROUP_A,
+                MesOpTaskStatusEnum.DONE);
+        OpTaskDO assemble = insertTask(workOrderId, 40, "装配", paintDone.getId(), null,
+                MesOpTaskStatusEnum.READY);
+
+        checker.check(assemble, new MesStartGateContext());
+    }
+
+    @Test
+    void testCheck_parallelGroupScopedToSameProdOrder() {
+        // 准备：另一张生产工单里有同名并行组且未完工。parallel_group 只是字符串标记，
+        // 不限生产工单的话别的单子的同名组会被算进来，把本来能开的工挡住
+        OpTaskDO groupDone = insertTask(workOrderId, 10, "粗车", MesConstants.NONE_ID, GROUP_A,
+                MesOpTaskStatusEnum.DONE);
+        insertTask(otherOrderWorkOrderId, 10, "别单粗车", MesConstants.NONE_ID, GROUP_A,
+                MesOpTaskStatusEnum.RUNNING);
+        OpTaskDO current = insertTask(workOrderId, 20, "精车", groupDone.getId(), null,
+                MesOpTaskStatusEnum.READY);
 
         checker.check(current, new MesStartGateContext());
     }
 
+    private WorkOrderDO insertWorkOrder(Long prodOrderId, Long wcId) {
+        WorkOrderDO workOrder = WorkOrderDO.builder()
+                .workOrderNo("WO-" + prodOrderId + "-" + wcId)
+                .prodOrderId(prodOrderId)
+                .prodOrderNo("PO-" + prodOrderId)
+                .plantId(1L)
+                .workshopId(1L)
+                .wcId(wcId)
+                .projectId(MesConstants.NONE_ID)
+                .projectTaskId(MesConstants.NONE_ID)
+                .plannedQty(new BigDecimal("100"))
+                .completedQty(MesConstants.ZERO_QTY)
+                .status(MesWorkOrderStatusEnum.RUNNING.name())
+                .version(MesConstants.INIT_VERSION)
+                .build();
+        workOrderMapper.insert(workOrder);
+        return workOrder;
+    }
+
     private OpTaskDO insertTask(int seq, String opName, Long prevTaskId, String parallelGroup,
                                 MesOpTaskStatusEnum status) {
+        return insertTask(workOrderId, seq, opName, prevTaskId, parallelGroup, status);
+    }
+
+    private OpTaskDO insertTask(Long ownerWorkOrderId, int seq, String opName, Long prevTaskId,
+                                String parallelGroup, MesOpTaskStatusEnum status) {
         OpTaskDO task = OpTaskDO.builder()
                 .taskNo("OT-" + seq + "-" + System.nanoTime())
-                .workOrderId(WORK_ORDER_ID)
+                .workOrderId(ownerWorkOrderId)
                 .workOrderNo("WO-0001")
                 .routeOpId(100L + seq)
                 .opId(200L + seq)
