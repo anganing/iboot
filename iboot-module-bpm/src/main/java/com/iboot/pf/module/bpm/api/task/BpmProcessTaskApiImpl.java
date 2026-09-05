@@ -1,6 +1,5 @@
 package com.iboot.pf.module.bpm.api.task;
 
-import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.bpm.service.task.BpmTaskService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,6 @@ import org.springframework.validation.annotation.Validated;
  */
 @Service
 @Validated
-@DataPermission(enable = false)
 public class BpmProcessTaskApiImpl implements BpmProcessTaskApi {
 
     @Resource
