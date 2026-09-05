@@ -23,6 +23,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class TeamApiImpl implements TeamApi {
 
     @Resource
@@ -31,14 +32,12 @@ public class TeamApiImpl implements TeamApi {
     private TeamMapper teamMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<TeamRespDTO> getTeamListByWorkshopIds(Collection<Long> workshopIds) {
         List<TeamDO> list = teamService.getTeamListByWorkshopIds(workshopIds);
         return BeanUtils.toBean(list, TeamRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, TeamRespDTO> getTeamMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -49,7 +48,6 @@ public class TeamApiImpl implements TeamApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<TeamMemberRespDTO> getTeamMemberList(Collection<Long> teamIds) {
         List<TeamMemberDO> list = teamService.getTeamMemberList(teamIds);
         return BeanUtils.toBean(list, TeamMemberRespDTO.class);

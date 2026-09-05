@@ -20,19 +20,18 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class ShiftApiImpl implements ShiftApi {
 
     @Resource
     private ShiftMapper shiftMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<ShiftRespDTO> getShiftList() {
         return BeanUtils.toBean(shiftMapper.selectList(), ShiftRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, ShiftRespDTO> getShiftMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();

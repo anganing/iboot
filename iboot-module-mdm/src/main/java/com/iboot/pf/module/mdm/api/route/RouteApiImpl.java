@@ -36,6 +36,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class RouteApiImpl implements RouteApi {
 
     @Resource
@@ -50,21 +51,18 @@ public class RouteApiImpl implements RouteApi {
     private RouteOpMapper routeOpMapper;
 
     @Override
-    @DataPermission(enable = false)
     public RouteRespDTO getRoute(Long id) {
         RouteDO route = routeService.getRouteDO(id);
         return BeanUtils.toBean(route, RouteRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public RouteRespDTO getEffectiveRoute(Long matId, LocalDate date) {
         RouteDO route = routeService.getEffectiveRoute(matId, date);
         return BeanUtils.toBean(route, RouteRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public RouteDetailRespDTO getRouteDetail(Long id) {
         RouteDO route = routeService.getRouteDO(id);
         if (route == null) {
@@ -77,14 +75,12 @@ public class RouteApiImpl implements RouteApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<RouteOpRespDTO> getRouteOpList(Long routeId) {
         List<RouteOpDO> ops = routeService.getRouteOpList(routeId);
         return BeanUtils.toBean(ops, RouteOpRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, RouteOpRespDTO> getRouteOpMap(Collection<Long> routeOpIds) {
         if (CollUtil.isEmpty(routeOpIds)) {
             return Collections.emptyMap();
@@ -95,14 +91,12 @@ public class RouteApiImpl implements RouteApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<RouteOpMatRespDTO> getRouteOpMatList(Collection<Long> routeOpIds) {
         List<RouteOpMatDO> mats = routeService.getRouteOpMatList(routeOpIds);
         return BeanUtils.toBean(mats, RouteOpMatRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<RouteOpEsopRespDTO> getRouteOpEsopList(Collection<Long> routeOpIds) {
         List<RouteOpEsopDO> esops = routeOpEsopService.getRouteOpEsopList(routeOpIds);
         if (CollUtil.isEmpty(esops)) {

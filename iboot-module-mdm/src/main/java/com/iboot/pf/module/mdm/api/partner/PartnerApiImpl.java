@@ -22,6 +22,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class PartnerApiImpl implements PartnerApi {
 
     @Resource
@@ -30,14 +31,12 @@ public class PartnerApiImpl implements PartnerApi {
     private CustomerService customerService;
 
     @Override
-    @DataPermission(enable = false)
     public List<SupplierRespDTO> getSupplierList() {
         List<SupplierDO> list = supplierService.getSupplierList();
         return BeanUtils.toBean(list, SupplierRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, SupplierRespDTO> getSupplierMap(Collection<Long> ids) {
         List<SupplierDO> list = supplierService.getSupplierList(ids);
         List<SupplierRespDTO> dtos = BeanUtils.toBean(list, SupplierRespDTO.class);
@@ -45,14 +44,12 @@ public class PartnerApiImpl implements PartnerApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<CustomerRespDTO> getCustomerList() {
         List<CustomerDO> list = customerService.getCustomerList();
         return BeanUtils.toBean(list, CustomerRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, CustomerRespDTO> getCustomerMap(Collection<Long> ids) {
         List<CustomerDO> list = customerService.getCustomerList(ids);
         List<CustomerRespDTO> dtos = BeanUtils.toBean(list, CustomerRespDTO.class);

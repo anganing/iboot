@@ -25,6 +25,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class ProjectApiImpl implements ProjectApi {
 
     @Resource
@@ -37,21 +38,18 @@ public class ProjectApiImpl implements ProjectApi {
     private ProjectTaskMapper projectTaskMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<ProjectRespDTO> getProjectList() {
         List<ProjectDO> list = projectService.getProjectList();
         return BeanUtils.toBean(list, ProjectRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ProjectTaskRespDTO> getProjectTaskList(Long projectId) {
         List<ProjectTaskDO> list = projectTaskService.getProjectTaskList(projectId);
         return BeanUtils.toBean(list, ProjectTaskRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, ProjectRespDTO> getProjectMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -62,7 +60,6 @@ public class ProjectApiImpl implements ProjectApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, ProjectTaskRespDTO> getProjectTaskMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();

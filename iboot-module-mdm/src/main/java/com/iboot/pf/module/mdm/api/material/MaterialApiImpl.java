@@ -21,48 +21,43 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class MaterialApiImpl implements MaterialApi {
 
     @Resource
     private MatService matService;
 
     @Override
-    @DataPermission(enable = false)
     public MaterialRespDTO getMaterial(Long id) {
         List<MaterialRespDTO> list = getMaterialList(Collections.singleton(id));
         return CollUtil.getFirst(list);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MaterialRespDTO> getMaterialList(Collection<Long> ids) {
         List<MatDO> mats = matService.getMatList(ids);
         return BeanUtils.toBean(mats, MaterialRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MaterialRespDTO> getEnabledMaterialList() {
         List<MatDO> mats = matService.getEnabledMatList();
         return BeanUtils.toBean(mats, MaterialRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, MaterialRespDTO> getMaterialMap(Collection<Long> ids) {
         List<MaterialRespDTO> list = getMaterialList(ids);
         return CollectionUtils.convertMap(list, MaterialRespDTO::getId);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MaterialRespDTO> getMaterialListByCodes(Collection<String> codes) {
         List<MatDO> mats = matService.getMatListByCodes(codes);
         return BeanUtils.toBean(mats, MaterialRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public void validateMaterialList(Collection<Long> ids) {
         matService.validateMatList(ids);
     }

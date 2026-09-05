@@ -32,6 +32,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class ResourceApiImpl implements ResourceApi {
 
     @Resource
@@ -44,28 +45,24 @@ public class ResourceApiImpl implements ResourceApi {
     private ResChangeoverService resChangeoverService;
 
     @Override
-    @DataPermission(enable = false)
     public ResourceRespDTO getResource(Long id) {
         List<ResourceRespDTO> list = getResourceList(Collections.singleton(id));
         return CollUtil.getFirst(list);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResourceRespDTO> getResourceList(Collection<Long> ids) {
         List<ResDO> res = resService.getResList(ids);
         return BeanUtils.toBean(res, ResourceRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, ResourceRespDTO> getResourceMap(Collection<Long> ids) {
         List<ResourceRespDTO> list = getResourceList(ids);
         return CollectionUtils.convertMap(list, ResourceRespDTO::getId);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResourceRespDTO> getResourceListByPlantId(Long plantId) {
         // 停用资源不参与排程，直接在门面这层过滤，调用方不必再判断状态
         List<ResDO> res = resService.getResListByPlantId(plantId).stream()
@@ -75,7 +72,6 @@ public class ResourceApiImpl implements ResourceApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResourceCalendarRespDTO> getResourceCalendarList(Collection<Long> resIds,
                                                                  LocalDate startDate,
                                                                  LocalDate endDate) {
@@ -84,21 +80,18 @@ public class ResourceApiImpl implements ResourceApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResourceCapabilityRespDTO> getResourceCapabilityList(Collection<Long> opIds) {
         List<ResCapabilityDO> capabilities = resCapabilityService.getResCapabilityList(opIds);
         return BeanUtils.toBean(capabilities, ResourceCapabilityRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResourceCapabilityRespDTO> getResourceCapabilityListByResIds(Collection<Long> resIds) {
         List<ResCapabilityDO> capabilities = resCapabilityService.getResCapabilityListByResIds(resIds);
         return BeanUtils.toBean(capabilities, ResourceCapabilityRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ResChangeoverRespDTO> getChangeoverList(Collection<Long> resIds, Collection<String> resGroups) {
         List<ResChangeoverDO> changeovers = resChangeoverService.getChangeoverList(resIds, resGroups);
         return BeanUtils.toBean(changeovers, ResChangeoverRespDTO.class);

@@ -22,6 +22,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class UomApiImpl implements UomApi {
 
     @Resource
@@ -30,14 +31,12 @@ public class UomApiImpl implements UomApi {
     private UomConvService uomConvService;
 
     @Override
-    @DataPermission(enable = false)
     public List<UomRespDTO> getUomList() {
         List<UomDO> uoms = uomService.getUomList();
         return BeanUtils.toBean(uoms, UomRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, UomRespDTO> getUomMap(Collection<Long> ids) {
         List<UomDO> uoms = uomService.getUomList(ids);
         List<UomRespDTO> list = BeanUtils.toBean(uoms, UomRespDTO.class);
@@ -45,7 +44,6 @@ public class UomApiImpl implements UomApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<UomConvRespDTO> getUomConvList(Collection<Long> matIds) {
         List<UomConvDO> convs = uomConvService.getUomConvList(matIds);
         return BeanUtils.toBean(convs, UomConvRespDTO.class);

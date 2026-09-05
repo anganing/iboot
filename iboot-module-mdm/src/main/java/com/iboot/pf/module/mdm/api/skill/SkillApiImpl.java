@@ -21,27 +21,25 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class SkillApiImpl implements SkillApi {
 
     @Resource
     private SkillService skillService;
 
     @Override
-    @DataPermission(enable = false)
     public List<SkillRespDTO> getSkillList() {
         List<SkillDO> list = skillService.getSkillList();
         return BeanUtils.toBean(list, SkillRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<OpSkillReqRespDTO> getOpSkillReqList(Collection<Long> opIds) {
         List<OpSkillReqDO> list = skillService.getOpSkillReqList(opIds);
         return BeanUtils.toBean(list, OpSkillReqRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MemberSkillRespDTO> getMemberSkillList(Collection<Long> userIds) {
         List<MemberSkillDO> list = skillService.getMemberSkillList(userIds);
         return BeanUtils.toBean(list, MemberSkillRespDTO.class);

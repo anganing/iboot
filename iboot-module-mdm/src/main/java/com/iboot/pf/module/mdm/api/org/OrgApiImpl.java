@@ -33,6 +33,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class OrgApiImpl implements OrgApi {
 
     @Resource
@@ -53,14 +54,12 @@ public class OrgApiImpl implements OrgApi {
     private WcMapper wcMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<InvOrgRespDTO> getInvOrgList() {
         List<InvOrgDO> list = invOrgService.getInvOrgList();
         return BeanUtils.toBean(list, InvOrgRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, InvOrgRespDTO> getInvOrgMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -71,14 +70,12 @@ public class OrgApiImpl implements OrgApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<PlantRespDTO> getPlantList() {
         List<PlantDO> list = plantService.getPlantList();
         return BeanUtils.toBean(list, PlantRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, PlantRespDTO> getPlantMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -88,14 +85,12 @@ public class OrgApiImpl implements OrgApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<WorkshopRespDTO> getWorkshopList() {
         List<WorkshopDO> list = workshopService.getWorkshopList();
         return BeanUtils.toBean(list, WorkshopRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, WorkshopRespDTO> getWorkshopMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -105,14 +100,12 @@ public class OrgApiImpl implements OrgApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<WcRespDTO> getWcList() {
         List<WcDO> list = wcService.getWcList();
         return BeanUtils.toBean(list, WcRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, WcRespDTO> getWcMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();

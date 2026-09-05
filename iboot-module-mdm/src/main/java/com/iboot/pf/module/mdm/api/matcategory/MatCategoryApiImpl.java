@@ -20,13 +20,13 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class MatCategoryApiImpl implements MatCategoryApi {
 
     @Resource
     private MatCatService matCatService;
 
     @Override
-    @DataPermission(enable = false)
     public List<MatCategoryRespDTO> getMatCategoryTree() {
         List<MatCatDO> all = matCatService.getMatCatDOList();
         List<MatCategoryRespDTO> enabled = new ArrayList<>(all.size());
@@ -39,7 +39,6 @@ public class MatCategoryApiImpl implements MatCategoryApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MatCategoryRespDTO> getMatCategoryList() {
         List<MatCatDO> all = matCatService.getMatCatDOList();
         return BeanUtils.toBean(all, MatCategoryRespDTO.class);

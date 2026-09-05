@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class MatAltApiImpl implements MatAltApi {
 
     /** 优先级为空的关系排在最后：没填优先级意味着没想清楚顺序，不该抢在填了的前面。 */
@@ -33,7 +34,6 @@ public class MatAltApiImpl implements MatAltApi {
     private MatAltMapper matAltMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<MatAltRespDTO> getAltList(Long matId) {
         if (matId == null) {
             return List.of();
@@ -43,7 +43,6 @@ public class MatAltApiImpl implements MatAltApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, List<MatAltRespDTO>> getAltMap(Collection<Long> matIds) {
         if (matIds == null || matIds.isEmpty()) {
             return Map.of();

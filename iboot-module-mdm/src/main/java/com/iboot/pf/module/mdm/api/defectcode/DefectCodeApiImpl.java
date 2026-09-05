@@ -24,6 +24,7 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class DefectCodeApiImpl implements DefectCodeApi {
 
     @Resource
@@ -32,14 +33,12 @@ public class DefectCodeApiImpl implements DefectCodeApi {
     private DefectCodeMapper defectCodeMapper;
 
     @Override
-    @DataPermission(enable = false)
     public List<DefectCodeRespDTO> getDefectCodeList() {
         List<DefectCodeDO> all = defectCodeService.getDefectCodeList();
         return BeanUtils.toBean(all, DefectCodeRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, DefectCodeRespDTO> getDefectCodeMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
@@ -50,7 +49,6 @@ public class DefectCodeApiImpl implements DefectCodeApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<DefectCodeRespDTO> getDefectCodeTree() {
         List<DefectCodeDO> all = defectCodeService.getDefectCodeList();
         List<DefectCodeRespDTO> enabled = new ArrayList<>(all.size());

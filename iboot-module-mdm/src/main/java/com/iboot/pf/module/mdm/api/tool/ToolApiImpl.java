@@ -19,20 +19,19 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class ToolApiImpl implements ToolApi {
 
     @Resource
     private ToolService toolService;
 
     @Override
-    @DataPermission(enable = false)
     public List<ToolRespDTO> getToolList() {
         List<ToolDO> list = toolService.getToolList();
         return BeanUtils.toBean(list, ToolRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<RouteOpToolRespDTO> getRouteOpToolList(Collection<Long> routeOpIds) {
         List<RouteOpToolDO> list = toolService.getRouteOpToolList(routeOpIds);
         return BeanUtils.toBean(list, RouteOpToolRespDTO.class);

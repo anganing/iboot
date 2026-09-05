@@ -21,6 +21,7 @@ import java.util.List;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class BomApiImpl implements BomApi {
 
     @Resource
@@ -29,21 +30,18 @@ public class BomApiImpl implements BomApi {
     private MaterialApi materialApi;
 
     @Override
-    @DataPermission(enable = false)
     public BomRespDTO getBom(Long id) {
         BomDO bom = bomService.getBomDO(id);
         return BeanUtils.toBean(bom, BomRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public BomRespDTO getEffectiveBom(Long matId, LocalDate date) {
         BomDO bom = bomService.getEffectiveBom(matId, date);
         return BeanUtils.toBean(bom, BomRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public BomDetailRespDTO getBomDetail(Long id) {
         BomDO bom = bomService.getBomDO(id);
         if (bom == null) {
@@ -56,7 +54,6 @@ public class BomApiImpl implements BomApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<BomLineRespDTO> getBomLineList(Long bomId) {
         List<BomLineDO> lines = bomService.getBomLineList(bomId);
         return BeanUtils.toBean(lines, BomLineRespDTO.class);

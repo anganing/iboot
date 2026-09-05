@@ -20,26 +20,24 @@ import java.util.Map;
  * @author iboot
  */
 @Service
+@DataPermission(enable = false)
 public class OpApiImpl implements OpApi {
 
     @Resource
     private OpMapper opMapper;
 
     @Override
-    @DataPermission(enable = false)
     public OpRespDTO getOp(Long id) {
         OpDO op = id == null ? null : opMapper.selectById(id);
         return BeanUtils.toBean(op, OpRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<OpRespDTO> getOpList() {
         return BeanUtils.toBean(opMapper.selectList(), OpRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, OpRespDTO> getOpMap(Collection<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyMap();
