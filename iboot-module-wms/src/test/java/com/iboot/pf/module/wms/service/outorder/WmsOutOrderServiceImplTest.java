@@ -7,20 +7,28 @@ import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
+import com.iboot.pf.module.wms.dal.mysql.reservation.WmsInvReservationMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
+import com.iboot.pf.module.wms.enums.WmsConstants;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsReservationStatusEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
+import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryServiceImpl;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
+import com.iboot.pf.module.wms.service.reservation.WmsInventoryReservationService;
+import com.iboot.pf.module.wms.service.reservation.WmsInventoryReservationServiceImpl;
+import com.iboot.pf.module.wms.service.reservation.bo.WmsReserveBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,9 +53,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyCollection;
 
-/** 出库单流程测试：创建、改单、删单、提交、取消、过账、可用量不足拒绝。 */
+/** 出库单流程测试：创建、改单、删单、提交、取消、过账、可用量不足拒绝、过账核销预留。 */
 @Import({WmsOutOrderServiceImpl.class, WmsWarehouseServiceImpl.class,
         WmsInventoryServiceImpl.class, WmsCodeService.class,
+        WmsInventoryReservationServiceImpl.class,
         com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class})
 class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
 
@@ -59,6 +68,8 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
     @Resource
     private WmsOutOrderService outOrderService;
     @Resource
+    private WmsInventoryReservationService reservationService;
+    @Resource
     private WmsOutOrderMapper wmsOutOrderMapper;
     @Resource
     private WmsOutOrderLineMapper wmsOutOrderLineMapper;
@@ -66,6 +77,8 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
     private WmsInvBalanceMapper wmsInvBalanceMapper;
     @Resource
     private WmsInvTxnMapper wmsInvTxnMapper;
+    @Resource
+    private WmsInvReservationMapper wmsInvReservationMapper;
     @Resource
     private WmsWhMapper wmsWhMapper;
     @Resource
@@ -81,6 +94,7 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
         wmsLocMapper.insert(new WmsLocDO().setId(LOC).setWhId(WH).setZoneId(0L).setCode("LOC-1").setStatus("ENABLED"));
         when(codeRuleApi.generate("WMS_OUT_ORDER_NO")).thenReturn("OUT-0001");
         when(codeRuleApi.generate("WMS_INV_TXN_NO")).thenReturn("TXN-0001");
+        when(codeRuleApi.generate("WMS_RESERVATION_NO")).thenReturn("RSV-0001");
         MaterialRespDTO material = new MaterialRespDTO();
         material.setId(MAT);
         material.setCode("M-001");
@@ -110,6 +124,13 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
     }
 
     private WmsCreateOutOrderBO createOutBO(BigDecimal qty) {
+        WmsCreateOutOrderBO bo = baseOutBO();
+        bo.setLines(List.of(outLine(10, qty, WmsConstants.NONE_ID)));
+        return bo;
+    }
+
+    /** 出库单头，明细由各用例按需装配。 */
+    private WmsCreateOutOrderBO baseOutBO() {
         WmsCreateOutOrderBO bo = new WmsCreateOutOrderBO();
         bo.setIdempotencyKey("WMS:OUT:1");
         bo.setSourceModule("MES");
@@ -118,9 +139,13 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
         bo.setInvOrgId(1L);
         bo.setPlantId(1L);
         bo.setWhId(WH);
+        return bo;
+    }
 
+    /** 造一条出库行，维度与 {@link #seedBalance} 的余额行一致，否则过账匹配不到余额。 */
+    private WmsCreateOutOrderBO.Line outLine(int lineNo, BigDecimal qty, Long reservationId) {
         WmsCreateOutOrderBO.Line line = new WmsCreateOutOrderBO.Line();
-        line.setLineNo(10);
+        line.setLineNo(lineNo);
         line.setMatId(MAT);
         line.setMatCode("M-001");
         line.setMatName("物料A");
@@ -131,8 +156,36 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
         line.setFromLocCode("LOC-1");
         line.setQualityStatus("QUALIFIED");
         line.setPlanQty(qty);
-        bo.setLines(List.of(line));
-        return bo;
+        line.setReservationId(reservationId);
+        return line;
+    }
+
+    /** 建一条预留，维度与出库行一致，核销时才会命中同一条余额。 */
+    private Long reserve(BigDecimal qty, String idempotencyKey) {
+        WmsReserveBO bo = new WmsReserveBO();
+        bo.setIdempotencyKey(idempotencyKey);
+        bo.setBizType("PROD_RESERVE");
+        bo.setBizNo("MO-1");
+        bo.setBizLineNo("10");
+        bo.setInvOrgId(1L);
+        bo.setWhId(WH);
+        bo.setLocId(LOC);
+        bo.setMatId(MAT);
+        bo.setBatchId(BATCH);
+        bo.setQualityStatus("QUALIFIED");
+        bo.setQty(qty);
+        return reservationService.reserve(bo);
+    }
+
+    private WmsInvBalanceDO requireBalance() {
+        return wmsInvBalanceMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
+                        .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
+    }
+
+    /** 可用量：现存 - 预留 - 冻结。 */
+    private BigDecimal availableQty() {
+        return WmsInventoryService.availableQtyOf(requireBalance());
     }
 
     private WmsConfirmOrderBO confirmBO(Long orderId) {
@@ -306,6 +359,159 @@ class WmsOutOrderServiceImplTest extends BaseDbUnitTest {
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("70")));
         assertEquals(1, wmsInvTxnMapper.selectCount());
+    }
+
+    @Test
+    void testConfirm_consumesReservation_availableQtyUnchanged() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long reservationId = reserve(new BigDecimal("100"), "MES:MR-1:RESERVE:10");
+        // 领料提交后：现存 500 预留 100 → 可用 400
+        BigDecimal availableBefore = availableQty();
+        assertEquals(0, availableBefore.compareTo(new BigDecimal("400")));
+
+        WmsCreateOutOrderBO createBO = createOutBO(new BigDecimal("100"));
+        createBO.getLines().get(0).setReservationId(reservationId);
+        Long id = outOrderService.createOutOrder(createBO);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        // 现存扣 100，预留核销 100
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("400")));
+        assertEquals(0, balance.getQtyReserved().compareTo(BigDecimal.ZERO));
+        // 核心断言：带预留的行过账前后可用量相同，预留占用与实际扣减没有双重占用
+        assertEquals(0, availableQty().compareTo(availableBefore));
+
+        WmsInvReservationDO reservation = wmsInvReservationMapper.selectById(reservationId);
+        assertEquals(WmsReservationStatusEnum.CONSUMED.name(), reservation.getStatus());
+        assertEquals(0, reservation.getReleasedQty().compareTo(new BigDecimal("100")));
+        // RESERVE、ISSUE、核销的 RELEASE 三条流水
+        assertEquals(3, wmsInvTxnMapper.selectCount());
+    }
+
+    @Test
+    void testConfirm_withoutReservation_reservationUntouched() {
+        seedBalance(new BigDecimal("500"), null, null);
+        // 另一笔业务的预留：本次出库行的 reservation_id 为 0，不该被动到
+        Long otherId = reserve(new BigDecimal("100"), "MES:MR-9:RESERVE:10");
+
+        Long id = outOrderService.createOutOrder(createOutBO(new BigDecimal("100")));
+        assertEquals(WmsConstants.NONE_ID, wmsOutOrderLineMapper.selectListByOrderId(id).get(0).getReservationId());
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        WmsInvReservationDO other = wmsInvReservationMapper.selectById(otherId);
+        assertEquals(WmsReservationStatusEnum.ACTIVE.name(), other.getStatus());
+        assertEquals(0, other.getReleasedQty().compareTo(BigDecimal.ZERO));
+        // 预留未被核销，本次出的是自由库存：可用量由 400 降到 300 才是正确结果
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("400")));
+        assertEquals(0, balance.getQtyReserved().compareTo(new BigDecimal("100")));
+        assertEquals(0, availableQty().compareTo(new BigDecimal("300")));
+        // 只有 RESERVE 与 ISSUE 两条流水，没有核销产生的 RELEASE
+        assertEquals(2, wmsInvTxnMapper.selectCount());
+    }
+
+    @Test
+    void testConfirm_repeated_consumesReservationOnce() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long reservationId = reserve(new BigDecimal("100"), "MES:MR-1:RESERVE:10");
+        WmsCreateOutOrderBO createBO = createOutBO(new BigDecimal("100"));
+        createBO.getLines().get(0).setReservationId(reservationId);
+        Long id = outOrderService.createOutOrder(createBO);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        // 第一层：单据已 DONE，二次确认被状态机拒绝
+        assertServiceException(() -> outOrderService.confirmOutOrder(confirmBO(id)), OUT_ORDER_CANNOT_CONFIRM);
+
+        // 第二层：把状态与已过账量改回去绕过状态机，幂等键不变，过账与核销都不重复执行
+        WmsOutOrderDO order = wmsOutOrderMapper.selectById(id);
+        order.setStatus(WmsOrderStatusEnum.SUBMITTED.name());
+        wmsOutOrderMapper.updateById(order);
+        WmsOutOrderLineDO line = wmsOutOrderLineMapper.selectListByOrderId(id).get(0);
+        line.setPostedQty(BigDecimal.ZERO);
+        wmsOutOrderLineMapper.updateById(line);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        WmsInvReservationDO reservation = wmsInvReservationMapper.selectById(reservationId);
+        // 核销量没叠加成 200，状态仍是已核销
+        assertEquals(0, reservation.getReleasedQty().compareTo(new BigDecimal("100")));
+        assertEquals(WmsReservationStatusEnum.CONSUMED.name(), reservation.getStatus());
+        // 现存没被二次扣减，流水也没多出来
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("400")));
+        assertEquals(0, balance.getQtyReserved().compareTo(BigDecimal.ZERO));
+        assertEquals(3, wmsInvTxnMapper.selectCount());
+    }
+
+    @Test
+    void testConfirm_twoLines_eachConsumesOwnReservation() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long reservationA = reserve(new BigDecimal("100"), "MES:MR-1:RESERVE:10");
+        Long reservationB = reserve(new BigDecimal("60"), "MES:MR-1:RESERVE:20");
+        // 现存 500 预留 160 → 可用 340
+        BigDecimal availableBefore = availableQty();
+        assertEquals(0, availableBefore.compareTo(new BigDecimal("340")));
+
+        WmsCreateOutOrderBO createBO = baseOutBO();
+        createBO.setLines(List.of(outLine(10, new BigDecimal("100"), reservationA),
+                outLine(20, new BigDecimal("60"), reservationB)));
+        Long id = outOrderService.createOutOrder(createBO);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        // 两行各核销自己的预留：幂等键必须含行号，否则第二行会被第一行的键判重跳过
+        assertEquals(0, wmsInvReservationMapper.selectById(reservationA)
+                .getReleasedQty().compareTo(new BigDecimal("100")));
+        assertEquals(0, wmsInvReservationMapper.selectById(reservationB)
+                .getReleasedQty().compareTo(new BigDecimal("60")));
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("340")));
+        assertEquals(0, balance.getQtyReserved().compareTo(BigDecimal.ZERO));
+        assertEquals(0, availableQty().compareTo(availableBefore));
+    }
+
+    @Test
+    void testConfirm_partialQty_reservationStaysPartial() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long reservationId = reserve(new BigDecimal("100"), "MES:MR-1:RESERVE:10");
+        BigDecimal availableBefore = availableQty();
+
+        // 预留 100 只出 60：部分出库是正常业务，不抛异常
+        WmsCreateOutOrderBO createBO = createOutBO(new BigDecimal("60"));
+        createBO.getLines().get(0).setReservationId(reservationId);
+        Long id = outOrderService.createOutOrder(createBO);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        WmsInvReservationDO reservation = wmsInvReservationMapper.selectById(reservationId);
+        // 只核销 60，剩余 40 继续占用，状态是部分处理而不是已核销
+        assertEquals(WmsReservationStatusEnum.PARTIAL.name(), reservation.getStatus());
+        assertEquals(0, reservation.getReleasedQty().compareTo(new BigDecimal("60")));
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("440")));
+        assertEquals(0, balance.getQtyReserved().compareTo(new BigDecimal("40")));
+        // 剩余预留仍占用可用量，过账前后可用量依然相同
+        assertEquals(0, availableQty().compareTo(availableBefore));
+    }
+
+    @Test
+    void testConfirm_qtyOverReservation_consumesRemainingOnly() {
+        seedBalance(new BigDecimal("500"), null, null);
+        Long reservationId = reserve(new BigDecimal("60"), "MES:MR-1:RESERVE:10");
+
+        // 预留 60 却出 100：超出预留的 40 出的是自由库存，不该抛预留余量不足
+        WmsCreateOutOrderBO createBO = createOutBO(new BigDecimal("100"));
+        createBO.getLines().get(0).setReservationId(reservationId);
+        Long id = outOrderService.createOutOrder(createBO);
+        outOrderService.confirmOutOrder(confirmBO(id));
+
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsOutOrderMapper.selectById(id).getStatus());
+        WmsInvReservationDO reservation = wmsInvReservationMapper.selectById(reservationId);
+        // 只核销预留剩余的 60，而不是过账的 100
+        assertEquals(0, reservation.getReleasedQty().compareTo(new BigDecimal("60")));
+        assertEquals(WmsReservationStatusEnum.CONSUMED.name(), reservation.getStatus());
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("400")));
+        assertEquals(0, balance.getQtyReserved().compareTo(BigDecimal.ZERO));
+        // 超发的 40 是自由库存，可用量由 440 降到 400
+        assertEquals(0, availableQty().compareTo(new BigDecimal("400")));
     }
 
 }

@@ -1,7 +1,6 @@
 package com.iboot.pf.module.wms.controller.admin.batchmgr;
 
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,14 +19,24 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.common.pojo.CommonResult;
 import static com.iboot.pf.framework.common.pojo.CommonResult.success;
 
+import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 
 import com.iboot.pf.framework.apilog.core.annotation.ApiAccessLog;
 import static com.iboot.pf.framework.apilog.core.enums.OperateTypeEnum.*;
+import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.BATCH_NOT_EXISTS;
 
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.*;
 import com.iboot.pf.module.wms.service.batchmgr.BatchService;
 
+/**
+ * WMS-批次主档只提供查询、导出与批属性维护。
+ *
+ * <p>批次由入库动作（到货确认、完工入库）经 {@code WmsBatchService#registerBatch} 落库：
+ * 人工建批次会造出没有库存的孤儿批次，人工删批次会让引用它的余额与流水失去主档，
+ * 所以新增/删除/导入端点一并撤除。修改降级为 {@code /update-attr}，只放开六个批属性字段。
+ */
 @Tag(name = "管理后台 - WMS-批次主档")
 @RestController
 @RequestMapping("/wms/batch")
@@ -36,39 +45,6 @@ public class BatchController {
 
     @Resource
     private BatchService batchService;
-
-    @PostMapping("/create")
-    @Operation(summary = "创建WMS-批次主档")
-    @PreAuthorize("@ss.hasPermission('wms:batch:create')")
-    public CommonResult<Long> createBatch(@Valid @RequestBody BatchSaveReqVO createReqVO) {
-        return success(batchService.createBatch(createReqVO));
-    }
-
-    @PutMapping("/update")
-    @Operation(summary = "更新WMS-批次主档")
-    @PreAuthorize("@ss.hasPermission('wms:batch:update')")
-    public CommonResult<Boolean> updateBatch(@Valid @RequestBody BatchSaveReqVO updateReqVO) {
-        batchService.updateBatch(updateReqVO);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "删除WMS-批次主档")
-    @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('wms:batch:delete')")
-    public CommonResult<Boolean> deleteBatch(@RequestParam("id") Long id) {
-        batchService.deleteBatch(id);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete-list")
-    @Parameter(name = "ids", description = "编号", required = true)
-    @Operation(summary = "批量删除WMS-批次主档")
-                @PreAuthorize("@ss.hasPermission('wms:batch:delete')")
-    public CommonResult<Boolean> deleteBatchList(@RequestParam("ids") List<Long> ids) {
-        batchService.deleteBatchListByIds(ids);
-        return success(true);
-    }
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-批次主档")
@@ -98,21 +74,24 @@ public class BatchController {
                         list);
     }
 
-    @GetMapping("/get-import-template")
-    @Operation(summary = "获得导入WMS-批次主档模板")
-    @PreAuthorize("@ss.hasPermission('wms:batch:import')")
-    public void importTemplate(HttpServletResponse response) throws IOException {
-        ExcelUtils.write(response, "WMS-批次主档导入模板.xls", "数据",
-                BatchImportExcelVO.class, Collections.emptyList());
-    }
-
-    @PostMapping("/import")
-    @Operation(summary = "导入WMS-批次主档")
-    @Parameter(name = "file", description = "Excel 文件", required = true)
-    @PreAuthorize("@ss.hasPermission('wms:batch:import')")
-    public CommonResult<BatchImportRespVO> importExcel(@RequestParam("file") MultipartFile file) throws Exception {
-        List<BatchImportExcelVO> list = ExcelUtils.read(file, BatchImportExcelVO.class);
-        return success(batchService.importBatchList(list));
+    @PutMapping("/update-attr")
+    @Operation(summary = "维护WMS-批次主档批属性")
+    @PreAuthorize("@ss.hasPermission('wms:batch:update-attr')")
+    public CommonResult<Boolean> updateBatchAttr(@Valid @RequestBody BatchAttrUpdateReqVO updateReqVO) {
+        BatchRespVO batch = batchService.getBatch(updateReqVO.getId());
+        if (batch == null) {
+            throw exception(BATCH_NOT_EXISTS);
+        }
+        // 以库中现值为底，只覆盖六个批属性字段。物料、批次号、序列号、供应商是批次的身份，
+        // 余额与流水按 batch_id 记账，身份改了就与账对不上，因此不接受界面传入。
+        BatchSaveReqVO saveReqVO = BeanUtils.toBean(batch, BatchSaveReqVO.class);
+        saveReqVO.setFurnaceLotNo(updateReqVO.getFurnaceLotNo());
+        saveReqVO.setProduceDate(updateReqVO.getProduceDate());
+        saveReqVO.setExpiryDate(updateReqVO.getExpiryDate());
+        saveReqVO.setStatus(updateReqVO.getStatus());
+        saveReqVO.setRemark(updateReqVO.getRemark());
+        batchService.updateBatch(saveReqVO);
+        return success(true);
     }
 
 }

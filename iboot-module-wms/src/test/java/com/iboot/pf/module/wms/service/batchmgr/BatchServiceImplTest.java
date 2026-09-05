@@ -1,30 +1,30 @@
 package com.iboot.pf.module.wms.service.batchmgr;
 
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.wms.controller.admin.batchmgr.vo.BatchSaveReqVO;
 import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
 import com.iboot.pf.module.wms.dal.mysql.batch.WmsBatchMapper;
-import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
-import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import jakarta.annotation.Resource;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.BATCH_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.BATCH_LOT_NO_DUPLICATE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.BATCH_NOT_EXISTS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 /**
- * 批次 Service 测试：覆盖编码自动分配、业务唯一性、存在性校验与删除。
+ * 批次 codegen Service 测试。
+ *
+ * <p>只剩 {@code updateBatch} 一个写入方法（批属性维护，见 package-info 的例外二），
+ * 所以这里只覆盖它的三条路径：改自己不撞自己、撞别人的批次号被拦、批次不存在被拦。
+ * 批次的创建能力已收归领域侧 {@code WmsBatchService#registerBatch}（由到货确认触发），
+ * 对应覆盖在 {@code WmsArrivalOrderServiceImplTest} 的批次注册用例里。
+ *
+ * <p>批次由 Mapper 直接播种：codegen 侧的 {@code createBatch} 已删，
+ * 领域侧的 {@code registerBatch} 又要拖进整条到货链路，播种是最短路径。
  */
 @Import(BatchServiceImpl.class)
 class BatchServiceImplTest extends BaseDbUnitTest {
@@ -34,15 +34,17 @@ class BatchServiceImplTest extends BaseDbUnitTest {
     @Resource
     private WmsBatchMapper batchMapper;
 
-    @MockitoBean
-    private WmsCodeService codeService;
-
-    @BeforeEach
-    void mockExternalDependencies() {
-        // 编码规则由 infra 提供：调用方填了就沿用，没填才由规则分配
-        when(codeService.generate(anyString(), any()))
-                .thenAnswer(invocation -> invocation.getArgument(1) == null
-                        ? "LOT0001" : invocation.getArgument(1));
+    /** 播种一条批次主档，返回主键。 */
+    private Long seedBatch(String lotNo) {
+        WmsBatchDO batch = new WmsBatchDO();
+        batch.setMatId(1L);
+        batch.setMatCode("M-001");
+        batch.setMatName("物料A");
+        batch.setLotNo(lotNo);
+        batch.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        batch.setRemark("单测数据");
+        batchMapper.insert(batch);
+        return batch.getId();
     }
 
     private BatchSaveReqVO buildReqVO(String lotNo) {
@@ -57,25 +59,8 @@ class BatchServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testCreateBatch_blankCodeFilledByRule() {
-        Long id = batchService.createBatch(buildReqVO(null));
-
-        WmsBatchDO entity = batchMapper.selectById(id);
-        assertNotNull(entity);
-        assertEquals("LOT0001", entity.getLotNo());
-    }
-
-    @Test
-    void testCreateBatch_duplicateRejected() {
-        batchService.createBatch(buildReqVO("LOT-A"));
-
-        // 数据库唯一索引是最终保证，Service 前置校验负责给出可读提示
-        assertServiceException(() -> batchService.createBatch(buildReqVO("LOT-A")), BATCH_LOT_NO_DUPLICATE);
-    }
-
-    @Test
     void testUpdateBatch_keepOwnCode() {
-        Long id = batchService.createBatch(buildReqVO("LOT-A"));
+        Long id = seedBatch("LOT-A");
 
         // 改自己时业务编码没变，不应该撞到自己
         BatchSaveReqVO updateReqVO = buildReqVO("LOT-A");
@@ -88,9 +73,10 @@ class BatchServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testUpdateBatch_duplicateRejected() {
-        batchService.createBatch(buildReqVO("LOT-A"));
-        Long secondId = batchService.createBatch(buildReqVO("LOT-B"));
+        seedBatch("LOT-A");
+        Long secondId = seedBatch("LOT-B");
 
+        // 同一物料下批次号唯一，改成别人的批次号必须被拦
         BatchSaveReqVO updateReqVO = buildReqVO("LOT-A");
         updateReqVO.setId(secondId);
         assertServiceException(() -> batchService.updateBatch(updateReqVO), BATCH_LOT_NO_DUPLICATE);
@@ -102,20 +88,6 @@ class BatchServiceImplTest extends BaseDbUnitTest {
         updateReqVO.setId(randomLongId());
 
         assertServiceException(() -> batchService.updateBatch(updateReqVO), BATCH_NOT_EXISTS);
-    }
-
-    @Test
-    void testDeleteBatch_success() {
-        Long id = batchService.createBatch(buildReqVO("LOT-A"));
-
-        batchService.deleteBatch(id);
-
-        assertNull(batchMapper.selectById(id));
-    }
-
-    @Test
-    void testDeleteBatch_notExists() {
-        assertServiceException(() -> batchService.deleteBatch(randomLongId()), BATCH_NOT_EXISTS);
     }
 
 }

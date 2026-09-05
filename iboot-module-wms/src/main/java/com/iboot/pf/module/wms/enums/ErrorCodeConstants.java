@@ -143,4 +143,12 @@ public interface ErrorCodeConstants {
     ErrorCode COUNT_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_010_008, "只有新建状态的盘点单可以修改或删除");
     ErrorCode COUNT_ORDER_LINE_EMPTY = new ErrorCode(1_063_010_009, "盘点单至少包含一条明细");
 
+    // ========== 到货登记动作（T0-07 追加） ==========
+    ErrorCode ARRIVAL_CANNOT_CONFIRM = new ErrorCode(1_063_011_006, "只有新建状态的到货登记可以确认到货");
+    ErrorCode ARRIVAL_CANNOT_MODIFY = new ErrorCode(1_063_011_007, "只有新建状态的到货登记可以修改或删除");
+    ErrorCode ARRIVAL_CANNOT_CANCEL = new ErrorCode(1_063_011_008, "已完成或已取消的到货登记不能取消");
+    ErrorCode ARRIVAL_LINE_EMPTY = new ErrorCode(1_063_011_009, "到货登记至少包含一条明细");
+    ErrorCode ARRIVAL_LINE_NOT_READY = new ErrorCode(1_063_011_010, "只有待入库状态的到货明细可以生成入库单");
+    ErrorCode ARRIVAL_LINE_NOT_MATCH = new ErrorCode(1_063_011_011, "到货明细不属于所选到货登记");
+
 }

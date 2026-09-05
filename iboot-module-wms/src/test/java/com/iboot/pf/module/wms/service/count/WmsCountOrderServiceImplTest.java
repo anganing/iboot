@@ -25,6 +25,7 @@ import com.iboot.pf.module.wms.service.inorder.WmsInOrderServiceImpl;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryServiceImpl;
 import com.iboot.pf.module.wms.service.outorder.WmsOutOrderServiceImpl;
+import com.iboot.pf.module.wms.service.reservation.WmsInventoryReservationServiceImpl;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ import static org.mockito.Mockito.when;
 /** 盘点流程测试：生成盘点行、冻结范围、改单删单、提交差异、差异确认走单据过账不直接改余额。 */
 @Import({WmsCountOrderServiceImpl.class, WmsWarehouseServiceImpl.class, WmsInventoryServiceImpl.class,
         WmsInOrderServiceImpl.class, WmsOutOrderServiceImpl.class, WmsBatchServiceImpl.class, WmsCodeService.class,
+        WmsInventoryReservationServiceImpl.class,
         com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class})
 class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 

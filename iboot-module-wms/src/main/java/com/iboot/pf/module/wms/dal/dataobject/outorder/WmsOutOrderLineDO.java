@@ -81,6 +81,9 @@ public class WmsOutOrderLineDO extends BaseDO {
     /** 容器编号。 */
     private Long containerId;
 
+    /** 关联库存预留编号，0 表示无预留。过账后按该编号核销预留，避免预留与扣减双重占用可用量。 */
+    private Long reservationId;
+
     /** 明细状态。 */
     private String status;
 

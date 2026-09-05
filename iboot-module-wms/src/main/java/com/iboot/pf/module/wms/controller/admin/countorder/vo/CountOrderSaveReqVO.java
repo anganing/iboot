@@ -6,7 +6,6 @@ import java.util.*;
 import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
-import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.framework.common.validation.InEnum;
 import com.iboot.pf.module.wms.enums.WmsCountTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
@@ -61,5 +60,14 @@ public class CountOrderSaveReqVO {
 
     @Schema(description = "备注")
     private String remark;
+
+    /**
+     * 限定物料范围，留空表示不限物料。
+     *
+     * <p>盘点行不是人录的，是领域 Service 按仓库、库区、这个物料集合圈选库存余额生成的，
+     * 所以盘点单没有明细子表入参，只有盘点范围。抽盘就靠这个字段收窄范围。
+     */
+    @Schema(description = "限定物料编号集合，留空表示不限物料")
+    private List<Long> matIds;
 
 }

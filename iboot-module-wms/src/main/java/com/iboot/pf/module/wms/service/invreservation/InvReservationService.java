@@ -1,55 +1,19 @@
 package com.iboot.pf.module.wms.service.invreservation;
 
-import java.util.*;
-import jakarta.validation.*;
-import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
-import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.framework.common.pojo.PageResult;
-import com.iboot.pf.framework.common.pojo.PageParam;
+import com.iboot.pf.module.wms.controller.admin.invreservation.vo.*;
 
 /**
- * WMS-库存预留 Service 接口
+ * WMS-库存预留 codegen Service 接口。
+ *
+ * <p><b>只读</b>：预留的建立、释放、核销一律走领域侧
+ * {@code service.reservation.WmsInventoryReservationService}。原因是 codegen 侧那套 CRUD 只往
+ * {@code wms_inv_reservation} 插记录、不改 {@code wms_inv_balance.qty_reserved}，
+ * 可用量虚高、超发无人拦。这里保留的只有 Mapper XML 支撑的 JOIN 展示查询与物料名批量补全。
  *
  * @author iboot
  */
 public interface InvReservationService {
-
-    /**
-     * 创建WMS-库存预留
-     *
-     * @param createReqVO 创建信息
-     * @return 编号
-     */
-    Long createInvReservation(@Valid InvReservationSaveReqVO createReqVO);
-
-    /**
-     * 导入WMS-库存预留
-     *
-     * @param importList 导入信息
-     * @return 导入结果
-     */
-    InvReservationImportRespVO importInvReservationList(List<InvReservationImportExcelVO> importList);
-
-    /**
-     * 更新WMS-库存预留
-     *
-     * @param updateReqVO 更新信息
-     */
-    void updateInvReservation(@Valid InvReservationSaveReqVO updateReqVO);
-
-    /**
-     * 删除WMS-库存预留
-     *
-     * @param id 编号
-     */
-    void deleteInvReservation(Long id);
-
-    /**
-    * 批量删除WMS-库存预留
-    *
-    * @param ids 编号
-    */
-    void deleteInvReservationListByIds(List<Long> ids);
 
     /**
      * 获得WMS-库存预留
@@ -67,4 +31,4 @@ public interface InvReservationService {
      */
     PageResult<InvReservationRespVO> getInvReservationPage(InvReservationPageReqVO pageReqVO);
 
-}
+}

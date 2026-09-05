@@ -133,6 +133,9 @@ public class WmsCreateOutOrderBO {
         /** 容器编号。 */
         private Long containerId;
 
+        /** 关联库存预留编号，0 表示无预留。MES 领料等场景先建预留再出库时传入，过账后据此核销。 */
+        private Long reservationId;
+
         /** 备注。 */
         private String remark;
 

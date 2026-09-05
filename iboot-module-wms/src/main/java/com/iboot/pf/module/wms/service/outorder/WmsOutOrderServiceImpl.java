@@ -6,9 +6,11 @@ import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderLineDO;
+import com.iboot.pf.module.wms.dal.dataobject.reservation.WmsInvReservationDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
+import com.iboot.pf.module.wms.enums.WmsConstants;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
@@ -24,6 +26,8 @@ import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
+import com.iboot.pf.module.wms.service.reservation.WmsInventoryReservationService;
+import com.iboot.pf.module.wms.service.reservation.bo.WmsReservationHandleBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -43,6 +47,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LINE_EM
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LOC_REQUIRED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.RESERVATION_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.OUT_ORDER;
 
 /** 出库单 Service 实现。 */
@@ -57,6 +62,8 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
     private WmsWarehouseService warehouseService;
     @Resource
     private WmsInventoryService inventoryService;
+    @Resource
+    private WmsInventoryReservationService reservationService;
     @Resource
     private WmsCodeService codeService;
     @Resource
@@ -230,6 +237,8 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
 
             String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
             inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
+            // 过账已扣现存，紧接着核销本行预留，否则预留与扣减会双重占用可用量
+            consumeReservation(order, line, qty, bo);
 
             line.setPickedQty(nvl(line.getPickedQty()).add(qty));
             line.setPostedQty(nvl(line.getPostedQty()).add(qty));
@@ -239,6 +248,52 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
 
         order.setStatus(WmsOrderStatusEnum.DONE.name());
         wmsOutOrderMapper.updateById(order);
+    }
+
+    /**
+     * 核销本行关联的预留。
+     *
+     * <p>出库过账只减 {@code qty_onhand}，预留若不核销就与扣减双重占用可用量：预留 100 出库 100 后
+     * 现存已减 100 而 {@code qty_reserved} 仍是 100，可用量凭空少 100。核销后可用量与过账前相同，
+     * 这正是"料已从仓库出到车间、仓库可用量本就该是这个数"的账目事实。
+     *
+     * <p>用 consume 而不是 release：{@code CONSUMED} 表示预留已履约转为实际出库，
+     * {@code RELEASED} 表示预留作废库存归还，两者的追溯口径不同。
+     *
+     * @param order   出库单
+     * @param line    出库明细
+     * @param postQty 本行本次实际过账数量
+     * @param bo      确认参数，提供出库单幂等键与备注
+     */
+    private void consumeReservation(WmsOutOrderDO order, WmsOutOrderLineDO line, BigDecimal postQty,
+                                    WmsConfirmOrderBO bo) {
+        Long reservationId = line.getReservationId();
+        // 落库恒为 0 或有效编号，判 null 只为兜住 reservation_id 列新增之前的历史行
+        if (reservationId == null || WmsConstants.NONE_ID.equals(reservationId)) {
+            return;
+        }
+        WmsInvReservationDO reservation = reservationService.getReservation(reservationId);
+        if (reservation == null) {
+            // 行上记了预留却查不到，核销无从谈起，可用量会永久偏低，必须拦住而不是静默跳过
+            throw exception(RESERVATION_NOT_EXISTS);
+        }
+        BigDecimal remaining = nvl(reservation.getQty()).subtract(nvl(reservation.getReleasedQty()));
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            // 预留已被核销或释放完（CONSUMED / RELEASED 终态），无需再核销
+            return;
+        }
+
+        WmsReservationHandleBO handleBO = new WmsReservationHandleBO();
+        // 幂等键与本行过账键同源不同后缀：重复确认时预留 Service 按流水判重直接返回，不会二次核销
+        handleBO.setIdempotencyKey(bo.getIdempotencyKey() + ":" + line.getLineNo() + ":CONSUME");
+        handleBO.setReservationId(reservationId);
+        // 过账量超出剩余预留时只核销剩余部分：部分出库与超发出库都是正常业务，不抛异常
+        handleBO.setQty(postQty.min(remaining));
+        handleBO.setBizType(order.getBizType());
+        handleBO.setBizNo(order.getOutNo());
+        handleBO.setBizLineNo(String.valueOf(line.getLineNo()));
+        handleBO.setRemark(bo.getRemark());
+        reservationService.consume(handleBO);
     }
 
     private WmsInventoryQueryBO buildQuery(WmsOutOrderDO order, WmsOutOrderLineDO line) {
