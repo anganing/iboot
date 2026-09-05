@@ -25,6 +25,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class InventoryReservationApiImpl implements InventoryReservationApi {
 
     @Resource
@@ -65,13 +66,11 @@ public class InventoryReservationApiImpl implements InventoryReservationApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public ReservationRespDTO getReservation(Long id) {
         return BeanUtils.toBean(reservationService.getReservation(id), ReservationRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ReservationRespDTO> getReservationList(Collection<Long> ids) {
         return BeanUtils.toBean(reservationService.getReservationList(ids), ReservationRespDTO.class);
     }

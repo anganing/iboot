@@ -28,32 +28,29 @@ import java.util.Map;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class InventoryApiImpl implements InventoryApi {
 
     @Resource
     private WmsInventoryService inventoryService;
 
     @Override
-    @DataPermission(enable = false)
     public List<InventoryBalanceRespDTO> getInventoryBalanceList(InventoryQueryReqDTO query) {
         List<WmsInvBalanceDO> list = inventoryService.getBalanceList(toBO(query));
         return BeanUtils.toBean(list, InventoryBalanceRespDTO.class, this::fillAvailable);
     }
 
     @Override
-    @DataPermission(enable = false)
     public BigDecimal getAvailableQty(InventoryQueryReqDTO query) {
         return inventoryService.getAvailableQty(toBO(query));
     }
 
     @Override
-    @DataPermission(enable = false)
     public Map<Long, BigDecimal> getAvailableQtyMap(InventoryQueryReqDTO query) {
         return inventoryService.getAvailableQtyMap(toBO(query));
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<InventoryTxnRespDTO> getInventoryTxnList(InventoryTxnQueryReqDTO query) {
         WmsInventoryTxnQueryBO bo = new WmsInventoryTxnQueryBO();
         bo.setInvOrgId(query.getInvOrgId());
@@ -70,7 +67,6 @@ public class InventoryApiImpl implements InventoryApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public PageResult<InventoryBalanceRespDTO> getInventoryBalancePage(InventoryPageReqDTO pageReq) {
         WmsInventoryQueryBO bo = toBOPage(pageReq);
         PageResult<WmsInvBalanceDO> page = inventoryService.getBalancePage(pageReq, bo);

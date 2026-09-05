@@ -1,5 +1,6 @@
 package com.iboot.pf.module.bpm.api.task;
 
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import com.iboot.pf.module.bpm.controller.admin.task.vo.instance.BpmProcessInstanceCancelReqVO;
 import com.iboot.pf.module.bpm.service.task.BpmProcessInstanceService;
@@ -16,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class BpmProcessInstanceApiImpl implements BpmProcessInstanceApi {
 
     @Resource

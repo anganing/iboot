@@ -22,19 +22,18 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ContainerApiImpl implements ContainerApi {
 
     @Resource
     private WmsContainerService containerService;
 
     @Override
-    @DataPermission(enable = false)
     public ContainerRespDTO getContainer(Long id) {
         return BeanUtils.toBean(containerService.getContainer(id), ContainerRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ContainerRespDTO> getContainerList(Collection<Long> ids) {
         return BeanUtils.toBean(containerService.getContainerList(ids), ContainerRespDTO.class);
     }
@@ -46,13 +45,11 @@ public class ContainerApiImpl implements ContainerApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public ContainerTypeRespDTO getContainerType(Long id) {
         return BeanUtils.toBean(containerService.getContainerType(id), ContainerTypeRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ContainerTypeRespDTO> getContainerTypeList(Collection<Long> ids) {
         return BeanUtils.toBean(containerService.getContainerTypeList(ids), ContainerTypeRespDTO.class);
     }

@@ -21,19 +21,18 @@ import java.util.Map;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class WarehouseApiImpl implements WarehouseApi {
 
     @Resource
     private WmsWarehouseService warehouseService;
 
     @Override
-    @DataPermission(enable = false)
     public WhRespDTO getWh(Long id) {
         return BeanUtils.toBean(warehouseService.getWh(id), WhRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<WhRespDTO> getWhList(Collection<Long> ids) {
         return BeanUtils.toBean(warehouseService.getWhList(ids), WhRespDTO.class);
     }
@@ -45,13 +44,11 @@ public class WarehouseApiImpl implements WarehouseApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public ZoneRespDTO getZone(Long id) {
         return BeanUtils.toBean(warehouseService.getZone(id), ZoneRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ZoneRespDTO> getZoneList(Collection<Long> ids) {
         return BeanUtils.toBean(warehouseService.getZoneList(ids), ZoneRespDTO.class);
     }
@@ -63,19 +60,16 @@ public class WarehouseApiImpl implements WarehouseApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ZoneRespDTO> getZoneListByWh(Long whId) {
         return BeanUtils.toBean(warehouseService.getZoneListByWh(whId), ZoneRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public LocRespDTO getLoc(Long id) {
         return BeanUtils.toBean(warehouseService.getLoc(id), LocRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<LocRespDTO> getLocList(Collection<Long> ids) {
         return BeanUtils.toBean(warehouseService.getLocList(ids), LocRespDTO.class);
     }
@@ -87,7 +81,6 @@ public class WarehouseApiImpl implements WarehouseApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<LocRespDTO> getLocListByWh(Long whId) {
         return BeanUtils.toBean(warehouseService.getLocListByWh(whId), LocRespDTO.class);
     }

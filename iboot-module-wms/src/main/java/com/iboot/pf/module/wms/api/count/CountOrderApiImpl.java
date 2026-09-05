@@ -1,6 +1,7 @@
 package com.iboot.pf.module.wms.api.count;
 
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.wms.api.count.dto.ConfirmCountDiffReqDTO;
 import com.iboot.pf.module.wms.api.count.dto.CreateCountOrderReqDTO;
 import com.iboot.pf.module.wms.api.count.dto.SubmitCountResultReqDTO;
@@ -19,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class CountOrderApiImpl implements CountOrderApi {
 
     @Resource

@@ -17,6 +17,7 @@ import java.util.List;
 /** 排程场景 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ScenarioApiImpl implements ScenarioApi {
 
     @Resource
@@ -33,13 +34,11 @@ public class ScenarioApiImpl implements ScenarioApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public ScenarioRespDTO getScenario(Long id) {
         return BeanUtils.toBean(scenarioService.getScenarioDO(id), ScenarioRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ScenarioRespDTO> getScenarioList(Collection<Long> ids) {
         return BeanUtils.toBean(scenarioService.getScenarioDOList(ids), ScenarioRespDTO.class);
     }

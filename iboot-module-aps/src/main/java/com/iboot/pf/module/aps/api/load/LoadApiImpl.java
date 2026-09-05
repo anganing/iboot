@@ -14,13 +14,13 @@ import java.util.List;
 /** APS 资源负荷 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class LoadApiImpl implements LoadApi {
 
     @Resource
     private ApsLoadService loadService;
 
     @Override
-    @DataPermission(enable = false)
     public List<LoadRespDTO> getLoadListByVersionId(Long versionId) {
         return BeanUtils.toBean(loadService.getLoadDOListByVersionId(versionId), LoadRespDTO.class);
     }

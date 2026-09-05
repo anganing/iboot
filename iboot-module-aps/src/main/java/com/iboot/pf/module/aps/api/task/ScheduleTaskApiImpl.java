@@ -15,19 +15,18 @@ import java.util.List;
 /** 排程任务 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ScheduleTaskApiImpl implements ScheduleTaskApi {
 
     @Resource
     private ApsTaskService taskService;
 
     @Override
-    @DataPermission(enable = false)
     public List<ScheduleTaskRespDTO> getTaskListByVersionId(Long versionId) {
         return BeanUtils.toBean(taskService.getTaskDOListByVersionId(versionId), ScheduleTaskRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ScheduleTaskRespDTO> getTaskListByOrderIds(Collection<Long> ids) {
         return BeanUtils.toBean(taskService.getTaskDOListByProdOrderIds(ids), ScheduleTaskRespDTO.class);
     }

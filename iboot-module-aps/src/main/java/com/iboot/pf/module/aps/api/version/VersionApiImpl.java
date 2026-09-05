@@ -16,6 +16,7 @@ import java.util.List;
 /** 排程版本 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class VersionApiImpl implements VersionApi {
 
     @Resource
@@ -27,13 +28,11 @@ public class VersionApiImpl implements VersionApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public VersionRespDTO getVersion(Long id) {
         return BeanUtils.toBean(versionService.getVersionDO(id), VersionRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<VersionRespDTO> getVersionListByScenarioId(Long scenarioId) {
         return BeanUtils.toBean(versionService.getVersionDOListByScenarioId(scenarioId), VersionRespDTO.class);
     }

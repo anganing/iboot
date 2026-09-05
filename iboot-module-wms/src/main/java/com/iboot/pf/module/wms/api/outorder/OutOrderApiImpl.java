@@ -1,6 +1,7 @@
 package com.iboot.pf.module.wms.api.outorder;
 
 import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.wms.api.order.dto.CancelOrderReqDTO;
 import com.iboot.pf.module.wms.api.order.dto.ConfirmOrderReqDTO;
 import com.iboot.pf.module.wms.api.outorder.dto.CreateOutOrderReqDTO;
@@ -19,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class OutOrderApiImpl implements OutOrderApi {
 
     @Resource

@@ -25,19 +25,18 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class BatchApiImpl implements BatchApi {
 
     @Resource
     private WmsBatchService batchService;
 
     @Override
-    @DataPermission(enable = false)
     public BatchRespDTO getBatch(Long id) {
         return BeanUtils.toBean(batchService.getBatch(id), BatchRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<BatchRespDTO> getBatchList(Collection<Long> ids) {
         return BeanUtils.toBean(batchService.getBatchList(ids), BatchRespDTO.class);
     }

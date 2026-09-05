@@ -14,13 +14,13 @@ import java.util.List;
 /** APS 缺料 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ShortageApiImpl implements ShortageApi {
 
     @Resource
     private ApsShortageService shortageService;
 
     @Override
-    @DataPermission(enable = false)
     public List<ShortageRespDTO> getShortageListByVersionId(Long versionId) {
         return BeanUtils.toBean(shortageService.getShortageDOListByVersionId(versionId), ShortageRespDTO.class);
     }

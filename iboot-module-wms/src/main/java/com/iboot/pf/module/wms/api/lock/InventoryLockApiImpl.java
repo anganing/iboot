@@ -27,6 +27,7 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class InventoryLockApiImpl implements InventoryLockApi {
 
     @Resource
@@ -52,13 +53,11 @@ public class InventoryLockApiImpl implements InventoryLockApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public InventoryLockRespDTO getLock(Long id) {
         return BeanUtils.toBean(lockService.getLock(id), InventoryLockRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<InventoryLockRespDTO> getLockList(Collection<Long> ids) {
         return BeanUtils.toBean(lockService.getLockList(ids), InventoryLockRespDTO.class);
     }
@@ -70,7 +69,6 @@ public class InventoryLockApiImpl implements InventoryLockApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<InventoryLockRespDTO> getLockList(InventoryLockQueryReqDTO query) {
         WmsLockQueryBO bo = new WmsLockQueryBO();
         bo.setInvOrgId(query.getInvOrgId());

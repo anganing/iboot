@@ -19,6 +19,7 @@ import java.util.List;
 /** APS 投影 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ProjectionApiImpl implements ProjectionApi {
 
     @Resource
@@ -45,19 +46,16 @@ public class ProjectionApiImpl implements ProjectionApi {
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<MaterialProjectionRespDTO> getMaterialProjectionList(MaterialProjectionQueryReqDTO query) {
         return BeanUtils.toBean(projectionService.getMaterialProjectionList(query), MaterialProjectionRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<InventoryProjectionRespDTO> getInventoryProjectionList(InventoryProjectionQueryReqDTO query) {
         return BeanUtils.toBean(projectionService.getInventoryProjectionList(query), InventoryProjectionRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<OrderProjectionRespDTO> getOrderProjectionList(OrderProjectionQueryReqDTO query) {
         return BeanUtils.toBean(projectionService.getOrderProjectionList(query), OrderProjectionRespDTO.class);
     }
