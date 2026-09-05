@@ -44,6 +44,13 @@ public enum MesCommandTypeEnum {
     /** 工序完工。 */
     FINISH_OP_TASK,
     /** 工序跳序。 */
-    SKIP_OP_TASK
+    SKIP_OP_TASK,
+    /**
+     * 取消报工。
+     *
+     * <p>提交报工不在这里：{@code mes_prod_report} 自带 {@code idempotency_key} 唯一索引，走列判重。
+     * 取消改的是那条记录的状态，没有新载体可落键，因此进命令记录。
+     */
+    CANCEL_PROD_REPORT
 
 }

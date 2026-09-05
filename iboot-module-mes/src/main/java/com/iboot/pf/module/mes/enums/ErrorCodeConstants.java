@@ -54,6 +54,10 @@ public interface ErrorCodeConstants {
     ErrorCode OP_TASK_RES_UNAVAILABLE = new ErrorCode(1_064_002_009, "资源({})不可用：{}");
     ErrorCode OP_TASK_SKILL_NOT_MATCH = new ErrorCode(1_064_002_010, "操作者技能不满足工序({})要求：{}");
     ErrorCode OP_TASK_TOOL_NOT_READY = new ErrorCode(1_064_002_011, "工序({})所需工装不可用：{}");
+    ErrorCode OP_TASK_CONCURRENT_CONFLICT =
+            new ErrorCode(1_064_002_012, "工序任务正被其他操作更新，请刷新后重试");
+    ErrorCode OP_TASK_FINISH_QTY_MISMATCH =
+            new ErrorCode(1_064_002_013, "完工数量与工序任务当前累计不一致：本次提交合格 {} 报废 {}，实际累计合格 {} 报废 {}");
 
     // ========== 质量共用 ==========
     ErrorCode QUALITY_QTY_INVALID = new ErrorCode(1_064_003_000, "合格数量与不合格数量之和必须等于抽检数量");
@@ -70,6 +74,8 @@ public interface ErrorCodeConstants {
     ErrorCode WORK_ORDER_NO_DUPLICATE = new ErrorCode(1_064_011_001, "作业工单号已存在");
     ErrorCode WORK_ORDER_STATUS_INVALID = new ErrorCode(1_064_011_002, "作业工单当前状态不允许该操作");
     ErrorCode WORK_ORDER_HAS_OP_TASK = new ErrorCode(1_064_011_003, "作业工单下存在工序任务，不能删除");
+    ErrorCode WORK_ORDER_CONCURRENT_CONFLICT =
+            new ErrorCode(1_064_011_004, "作业工单正被其他操作更新，请刷新后重试");
 
     // ========== 齐套快照 ==========
     ErrorCode KIT_SNAPSHOT_NOT_EXISTS = new ErrorCode(1_064_012_000, "齐套快照不存在");
@@ -106,6 +112,10 @@ public interface ErrorCodeConstants {
     ErrorCode PROD_REPORT_STATUS_INVALID = new ErrorCode(1_064_014_002, "报工记录当前状态不允许该操作");
     ErrorCode PROD_REPORT_QTY_EMPTY = new ErrorCode(1_064_014_003, "合格、报废、返工数量不能全部为零");
     ErrorCode PROD_REPORT_TIME_INVALID = new ErrorCode(1_064_014_004, "作业结束时间不能早于开始时间");
+    ErrorCode PROD_REPORT_QTY_EXCEEDED =
+            new ErrorCode(1_064_014_005, "工序({})本次报工合格 {} 报废 {}，累计后 {} 超过计划数量 {}");
+    ErrorCode PROD_REPORT_CANCEL_OP_TASK_DONE =
+            new ErrorCode(1_064_014_006, "工序({})已完工，它的报工不允许取消");
 
     // ========== 返工任务 ==========
     ErrorCode REWORK_NOT_EXISTS = new ErrorCode(1_064_015_000, "返工任务不存在");
