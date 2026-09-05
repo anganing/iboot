@@ -50,41 +50,19 @@ export function getInvReservation(id: number) {
   );
 }
 
-/** 新增库存预留 */
-export function createInvReservation(data: WmsInvReservationApi.InvReservation) {
-  return requestClient.post('/wms/inv-reservation/create', data);
-}
-
-/** 修改库存预留 */
-export function updateInvReservation(data: WmsInvReservationApi.InvReservation) {
-  return requestClient.put('/wms/inv-reservation/update', data);
-}
-
-/** 删除库存预留 */
-export function deleteInvReservation(id: number) {
-  return requestClient.delete(`/wms/inv-reservation/delete?id=${id}`);
-}
-
-/** 批量删除库存预留 */
-export function deleteInvReservationList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/inv-reservation/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出库存预留 */
 export function exportInvReservation(params: any) {
   return requestClient.download('/wms/inv-reservation/export-excel', { params });
 }
 
-/** 下载库存预留导入模板 */
-export function importInvReservationTemplate() {
-  return requestClient.download('/wms/inv-reservation/get-import-template');
+/**
+ * 释放库存预留
+ *
+ * 预留由业务动作创建（MES 领料提交、销售订单确认），界面上唯一正当的写入动作就是释放：
+ * 后端转调领域 Service 做 RELEASE 过账，把占用量还回可用量。
+ * 新增/修改/删除/导入端点已在后端撤除，前端不再保留对应请求函数。
+ */
+export function releaseReservation(id: number) {
+  return requestClient.post(`/wms/inv-reservation/release?id=${id}`);
 }
-
-/** 导入库存预留 */
-export function importInvReservation(file: File) {
-  return requestClient.upload('/wms/inv-reservation/import', { file });
-}
-
 

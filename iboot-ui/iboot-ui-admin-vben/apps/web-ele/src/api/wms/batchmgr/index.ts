@@ -21,6 +21,21 @@ export namespace WmsBatchApi {
     remark?: string; // 备注
     createTime?: string; // 创建时间
   }
+
+  /**
+   * 批属性维护入参
+   *
+   * 与后端 BatchAttrUpdateReqVO 一一对应，只有六个字段。物料、批次号、序列号、供应商是批次的身份，
+   * 库存余额与流水都按 batchId 记账，改了身份就与账对不上，所以不放进来。
+   */
+  export interface BatchAttrUpdate {
+    id: number; // 主键
+    furnaceLotNo?: string; // 炉批号
+    produceDate?: string; // 生产日期
+    expiryDate?: string; // 失效日期
+    status?: number; // 状态
+    remark?: string; // 备注
+  }
 }
 
 /** 查询批次分页 */
@@ -38,41 +53,19 @@ export function getBatch(id: number) {
   );
 }
 
-/** 新增批次 */
-export function createBatch(data: WmsBatchApi.Batch) {
-  return requestClient.post('/wms/batch/create', data);
-}
-
-/** 修改批次 */
-export function updateBatch(data: WmsBatchApi.Batch) {
-  return requestClient.put('/wms/batch/update', data);
-}
-
-/** 删除批次 */
-export function deleteBatch(id: number) {
-  return requestClient.delete(`/wms/batch/delete?id=${id}`);
-}
-
-/** 批量删除批次 */
-export function deleteBatchList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/batch/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出批次 */
 export function exportBatch(params: any) {
   return requestClient.download('/wms/batch/export-excel', { params });
 }
 
-/** 下载批次导入模板 */
-export function importBatchTemplate() {
-  return requestClient.download('/wms/batch/get-import-template');
+/**
+ * 维护批次批属性
+ *
+ * 批次只能由入库动作（到货确认、完工入库）经 WmsBatchService#registerBatch 创建，
+ * 人工建批次会造出没有库存的孤儿批次、人工删批次会让引用它的余额与流水失去主档，
+ * 所以后端已撤除新增/删除/导入端点，原 PUT /update 也降级成只放开六个批属性的 /update-attr。
+ */
+export function updateBatchAttr(data: WmsBatchApi.BatchAttrUpdate) {
+  return requestClient.put('/wms/batch/update-attr', data);
 }
-
-/** 导入批次 */
-export function importBatch(file: File) {
-  return requestClient.upload('/wms/batch/import', { file });
-}
-
 

@@ -21,8 +21,14 @@ const DATE_PROPS = {
   valueFormat: 'YYYY-MM-DD',
 };
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
+/**
+ * 批属性维护的表单
+ *
+ * 与后端 BatchAttrUpdateReqVO 一一对应，只有六个字段（含隐藏的 id）。批次由入库动作注册，
+ * 物料、批次号、序列号、供应商是批次的身份，余额与流水按 batchId 记账，改身份就与账对不上，
+ * 所以这里只放"注册之后才知道"的批属性。**不要往里加字段。**
+ */
+export function useAttrFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'id',
@@ -30,47 +36,6 @@ export function useFormSchema(): VbenFormSchema[] {
       dependencies: {
         triggerFields: [''],
         show: () => false,
-      },
-    },
-    {
-      fieldName: 'matId',
-      label: '物料',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: MAT_RELATION_PROPS,
-    },
-    {
-      fieldName: 'lotNo',
-      label: '批次号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        maxLength: 128,
-        placeholder: '无批次物料填默认批次',
-      },
-    },
-    {
-      fieldName: 'snNo',
-      label: '序列号',
-      component: 'Input',
-      componentProps: {
-        maxLength: 128,
-        placeholder: 'SN 管控物料填写',
-      },
-    },
-    {
-      fieldName: 'supplierId',
-      label: '供应商',
-      component: markRaw(RelationSelect),
-      componentProps: SUPPLIER_RELATION_PROPS,
-    },
-    {
-      fieldName: 'supplierLotNo',
-      label: '供应商批次',
-      component: 'Input',
-      componentProps: {
-        maxLength: 128,
-        placeholder: '请输入供应商批次号',
       },
     },
     {
@@ -113,19 +78,6 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入备注',
         rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '批次数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -197,7 +149,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<WmsBatchApi.Batch>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'lotNo', title: '批次号', minWidth: 150 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },

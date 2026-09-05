@@ -2,38 +2,25 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvLockApi } from '#/api/wms/invlock';
 
-import { ref } from 'vue';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteInvLock,
-  deleteInvLockList,
-  exportInvLock,
-  getInvLockPage,
-} from '#/api/wms/invlock';
+import { exportInvLock, getInvLockPage, unlockInvLock } from '#/api/wms/invlock';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-import InvLockImport from './modules/import-form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: InvLockImport,
-  destroyOnClose: true,
-});
-
-/** 导入库存冻结 */
-function handleImport() {
-  importFormModalApi.open();
+/**
+ * 判断冻结记录是否还能解冻
+ *
+ * 对齐后端 WmsLockStatusEnum：只有 ACTIVE（全额冻结）与 PARTIAL（部分解冻）还有剩余冻结量，
+ * RELEASED / CANCELLED 已经没有冻结量可还，按钮直接禁用而不是隐藏，便于用户看到"为什么不能点"。
+ */
+function canUnlock(status?: string) {
+  return status === 'ACTIVE' || status === 'PARTIAL';
 }
 
 /** 刷新表格 */
@@ -41,53 +28,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建库存冻结 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑库存冻结 */
-function handleEdit(row: WmsInvLockApi.InvLock) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除库存冻结 */
-async function handleDelete(row: WmsInvLockApi.InvLock) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.lockNo]),
-  });
+/** 解冻库存冻结记录：把剩余冻结量还回可用库存 */
+async function handleUnlock(row: WmsInvLockApi.InvLock) {
+  const remainQty = Number(row.qty ?? 0) - Number(row.releasedQty ?? 0);
   try {
-    await deleteInvLock(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lockNo]));
+    await ElMessageBox.confirm(
+      `确认解冻【${row.lockNo}】剩余 ${remainQty} ？解冻后这部分数量回到可用库存，不可撤销。`,
+      '解冻库存',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: '确定解冻',
+        type: 'warning',
+      },
+    );
+  } catch {
+    // 用户取消
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在解冻...' });
+  try {
+    await unlockInvLock(row.id!);
+    ElMessage.success('解冻成功');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-/** 批量删除库存冻结 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteInvLockList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: WmsInvLockApi.InvLock[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -95,7 +60,6 @@ async function handleExport() {
   const data = await exportInvLock(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '库存冻结.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -125,48 +89,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<WmsInvLockApi.InvLock>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="库存冻结列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['库存冻结']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['wms:inv-lock:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['wms:inv-lock:import'],
-              onClick: handleImport,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['wms:inv-lock:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:inv-lock:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,27 +112,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '解冻',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['wms:inv-lock:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:inv-lock:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.lockNo]),
-                confirm: handleDelete.bind(null, row),
-              },
+              icon: 'lucide:unlock',
+              auth: ['wms:inv-lock:unlock'],
+              disabled: !canUnlock(row.status),
+              onClick: handleUnlock.bind(null, row),
             },
           ]"
         />
       </template>
     </Grid>
   </Page>
-</template>
+</template>

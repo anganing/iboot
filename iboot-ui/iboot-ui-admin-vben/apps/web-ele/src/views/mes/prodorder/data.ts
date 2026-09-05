@@ -29,6 +29,7 @@ import {
  * 新增/修改的表单。
  *
  * 物料与单位快照、BOM 与路线版本、进度数量、齐套状态、时间戳都由后端维护，不出现在表单里。
+ * 状态同样不在表单里：工单状态只能由下达、挂起、关闭等动作推进，新建时后端兜底为 DRAFT。
  */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -166,17 +167,6 @@ export function useFormSchema(): VbenFormSchema[] {
         }),
       },
       defaultValue: 0,
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_PROD_ORDER_STATUS, 'string'),
-        placeholder: '请选择状态',
-      },
-      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'remark',

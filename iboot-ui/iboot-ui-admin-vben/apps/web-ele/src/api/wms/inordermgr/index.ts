@@ -5,7 +5,7 @@ import { requestClient } from '#/api/request';
 export namespace WmsInOrderApi {
   /** 入库明细信息 */
   export interface InOrderLine {
-    id: number; // 主键
+    id?: number; // 主键，界面新建的行还没有主键
     orderId?: number; // 入库单编号
     lineNo?: number; // 行号
     sourceLineId?: number; // 来源明细编号
@@ -68,6 +68,27 @@ export namespace WmsInOrderApi {
     createTime?: string; // 创建时间
     arrivalArrival_no?: string; // 到货登记arrival_no
     whName?: string; // 目标仓库名称
+    /**
+     * 入库明细。
+     *
+     * 后端 createInOrder / updateInOrder 对空明细直接抛"明细不能为空"，所以明细随单头一次提交，
+     * 改单时是整批替换（旧行全删后重建），前端必须把全部明细都带上，不能只传变动的行。
+     */
+    lines?: InOrderLine[];
+  }
+
+  /** 单据动作请求（提交、过账共用） */
+  export interface OrderActionReq {
+    id: number; // 入库单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端按单据编号与动作确定性派生
+    remark?: string; // 备注
+  }
+
+  /** 单据取消请求 */
+  export interface OrderCancelReq {
+    id: number; // 入库单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端派生
+    reason: string; // 取消原因，必填
   }
 }
 
@@ -81,31 +102,27 @@ export function getInOrderPage(params: PageParam) {
 
 /** 查询入库单详情 */
 export function getInOrder(id: number) {
-  return requestClient.get<WmsInOrderApi.InOrder>(
-    `/wms/in-order/get?id=${id}`,
-  );
+  return requestClient.get<WmsInOrderApi.InOrder>(`/wms/in-order/get?id=${id}`);
 }
 
-/** 新增入库单 */
+/** 新增入库单，明细随单头一起提交 */
 export function createInOrder(data: WmsInOrderApi.InOrder) {
   return requestClient.post('/wms/in-order/create', data);
 }
 
-/** 修改入库单 */
+/** 修改入库单，仅新建状态可改，明细整批替换 */
 export function updateInOrder(data: WmsInOrderApi.InOrder) {
   return requestClient.put('/wms/in-order/update', data);
 }
 
-/** 删除入库单 */
+/** 删除入库单，仅新建状态可删 */
 export function deleteInOrder(id: number) {
   return requestClient.delete(`/wms/in-order/delete?id=${id}`);
 }
 
-/** 批量删除入库单 */
+/** 批量删除入库单，仅新建状态可删 */
 export function deleteInOrderList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/in-order/delete-list?ids=${ids.join(',')}`,
-  );
+  return requestClient.delete(`/wms/in-order/delete-list?ids=${ids.join(',')}`);
 }
 
 /** 导出入库单 */
@@ -113,45 +130,35 @@ export function exportInOrder(params: any) {
   return requestClient.download('/wms/in-order/export-excel', { params });
 }
 
-/** 下载入库单导入模板 */
-export function importInOrderTemplate() {
-  return requestClient.download('/wms/in-order/get-import-template');
+// ==================== 领域动作 ====================
+
+/** 提交入库单：新建推进到已确认 */
+export function submitInOrder(data: WmsInOrderApi.OrderActionReq) {
+  return requestClient.post('/wms/in-order/submit', data);
 }
 
-/** 导入入库单 */
-export function importInOrder(file: File) {
-  return requestClient.upload('/wms/in-order/import', { file });
+/** 过账入库单：写库存流水并增加余额 */
+export function confirmInOrder(data: WmsInOrderApi.OrderActionReq) {
+  return requestClient.post('/wms/in-order/confirm', data);
 }
 
+/** 取消入库单：仅新建状态可取消 */
+export function cancelInOrder(data: WmsInOrderApi.OrderCancelReq) {
+  return requestClient.post('/wms/in-order/cancel', data);
+}
 
-// ==================== 子表（入库明细） ====================
+// ==================== 子表（入库明细，只读） ====================
 
-/** 获得入库明细分页 */
+/**
+ * 获得入库明细分页。
+ *
+ * 明细的增删改端点已随写入路径收口撤销，明细只能经单据的 create / update 整单提交，
+ * 这里只留查询：给已提交、已过账的单据看明细，以及改单时把现有明细读进表单。
+ */
 export function getInOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsInOrderApi.InOrderLine>>(
     `/wms/in-order/in-order-line/page`,
     { params },
-  );
-}
-/** 新增入库明细 */
-export function createInOrderLine(data: WmsInOrderApi.InOrderLine) {
-  return requestClient.post(`/wms/in-order/in-order-line/create`, data);
-}
-
-/** 修改入库明细 */
-export function updateInOrderLine(data: WmsInOrderApi.InOrderLine) {
-  return requestClient.put(`/wms/in-order/in-order-line/update`, data);
-}
-
-/** 删除入库明细 */
-export function deleteInOrderLine(id: number) {
-  return requestClient.delete(`/wms/in-order/in-order-line/delete?id=${id}`);
-}
-
-/** 批量删除入库明细 */
-export function deleteInOrderLineList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/in-order/in-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
@@ -161,4 +168,3 @@ export function getInOrderLine(id: number) {
     `/wms/in-order/in-order-line/get?id=${id}`,
   );
 }
-

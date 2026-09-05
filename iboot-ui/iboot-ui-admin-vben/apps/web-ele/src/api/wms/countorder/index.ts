@@ -39,7 +39,7 @@ export namespace WmsCountOrderApi {
     whId?: number; // 仓库编号
     zoneId?: number; // 库区编号，0表示全部库区
     projectId?: number; // 项目编号，0表示不限项目
-    snapshotTime?: string; // 账面快照时间
+    snapshotTime?: number | string; // 账面快照时间
     blindCountFlag?: boolean; // 是否盲盘
     status?: string; // 状态
     idempotencyKey?: string; // 创建幂等键
@@ -49,6 +49,34 @@ export namespace WmsCountOrderApi {
     whName?: string; // 仓库名称
     zoneCode?: string; // 库区编号，0表示全部库区编码
     zoneName?: string; // 库区编号，0表示全部库区名称
+    /**
+     * 限定盘点物料范围，留空表示不限物料。
+     *
+     * 盘点单没有明细入参：盘点行由后端按仓库 + 库区 + 这个物料集合圈选库存余额自动生成，
+     * 账面数量取当时的余额快照。抽盘就靠这个字段收窄范围。
+     */
+    matIds?: number[];
+  }
+
+  /** 盘点单动作请求（冻结、确认差异共用） */
+  export interface CountActionReq {
+    id: number; // 盘点单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端按单据编号与动作确定性派生
+    remark?: string; // 备注
+  }
+
+  /** 实盘结果行 */
+  export interface CountResultLine {
+    lineId: number; // 盘点明细编号
+    actualQty: number; // 实盘数量，允许为 0
+    remark?: string; // 备注
+  }
+
+  /** 提交实盘结果请求，一次提交多行 */
+  export interface CountResultSubmitReq {
+    id: number; // 盘点单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端派生
+    results: CountResultLine[]; // 实盘结果，差异数量由服务端计算
   }
 }
 
@@ -67,22 +95,22 @@ export function getCountOrder(id: number) {
   );
 }
 
-/** 新增盘点单 */
+/** 新增盘点单，盘点行由服务端按盘点范围生成 */
 export function createCountOrder(data: WmsCountOrderApi.CountOrder) {
   return requestClient.post('/wms/count-order/create', data);
 }
 
-/** 修改盘点单 */
+/** 修改盘点单，仅新建状态可改，改盘点范围会重新生成盘点行 */
 export function updateCountOrder(data: WmsCountOrderApi.CountOrder) {
   return requestClient.put('/wms/count-order/update', data);
 }
 
-/** 删除盘点单 */
+/** 删除盘点单，仅新建状态可删 */
 export function deleteCountOrder(id: number) {
   return requestClient.delete(`/wms/count-order/delete?id=${id}`);
 }
 
-/** 批量删除盘点单 */
+/** 批量删除盘点单，仅新建状态可删 */
 export function deleteCountOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/count-order/delete-list?ids=${ids.join(',')}`,
@@ -94,45 +122,35 @@ export function exportCountOrder(params: any) {
   return requestClient.download('/wms/count-order/export-excel', { params });
 }
 
-/** 下载盘点单导入模板 */
-export function importCountOrderTemplate() {
-  return requestClient.download('/wms/count-order/get-import-template');
+// ==================== 领域动作 ====================
+
+/** 冻结盘点范围：逐行按账面数量做冻结过账，盘点期间这批货不许动 */
+export function freezeCountOrder(data: WmsCountOrderApi.CountActionReq) {
+  return requestClient.post('/wms/count-order/freeze', data);
 }
 
-/** 导入盘点单 */
-export function importCountOrder(file: File) {
-  return requestClient.upload('/wms/count-order/import', { file });
+/** 提交实盘结果：一次提交多行，差异数量由服务端按账面数量算 */
+export function submitCountResult(data: WmsCountOrderApi.CountResultSubmitReq) {
+  return requestClient.post('/wms/count-order/submit-result', data);
 }
 
+/** 确认盘点差异：生成盘盈入库单或盘亏出库单并过账 */
+export function confirmCountDiff(data: WmsCountOrderApi.CountActionReq) {
+  return requestClient.post('/wms/count-order/confirm-diff', data);
+}
 
-// ==================== 子表（盘点明细） ====================
+// ==================== 子表（盘点明细，只读 + 录实盘） ====================
 
-/** 获得盘点明细分页 */
+/**
+ * 获得盘点明细分页。
+ *
+ * 明细的增删改端点已随写入路径收口撤销：账面数量是账实对比的基准，人工改它等于给账实一致留后门。
+ * 实盘数量只能经 submitCountResult 批量录入。
+ */
 export function getCountOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsCountOrderApi.CountOrderLine>>(
     `/wms/count-order/count-order-line/page`,
     { params },
-  );
-}
-/** 新增盘点明细 */
-export function createCountOrderLine(data: WmsCountOrderApi.CountOrderLine) {
-  return requestClient.post(`/wms/count-order/count-order-line/create`, data);
-}
-
-/** 修改盘点明细 */
-export function updateCountOrderLine(data: WmsCountOrderApi.CountOrderLine) {
-  return requestClient.put(`/wms/count-order/count-order-line/update`, data);
-}
-
-/** 删除盘点明细 */
-export function deleteCountOrderLine(id: number) {
-  return requestClient.delete(`/wms/count-order/count-order-line/delete?id=${id}`);
-}
-
-/** 批量删除盘点明细 */
-export function deleteCountOrderLineList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/count-order/count-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
@@ -142,4 +160,3 @@ export function getCountOrderLine(id: number) {
     `/wms/count-order/count-order-line/get?id=${id}`,
   );
 }
-

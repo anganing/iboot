@@ -8,21 +8,23 @@ import { useVbenModal } from '@vben/common-ui';
 import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
-import { createBatch, getBatch, updateBatch } from '#/api/wms/batchmgr';
+import { getBatch, updateBatchAttr } from '#/api/wms/batchmgr';
 import { $t } from '#/locales';
 import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
-import { useFormSchema } from '../data';
+import { useAttrFormSchema } from '../data';
 
 const emit = defineEmits(['success']);
 const formData = ref<WmsBatchApi.Batch>();
-const getTitle = computed(() => {
-  return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['批次'])
-    : $t('ui.actionTitle.create', ['批次']);
-});
 
-const formLayout = getMdmFormLayout(2);
+/** 标题带上批次号，弹窗内只放六个可维护字段，身份字段靠标题给上下文 */
+const getTitle = computed(() =>
+  formData.value?.lotNo
+    ? `维护批属性 - ${formData.value.lotNo}`
+    : '维护批属性',
+);
+
+const formLayout = getMdmFormLayout(1);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
@@ -35,7 +37,7 @@ const [Form, formApi] = useVbenForm({
   },
   wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
-  schema: useFormSchema(),
+  schema: useAttrFormSchema(),
   showDefaultActions: false,
 });
 
@@ -46,10 +48,10 @@ const [Modal, modalApi] = useVbenModal({
       return;
     }
     modalApi.lock();
-    // 提交表单
-    const data = (await formApi.getValues()) as WmsBatchApi.Batch;
+    // 表单里只有六个批属性字段，getValues 拿到的就是 /update-attr 需要的全部入参
+    const data = (await formApi.getValues()) as WmsBatchApi.BatchAttrUpdate;
     try {
-      await (formData.value?.id ? updateBatch(data) : createBatch(data));
+      await updateBatchAttr(data);
       // 关闭并提示
       await modalApi.close();
       emit('success');
@@ -63,15 +65,16 @@ const [Modal, modalApi] = useVbenModal({
       formData.value = undefined;
       return;
     }
-    // 加载数据
+    await formApi.resetForm();
+    // 批属性只能改已存在的批次，没有 id 就是调用方传错了
     const data = modalApi.getData<WmsBatchApi.Batch>();
     if (!data || !data.id) {
       return;
     }
     modalApi.lock();
     try {
+      // 列表 RespVO 是裁剪过的，编辑前先取完整数据
       formData.value = await getBatch(data.id);
-      // 设置到 values
       await formApi.setValues(formData.value);
     } finally {
       modalApi.unlock();
@@ -84,4 +87,4 @@ const [Modal, modalApi] = useVbenModal({
   <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
   </Modal>
-</template>
+</template>

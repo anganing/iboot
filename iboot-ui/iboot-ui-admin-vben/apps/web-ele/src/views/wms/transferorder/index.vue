@@ -2,25 +2,28 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsTransferOrderApi } from '#/api/wms/transferorder';
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  cancelTransferOrder,
+  confirmTransferOrder,
   deleteTransferOrder,
   deleteTransferOrderList,
   exportTransferOrder,
   getTransferOrderPage,
+  submitTransferOrder,
 } from '#/api/wms/transferorder';
 import { $t } from '#/locales';
 
+import { canPostOrder, isOrderDraft } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import TransferOrderImport from './modules/import-form.vue';
 import TransferOrderLineDrawer from './modules/transfer-order-line-drawer.vue';
 
 const [LineDrawer, lineDrawerApi] = useVbenDrawer({
@@ -31,17 +34,8 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: TransferOrderImport,
-  destroyOnClose: true,
-});
 
-/** 导入移库调拨单 */
-function handleImport() {
-  importFormModalApi.open();
-}
-
-/** 查看并维护当前单据的调拨明细 */
+/** 查看当前单据的调拨明细（只读） */
 function handleLines(row: WmsTransferOrderApi.TransferOrder) {
   lineDrawerApi.setData(row).open();
 }
@@ -56,12 +50,12 @@ function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑移库调拨单 */
+/** 编辑移库调拨单，仅新建态可改 */
 function handleEdit(row: WmsTransferOrderApi.TransferOrder) {
   formModalApi.setData(row).open();
 }
 
-/** 删除移库调拨单 */
+/** 删除移库调拨单，仅新建态可删 */
 async function handleDelete(row: WmsTransferOrderApi.TransferOrder) {
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deleting', [row.transferNo]),
@@ -83,7 +77,7 @@ async function handleDeleteBatch() {
   });
   try {
     await deleteTransferOrderList(checkedIds.value);
-    checkedIds.value = [];
+    checkedRows.value = [];
     ElMessage.success($t('ui.actionMessage.deleteSuccess'));
     handleRefresh();
   } finally {
@@ -91,13 +85,102 @@ async function handleDeleteBatch() {
   }
 }
 
-const checkedIds = ref<number[]>([]);
+/** 提交移库调拨单：新建推进到已确认 */
+async function handleSubmit(row: WmsTransferOrderApi.TransferOrder) {
+  try {
+    await ElMessageBox.confirm(
+      `确认提交移库调拨单【${row.transferNo}】？提交后明细不能再改，只能过账或取消。`,
+      '提交移库调拨单',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: '确定提交',
+        type: 'warning',
+      },
+    );
+  } catch {
+    return; // 用户取消
+  }
+  const loadingInstance = ElLoading.service({ text: '正在提交...' });
+  try {
+    // 不传幂等键：服务端按单据编号与动作确定性派生，连点两次会被判重
+    await submitTransferOrder({ id: row.id! });
+    ElMessage.success('提交成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 过账移库调拨单：来源维度扣减、目标维度增加 */
+async function handleConfirm(row: WmsTransferOrderApi.TransferOrder) {
+  try {
+    await ElMessageBox.confirm(
+      `确认过账移库调拨单【${row.transferNo}】？过账会把库存从来源库位搬到目标库位并写库存流水，不可撤销。`,
+      '移库调拨过账',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: '确定过账',
+        type: 'warning',
+      },
+    );
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在过账...' });
+  try {
+    await confirmTransferOrder({ id: row.id! });
+    ElMessage.success('过账成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 取消移库调拨单：仅新建态可取消，取消原因必填 */
+async function handleCancel(row: WmsTransferOrderApi.TransferOrder) {
+  let reason: string;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `确认取消移库调拨单【${row.transferNo}】？请填写取消原因。`,
+      '取消移库调拨单',
+      {
+        cancelButtonText: '返回',
+        confirmButtonText: '确定取消单据',
+        inputPlaceholder: '请输入取消原因',
+        inputValidator: (input: string) =>
+          input && input.trim().length > 0 ? true : '取消原因不能为空',
+        type: 'warning',
+      },
+    );
+    reason = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在取消...' });
+  try {
+    await cancelTransferOrder({ id: row.id!, reason });
+    ElMessage.success('已取消');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+const checkedRows = ref<WmsTransferOrderApi.TransferOrder[]>([]);
+const checkedIds = computed(() => checkedRows.value.map((item) => item.id!));
+/** 勾选里有非新建态的单据时不许批量删除：后端逐张校验，删到一半失败前面的已经删了 */
+const canDeleteBatch = computed(
+  () =>
+    !isEmpty(checkedRows.value) &&
+    checkedRows.value.every((row) => isOrderDraft(row.status)),
+);
+
 function handleRowCheckboxChange({
   records,
 }: {
   records: WmsTransferOrderApi.TransferOrder[];
 }) {
-  checkedIds.value = records.map((item) => item.id!);
+  checkedRows.value = records;
 }
 
 /** 导出表格 */
@@ -105,7 +188,6 @@ async function handleExport() {
   const data = await exportTransferOrder(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '移库调拨单.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -142,11 +224,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
 });
 </script>
-
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <LineDrawer />
     <Grid table-title="移库调拨单列表">
       <template #toolbar-tools>
@@ -160,12 +240,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleCreate,
             },
             {
-              label: '导入',
-              type: 'primary',
-              auth: ['wms:transfer-order:import'],
-              onClick: handleImport,
-            },
-            {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
@@ -177,7 +251,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               type: 'danger',
               icon: ACTION_ICON.DELETE,
               auth: ['wms:transfer-order:delete'],
-              disabled: isEmpty(checkedIds),
+              disabled: !canDeleteBatch,
               onClick: handleDeleteBatch,
             },
           ]"
@@ -195,11 +269,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleLines.bind(null, row),
             },
             {
+              label: '提交',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:send',
+              auth: ['wms:transfer-order:submit'],
+              disabled: !isOrderDraft(row.status),
+              onClick: handleSubmit.bind(null, row),
+            },
+            {
+              label: '过账',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:check-check',
+              auth: ['wms:transfer-order:confirm'],
+              disabled: !canPostOrder(row.status),
+              onClick: handleConfirm.bind(null, row),
+            },
+            {
+              label: '取消',
+              type: 'warning',
+              link: true,
+              icon: 'lucide:ban',
+              auth: ['wms:transfer-order:cancel'],
+              disabled: !isOrderDraft(row.status),
+              onClick: handleCancel.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['wms:transfer-order:update'],
+              disabled: !isOrderDraft(row.status),
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -208,6 +310,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['wms:transfer-order:delete'],
+              disabled: !isOrderDraft(row.status),
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.transferNo]),
                 confirm: handleDelete.bind(null, row),

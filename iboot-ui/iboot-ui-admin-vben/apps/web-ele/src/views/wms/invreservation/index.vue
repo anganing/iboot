@@ -2,38 +2,29 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvReservationApi } from '#/api/wms/invreservation';
 
-import { ref } from 'vue';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteInvReservation,
-  deleteInvReservationList,
   exportInvReservation,
   getInvReservationPage,
+  releaseReservation,
 } from '#/api/wms/invreservation';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-import InvReservationImport from './modules/import-form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: InvReservationImport,
-  destroyOnClose: true,
-});
-
-/** 导入库存预留 */
-function handleImport() {
-  importFormModalApi.open();
+/**
+ * 判断预留是否还能释放
+ *
+ * 对齐后端 WmsReservationStatusEnum：只有 ACTIVE（全额生效）与 PARTIAL（部分处理）还有剩余占用量，
+ * RELEASED / CONSUMED / CANCELLED 已经没有占用量可还，按钮直接禁用而不是隐藏，便于用户看到"为什么不能点"。
+ */
+function canRelease(status?: string) {
+  return status === 'ACTIVE' || status === 'PARTIAL';
 }
 
 /** 刷新表格 */
@@ -41,53 +32,31 @@ function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建库存预留 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑库存预留 */
-function handleEdit(row: WmsInvReservationApi.InvReservation) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除库存预留 */
-async function handleDelete(row: WmsInvReservationApi.InvReservation) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.reservationNo]),
-  });
+/** 释放库存预留：把剩余占用量还回可用库存 */
+async function handleRelease(row: WmsInvReservationApi.InvReservation) {
+  const remainQty = Number(row.qty ?? 0) - Number(row.releasedQty ?? 0);
   try {
-    await deleteInvReservation(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.reservationNo]));
+    await ElMessageBox.confirm(
+      `确认释放预留【${row.reservationNo}】剩余 ${remainQty} ？释放后这部分数量回到可用库存，不可撤销。`,
+      '释放预留',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: '确定释放',
+        type: 'warning',
+      },
+    );
+  } catch {
+    // 用户取消
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在释放预留...' });
+  try {
+    await releaseReservation(row.id!);
+    ElMessage.success('释放成功');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-/** 批量删除库存预留 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteInvReservationList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: WmsInvReservationApi.InvReservation[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -95,7 +64,6 @@ async function handleExport() {
   const data = await exportInvReservation(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '库存预留.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -125,48 +93,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<WmsInvReservationApi.InvReservation>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="库存预留列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['库存预留']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['wms:inv-reservation:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['wms:inv-reservation:import'],
-              onClick: handleImport,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['wms:inv-reservation:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:inv-reservation:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,27 +116,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '释放',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['wms:inv-reservation:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:inv-reservation:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.reservationNo]),
-                confirm: handleDelete.bind(null, row),
-              },
+              icon: 'lucide:unlock',
+              auth: ['wms:inv-reservation:release'],
+              disabled: !canRelease(row.status),
+              onClick: handleRelease.bind(null, row),
             },
           ]"
         />
       </template>
     </Grid>
   </Page>
-</template>
+</template>

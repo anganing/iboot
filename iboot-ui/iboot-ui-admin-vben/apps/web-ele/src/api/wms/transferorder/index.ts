@@ -5,7 +5,7 @@ import { requestClient } from '#/api/request';
 export namespace WmsTransferOrderApi {
   /** 调拨明细信息 */
   export interface TransferOrderLine {
-    id: number; // 主键
+    id?: number; // 主键，界面新建的行还没有主键
     orderId?: number; // 转移调拨单编号
     lineNo?: number; // 行号
     matId?: number; // 物料编号
@@ -59,6 +59,29 @@ export namespace WmsTransferOrderApi {
     fromWhName?: string; // 来源仓库名称
     toWhCode?: string; // 目标仓库编码
     toWhName?: string; // 目标仓库名称
+    /**
+     * 转移明细。
+     *
+     * 后端 createTransferOrder / updateTransferOrder 对空明细直接抛"明细不能为空"，所以明细随单头
+     * 一次提交，改单时是整批替换（旧行全删后重建），前端必须把全部明细都带上。
+     *
+     * 物料编码与名称快照要前端带过来：转移单领域侧不回填物料快照，不带库存流水上的物料编码就是空的。
+     */
+    lines?: TransferOrderLine[];
+  }
+
+  /** 单据动作请求（提交、过账共用） */
+  export interface OrderActionReq {
+    id: number; // 移库调拨单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端按单据编号与动作确定性派生
+    remark?: string; // 备注
+  }
+
+  /** 单据取消请求 */
+  export interface OrderCancelReq {
+    id: number; // 移库调拨单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端派生
+    reason: string; // 取消原因，必填
   }
 }
 
@@ -77,22 +100,22 @@ export function getTransferOrder(id: number) {
   );
 }
 
-/** 新增移库调拨单 */
+/** 新增移库调拨单，明细随单头一起提交 */
 export function createTransferOrder(data: WmsTransferOrderApi.TransferOrder) {
   return requestClient.post('/wms/transfer-order/create', data);
 }
 
-/** 修改移库调拨单 */
+/** 修改移库调拨单，仅新建状态可改，明细整批替换 */
 export function updateTransferOrder(data: WmsTransferOrderApi.TransferOrder) {
   return requestClient.put('/wms/transfer-order/update', data);
 }
 
-/** 删除移库调拨单 */
+/** 删除移库调拨单，仅新建状态可删 */
 export function deleteTransferOrder(id: number) {
   return requestClient.delete(`/wms/transfer-order/delete?id=${id}`);
 }
 
-/** 批量删除移库调拨单 */
+/** 批量删除移库调拨单，仅新建状态可删 */
 export function deleteTransferOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/transfer-order/delete-list?ids=${ids.join(',')}`,
@@ -104,45 +127,41 @@ export function exportTransferOrder(params: any) {
   return requestClient.download('/wms/transfer-order/export-excel', { params });
 }
 
-/** 下载移库调拨单导入模板 */
-export function importTransferOrderTemplate() {
-  return requestClient.download('/wms/transfer-order/get-import-template');
+// ==================== 领域动作 ====================
+
+/** 提交移库调拨单：新建推进到已确认 */
+export function submitTransferOrder(
+  data: WmsTransferOrderApi.OrderActionReq,
+) {
+  return requestClient.post('/wms/transfer-order/submit', data);
 }
 
-/** 导入移库调拨单 */
-export function importTransferOrder(file: File) {
-  return requestClient.upload('/wms/transfer-order/import', { file });
+/** 过账移库调拨单：来源维度扣减、目标维度增加 */
+export function confirmTransferOrder(
+  data: WmsTransferOrderApi.OrderActionReq,
+) {
+  return requestClient.post('/wms/transfer-order/confirm', data);
 }
 
+/** 取消移库调拨单：仅新建状态可取消 */
+export function cancelTransferOrder(
+  data: WmsTransferOrderApi.OrderCancelReq,
+) {
+  return requestClient.post('/wms/transfer-order/cancel', data);
+}
 
-// ==================== 子表（调拨明细） ====================
+// ==================== 子表（调拨明细，只读） ====================
 
-/** 获得调拨明细分页 */
+/**
+ * 获得调拨明细分页。
+ *
+ * 明细的增删改端点已随写入路径收口撤销，明细只能经单据的 create / update 整单提交，
+ * 这里只留查询：给已提交、已过账的单据看明细，以及改单时把现有明细读进表单。
+ */
 export function getTransferOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsTransferOrderApi.TransferOrderLine>>(
     `/wms/transfer-order/transfer-order-line/page`,
     { params },
-  );
-}
-/** 新增调拨明细 */
-export function createTransferOrderLine(data: WmsTransferOrderApi.TransferOrderLine) {
-  return requestClient.post(`/wms/transfer-order/transfer-order-line/create`, data);
-}
-
-/** 修改调拨明细 */
-export function updateTransferOrderLine(data: WmsTransferOrderApi.TransferOrderLine) {
-  return requestClient.put(`/wms/transfer-order/transfer-order-line/update`, data);
-}
-
-/** 删除调拨明细 */
-export function deleteTransferOrderLine(id: number) {
-  return requestClient.delete(`/wms/transfer-order/transfer-order-line/delete?id=${id}`);
-}
-
-/** 批量删除调拨明细 */
-export function deleteTransferOrderLineList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/transfer-order/transfer-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
@@ -152,4 +171,3 @@ export function getTransferOrderLine(id: number) {
     `/wms/transfer-order/transfer-order-line/get?id=${id}`,
   );
 }
-

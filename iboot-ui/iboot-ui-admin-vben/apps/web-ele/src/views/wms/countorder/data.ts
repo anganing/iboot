@@ -15,20 +15,19 @@ import {
   PROJECT_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
-import {
-  INV_BALANCE_LINE_RELATION_PROPS,
-  WH_RELATION_PROPS,
-  ZONE_RELATION_PROPS,
-} from '../relation-config';
+import { WH_RELATION_PROPS, ZONE_RELATION_PROPS } from '../relation-config';
 
-/** 数量控件的公共配置 */
-const QTY_PROPS = {
-  class: '!w-full',
-  controlsPosition: 'right' as const,
-  precision: 6,
-};
-
-/** 新增/修改的表单 */
+/**
+ * 新增/修改的表单。
+ *
+ * 没有明细区，这是盘点单与另三类单据最实质的差别：盘点行不是人录的，是领域 Service 的
+ * `generateLines` 按"仓库 + 库区 + 物料集合"圈选 `wms_inv_balance` 生成的，`bookQty` 取当时的
+ * 余额快照。表单只定义盘点范围，`matIds` 用来收窄抽盘范围，留空即全盘。
+ *
+ * 也没有"盘点状态"与"账面快照时间"两项：状态由领域 Service 写死为新建、快照时间由它按生成盘点行
+ * 的时刻重取，两个字段填了也会被覆盖。摆出来只会让用户以为自己能定，实际是死字段。
+ * 请求 VO 上它们仍是必填，由 `form.vue` 在提交时补值。
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -92,17 +91,17 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'snapshotTime',
-      label: '快照时间',
-      rules: 'required',
-      component: 'DatePicker',
+      fieldName: 'matIds',
+      label: '盘点物料',
+      component: markRaw(RelationSelect),
       componentProps: {
-        class: '!w-full',
-        format: 'YYYY-MM-DD HH:mm:ss',
-        placeholder: '请选择账面快照时间',
-        showTime: true,
-        valueFormat: 'x',
+        ...MAT_RELATION_PROPS,
+        multiple: true,
+        dialogTitle: '选择盘点物料',
+        placeholder: '留空表示全盘（不限物料）',
       },
+      // 抽盘、循环盘靠它收窄范围：不给这个字段就只能整仓全盘
+      help: '盘点行由服务端按仓库、库区与这些物料圈选库存余额生成，留空表示不限物料',
     },
     {
       fieldName: 'blindCountFlag',
@@ -113,17 +112,8 @@ export function useFormSchema(): VbenFormSchema[] {
         options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
       },
       defaultValue: false,
-    },
-    {
-      fieldName: 'status',
-      label: '盘点状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
-        placeholder: '请选择盘点状态',
-      },
-      defaultValue: 'DRAFT',
+      // 盲盘时录实盘界面不显示账面数量，防止盘点员照抄
+      help: '盲盘时录入实盘数量的界面不显示账面数量与差异',
     },
     {
       fieldName: 'remark',
@@ -134,19 +124,6 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入备注',
         rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '盘点单数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -251,7 +228,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
     },
     {
       title: '操作',
-      width: 160,
+      // 六个按钮：明细、冻结、录实盘、确认差异、编辑、删除
+      width: 360,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -260,76 +238,57 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
 
 // ==================== 子表（盘点明细） ====================
 
-/** 新增/修改的表单 */
-export function useCountOrderLineFormSchema(): VbenFormSchema[] {
+/**
+ * 录实盘表格的字段。
+ *
+ * 盘点明细没有新增/修改表单：行由服务端按余额快照生成，`bookQty` 是账实对比的基准，
+ * 人工改它等于给账实一致留后门。界面上唯一能写的是 `actualQty` 与行备注，
+ * 且只能经 `/submit-result` 一次性批量提交。
+ *
+ * @param blindCount 是否盲盘。盲盘时账面数量与差异数量不显示——盘点员看得见账面就会照抄，
+ *   盘点结果失去意义（`03-WMS仓储库存流程.md` 流程四）。
+ */
+export function useCountResultEditorColumns(
+  blindCount = false,
+): VxeTableGridOptions<WmsCountOrderApi.CountOrderLine>['columns'] {
   return [
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'lineNo', title: '行号', width: 80 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'lotNo', title: '批次号', minWidth: 130 },
+    { field: 'locCode', title: '库位', minWidth: 130 },
     {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
+      field: 'bookQty',
+      title: '账面数量',
+      width: 110,
+      visible: !blindCount,
     },
     {
-      fieldName: 'lineNo',
-      label: '行号',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: {
-        class: '!w-full',
-        controlsPosition: 'right',
-        min: 1,
-        precision: 0,
-        placeholder: '请输入行号',
-      },
+      field: 'diffQty',
+      title: '差异数量',
+      width: 110,
+      visible: !blindCount,
     },
     {
-      fieldName: 'balanceId',
-      label: '库存余额',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: INV_BALANCE_LINE_RELATION_PROPS,
-      // 物料、批次、库位、容器、项目与账面数量全部由后端从这条余额快照回填，
-      // 让用户手填只会让盘点差异算不准
-      help: '物料、批次、库位与账面数量按所选余额自动带出',
+      field: 'actualQty',
+      title: '实盘数量',
+      width: 170,
+      slots: { default: 'actualQty' },
     },
     {
-      fieldName: 'qualityStatus',
-      label: '质量状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.WMS_QUALITY_STATUS, 'string'),
-        placeholder: '请选择质量状态',
-      },
-      defaultValue: 'QUALIFIED',
+      field: 'remark',
+      title: '备注',
+      minWidth: 180,
+      slots: { default: 'lineRemark' },
     },
     {
-      fieldName: 'actualQty',
-      label: '实盘数量',
-      component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, min: 0, placeholder: '请输入实盘数量' },
-    },
-    {
-      fieldName: 'status',
-      label: '明细状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.WMS_COUNT_LINE_STATUS, 'string'),
-        placeholder: '请选择明细状态',
-      },
-      defaultValue: 'PENDING',
-    },
-    {
-      fieldName: 'remark',
-      label: '备注',
-      component: 'Textarea',
-      componentProps: {
-        maxLength: 500,
-        placeholder: '请输入备注',
-        rows: 2,
+      field: 'status',
+      title: '明细状态',
+      width: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.WMS_COUNT_LINE_STATUS },
       },
     },
   ];
@@ -366,10 +325,14 @@ export function useCountOrderLineGridFormSchema(): VbenFormSchema[] {
   ];
 }
 
-/** 列表的字段 */
+/**
+ * 明细列表的字段（只读）。
+ *
+ * 没有勾选列与操作列：明细的增删改端点已撤销，这个列表只用来看盘点行与账实对比结果，
+ * 录实盘走列表页的"录实盘"按钮批量提交。
+ */
 export function useCountOrderLineGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrderLine>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'lineNo', title: '行号', minWidth: 80 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },
@@ -396,11 +359,5 @@ export function useCountOrderLineGridColumns(): VxeTableGridOptions<WmsCountOrde
       },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
-    {
-      title: '操作',
-      width: 160,
-      fixed: 'right',
-      slots: { default: 'actions' },
-    },
   ];
 }

@@ -26,6 +26,7 @@ import {
  *
  * 工序编码、名称、顺序、并行组、关键标记、执行模式都是路线工序的快照，由后端带出；
  * 工艺路线只是为了限定路线工序的选择范围，不提交给后端。
+ * 状态不在表单里：工序任务状态只能由开工、暂停、完工、跳序等动作推进，新建时后端兜底为 PENDING。
  */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -129,17 +130,6 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '计划结束时间',
       component: 'DatePicker',
       componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划结束时间' },
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_OP_TASK_STATUS, 'string'),
-        placeholder: '请选择状态',
-      },
-      defaultValue: 'PENDING',
     },
     {
       fieldName: 'remark',

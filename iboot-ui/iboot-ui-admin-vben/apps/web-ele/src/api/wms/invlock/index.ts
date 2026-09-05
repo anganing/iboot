@@ -49,41 +49,19 @@ export function getInvLock(id: number) {
   );
 }
 
-/** 新增库存冻结 */
-export function createInvLock(data: WmsInvLockApi.InvLock) {
-  return requestClient.post('/wms/inv-lock/create', data);
-}
-
-/** 修改库存冻结 */
-export function updateInvLock(data: WmsInvLockApi.InvLock) {
-  return requestClient.put('/wms/inv-lock/update', data);
-}
-
-/** 删除库存冻结 */
-export function deleteInvLock(id: number) {
-  return requestClient.delete(`/wms/inv-lock/delete?id=${id}`);
-}
-
-/** 批量删除库存冻结 */
-export function deleteInvLockList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/inv-lock/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出库存冻结 */
 export function exportInvLock(params: any) {
   return requestClient.download('/wms/inv-lock/export-excel', { params });
 }
 
-/** 下载库存冻结导入模板 */
-export function importInvLockTemplate() {
-  return requestClient.download('/wms/inv-lock/get-import-template');
+/**
+ * 解冻库存冻结记录
+ *
+ * 冻结由业务动作创建（盘点冻结范围、质量冻结、待处置），界面上唯一正当的写入动作就是解冻：
+ * 后端转调领域 Service 做 UNFREEZE 过账，把冻结量还回可用量。
+ * 新增/修改/删除/导入端点已在后端撤除，前端不再保留对应请求函数。
+ */
+export function unlockInvLock(id: number) {
+  return requestClient.post(`/wms/inv-lock/unlock?id=${id}`);
 }
-
-/** 导入库存冻结 */
-export function importInvLock(file: File) {
-  return requestClient.upload('/wms/inv-lock/import', { file });
-}
-
 

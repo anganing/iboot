@@ -1,3 +1,5 @@
+import type { RelationPickHandler } from '../order-form';
+
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsOutOrderApi } from '#/api/wms/outordermgr';
@@ -36,8 +38,15 @@ const QTY_PROPS = {
   precision: 6,
 };
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
+/**
+ * 新增/修改的表单。
+ *
+ * 没有"单据状态"项：状态由领域 Service 写死为新建，之后只能由提交、过账、取消三个动作推进，
+ * 表单里放一个状态下拉框等于给状态开第二条写入路径。
+ *
+ * @param onPick 关联选择器回填快照的回调，来源仓库要靠它把仓库编码带回来（后端该字段必填）
+ */
+export function useFormSchema(onPick?: RelationPickHandler): VbenFormSchema[] {
   return [
     {
       fieldName: 'id',
@@ -137,7 +146,11 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '来源仓库',
       rules: 'required',
       component: markRaw(RelationSelect),
-      componentProps: WH_RELATION_PROPS,
+      componentProps: {
+        ...WH_RELATION_PROPS,
+        // 后端 whCode 是必填快照，选完仓库要把编码一起带回去
+        onChange: (row?: Record<string, any>) => onPick?.('whId', row),
+      },
     },
     {
       fieldName: 'toInvOrgId',
@@ -196,17 +209,6 @@ export function useFormSchema(): VbenFormSchema[] {
       defaultValue: 'NONE',
     },
     {
-      fieldName: 'status',
-      label: '单据状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.WMS_ORDER_STATUS, 'string'),
-        placeholder: '请选择单据状态',
-      },
-      defaultValue: 'DRAFT',
-    },
-    {
       fieldName: 'remark',
       label: '备注',
       component: 'Textarea',
@@ -215,19 +217,6 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入备注或人工原因',
         rows: 2,
       },
-    },
-  ];
-}
-
-/** 导入的表单 */
-export function useImportFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'file',
-      label: '出库单数据',
-      component: 'Upload',
-      rules: 'required',
-      help: '仅允许导入 xls、xlsx 格式文件',
     },
   ];
 }
@@ -338,8 +327,9 @@ export function useGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrder>['
       formatter: 'formatDateTime',
     },
     {
+      // 行操作从 3 个增加到 6 个（明细、提交、过账、取消、修改、删除），列宽随之放宽
       title: '操作',
-      width: 160,
+      width: 360,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -348,45 +338,31 @@ export function useGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrder>['
 
 // ==================== 子表（出库明细） ====================
 
-/** 新增/修改的表单 */
-export function useOutOrderLineFormSchema(): VbenFormSchema[] {
+/**
+ * 明细行弹窗的表单。
+ *
+ * 三个字段刻意不放进来：
+ * - `lineNo` 由表单在提交时按顺序重排，让用户填会撞号，而行号参与过账幂等键，撞号会漏扣一行；
+ * - `status` 行状态由领域 Service 写死为新建；
+ * - `id` 界面新建的行没有主键，本地行靠 `_localKey` 定位。
+ *
+ * `reservationId` 也不在表单里：预留是 MES 领料建的，界面手工建的出库单没有上游预留，恒为 0。
+ *
+ * @param onPick 关联选择器回填快照的回调，物料编码、库位编码这些可读字段靠它带回明细表格
+ */
+export function useOutOrderLineFormSchema(
+  onPick?: RelationPickHandler,
+): VbenFormSchema[] {
   return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'lineNo',
-      label: '行号',
-      rules: 'required',
-      component: 'InputNumber',
-      componentProps: {
-        class: '!w-full',
-        controlsPosition: 'right',
-        min: 1,
-        precision: 0,
-        placeholder: '请输入行号',
-      },
-    },
-    {
-      fieldName: 'sourceLineNo',
-      label: '来源行号',
-      component: 'Input',
-      componentProps: {
-        maxLength: 64,
-        placeholder: '请输入来源明细行号',
-      },
-    },
     {
       fieldName: 'matId',
       label: '物料',
       rules: 'required',
       component: markRaw(RelationSelect),
-      componentProps: MAT_RELATION_PROPS,
+      componentProps: {
+        ...MAT_RELATION_PROPS,
+        onChange: (row?: Record<string, any>) => onPick?.('matId', row),
+      },
     },
     {
       fieldName: 'batchId',
@@ -394,7 +370,8 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       component: markRaw(RelationSelect),
       componentProps: {
         ...BATCH_RELATION_PROPS,
-        placeholder: '系统分配时可留空',
+        placeholder: '不限批次时留空，由分配环节按拣选策略选批',
+        onChange: (row?: Record<string, any>) => onPick?.('batchId', row),
       },
     },
     {
@@ -402,14 +379,20 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       label: '计量单位',
       rules: 'required',
       component: markRaw(RelationSelect),
-      componentProps: UOM_RELATION_PROPS,
+      componentProps: {
+        ...UOM_RELATION_PROPS,
+        onChange: (row?: Record<string, any>) => onPick?.('uomId', row),
+      },
     },
     {
       fieldName: 'fromLocId',
       label: '来源库位',
-      rules: 'required',
       component: markRaw(RelationSelect),
-      componentProps: LOC_RELATION_PROPS,
+      componentProps: {
+        ...LOC_RELATION_PROPS,
+        placeholder: '留空待分配环节指定，过账前必须有值',
+        onChange: (row?: Record<string, any>) => onPick?.('fromLocId', row),
+      },
     },
     {
       fieldName: 'toLocId',
@@ -418,6 +401,7 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...LOC_RELATION_PROPS,
         placeholder: '发货区落位时填写',
+        onChange: (row?: Record<string, any>) => onPick?.('toLocId', row),
       },
     },
     {
@@ -427,6 +411,7 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: {
         ...CONTAINER_RELATION_PROPS,
         placeholder: '散件留空',
+        onChange: (row?: Record<string, any>) => onPick?.('containerId', row),
       },
     },
     {
@@ -448,17 +433,6 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
       componentProps: { ...QTY_PROPS, placeholder: '请输入计划出库数量' },
     },
     {
-      fieldName: 'status',
-      label: '明细状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.WMS_ORDER_LINE_STATUS, 'string'),
-        placeholder: '请选择明细状态',
-      },
-      defaultValue: 'DRAFT',
-    },
-    {
       fieldName: 'remark',
       label: '备注',
       component: 'Textarea',
@@ -467,6 +441,40 @@ export function useOutOrderLineFormSchema(): VbenFormSchema[] {
         placeholder: '请输入备注',
         rows: 2,
       },
+    },
+  ];
+}
+
+/**
+ * 单据表单里明细区的列。
+ *
+ * 数据源是本地数组，不发请求：明细随单头一次提交，改单时后端整批替换旧行。
+ */
+export function useOutOrderLineEditorColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrderLine>['columns'] {
+  return [
+    { type: 'checkbox', width: 40 },
+    { type: 'seq', title: '序号', width: 60 },
+    { field: 'matCode', title: '物料编码', minWidth: 140 },
+    { field: 'matName', title: '物料名称', minWidth: 160 },
+    { field: 'lotNo', title: '批次号', minWidth: 120 },
+    { field: 'fromLocCode', title: '来源库位', minWidth: 130 },
+    { field: 'planQty', title: '计划数量', minWidth: 110 },
+    { field: 'uomCode', title: '计量单位', minWidth: 100 },
+    {
+      field: 'qualityStatus',
+      title: '质量状态',
+      minWidth: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.WMS_QUALITY_STATUS },
+      },
+    },
+    { field: 'remark', title: '备注', minWidth: 120 },
+    {
+      title: '操作',
+      width: 130,
+      fixed: 'right',
+      slots: { default: 'actions' },
     },
   ];
 }
@@ -502,10 +510,14 @@ export function useOutOrderLineGridFormSchema(): VbenFormSchema[] {
   ];
 }
 
-/** 列表的字段 */
+/**
+ * 明细列表的字段（只读）。
+ *
+ * 没有勾选列与操作列：明细的增删改端点已撤销，这个列表只给已提交、已过账的单据看明细，
+ * 要改明细得回到新建态的单据表单里整单改。
+ */
 export function useOutOrderLineGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrderLine>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'lineNo', title: '行号', minWidth: 80 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },
@@ -531,11 +543,5 @@ export function useOutOrderLineGridColumns(): VxeTableGridOptions<WmsOutOrderApi
       cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_LINE_STATUS } },
     },
     { field: 'remark', title: '备注', minWidth: 140 },
-    {
-      title: '操作',
-      width: 160,
-      fixed: 'right',
-      slots: { default: 'actions' },
-    },
   ];
 }

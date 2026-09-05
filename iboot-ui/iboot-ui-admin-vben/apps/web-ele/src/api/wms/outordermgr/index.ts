@@ -5,7 +5,7 @@ import { requestClient } from '#/api/request';
 export namespace WmsOutOrderApi {
   /** 出库明细信息 */
   export interface OutOrderLine {
-    id: number; // 主键
+    id?: number; // 主键，界面新建的行还没有主键
     orderId?: number; // 出库单编号
     lineNo?: number; // 行号
     sourceLineId?: number; // 来源明细编号
@@ -29,6 +29,13 @@ export namespace WmsOutOrderApi {
     allocatedQty?: number; // 已分配数量
     pickedQty?: number; // 已拣选数量
     postedQty?: number; // 已过账数量
+    /**
+     * 关联库存预留编号，0 表示无预留。
+     *
+     * MES 领料是"先建预留、再出库过账、过账时核销预留"三段，行上带着预留编号过账才能核销。
+     * 界面手工建的出库单没有上游预留，恒为 0。
+     */
+    reservationId?: number;
     status?: string; // 明细状态
     remark?: string; // 备注
     createTime?: string; // 创建时间
@@ -68,6 +75,27 @@ export namespace WmsOutOrderApi {
     remark?: string; // 备注或人工原因
     createTime?: string; // 创建时间
     whName?: string; // 来源仓库名称
+    /**
+     * 出库明细。
+     *
+     * 后端 createOutOrder / updateOutOrder 对空明细直接抛"明细不能为空"，所以明细随单头一次提交，
+     * 改单时是整批替换（旧行全删后重建），前端必须把全部明细都带上，不能只传变动的行。
+     */
+    lines?: OutOrderLine[];
+  }
+
+  /** 单据动作请求（提交、过账共用） */
+  export interface OrderActionReq {
+    id: number; // 出库单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端按单据编号与动作确定性派生
+    remark?: string; // 备注
+  }
+
+  /** 单据取消请求 */
+  export interface OrderCancelReq {
+    id: number; // 出库单编号
+    idempotencyKey?: string; // 幂等键，留空由服务端派生
+    reason: string; // 取消原因，必填
   }
 }
 
@@ -86,22 +114,22 @@ export function getOutOrder(id: number) {
   );
 }
 
-/** 新增出库单 */
+/** 新增出库单，明细随单头一起提交 */
 export function createOutOrder(data: WmsOutOrderApi.OutOrder) {
   return requestClient.post('/wms/out-order/create', data);
 }
 
-/** 修改出库单 */
+/** 修改出库单，仅新建状态可改，明细整批替换 */
 export function updateOutOrder(data: WmsOutOrderApi.OutOrder) {
   return requestClient.put('/wms/out-order/update', data);
 }
 
-/** 删除出库单 */
+/** 删除出库单，仅新建状态可删 */
 export function deleteOutOrder(id: number) {
   return requestClient.delete(`/wms/out-order/delete?id=${id}`);
 }
 
-/** 批量删除出库单 */
+/** 批量删除出库单，仅新建状态可删 */
 export function deleteOutOrderList(ids: number[]) {
   return requestClient.delete(
     `/wms/out-order/delete-list?ids=${ids.join(',')}`,
@@ -113,45 +141,35 @@ export function exportOutOrder(params: any) {
   return requestClient.download('/wms/out-order/export-excel', { params });
 }
 
-/** 下载出库单导入模板 */
-export function importOutOrderTemplate() {
-  return requestClient.download('/wms/out-order/get-import-template');
+// ==================== 领域动作 ====================
+
+/** 提交出库单：新建推进到已确认 */
+export function submitOutOrder(data: WmsOutOrderApi.OrderActionReq) {
+  return requestClient.post('/wms/out-order/submit', data);
 }
 
-/** 导入出库单 */
-export function importOutOrder(file: File) {
-  return requestClient.upload('/wms/out-order/import', { file });
+/** 过账出库单：写库存流水、扣减余额并核销行上预留 */
+export function confirmOutOrder(data: WmsOutOrderApi.OrderActionReq) {
+  return requestClient.post('/wms/out-order/confirm', data);
 }
 
+/** 取消出库单：仅新建状态可取消 */
+export function cancelOutOrder(data: WmsOutOrderApi.OrderCancelReq) {
+  return requestClient.post('/wms/out-order/cancel', data);
+}
 
-// ==================== 子表（出库明细） ====================
+// ==================== 子表（出库明细，只读） ====================
 
-/** 获得出库明细分页 */
+/**
+ * 获得出库明细分页。
+ *
+ * 明细的增删改端点已随写入路径收口撤销，明细只能经单据的 create / update 整单提交，
+ * 这里只留查询：给已提交、已过账的单据看明细，以及改单时把现有明细读进表单。
+ */
 export function getOutOrderLinePage(params: PageParam) {
   return requestClient.get<PageResult<WmsOutOrderApi.OutOrderLine>>(
     `/wms/out-order/out-order-line/page`,
     { params },
-  );
-}
-/** 新增出库明细 */
-export function createOutOrderLine(data: WmsOutOrderApi.OutOrderLine) {
-  return requestClient.post(`/wms/out-order/out-order-line/create`, data);
-}
-
-/** 修改出库明细 */
-export function updateOutOrderLine(data: WmsOutOrderApi.OutOrderLine) {
-  return requestClient.put(`/wms/out-order/out-order-line/update`, data);
-}
-
-/** 删除出库明细 */
-export function deleteOutOrderLine(id: number) {
-  return requestClient.delete(`/wms/out-order/out-order-line/delete?id=${id}`);
-}
-
-/** 批量删除出库明细 */
-export function deleteOutOrderLineList(ids: number[]) {
-  return requestClient.delete(
-    `/wms/out-order/out-order-line/delete-list?ids=${ids.join(',')}`,
   );
 }
 
@@ -161,4 +179,3 @@ export function getOutOrderLine(id: number) {
     `/wms/out-order/out-order-line/get?id=${id}`,
   );
 }
-

@@ -22,6 +22,7 @@ import { PROD_ORDER_RELATION_PROPS } from '../relation-config';
  * 新增/修改的表单。
  *
  * 工厂、车间、项目、生产工单号都从生产工单继承，让前端各填一遍只会制造不一致，所以不放进表单。
+ * 状态也不在表单里：作业工单状态由下属工序任务的执行动作推进，新建时后端兜底为 PENDING。
  */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -74,17 +75,6 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '计划结束时间',
       component: 'DatePicker',
       componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划结束时间' },
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_WORK_ORDER_STATUS, 'string'),
-        placeholder: '请选择状态',
-      },
-      defaultValue: 'PENDING',
     },
     {
       fieldName: 'remark',

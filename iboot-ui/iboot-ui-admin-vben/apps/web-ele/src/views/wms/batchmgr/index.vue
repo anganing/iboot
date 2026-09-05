@@ -2,92 +2,34 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsBatchApi } from '#/api/wms/batchmgr';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { Page, useVbenModal } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteBatch,
-  deleteBatchList,
-  exportBatch,
-  getBatchPage,
-} from '#/api/wms/batchmgr';
+import { exportBatch, getBatchPage } from '#/api/wms/batchmgr';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-import BatchImport from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
-const [ImportFormModal, importFormModalApi] = useVbenModal({
-  connectedComponent: BatchImport,
-  destroyOnClose: true,
-});
-
-/** 导入批次 */
-function handleImport() {
-  importFormModalApi.open();
-}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建批次 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑批次 */
-function handleEdit(row: WmsBatchApi.Batch) {
+/**
+ * 维护批属性
+ *
+ * 批次由入库动作注册，界面上只能补录"注册之后才知道"的六个批属性（炉批号、生产日期、失效日期、
+ * 状态、备注）。物料、批次号、序列号、供应商是批次的身份，余额与流水按 batchId 记账，不开放修改。
+ */
+function handleUpdateAttr(row: WmsBatchApi.Batch) {
   formModalApi.setData(row).open();
-}
-
-/** 删除批次 */
-async function handleDelete(row: WmsBatchApi.Batch) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.lotNo]),
-  });
-  try {
-    await deleteBatch(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.lotNo]));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-/** 批量删除批次 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteBatchList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: WmsBatchApi.Batch[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -95,7 +37,6 @@ async function handleExport() {
   const data = await exportBatch(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '批次.xls', source: data });
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -125,48 +66,22 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<WmsBatchApi.Batch>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <ImportFormModal @success="handleRefresh" />
     <Grid table-title="批次列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['批次']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['wms:batch:create'],
-              onClick: handleCreate,
-            },
-            {
-              label: '导入',
-              type: 'primary',
-              auth: ['wms:batch:import'],
-              onClick: handleImport,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['wms:batch:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:batch:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -175,27 +90,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '维护批属性',
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
-              auth: ['wms:batch:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['wms:batch:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.lotNo]),
-                confirm: handleDelete.bind(null, row),
-              },
+              auth: ['wms:batch:update-attr'],
+              onClick: handleUpdateAttr.bind(null, row),
             },
           ]"
         />
       </template>
     </Grid>
   </Page>
-</template>
+</template>

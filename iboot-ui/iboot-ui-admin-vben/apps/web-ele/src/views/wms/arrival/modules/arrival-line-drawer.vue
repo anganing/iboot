@@ -11,6 +11,8 @@ import { ElDescriptions, ElDescriptionsItem } from 'element-plus';
 
 import ArrivalLineList from './arrival-line-list.vue';
 
+/** 明细里"按选中明细生成入库单"会把到货单推进到已完成，要把刷新信号转给主列表 */
+const emit = defineEmits(['success']);
 const arrivalSummary = ref<WmsArrivalApi.Arrival>();
 
 const [Drawer, drawerApi] = useVbenDrawer({
@@ -65,7 +67,9 @@ const drawerTitle = computed(() => {
         v-if="arrivalSummary"
         :arrival-id="arrivalSummary.id"
         :arrival-no="arrivalSummary.arrivalNo"
+        :arrival-status="arrivalSummary.status"
         class="min-h-0 flex-1"
+        @success="emit('success')"
       />
     </div>
   </Drawer>
