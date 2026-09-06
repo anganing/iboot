@@ -1,5 +1,6 @@
 package com.iboot.pf.module.mes.service.proddemand;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
@@ -23,9 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMap;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_DEMAND_TO_ORDER_QTY_EXCEEDED;
@@ -119,6 +123,41 @@ public class MesProdDemandDomainServiceImpl implements MesProdDemandDomainServic
             }
             return prodOrderId;
         });
+    }
+
+    @Override
+    public void validateDemandDraft(Long demandId) {
+        ProdDemandDO demand = requireDemand(demandId);
+        requireDraft(demand);
+    }
+
+    @Override
+    public void validateDemandDraft(Collection<Long> demandIds) {
+        if (CollUtil.isEmpty(demandIds)) {
+            return;
+        }
+        // 一次查回全部需求，不按 ID 逐个查库：批量删一次点几十条是常态
+        Map<Long, ProdDemandDO> demandMap = convertMap(prodDemandMapper.selectByIds(demandIds),
+                ProdDemandDO::getId);
+        for (Long demandId : demandIds) {
+            ProdDemandDO demand = demandMap.get(demandId);
+            if (demand == null) {
+                throw exception(PROD_DEMAND_NOT_EXISTS);
+            }
+            requireDraft(demand);
+        }
+    }
+
+    /**
+     * 只有新建状态的需求允许表单改动与删除。
+     *
+     * <p>确认之后需求就是投产承诺：已确认的改数量会让转出去的工单与需求对不上，已排产的改交期会让 APS
+     * 上一轮的排程结果失效，已下达的下面已经挂着工单。这三档 codegen Service 的终态判断都放过去了。
+     */
+    private void requireDraft(ProdDemandDO demand) {
+        if (!MesDemandStatusEnum.isDraft(demand.getStatus())) {
+            throw exception(PROD_DEMAND_STATUS_INVALID);
+        }
     }
 
     /**

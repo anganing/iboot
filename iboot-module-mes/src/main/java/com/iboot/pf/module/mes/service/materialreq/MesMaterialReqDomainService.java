@@ -4,6 +4,8 @@ import com.iboot.pf.module.mes.service.materialreq.bo.MesConfirmMaterialReqBO;
 import com.iboot.pf.module.mes.service.materialreq.bo.MesCreateMaterialReqBO;
 import com.iboot.pf.module.mes.service.materialreq.bo.MesMaterialReqActionBO;
 
+import java.util.Collection;
+
 /**
  * 领退补料申请领域动作。
  *
@@ -74,5 +76,38 @@ public interface MesMaterialReqDomainService {
      * @param bo 动作参数，幂等键格式 {@code UI:{申请单号}:CANCEL_MATERIAL_REQ:0}
      */
     void cancelMaterialReq(MesMaterialReqActionBO bo);
+
+    /**
+     * 校验领退补料申请处于 {@code DRAFT}，可以被表单修改或删除。
+     *
+     * <p>状态规则属于领域侧，表单入口只转调这一个校验。codegen 的
+     * {@link MaterialReqService#updateMaterialReq} 只拦"已交给 WMS"的单据，
+     * <b>{@code SUBMITTED} 是放过去的</b>，而那正是最危险的一档：提交时已经逐行去 WMS 占了预留，
+     * 此时改数量、加行、删行，预留与明细当场脱节 —— 预留按旧数量占着可用量，
+     * 确认发料却按新数量走，多出来的那部分永远没人释放。要改先取消（取消会把预留还回去），再重开一张。
+     *
+     * @param materialReqId 领退补料申请编号
+     * @throws com.iboot.pf.framework.common.exception.ServiceException 不是 {@code DRAFT} 时抛
+     *         {@code MATERIAL_REQ_STATUS_INVALID}
+     */
+    void validateReqDraft(Long materialReqId);
+
+    /**
+     * 批量校验领退补料申请处于 {@code DRAFT}，供批量删除用。
+     *
+     * <p>一次查回全部申请再逐条判，不逐个 ID 查库。任一条不是 {@code DRAFT} 就整批拒绝。
+     *
+     * @param materialReqIds 领退补料申请编号集合，空集合直接返回
+     */
+    void validateReqDraft(Collection<Long> materialReqIds);
+
+    /**
+     * 按明细行编号校验其所属申请处于 {@code DRAFT}，供明细行的删除端点用。
+     *
+     * <p>明细行的删除端点只拿得到行编号，所属申请要由行反查。行与申请都一次批量查回，不逐行查库。
+     *
+     * @param lineIds 明细行编号集合，空集合直接返回
+     */
+    void validateLineDraft(Collection<Long> lineIds);
 
 }

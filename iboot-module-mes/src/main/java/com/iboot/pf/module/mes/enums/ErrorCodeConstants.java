@@ -47,6 +47,8 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_064_001_011, "倒冲物料({})未配置默认仓库与默认库位，无法反冲扣料");
     ErrorCode PROD_ORDER_BACKFLUSH_WH_CONFLICT =
             new ErrorCode(1_064_001_012, "倒冲物料({})的默认仓库互不相同，关闭工单时请指定统一的发料仓库");
+    ErrorCode PROD_ORDER_BACKFLUSH_QTY_INSUFFICIENT =
+            new ErrorCode(1_064_001_013, "倒冲物料({})可用量不足，按实际产量需反冲 {}，当前可用 {}");
 
     // ========== 工序任务 ==========
     ErrorCode OP_TASK_STATUS_INVALID = new ErrorCode(1_064_002_000, "工序任务当前状态不允许该操作");

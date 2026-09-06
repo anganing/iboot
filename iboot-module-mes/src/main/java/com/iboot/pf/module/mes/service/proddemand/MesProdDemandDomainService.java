@@ -3,6 +3,8 @@ package com.iboot.pf.module.mes.service.proddemand;
 import com.iboot.pf.module.mes.service.proddemand.bo.MesConfirmDemandBO;
 import com.iboot.pf.module.mes.service.proddemand.bo.MesDemandToOrderBO;
 
+import java.util.Collection;
+
 /**
  * 生产需求领域动作 Service。
  *
@@ -47,5 +49,29 @@ public interface MesProdDemandDomainService {
      * @return 本次创建的生产工单编号；同一幂等键重复下发时返回首次创建的那张工单
      */
     Long demandToProdOrder(MesDemandToOrderBO bo);
+
+    /**
+     * 校验生产需求处于 {@code DRAFT}，可以被表单修改或删除。
+     *
+     * <p>状态规则属于领域侧，表单入口只转调这一个校验：需求一旦确认就是"这批需求要投产"的承诺点，
+     * 已排产的需求被改数量会让 APS 上一轮的排程结果失效，已下达的需求下面挂着工单，
+     * 改需求量等于让工单与需求两边的数量对不上。codegen 的
+     * {@link ProdDemandService#updateProdDemand} 只拦终态，拦不住这三档。
+     *
+     * @param demandId 生产需求编号
+     * @throws com.iboot.pf.framework.common.exception.ServiceException 不是 {@code DRAFT} 时抛
+     *         {@code PROD_DEMAND_STATUS_INVALID}
+     */
+    void validateDemandDraft(Long demandId);
+
+    /**
+     * 批量校验生产需求处于 {@code DRAFT}，供批量删除用。
+     *
+     * <p>一次查回全部需求再逐条判，不逐个 ID 查库。任一条不是 {@code DRAFT} 就整批拒绝：
+     * 批量删除是一个动作，放过一半会让界面上"删了几条"说不清。
+     *
+     * @param demandIds 生产需求编号集合，空集合直接返回
+     */
+    void validateDemandDraft(Collection<Long> demandIds);
 
 }

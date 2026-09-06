@@ -54,17 +54,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMap;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.BOM_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_AVAILABLE_QTY_INSUFFICIENT;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_CONFIRM_QTY_EMPTY;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_CONFIRM_QTY_EXCEEDED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LINE_EMPTY;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LINE_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LOC_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_RETURN_BATCH_REQUIRED;
@@ -496,6 +499,54 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
                 .setId(req.getId())
                 .setStatus(MesMaterialReqStatusEnum.CANCELLED.name())
                 .setRemark(reason));
+    }
+
+    @Override
+    public void validateReqDraft(Long materialReqId) {
+        requireDraft(requireMaterialReq(materialReqId));
+    }
+
+    @Override
+    public void validateReqDraft(Collection<Long> materialReqIds) {
+        if (CollUtil.isEmpty(materialReqIds)) {
+            return;
+        }
+        // 一次查回全部申请，不按 ID 逐个查库
+        Map<Long, MaterialReqDO> reqMap = convertMap(materialReqMapper.selectByIds(materialReqIds),
+                MaterialReqDO::getId);
+        for (Long materialReqId : materialReqIds) {
+            MaterialReqDO req = reqMap.get(materialReqId);
+            if (req == null) {
+                throw exception(MATERIAL_REQ_NOT_EXISTS);
+            }
+            requireDraft(req);
+        }
+    }
+
+    @Override
+    public void validateLineDraft(Collection<Long> lineIds) {
+        if (CollUtil.isEmpty(lineIds)) {
+            return;
+        }
+        List<MaterialReqLineDO> lines = materialReqLineMapper.selectByIds(lineIds);
+        if (lines.size() != CollUtil.newHashSet(lineIds).size()) {
+            throw exception(MATERIAL_REQ_LINE_NOT_EXISTS);
+        }
+        // 行反查所属申请也批量做：一张单几十行时逐行查库就是 N+1
+        validateReqDraft(lines.stream().map(MaterialReqLineDO::getReqId).distinct().toList());
+    }
+
+    /**
+     * 只有新建状态的申请允许表单改动与删除。
+     *
+     * <p>{@code SUBMITTED} 必须拦住：那一刻 WMS 已经逐行占了预留，改数量、加行、删行都会让预留与明细脱节，
+     * 预留按旧数量占着可用量而确认发料按新数量走，多出来的那部分永远没人释放。
+     * 要改先取消（取消会把预留还回去）再重开一张。
+     */
+    private void requireDraft(MaterialReqDO req) {
+        if (!MesMaterialReqStatusEnum.isDraft(req.getStatus())) {
+            throw exception(MATERIAL_REQ_STATUS_INVALID);
+        }
     }
 
     /**
