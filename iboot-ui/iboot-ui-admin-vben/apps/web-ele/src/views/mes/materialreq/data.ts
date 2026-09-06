@@ -27,11 +27,12 @@ import {
 } from '../relation-config';
 
 /**
- * 主表新增/修改的表单。
+ * 创建申请表单。
  *
  * 生产工单号快照与项目维度由后端从生产工单继承；WMS 单号由 WMS 回写，都不在表单里。
+ * 明细留空时后端按用料关系自动展开，手工明细只服务退料与特殊补料。
  */
-export function useFormSchema(): VbenFormSchema[] {
+export function useCreateFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'id',
@@ -39,15 +40,6 @@ export function useFormSchema(): VbenFormSchema[] {
       dependencies: {
         triggerFields: [''],
         show: () => false,
-      },
-    },
-    {
-      fieldName: 'reqNo',
-      label: '申请单号',
-      component: 'Input',
-      componentProps: {
-        maxLength: 64,
-        placeholder: '留空由编码规则自动分配',
       },
     },
     {
@@ -101,17 +93,6 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: markRaw(RelationSelect),
       componentProps: WH_RELATION_PROPS,
-    },
-    {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_MATERIAL_REQ_STATUS, 'string'),
-        placeholder: '请选择状态',
-      },
-      defaultValue: 'DRAFT',
     },
     {
       fieldName: 'idempotencyKey',
@@ -242,7 +223,7 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
     },
     {
       title: '操作',
-      width: 220,
+      width: 300,
       fixed: 'right',
       slots: { default: 'actions' },
     },

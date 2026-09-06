@@ -172,7 +172,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesWorkOrderApi.WorkOrder>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
     { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
@@ -220,12 +219,6 @@ export function useGridColumns(): VxeTableGridOptions<MesWorkOrderApi.WorkOrder>
       title: '创建时间',
       minWidth: 160,
       formatter: 'formatDateTime',
-    },
-    {
-      title: '操作',
-      width: 160,
-      fixed: 'right',
-      slots: { default: 'actions' },
     },
   ];
 }

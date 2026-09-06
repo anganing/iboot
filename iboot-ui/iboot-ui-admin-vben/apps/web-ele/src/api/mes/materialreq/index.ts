@@ -31,6 +31,43 @@ export namespace MesMaterialReqApi {
     createTime?: string;
   }
 
+  export interface MaterialReqCreateReq {
+    prodOrderId: number;
+    workOrderId?: number;
+    opTaskId?: number;
+    reqType: string;
+    invOrgId: number;
+    whId: number;
+    lines?: Array<{
+      matId: number;
+      qty: number;
+      uomId?: number;
+      batchId?: number;
+      routeOpMatId?: number;
+      mustIssueBeforeStart?: boolean;
+      remark?: string;
+    }>;
+    remark?: string;
+    idempotencyKey?: string;
+  }
+
+  export interface MaterialReqActionReq {
+    id: number;
+    idempotencyKey?: string;
+    reason?: string;
+  }
+
+  export interface MaterialReqConfirmReq {
+    id: number;
+    idempotencyKey?: string;
+    remark?: string;
+    lines?: Array<{
+      lineNo: number;
+      confirmQty?: number;
+      locId?: number;
+    }>;
+  }
+
   /**
    * MES-领退补料申请明细。
    *
@@ -73,8 +110,10 @@ export function getMaterialReq(id: number) {
   );
 }
 
-/** 新增领退补料申请 */
-export function createMaterialReq(data: MesMaterialReqApi.MaterialReq) {
+/** 创建领退补料申请 */
+export function createMaterialReq(
+  data: MesMaterialReqApi.MaterialReqCreateReq,
+) {
   return requestClient.post('/mes/material-req/create', data);
 }
 
@@ -93,6 +132,27 @@ export function deleteMaterialReqList(ids: number[]) {
   return requestClient.delete(
     `/mes/material-req/delete-list?ids=${ids.join(',')}`,
   );
+}
+
+/** 提交领退补料申请 */
+export function submitMaterialReq(
+  data: MesMaterialReqApi.MaterialReqActionReq,
+) {
+  return requestClient.post('/mes/material-req/submit', data);
+}
+
+/** 确认领退补料申请 */
+export function confirmMaterialReq(
+  data: MesMaterialReqApi.MaterialReqConfirmReq,
+) {
+  return requestClient.post('/mes/material-req/confirm', data);
+}
+
+/** 取消领退补料申请 */
+export function cancelMaterialReq(
+  data: MesMaterialReqApi.MaterialReqActionReq,
+) {
+  return requestClient.post('/mes/material-req/cancel', data);
 }
 
 /** 导出领退补料申请 */

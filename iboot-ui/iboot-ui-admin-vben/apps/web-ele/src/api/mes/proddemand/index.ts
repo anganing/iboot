@@ -34,6 +34,21 @@ export namespace MesProdDemandApi {
     remark?: string;
     createTime?: string;
   }
+
+  export interface ProdDemandActionReq {
+    id: number;
+    idempotencyKey?: string;
+    reason?: string;
+    remark?: string;
+  }
+
+  export interface ProdDemandToOrderReq {
+    id: number;
+    qty: number;
+    workshopId?: number;
+    idempotencyKey?: string;
+    remark?: string;
+  }
 }
 
 /** 查询生产需求分页 */
@@ -86,4 +101,21 @@ export function importProdDemandTemplate() {
 /** 导入生产需求 */
 export function importProdDemand(file: File) {
   return requestClient.upload('/mes/prod-demand/import', { file });
+}
+
+/** 确认生产需求 */
+export function confirmProdDemand(data: MesProdDemandApi.ProdDemandActionReq) {
+  return requestClient.post('/mes/prod-demand/confirm', data);
+}
+
+/** 取消生产需求 */
+export function cancelProdDemand(data: MesProdDemandApi.ProdDemandActionReq) {
+  return requestClient.post('/mes/prod-demand/cancel', data);
+}
+
+/** 生产需求转生产工单 */
+export function prodDemandToProdOrder(
+  data: MesProdDemandApi.ProdDemandToOrderReq,
+) {
+  return requestClient.post<number>('/mes/prod-demand/to-prod-order', data);
 }

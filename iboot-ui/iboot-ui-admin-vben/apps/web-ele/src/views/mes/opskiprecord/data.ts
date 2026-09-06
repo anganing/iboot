@@ -193,7 +193,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesOpSkipRecordApi.OpSkipRecord>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
     { field: 'opName', title: '工序名称', minWidth: 140 },

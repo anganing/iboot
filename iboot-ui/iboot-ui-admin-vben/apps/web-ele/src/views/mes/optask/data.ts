@@ -12,132 +12,113 @@ import { getRangePickerDefaultProps } from '#/utils';
 import {
   OP_RELATION_PROPS,
   RES_RELATION_PROPS,
+  USER_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
-import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
-import {
-  ROUTE_OP_RELATION_PROPS,
-  ROUTE_RELATION_PROPS,
-  WORK_ORDER_RELATION_PROPS,
-} from '../relation-config';
+import { QTY_PROPS } from '../form-props';
 
 /**
- * 新增/修改的表单。
+ * 工序动作表单：开工需要操作人员，暂停需要原因。
  *
- * 工序编码、名称、顺序、并行组、关键标记、执行模式都是路线工序的快照，由后端带出；
- * 工艺路线只是为了限定路线工序的选择范围，不提交给后端。
- * 状态不在表单里：工序任务状态只能由开工、暂停、完工、跳序等动作推进，新建时后端兜底为 PENDING。
+ * 完工的对账数量只在两个都填时才由后端校验，所以都设为可选；
+ * 跳序原因类型、原因、影响说明独立在跳序表单里，不混进普通动作。
  */
-export function useFormSchema(): VbenFormSchema[] {
+export function useOpTaskActionFormSchema(
+  action: 'start' | 'pause',
+): VbenFormSchema[] {
   return [
     {
-      fieldName: 'id',
-      component: 'Input',
+      fieldName: 'operatorId',
+      label: '操作人员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
       dependencies: {
         triggerFields: [''],
-        show: () => false,
+        show: () => action === 'start',
       },
     },
     {
-      fieldName: 'taskNo',
-      label: '工序任务号',
-      component: 'Input',
+      fieldName: 'reason',
+      label: '原因',
+      component: 'Textarea',
       componentProps: {
-        maxLength: 64,
-        placeholder: '留空由编码规则自动分配',
+        maxLength: 500,
+        placeholder: action === 'pause' ? '请输入暂停原因' : '请输入开工备注',
+        rows: 2,
       },
-    },
-    {
-      fieldName: 'workOrderId',
-      label: '作业工单',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: WORK_ORDER_RELATION_PROPS,
-    },
-    {
-      fieldName: 'routeId',
-      label: '工艺路线',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      componentProps: {
-        ...ROUTE_RELATION_PROPS,
-        placeholder: '先选路线再挑工序',
-      },
-    },
-    {
-      fieldName: 'routeOpId',
-      label: '路线工序',
-      rules: 'required',
-      component: markRaw(RelationSelect),
-      // 工序必须限定在所选路线下，否则会挑到别条路线的工序
       dependencies: {
-        triggerFields: ['routeId'],
-        componentProps: (values) => ({
-          ...ROUTE_OP_RELATION_PROPS,
-          disabled: !values.routeId,
-          extraParams: { routeId: values.routeId },
-          placeholder: values.routeId ? '请选择路线工序' : '请先选择工艺路线',
-        }),
+        triggerFields: [''],
+        show: () => action === 'start' || action === 'pause',
       },
     },
+  ];
+}
+
+/** 完工对账声明：留空时后端只校验累计数量，两个一起给才要求与累计值一致。 */
+export function useOpTaskFinishFormSchema(): VbenFormSchema[] {
+  return [
     {
-      fieldName: 'plannedQty',
-      label: '计划数量',
-      rules: 'required',
+      fieldName: 'qualifiedQty',
+      label: '累计合格数',
       component: 'InputNumber',
-      componentProps: { ...QTY_PROPS, placeholder: '请输入计划数量' },
-    },
-    {
-      fieldName: 'qcMode',
-      label: '质检模式',
-      rules: 'required',
-      component: 'Select',
       componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_QC_MODE, 'string'),
-        placeholder: '请选择质检模式',
+        ...QTY_PROPS,
+        placeholder: '留空按后端累计值校验',
       },
-      defaultValue: 'NONE',
     },
     {
-      fieldName: 'skipPolicy',
-      label: '跳序策略',
-      rules: 'required',
-      component: 'Select',
+      fieldName: 'scrapQty',
+      label: '累计报废数',
+      component: 'InputNumber',
       componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_SKIP_POLICY, 'string'),
-        placeholder: '请选择跳序策略',
+        ...QTY_PROPS,
+        placeholder: '留空按后端累计值校验',
       },
-      defaultValue: 'NOT_ALLOWED',
     },
     {
-      fieldName: 'resId',
-      label: '分配资源',
-      component: markRaw(RelationSelect),
-      componentProps: {
-        ...RES_RELATION_PROPS,
-        placeholder: '未分配可留空',
-      },
-      defaultValue: 0,
-    },
-    {
-      fieldName: 'plannedStartTime',
-      label: '计划开始时间',
-      component: 'DatePicker',
-      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划开始时间' },
-    },
-    {
-      fieldName: 'plannedEndTime',
-      label: '计划结束时间',
-      component: 'DatePicker',
-      componentProps: { ...DATETIME_PROPS, placeholder: '请选择计划结束时间' },
-    },
-    {
-      fieldName: 'remark',
+      fieldName: 'reason',
       label: '备注',
       component: 'Textarea',
       componentProps: {
         maxLength: 500,
-        placeholder: '请输入备注',
+        placeholder: '请输入完工备注',
+        rows: 2,
+      },
+    },
+  ];
+}
+
+/** 跳序申请表单：原因类型与原因必填，影响说明在待审批策略下后端也会要求。 */
+export function useOpTaskSkipFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'skipReasonType',
+      label: '原因类型',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.MES_SKIP_REASON_TYPE, 'string'),
+        placeholder: '请选择跳序原因类型',
+      },
+    },
+    {
+      fieldName: 'reason',
+      label: '跳序原因',
+      rules: 'required',
+      component: 'Textarea',
+      componentProps: {
+        maxLength: 500,
+        placeholder: '请输入跳序原因',
+        rows: 2,
+      },
+    },
+    {
+      fieldName: 'effectRemark',
+      label: '影响说明',
+      component: 'Textarea',
+      componentProps: {
+        maxLength: 500,
+        placeholder: '对后续工序、质检与排程的影响',
         rows: 2,
       },
     },
@@ -222,7 +203,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'taskNo', title: '工序任务号', minWidth: 160 },
     { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
@@ -292,7 +272,7 @@ export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['colu
     },
     {
       title: '操作',
-      width: 160,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

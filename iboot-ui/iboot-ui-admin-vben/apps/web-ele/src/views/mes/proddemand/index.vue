@@ -7,14 +7,17 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  cancelProdDemand,
+  confirmProdDemand,
   deleteProdDemand,
   deleteProdDemandList,
   exportProdDemand,
   getProdDemandPage,
+  prodDemandToProdOrder,
 } from '#/api/mes/proddemand';
 import { $t } from '#/locales';
 
@@ -30,6 +33,18 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   connectedComponent: ProdDemandImport,
   destroyOnClose: true,
 });
+
+function canConfirm(row: MesProdDemandApi.ProdDemand) {
+  return row.status === 'DRAFT';
+}
+
+function canCancel(row: MesProdDemandApi.ProdDemand) {
+  return row.status !== 'DONE' && row.status !== 'CANCELLED';
+}
+
+function canToProdOrder(row: MesProdDemandApi.ProdDemand) {
+  return row.status === 'CONFIRMED' || row.status === 'PLANNED';
+}
 
 /** 导入生产需求 */
 function handleImport() {
@@ -75,6 +90,95 @@ async function handleDeleteBatch() {
     await deleteProdDemandList(checkedIds.value);
     checkedIds.value = [];
     ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 确认生产需求：新建态才允许，后续由排产与转单接手 */
+async function handleConfirm(row: MesProdDemandApi.ProdDemand) {
+  try {
+    await ElMessageBox.confirm(
+      `确认生产需求【${row.demandNo}】？确认后需求进入已确认状态，不能再修改主体字段。`,
+      '确认生产需求',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    );
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在确认...' });
+  try {
+    await confirmProdDemand({ id: row.id! });
+    ElMessage.success('确认成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 取消生产需求：非终态都可取消，取消原因必填 */
+async function handleCancel(row: MesProdDemandApi.ProdDemand) {
+  let reason: string;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `确认取消生产需求【${row.demandNo}】？请填写取消原因。`,
+      '取消生产需求',
+      {
+        confirmButtonText: '确认取消',
+        cancelButtonText: '返回',
+        inputPlaceholder: '请输入取消原因',
+        inputValidator: (input: string) =>
+          input && input.trim().length > 0 ? true : '取消原因不能为空',
+        type: 'warning',
+      },
+    );
+    reason = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在取消...' });
+  try {
+    await cancelProdDemand({ id: row.id!, reason });
+    ElMessage.success('已取消');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 生产需求转生产工单：支持分批转单，转满才置已下达 */
+async function handleToProdOrder(row: MesProdDemandApi.ProdDemand) {
+  let qtyText: string;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `将生产需求【${row.demandNo}】转为生产工单。请输入本次转单数量。`,
+      '生产需求转工单',
+      {
+        confirmButtonText: '转单',
+        cancelButtonText: '取消',
+        inputPlaceholder: `最多可转 ${row.qty ?? 0}`,
+        inputType: 'number',
+        inputValidator: (input: string) => {
+          const qty = Number(input);
+          return Number.isFinite(qty) && qty > 0
+            ? true
+            : '转单数量必须大于 0';
+        },
+      },
+    );
+    qtyText = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在转单...' });
+  try {
+    await prodDemandToProdOrder({ id: row.id!, qty: Number(qtyText) });
+    ElMessage.success('转单成功');
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -174,11 +278,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '确认',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:check',
+              auth: ['mes:prod-demand:confirm'],
+              disabled: !canConfirm(row),
+              onClick: handleConfirm.bind(null, row),
+            },
+            {
+              label: '转工单',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:arrow-right-circle',
+              auth: ['mes:prod-demand:to-prod-order'],
+              disabled: !canToProdOrder(row),
+              onClick: handleToProdOrder.bind(null, row),
+            },
+            {
+              label: '取消',
+              type: 'warning',
+              link: true,
+              icon: 'lucide:ban',
+              auth: ['mes:prod-demand:cancel'],
+              disabled: !canCancel(row),
+              onClick: handleCancel.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mes:prod-demand:update'],
+              disabled: !canConfirm(row),
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -187,6 +319,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mes:prod-demand:delete'],
+              disabled: !canConfirm(row),
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.demandNo]),
                 confirm: handleDelete.bind(null, row),

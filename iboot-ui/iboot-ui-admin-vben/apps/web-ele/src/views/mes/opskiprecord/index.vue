@@ -2,82 +2,58 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesOpSkipRecordApi } from '#/api/mes/opskiprecord';
 
-import { ref } from 'vue';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteOpSkipRecord,
-  deleteOpSkipRecordList,
   exportOpSkipRecord,
   getOpSkipRecordPage,
+  revokeOpSkip,
 } from '#/api/mes/opskiprecord';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
 
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
+function canRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
+  return row.status === 'PENDING' || row.status === 'EFFECTIVE';
+}
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建工序跳过记录 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑工序跳过记录 */
-function handleEdit(row: MesOpSkipRecordApi.OpSkipRecord) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除工序跳过记录 */
-async function handleDelete(row: MesOpSkipRecordApi.OpSkipRecord) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.opTaskNo]),
-  });
+/** 撤销跳序：已生效的退回待开工，待审批的相当于撤回申请 */
+async function handleRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
+  let reason: string;
   try {
-    await deleteOpSkipRecord(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.opTaskNo]));
+    const { value } = await ElMessageBox.prompt(
+      `确认撤销工序【${row.opTaskNo}】的跳序记录？请填写撤销原因。`,
+      '撤销跳序',
+      {
+        confirmButtonText: '确认撤销',
+        cancelButtonText: '返回',
+        inputPlaceholder: '请输入撤销原因',
+        inputValidator: (input: string) =>
+          input && input.trim().length > 0 ? true : '撤销原因不能为空',
+        type: 'warning',
+      },
+    );
+    reason = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在撤销跳序...' });
+  try {
+    await revokeOpSkip({ skipRecordId: row.id!, reason });
+    ElMessage.success('已撤销');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-/** 批量删除工序跳过记录 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteOpSkipRecordList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MesOpSkipRecordApi.OpSkipRecord[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -114,41 +90,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<MesOpSkipRecordApi.OpSkipRecord>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
     <Grid table-title="工序跳过记录列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['工序跳过记录']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['mes:op-skip-record:create'],
-              onClick: handleCreate,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['mes:op-skip-record:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:op-skip-record:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -157,23 +113,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:op-skip-record:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
+              label: '撤销',
               type: 'danger',
               link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:op-skip-record:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.opTaskNo]),
-                confirm: handleDelete.bind(null, row),
-              },
+              icon: 'lucide:undo-2',
+              auth: ['mes:op-task:revoke-skip'],
+              disabled: !canRevoke(row),
+              onClick: handleRevoke.bind(null, row),
             },
           ]"
         />

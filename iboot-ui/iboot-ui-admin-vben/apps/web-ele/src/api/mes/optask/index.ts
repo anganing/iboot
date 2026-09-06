@@ -41,6 +41,29 @@ export namespace MesOpTaskApi {
     remark?: string;
     createTime?: string;
   }
+
+  export interface OpTaskActionReq {
+    id: number;
+    idempotencyKey?: string;
+    operatorId?: number;
+    reason?: string;
+  }
+
+  export interface OpTaskFinishReq extends OpTaskActionReq {
+    qualifiedQty?: number;
+    scrapQty?: number;
+  }
+
+  export interface OpTaskSkipReq extends OpTaskActionReq {
+    skipReasonType: string;
+    effectRemark?: string;
+  }
+
+  export interface OpTaskRevokeSkipReq {
+    skipRecordId: number;
+    idempotencyKey?: string;
+    reason?: string;
+  }
 }
 
 /** 查询工序任务分页 */
@@ -56,27 +79,39 @@ export function getOpTask(id: number) {
   return requestClient.get<MesOpTaskApi.OpTask>(`/mes/op-task/get?id=${id}`);
 }
 
-/** 新增工序任务 */
-export function createOpTask(data: MesOpTaskApi.OpTask) {
-  return requestClient.post('/mes/op-task/create', data);
-}
-
-/** 修改工序任务 */
-export function updateOpTask(data: MesOpTaskApi.OpTask) {
-  return requestClient.put('/mes/op-task/update', data);
-}
-
-/** 删除工序任务 */
-export function deleteOpTask(id: number) {
-  return requestClient.delete(`/mes/op-task/delete?id=${id}`);
-}
-
-/** 批量删除工序任务 */
-export function deleteOpTaskList(ids: number[]) {
-  return requestClient.delete(`/mes/op-task/delete-list?ids=${ids.join(',')}`);
-}
-
 /** 导出工序任务 */
 export function exportOpTask(params: any) {
   return requestClient.download('/mes/op-task/export-excel', { params });
+}
+
+/** 工序开工 */
+export function startOpTask(data: MesOpTaskApi.OpTaskActionReq) {
+  return requestClient.post('/mes/op-task/start', data);
+}
+
+/** 工序暂停 */
+export function pauseOpTask(data: MesOpTaskApi.OpTaskActionReq) {
+  return requestClient.post('/mes/op-task/pause', data);
+}
+
+/** 工序恢复 */
+export function resumeOpTask(data: MesOpTaskApi.OpTaskActionReq) {
+  return requestClient.post('/mes/op-task/resume', data);
+}
+
+/** 工序完工 */
+export function finishOpTask(data: MesOpTaskApi.OpTaskFinishReq) {
+  return requestClient.post('/mes/op-task/finish', data);
+}
+
+/** 工序跳序 */
+export function skipOpTask(data: MesOpTaskApi.OpTaskSkipReq) {
+  return requestClient.post('/mes/op-task/skip', data);
+}
+
+/** 撤销跳序 */
+export function revokeSkipOpTask(
+  data: MesOpTaskApi.OpTaskRevokeSkipReq,
+) {
+  return requestClient.post('/mes/op-task/revoke-skip', data);
 }

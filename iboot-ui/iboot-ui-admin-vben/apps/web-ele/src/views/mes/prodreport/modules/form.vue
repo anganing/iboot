@@ -1,29 +1,22 @@
 <script lang="ts" setup>
 import type { MesProdReportApi } from '#/api/mes/prodreport';
 
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
 import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
-import {
-  createProdReport,
-  getProdReport,
-  updateProdReport,
-} from '#/api/mes/prodreport';
+import { submitProdReport } from '#/api/mes/prodreport';
 import { $t } from '#/locales';
 import { getMdmFormLayout } from '#/views/mdm/form-layout';
 
-import { useFormSchema } from '../data';
+import { useSubmitFormSchema } from '../data';
 
 const emit = defineEmits(['success']);
-const formData = ref<MesProdReportApi.ProdReport>();
 const getTitle = computed(() => {
-  return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['生产报工'])
-    : $t('ui.actionTitle.create', ['生产报工']);
+  return $t('ui.actionTitle.create', ['生产报工']);
 });
 
 const formLayout = getMdmFormLayout(2);
@@ -39,7 +32,7 @@ const [Form, formApi] = useVbenForm({
   },
   wrapperClass: formLayout.wrapperClass,
   layout: 'horizontal',
-  schema: useFormSchema(),
+  schema: useSubmitFormSchema(),
   showDefaultActions: false,
 });
 
@@ -50,11 +43,10 @@ const [Modal, modalApi] = useVbenModal({
       return;
     }
     modalApi.lock();
-    const data = (await formApi.getValues()) as MesProdReportApi.ProdReport;
+    const data =
+      (await formApi.getValues()) as MesProdReportApi.ProdReportSubmitReq;
     try {
-      await (formData.value?.id
-        ? updateProdReport(data)
-        : createProdReport(data));
+      await submitProdReport(data);
       await modalApi.close();
       emit('success');
       ElMessage.success($t('ui.actionMessage.operationSuccess'));
@@ -64,22 +56,9 @@ const [Modal, modalApi] = useVbenModal({
   },
   async onOpenChange(isOpen: boolean) {
     if (!isOpen) {
-      formData.value = undefined;
       return;
     }
     await formApi.resetForm();
-    const data = modalApi.getData<MesProdReportApi.ProdReport>();
-    if (!data || !data.id) {
-      return;
-    }
-    modalApi.lock();
-    try {
-      // 列表 RespVO 是裁剪过的，编辑必须回查详情再回填
-      formData.value = await getProdReport(data.id);
-      await formApi.setValues(formData.value);
-    } finally {
-      modalApi.unlock();
-    }
   },
 });
 </script>

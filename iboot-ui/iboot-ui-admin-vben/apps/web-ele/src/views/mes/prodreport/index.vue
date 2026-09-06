@@ -2,17 +2,14 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesProdReportApi } from '#/api/mes/prodreport';
 
-import { ref } from 'vue';
+import { Page, useVbenModal } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteProdReport,
-  deleteProdReportList,
+  cancelProdReport,
   exportProdReport,
   getProdReportPage,
 } from '#/api/mes/prodreport';
@@ -36,48 +33,38 @@ function handleCreate() {
   formModalApi.setData(null).open();
 }
 
-/** 编辑生产报工 */
-function handleEdit(row: MesProdReportApi.ProdReport) {
-  formModalApi.setData(row).open();
+function canCancelReport(row: MesProdReportApi.ProdReport) {
+  return row.status === 'SUBMITTED';
 }
 
-/** 删除生产报工 */
-async function handleDelete(row: MesProdReportApi.ProdReport) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.reportNo]),
-  });
+/** 取消报工：反向扣减三级数量并写反向流水 */
+async function handleCancel(row: MesProdReportApi.ProdReport) {
+  let reason: string;
   try {
-    await deleteProdReport(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.reportNo]));
+    const { value } = await ElMessageBox.prompt(
+      `确认取消报工【${row.reportNo}】？会反向扣减三级数量并写反向流水。`,
+      '取消生产报工',
+      {
+        confirmButtonText: '确认取消',
+        cancelButtonText: '返回',
+        inputPlaceholder: '请输入取消原因',
+        inputValidator: (input: string) =>
+          input && input.trim().length > 0 ? true : '取消原因不能为空',
+        type: 'warning',
+      },
+    );
+    reason = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在取消...' });
+  try {
+    await cancelProdReport({ id: row.id!, reason });
+    ElMessage.success('已取消');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
-}
-
-/** 批量删除生产报工 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteProdReportList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MesProdReportApi.ProdReport[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -114,10 +101,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<MesProdReportApi.ProdReport>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
@@ -142,14 +125,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['mes:prod-report:export'],
               onClick: handleExport,
             },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:prod-report:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
           ]"
         />
       </template>
@@ -157,23 +132,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
-              type: 'primary',
+              label: '取消',
+              type: 'warning',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:prod-report:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:prod-report:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.reportNo]),
-                confirm: handleDelete.bind(null, row),
-              },
+              icon: 'lucide:ban',
+              auth: ['mes:prod-report:cancel'],
+              disabled: !canCancelReport(row),
+              onClick: handleCancel.bind(null, row),
             },
           ]"
         />

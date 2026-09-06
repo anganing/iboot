@@ -19,29 +19,12 @@ import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
 import { OP_TASK_RELATION_PROPS } from '../relation-config';
 
 /**
- * 新增/修改的表单。
+ * 提交报工表单。创建即提交，界面上没有草稿态。
  *
  * 生产工单与作业工单编号由后端从工序任务反查带出，前端只提交工序任务，避免三者对不上。
  */
-export function useFormSchema(): VbenFormSchema[] {
+export function useSubmitFormSchema(): VbenFormSchema[] {
   return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'reportNo',
-      label: '报工单号',
-      component: 'Input',
-      componentProps: {
-        maxLength: 64,
-        placeholder: '留空由编码规则自动分配',
-      },
-    },
     {
       fieldName: 'opTaskId',
       label: '工序任务',
@@ -121,23 +104,13 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: { ...DATETIME_PROPS, placeholder: '留空取当前时间' },
     },
     {
-      fieldName: 'status',
-      label: '状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MES_PROD_REPORT_STATUS, 'string'),
-        placeholder: '请选择状态',
-      },
-      defaultValue: 'DRAFT',
-    },
-    {
       fieldName: 'idempotencyKey',
       label: '幂等键',
+      rules: 'required',
       component: 'Input',
       componentProps: {
         maxLength: 128,
-        placeholder: '扫码端提交时用于去重，手工建单可留空',
+        placeholder: '扫码端提交时用于去重，必填',
       },
     },
     {
@@ -214,7 +187,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesProdReportApi.ProdReport>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'reportNo', title: '报工单号', minWidth: 160 },
     { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },

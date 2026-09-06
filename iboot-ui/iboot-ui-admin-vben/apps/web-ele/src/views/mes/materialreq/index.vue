@@ -7,14 +7,17 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  cancelMaterialReq,
+  confirmMaterialReq,
   deleteMaterialReq,
   deleteMaterialReqList,
   exportMaterialReq,
   getMaterialReqPage,
+  submitMaterialReq,
 } from '#/api/mes/materialreq';
 import { $t } from '#/locales';
 
@@ -40,6 +43,102 @@ function handleRefresh() {
 /** 创建领退补料申请 */
 function handleCreate() {
   formModalApi.setData(null).open();
+}
+
+function isDraft(row: MesMaterialReqApi.MaterialReq) {
+  return row.status === 'DRAFT';
+}
+
+function canSubmit(row: MesMaterialReqApi.MaterialReq) {
+  return row.status === 'DRAFT';
+}
+
+function canConfirm(row: MesMaterialReqApi.MaterialReq) {
+  return row.status === 'SUBMITTED';
+}
+
+function canCancel(row: MesMaterialReqApi.MaterialReq) {
+  return row.status === 'DRAFT' || row.status === 'SUBMITTED';
+}
+
+/** 提交申请：领料与补料逐行占库存预留 */
+async function handleSubmit(row: MesMaterialReqApi.MaterialReq) {
+  try {
+    await ElMessageBox.confirm(
+      `确认提交领退补料申请【${row.reqNo}】？领料与补料会逐行占库存预留。`,
+      '提交申请',
+      {
+        confirmButtonText: '确认提交',
+        cancelButtonText: '返回',
+        type: 'warning',
+      },
+    );
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在提交...' });
+  try {
+    await submitMaterialReq({ id: row.id! });
+    ElMessage.success('提交成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 确认申请：一次性过账，剩余量另开补料单 */
+async function handleConfirm(row: MesMaterialReqApi.MaterialReq) {
+  try {
+    await ElMessageBox.confirm(
+      `确认领退补料申请【${row.reqNo}】？将全部行按剩余量发料/退料并过账。`,
+      '确认发料',
+      {
+        confirmButtonText: '确认过账',
+        cancelButtonText: '返回',
+        type: 'warning',
+      },
+    );
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在确认过账...' });
+  try {
+    await confirmMaterialReq({ id: row.id! });
+    ElMessage.success('确认成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 取消申请：草稿直接取消，已提交先释放预留 */
+async function handleCancel(row: MesMaterialReqApi.MaterialReq) {
+  let reason: string;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `确认取消领退补料申请【${row.reqNo}】？请填写取消原因。`,
+      '取消申请',
+      {
+        confirmButtonText: '确认取消',
+        cancelButtonText: '返回',
+        inputPlaceholder: '请输入取消原因',
+        inputValidator: (input: string) =>
+          input && input.trim().length > 0 ? true : '取消原因不能为空',
+        type: 'warning',
+      },
+    );
+    reason = value;
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在取消...' });
+  try {
+    await cancelMaterialReq({ id: row.id!, reason });
+    ElMessage.success('已取消');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
 }
 
 /** 编辑领退补料申请 */
@@ -177,11 +276,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleLines.bind(null, row),
             },
             {
+              label: '提交',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:send',
+              auth: ['mes:material-req:submit'],
+              disabled: !canSubmit(row),
+              onClick: handleSubmit.bind(null, row),
+            },
+            {
+              label: '确认',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:check-check',
+              auth: ['mes:material-req:confirm'],
+              disabled: !canConfirm(row),
+              onClick: handleConfirm.bind(null, row),
+            },
+            {
+              label: '取消',
+              type: 'warning',
+              link: true,
+              icon: 'lucide:ban',
+              auth: ['mes:material-req:cancel'],
+              disabled: !canCancel(row),
+              onClick: handleCancel.bind(null, row),
+            },
+            {
               label: $t('common.edit'),
               type: 'primary',
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mes:material-req:update'],
+              disabled: !isDraft(row),
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -190,6 +317,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mes:material-req:delete'],
+              disabled: !isDraft(row),
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.reqNo]),
                 confirm: handleDelete.bind(null, row),

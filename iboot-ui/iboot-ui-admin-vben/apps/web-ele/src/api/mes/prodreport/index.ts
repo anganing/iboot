@@ -35,6 +35,27 @@ export namespace MesProdReportApi {
     remark?: string;
     createTime?: string;
   }
+
+  export interface ProdReportSubmitReq {
+    opTaskId: number;
+    idempotencyKey: string;
+    qtyGood?: number;
+    qtyScrap?: number;
+    qtyRework?: number;
+    workerId?: number;
+    resId?: number;
+    shiftId?: number;
+    startTime?: string;
+    endTime?: string;
+    reportTime?: string;
+    remark?: string;
+  }
+
+  export interface ProdReportCancelReq {
+    id: number;
+    idempotencyKey?: string;
+    reason?: string;
+  }
 }
 
 /** 查询生产报工分页 */
@@ -52,29 +73,21 @@ export function getProdReport(id: number) {
   );
 }
 
-/** 新增生产报工 */
-export function createProdReport(data: MesProdReportApi.ProdReport) {
+/** 提交生产报工 */
+export function submitProdReport(
+  data: MesProdReportApi.ProdReportSubmitReq,
+) {
   return requestClient.post('/mes/prod-report/create', data);
-}
-
-/** 修改生产报工 */
-export function updateProdReport(data: MesProdReportApi.ProdReport) {
-  return requestClient.put('/mes/prod-report/update', data);
-}
-
-/** 删除生产报工 */
-export function deleteProdReport(id: number) {
-  return requestClient.delete(`/mes/prod-report/delete?id=${id}`);
-}
-
-/** 批量删除生产报工 */
-export function deleteProdReportList(ids: number[]) {
-  return requestClient.delete(
-    `/mes/prod-report/delete-list?ids=${ids.join(',')}`,
-  );
 }
 
 /** 导出生产报工 */
 export function exportProdReport(params: any) {
   return requestClient.download('/mes/prod-report/export-excel', { params });
+}
+
+/** 取消生产报工 */
+export function cancelProdReport(
+  data: MesProdReportApi.ProdReportCancelReq,
+) {
+  return requestClient.post('/mes/prod-report/cancel', data);
 }

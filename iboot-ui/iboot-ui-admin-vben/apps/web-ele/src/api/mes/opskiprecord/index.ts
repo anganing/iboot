@@ -27,6 +27,12 @@ export namespace MesOpSkipRecordApi {
     remark?: string;
     createTime?: string;
   }
+
+  export interface RevokeSkipReq {
+    skipRecordId: number;
+    idempotencyKey?: string;
+    reason?: string;
+  }
 }
 
 /** 查询工序跳过记录分页 */
@@ -44,29 +50,12 @@ export function getOpSkipRecord(id: number) {
   );
 }
 
-/** 新增工序跳过记录 */
-export function createOpSkipRecord(data: MesOpSkipRecordApi.OpSkipRecord) {
-  return requestClient.post('/mes/op-skip-record/create', data);
-}
-
-/** 修改工序跳过记录 */
-export function updateOpSkipRecord(data: MesOpSkipRecordApi.OpSkipRecord) {
-  return requestClient.put('/mes/op-skip-record/update', data);
-}
-
-/** 删除工序跳过记录 */
-export function deleteOpSkipRecord(id: number) {
-  return requestClient.delete(`/mes/op-skip-record/delete?id=${id}`);
-}
-
-/** 批量删除工序跳过记录 */
-export function deleteOpSkipRecordList(ids: number[]) {
-  return requestClient.delete(
-    `/mes/op-skip-record/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出工序跳过记录 */
 export function exportOpSkipRecord(params: any) {
   return requestClient.download('/mes/op-skip-record/export-excel', { params });
+}
+
+/** 撤销跳序 */
+export function revokeOpSkip(data: MesOpSkipRecordApi.RevokeSkipReq) {
+  return requestClient.post('/mes/op-task/revoke-skip', data);
 }

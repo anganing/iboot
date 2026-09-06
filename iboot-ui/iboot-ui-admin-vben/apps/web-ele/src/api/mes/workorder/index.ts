@@ -55,28 +55,6 @@ export function getWorkOrder(id: number) {
   );
 }
 
-/** 新增作业工单 */
-export function createWorkOrder(data: MesWorkOrderApi.WorkOrder) {
-  return requestClient.post('/mes/work-order/create', data);
-}
-
-/** 修改作业工单 */
-export function updateWorkOrder(data: MesWorkOrderApi.WorkOrder) {
-  return requestClient.put('/mes/work-order/update', data);
-}
-
-/** 删除作业工单 */
-export function deleteWorkOrder(id: number) {
-  return requestClient.delete(`/mes/work-order/delete?id=${id}`);
-}
-
-/** 批量删除作业工单 */
-export function deleteWorkOrderList(ids: number[]) {
-  return requestClient.delete(
-    `/mes/work-order/delete-list?ids=${ids.join(',')}`,
-  );
-}
-
 /** 导出作业工单 */
 export function exportWorkOrder(params: any) {
   return requestClient.download('/mes/work-order/export-excel', { params });
