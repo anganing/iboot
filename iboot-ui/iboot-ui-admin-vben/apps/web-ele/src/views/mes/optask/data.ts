@@ -270,11 +270,5 @@ export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['colu
       minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      title: '操作',
-      width: 280,
-      fixed: 'right',
-      slots: { default: 'actions' },
-    },
   ];
 }

@@ -223,7 +223,7 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
     },
     {
       title: '操作',
-      width: 300,
+      width: 200,
       fixed: 'right',
       slots: { default: 'actions' },
     },

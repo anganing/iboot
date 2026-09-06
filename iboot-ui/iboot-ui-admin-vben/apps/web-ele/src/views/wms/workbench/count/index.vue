@@ -118,7 +118,6 @@ const lineTableTitle = computed(() => {
 const [OrderGrid, orderGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useCountOrderGridFormSchema(),
-    // 左栏宽度只有整屏的三分之一，响应式三列会把控件挤成一条缝
     wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
@@ -570,8 +569,8 @@ async function handleConfirmDiff() {
             @update:model-value="(value) => setLineRemark(row, value)"
           />
         </template>
-</LineGrid>
-</section>
+      </LineGrid>
+    </section>
   </ColPage>
 </template>
 

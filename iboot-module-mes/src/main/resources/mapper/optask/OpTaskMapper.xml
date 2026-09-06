@@ -25,6 +25,9 @@
             <if test="req.workOrderNo != null and req.workOrderNo != ''">
                 AND t.work_order_no LIKE CONCAT('%', #{req.workOrderNo}, '%')
             </if>
+            <if test="req.prodOrderNo != null and req.prodOrderNo != ''">
+                AND work_order.prod_order_no LIKE CONCAT('%', #{req.prodOrderNo}, '%')
+            </if>
             <if test="req.opId != null">
                 AND t.op_id = #{req.opId}
             </if>

@@ -7,7 +7,13 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ElButton,
+  ElDropdown,
+  ElLoading,
+  ElMessage,
+  ElMessageBox,
+} from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -341,85 +347,69 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: '下达',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:send',
-              auth: ['mes:prod-order:release'],
-              disabled: !canRelease(row),
-              onClick: handleRelease.bind(null, row),
-            },
-            {
-              label: '齐套检查',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:package-check',
-              auth: ['mes:prod-order:check-kit'],
-              disabled: !canCheckKit(row),
-              onClick: handleCheckKit.bind(null, row),
-            },
-            {
-              label: '挂起',
-              type: 'warning',
-              link: true,
-              icon: 'lucide:pause',
-              auth: ['mes:prod-order:hold'],
-              disabled: !canHold(row),
-              onClick: handleHold.bind(null, row),
-            },
-            {
-              label: '恢复',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:play',
-              auth: ['mes:prod-order:resume'],
-              disabled: !canResume(row),
-              onClick: handleResume.bind(null, row),
-            },
-            {
-              label: '关闭',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:lock',
-              auth: ['mes:prod-order:close'],
-              disabled: !canClose(row),
-              onClick: handleClose.bind(null, row),
-            },
-            {
-              label: '取消',
-              type: 'danger',
-              link: true,
-              icon: 'lucide:ban',
-              auth: ['mes:prod-order:cancel'],
-              disabled: !canCancelOrder(row),
-              onClick: handleCancel.bind(null, row),
-            },
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:prod-order:update'],
-              disabled: !canEdit(row),
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:prod-order:delete'],
-              disabled: !canEdit(row),
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.orderNo]),
-                confirm: handleDelete.bind(null, row),
-              },
-            },
-          ]"
-        />
+        <div class="flex items-center justify-center gap-1">
+          <ElButton
+            v-access:code="['mes:prod-order:release']"
+            :disabled="!canRelease(row)"
+            link
+            type="primary"
+            @click="handleRelease(row)"
+            >下达</ElButton
+          >
+          <ElButton
+            v-access:code="['mes:prod-order:check-kit']"
+            :disabled="!canCheckKit(row)"
+            link
+            type="primary"
+            @click="handleCheckKit(row)"
+            >齐套检查</ElButton
+          >
+          <ElButton
+            v-access:code="['mes:prod-order:hold']"
+            :disabled="!canHold(row)"
+            link
+            type="warning"
+            @click="handleHold(row)"
+            >挂起</ElButton
+          >
+          <ElDropdown placement="bottom-end" trigger="click">
+            <ElButton link type="primary">更多</ElButton>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-access:code="['mes:prod-order:resume']"
+                  :disabled="!canResume(row)"
+                  @click="handleResume(row)"
+                  >恢复</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:prod-order:close']"
+                  :disabled="!canClose(row)"
+                  @click="handleClose(row)"
+                  >关闭</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:prod-order:cancel']"
+                  :disabled="!canCancelOrder(row)"
+                  @click="handleCancel(row)"
+                  >取消</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:prod-order:update']"
+                  :disabled="!canEdit(row)"
+                  @click="handleEdit(row)"
+                  >修改</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:prod-order:delete']"
+                  :disabled="!canEdit(row)"
+                  @click="handleDelete(row)"
+                  >删除</el-dropdown-item
+                >
+              </el-dropdown-menu>
+            </template>
+          </ElDropdown>
+        </div>
       </template>
     </Grid>
   </Page>

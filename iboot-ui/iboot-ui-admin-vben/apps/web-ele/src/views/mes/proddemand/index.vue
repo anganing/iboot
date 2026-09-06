@@ -7,7 +7,13 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ElButton,
+  ElDropdown,
+  ElLoading,
+  ElMessage,
+  ElMessageBox,
+} from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -165,9 +171,7 @@ async function handleToProdOrder(row: MesProdDemandApi.ProdDemand) {
         inputType: 'number',
         inputValidator: (input: string) => {
           const qty = Number(input);
-          return Number.isFinite(qty) && qty > 0
-            ? true
-            : '转单数量必须大于 0';
+          return Number.isFinite(qty) && qty > 0 ? true : '转单数量必须大于 0';
         },
       },
     );
@@ -275,58 +279,54 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: '确认',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:check',
-              auth: ['mes:prod-demand:confirm'],
-              disabled: !canConfirm(row),
-              onClick: handleConfirm.bind(null, row),
-            },
-            {
-              label: '转工单',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:arrow-right-circle',
-              auth: ['mes:prod-demand:to-prod-order'],
-              disabled: !canToProdOrder(row),
-              onClick: handleToProdOrder.bind(null, row),
-            },
-            {
-              label: '取消',
-              type: 'warning',
-              link: true,
-              icon: 'lucide:ban',
-              auth: ['mes:prod-demand:cancel'],
-              disabled: !canCancel(row),
-              onClick: handleCancel.bind(null, row),
-            },
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:prod-demand:update'],
-              disabled: !canConfirm(row),
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:prod-demand:delete'],
-              disabled: !canConfirm(row),
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.demandNo]),
-                confirm: handleDelete.bind(null, row),
-              },
-            },
-          ]"
-        />
+        <div class="flex items-center justify-center gap-1">
+          <ElButton
+            v-access:code="['mes:prod-demand:confirm']"
+            :disabled="!canConfirm(row)"
+            link
+            type="primary"
+            @click="handleConfirm(row)"
+          >
+            确认
+          </ElButton>
+          <ElButton
+            v-access:code="['mes:prod-demand:to-prod-order']"
+            :disabled="!canToProdOrder(row)"
+            link
+            type="primary"
+            @click="handleToProdOrder(row)"
+          >
+            转工单
+          </ElButton>
+          <ElDropdown placement="bottom-end" trigger="click">
+            <ElButton link type="primary">更多</ElButton>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-access:code="['mes:prod-demand:update']"
+                  :disabled="!canConfirm(row)"
+                  @click="handleEdit(row)"
+                >
+                  修改
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-access:code="['mes:prod-demand:cancel']"
+                  :disabled="!canCancel(row)"
+                  @click="handleCancel(row)"
+                >
+                  取消
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-access:code="['mes:prod-demand:delete']"
+                  :disabled="!canConfirm(row)"
+                  @click="handleDelete(row)"
+                >
+                  删除
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </ElDropdown>
+        </div>
       </template>
     </Grid>
   </Page>

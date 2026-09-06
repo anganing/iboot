@@ -7,7 +7,13 @@ import { ref } from 'vue';
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ElButton,
+  ElDropdown,
+  ElLoading,
+  ElMessage,
+  ElMessageBox,
+} from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -265,66 +271,61 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: '明细',
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.VIEW,
-              auth: ['mes:material-req:query'],
-              onClick: handleLines.bind(null, row),
-            },
-            {
-              label: '提交',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:send',
-              auth: ['mes:material-req:submit'],
-              disabled: !canSubmit(row),
-              onClick: handleSubmit.bind(null, row),
-            },
-            {
-              label: '确认',
-              type: 'primary',
-              link: true,
-              icon: 'lucide:check-check',
-              auth: ['mes:material-req:confirm'],
-              disabled: !canConfirm(row),
-              onClick: handleConfirm.bind(null, row),
-            },
-            {
-              label: '取消',
-              type: 'warning',
-              link: true,
-              icon: 'lucide:ban',
-              auth: ['mes:material-req:cancel'],
-              disabled: !canCancel(row),
-              onClick: handleCancel.bind(null, row),
-            },
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:material-req:update'],
-              disabled: !isDraft(row),
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:material-req:delete'],
-              disabled: !isDraft(row),
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.reqNo]),
-                confirm: handleDelete.bind(null, row),
+        <div class="flex items-center justify-center gap-1">
+          <TableAction
+            :actions="[
+              {
+                label: '明细',
+                type: 'primary',
+                link: true,
+                icon: ACTION_ICON.VIEW,
+                auth: ['mes:material-req:query'],
+                onClick: handleLines.bind(null, row),
               },
-            },
-          ]"
-        />
+            ]"
+          />
+          <ElButton
+            v-access:code="['mes:material-req:submit']"
+            :disabled="!canSubmit(row)"
+            link
+            type="primary"
+            @click="handleSubmit(row)"
+            >提交</ElButton
+          >
+          <ElButton
+            v-access:code="['mes:material-req:confirm']"
+            :disabled="!canConfirm(row)"
+            link
+            type="primary"
+            @click="handleConfirm(row)"
+            >确认</ElButton
+          >
+          <ElDropdown placement="bottom-end" trigger="click">
+            <ElButton link type="primary">更多</ElButton>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-access:code="['mes:material-req:cancel']"
+                  :disabled="!canCancel(row)"
+                  @click="handleCancel(row)"
+                  >取消</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:material-req:update']"
+                  :disabled="!isDraft(row)"
+                  @click="handleEdit(row)"
+                  >修改</el-dropdown-item
+                >
+                <el-dropdown-item
+                  v-access:code="['mes:material-req:delete']"
+                  :disabled="!isDraft(row)"
+                  @click="handleDelete(row)"
+                  >删除</el-dropdown-item
+                >
+              </el-dropdown-menu>
+            </template>
+          </ElDropdown>
+        </div>
       </template>
     </Grid>
   </Page>

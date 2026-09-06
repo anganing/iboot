@@ -28,8 +28,16 @@ import {
   getArrivalPage,
   updateArrival,
 } from '#/api/wms/arrival';
-import { confirmInOrder, getInOrder, updateInOrder } from '#/api/wms/inordermgr';
-import { getAvailableQtyMap, LINE_MAX_COUNT, loadAllLines } from '#/api/wms/workbench';
+import {
+  confirmInOrder,
+  getInOrder,
+  updateInOrder,
+} from '#/api/wms/inordermgr';
+import {
+  getAvailableQtyMap,
+  LINE_MAX_COUNT,
+  loadAllLines,
+} from '#/api/wms/workbench';
 import { RelationSelect } from '#/components/relation-select';
 
 import {
@@ -147,7 +155,6 @@ const resultTitle = computed(() => {
 const [ArrivalGrid, arrivalGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useArrivalGridFormSchema(),
-    // 左栏只有整屏的三分之一宽，响应式三列会把控件挤成一条缝
     wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
@@ -508,13 +515,6 @@ async function handleRetryPost() {
     loadingInstance.close();
   }
 }
-
-
-
-
-
-
-
 </script>
 
 <template>
@@ -711,7 +711,7 @@ async function handleRetryPost() {
           />
           <span v-else>{{ row.supplierLotNo || '-' }}</span>
         </template>
-</LineGrid>
-</section>
+      </LineGrid>
+    </section>
   </ColPage>
 </template>

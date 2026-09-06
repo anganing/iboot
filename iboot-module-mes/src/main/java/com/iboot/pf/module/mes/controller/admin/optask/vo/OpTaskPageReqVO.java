@@ -23,6 +23,9 @@ public class OpTaskPageReqVO extends PageParam {
     @Schema(description = "作业工单号")
     private String workOrderNo;
 
+    @Schema(description = "生产工单号")
+    private String prodOrderNo;
+
     @Schema(description = "标准工序编号", example = "1")
     private Long opId;
 

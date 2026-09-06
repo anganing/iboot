@@ -323,7 +323,7 @@ export function useGridColumns(): VxeTableGridOptions<MesProdOrderApi.ProdOrder>
     },
     {
       title: '操作',
-      width: 160,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

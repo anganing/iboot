@@ -93,7 +93,9 @@ function qtyKey(line: WmsOutOrderApi.OutOrderLine) {
 /** 新建态才能改拣选数量：`updateOutOrder` 只放行新建态 */
 const lineEditable = computed(() => isOrderDraft(order.value?.status));
 /** 缺来源库位的行。后端在过账循环的第一步就查它，缺一行整单过不了账 */
-const missingLoc = computed(() => lines.value.filter((line) => !line.fromLocId));
+const missingLoc = computed(() =>
+  lines.value.filter((line) => !line.fromLocId),
+);
 /** 缺批次的行。只有还要出的行需要：可用量查询带批次维度，批次为空匹配不到余额行 */
 const missingBatch = computed(() =>
   lines.value.filter((line) => remainingQty(line) > 0 && !line.batchId),
@@ -183,7 +185,6 @@ const resultTitle = computed(() => {
 const [OrderGrid, orderGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useOutOrderGridFormSchema(),
-    // 左栏只有整屏的三分之一宽，响应式三列会把控件挤成一条缝
     wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
@@ -434,13 +435,6 @@ async function handleConfirmDeliver() {
     loadingInstance.close();
   }
 }
-
-
-
-
-
-
-
 </script>
 
 <template>
@@ -487,7 +481,9 @@ async function handleConfirmDeliver() {
           {{ order.whName || '-' }}
         </ElDescriptionsItem>
         <ElDescriptionsItem label="来源单号">
-          {{ order.materialReqNo || order.sourceBizNo || order.originNo || '-' }}
+          {{
+            order.materialReqNo || order.sourceBizNo || order.originNo || '-'
+          }}
         </ElDescriptionsItem>
         <ElDescriptionsItem label="生产工单">
           {{ order.prodOrderNo || '-' }}
@@ -578,8 +574,8 @@ async function handleConfirmDeliver() {
             {{ availableQtyText(row) }}
           </span>
         </template>
-</LineGrid>
-</section>
+      </LineGrid>
+    </section>
   </ColPage>
 </template>
 
