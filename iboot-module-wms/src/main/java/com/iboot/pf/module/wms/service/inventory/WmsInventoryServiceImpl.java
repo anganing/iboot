@@ -1,13 +1,16 @@
 package com.iboot.pf.module.wms.service.inventory;
 
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
 import com.iboot.pf.module.wms.enums.WmsIoTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsConstants;
 import com.iboot.pf.module.wms.enums.WmsStockScopeEnum;
@@ -33,6 +36,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_POST_QTY_INVA
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.INV_POST_TYPE_INVALID;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.LOCK_REMAIN_NOT_ENOUGH;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.RESERVATION_REMAIN_NOT_ENOUGH;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.WH_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.TXN;
 
 /** 库存 Service 实现。库存余额只能通过过账修改，不对外提供直接改余额的方法。 */
@@ -45,6 +49,8 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
     private WmsInvTxnMapper wmsInvTxnMapper;
     @Resource
     private WmsCodeService codeService;
+    @Resource
+    private WmsWhMapper whMapper;
 
     @Override
     public List<WmsInvBalanceDO> getBalanceList(WmsInventoryQueryBO query) {
@@ -105,7 +111,7 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
         BigDecimal afterQty;
         switch (WmsIoTypeEnum.valueOf(ioType)) {
             case IN:
-                WmsInvBalanceDO target = getOrCreateBalance(buildTargetDim(bo));
+                WmsInvBalanceDO target = getOrCreateBalance(buildTargetDim(bo), bo);
                 beforeQty = target.getQtyOnhand();
                 target.setQtyOnhand(beforeQty.add(bo.getQty()));
                 updateBalance(target);
@@ -129,7 +135,7 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
                 beforeQty = moveSource.getQtyOnhand();
                 moveSource.setQtyOnhand(beforeQty.subtract(bo.getQty()));
                 updateBalance(moveSource);
-                WmsInvBalanceDO moveTarget = getOrCreateBalance(buildTargetDim(bo));
+                WmsInvBalanceDO moveTarget = getOrCreateBalance(buildTargetDim(bo), bo);
                 moveTarget.setQtyOnhand(moveTarget.getQtyOnhand().add(bo.getQty()));
                 updateBalance(moveTarget);
                 afterQty = moveTarget.getQtyOnhand();
@@ -259,7 +265,7 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
         return balance;
     }
 
-    private WmsInvBalanceDO getOrCreateBalance(WmsInvBalanceDO dim) {
+    private WmsInvBalanceDO getOrCreateBalance(WmsInvBalanceDO dim, WmsInvPostBO bo) {
         WmsInvBalanceDO balance = wmsInvBalanceMapper.selectByDim(dim);
         if (balance != null) {
             return balance;
@@ -277,12 +283,52 @@ public class WmsInventoryServiceImpl implements WmsInventoryService {
         balance.setProjectTaskId(dim.getProjectTaskId());
         balance.setStockScope(dim.getStockScope());
         balance.setQualityStatus(dim.getQualityStatus());
+        fillBalanceSnapshot(balance, bo);
         balance.setQtyOnhand(BigDecimal.ZERO);
         balance.setQtyReserved(BigDecimal.ZERO);
         balance.setQtyFrozen(BigDecimal.ZERO);
         balance.setVersion(0);
         wmsInvBalanceMapper.insert(balance);
         return balance;
+    }
+
+    /**
+     * 补全余额行上的六个快照列。
+     *
+     * <p><b>这六列在 {@code wms_inv_balance} 上都是 {@code NOT NULL} 且没有默认值</b>
+     * （{@code mat_code} {@code mat_name} {@code uom_code} {@code lot_no} {@code wh_code}
+     * {@code loc_code}）。不填的后果不是"字段为空"而是**整条 INSERT 失败**：MyBatis-Plus 默认的
+     * {@code NOT_NULL} 插入策略会把 null 字段从 INSERT 语句里剔除，MySQL 严格模式下直接报
+     * {@code Field 'mat_code' doesn't have a default value}。而这个方法只在"首次向一个此前没有
+     * 库存的维度组合入库"时被调到 —— 那正是收货上架的常态（新到的料第一次上架到某个库位），
+     * 所以漏填等于收货上架的默认路径必挂。
+     *
+     * <p>快照从主数据取而不是让调用方传：余额行一生只新建一次，查询成本可忽略；而让每个过账
+     * 调用方各自传快照，传错了没人发现，主数据才是权威来源。这与 {@code WmsSnapshotService}
+     * 给单据明细补快照是同一套口径。
+     *
+     * <p>{@code lot_no} 与 {@code loc_code} 允许维度上为 0（散批、未定库位），但列是 {@code NOT NULL}，
+     * 所以回落到 {@code DEFAULT} 与空串而不是留 null。
+     */
+    private void fillBalanceSnapshot(WmsInvBalanceDO balance, WmsInvPostBO bo) {
+        balance.setMatCode(StrUtil.blankToDefault(bo.getMatCode(), StrUtil.EMPTY));
+        balance.setMatName(StrUtil.blankToDefault(bo.getMatName(), StrUtil.EMPTY));
+        balance.setUomCode(StrUtil.blankToDefault(bo.getUomCode(), StrUtil.EMPTY));
+        balance.setLotNo(StrUtil.blankToDefault(bo.getLotNo(), WmsConstants.DEFAULT_LOT_NO));
+        balance.setWhCode(whCode(balance.getWhId()));
+        balance.setLocCode(StrUtil.blankToDefault(bo.getToLocCode(), StrUtil.EMPTY));
+    }
+
+    /** 余额快照取仓库编码，不反查跨模块主数据。 */
+    private String whCode(Long whId) {
+        if (whId == null || whId == 0L) {
+            return StrUtil.EMPTY;
+        }
+        WmsWhDO wh = whMapper.selectById(whId);
+        if (wh == null) {
+            throw exception(WH_NOT_EXISTS);
+        }
+        return wh.getCode();
     }
 
     /** 按版本号更新余额，版本冲突直接失败，由调用方重试。 */

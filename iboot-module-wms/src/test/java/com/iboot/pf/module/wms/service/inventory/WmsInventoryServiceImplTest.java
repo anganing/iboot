@@ -4,12 +4,15 @@ import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.infra.api.coderule.CodeRuleApi;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
+import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
+import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -44,8 +47,18 @@ class WmsInventoryServiceImplTest extends BaseDbUnitTest {
     private WmsInvBalanceMapper balanceMapper;
     @Resource
     private WmsInvTxnMapper txnMapper;
+    @Resource
+    private WmsWhMapper whMapper;
     @MockitoBean
     private CodeRuleApi codeRuleApi;
+
+    @BeforeEach
+    void setUpWarehouse() {
+        WmsWhDO wh = new WmsWhDO();
+        wh.setId(WH);
+        wh.setCode("WH-001");
+        whMapper.insert(wh);
+    }
 
     /** 构造一次入库过账并返回已入库的余额。 */
     private WmsInvBalanceDO postIn(BigDecimal qty) {
@@ -94,6 +107,7 @@ class WmsInventoryServiceImplTest extends BaseDbUnitTest {
         bo.setMatName("测试物料");
         bo.setUomCode("EA");
         bo.setLotNo("L-001");
+        bo.setToLocCode("LOC-001");
         return bo;
     }
 
@@ -102,6 +116,12 @@ class WmsInventoryServiceImplTest extends BaseDbUnitTest {
         WmsInvBalanceDO balance = postIn(new BigDecimal("100"));
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("100")));
         assertEquals(1, balance.getVersion());
+        assertEquals("M-001", balance.getMatCode());
+        assertEquals("测试物料", balance.getMatName());
+        assertEquals("EA", balance.getUomCode());
+        assertEquals("L-001", balance.getLotNo());
+        assertEquals("WH-001", balance.getWhCode());
+        assertEquals("LOC-001", balance.getLocCode());
 
         WmsInvTxnDO txn = txnMapper.selectByIdempotencyKey("WMS:TEST:IN:100");
         assertNotNull(txn);
