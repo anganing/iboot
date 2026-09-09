@@ -41,9 +41,13 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EX
  * <table>
  *     <tr><th>层级</th><th>completed_qty</th><th>scrap_qty</th></tr>
  *     <tr><td>工序任务</td><td>{@code += qty_good}（累加）</td><td>{@code += qty_scrap}（累加）</td></tr>
- *     <tr><td>作业工单</td><td>本段<b>末道工序</b>的值</td><td>无此列，不推进</td></tr>
- *     <tr><td>生产工单</td><td>整单<b>末道工序</b>的值</td><td>各工序之和</td></tr>
+ *     <tr><td>作业工单</td><td>本段<b>最后一道实际执行的工序</b>的值</td><td>无此列，不推进</td></tr>
+ *     <tr><td>生产工单</td><td>整单<b>最后一道实际执行的工序</b>的值</td><td>各工序之和</td></tr>
  * </table>
+ *
+ * <p>"最后一道实际执行的工序"指从末道开始、整层全是 SKIPPED 就退到前一个 seq 的那批：
+ * 被跳过的工序不出产出，把它当末道会把产出清零。作业工单与生产工单的收尾判定一样容忍跳序——
+ * 末道层全部 DONE（数量达标）或 SKIPPED 都算干完，否则末道被跳过的工单永远关不掉，预留永久挂着。
  *
  * <p>为什么工单取末道工序而不是各工序相加：流水线上 100 个件依次经过 5 道工序，每道都报 100，
  * 产出仍然是 100 个而不是 500 个。相加得到的是"工时口径的加工次数"，不是产出。
@@ -127,7 +131,7 @@ public class MesProgressPropagator {
     }
 
     /**
-     * 作业工单上卷：数量取本段末道工序，本段全部完工或跳序时置 {@code DONE}。
+     * 作业工单上卷：数量取本段最后一道实际执行的工序，本段全部完工或跳序时置 {@code DONE}。
      *
      * <p>{@code mes_work_order} 没有 {@code scrap_qty} 列，因此报废在这一级不落地，
      * 由生产工单那一级按各工序之和汇总。
@@ -136,7 +140,7 @@ public class MesProgressPropagator {
                                  OpTaskDO trigger, String idempotencyKey) {
         List<OpTaskDO> segmentTasks = orderTasks.stream()
                 .filter(item -> workOrder.getId().equals(item.getWorkOrderId())).toList();
-        BigDecimal completedQty = lastOpCompletedQty(segmentTasks);
+        BigDecimal completedQty = lastExecutedOpCompletedQty(segmentTasks);
         boolean done = MesWorkOrderStatusEnum.RUNNING.name().equals(workOrder.getStatus())
                 && allDoneOrSkipped(segmentTasks);
         String toStatus = done
@@ -168,19 +172,22 @@ public class MesProgressPropagator {
     }
 
     /**
-     * 生产工单上卷：{@code completed_qty} 取整单末道工序，{@code scrap_qty} 取各工序之和，
-     * 末道工序已完工且数量达标时置 {@code DONE}。
+     * 生产工单上卷：{@code completed_qty} 取整单最后一道实际执行的工序，{@code scrap_qty} 取各工序之和，
+     * 最后一道实际执行的工序全部完工（数量达标）或已跳过时置 {@code DONE}。
+     *
+     * <p>收尾与产出共用同一个锚点（{@link #lastExecutedOpTasks}）：末道被跳过时往后退层，
+     * 由仍在执行的那道同时决定产出与能否收尾。全部工序都被跳过的工单没有产出，不收尾——
+     * 那是应该走取消而不是完工的场景。
      */
     private void rollUpProdOrder(ProdOrderDO order, List<OpTaskDO> orderTasks,
                                  OpTaskDO trigger, String idempotencyKey) {
-        BigDecimal completedQty = lastOpCompletedQty(orderTasks);
+        BigDecimal completedQty = lastExecutedOpCompletedQty(orderTasks);
         BigDecimal scrapQty = orderTasks.stream().map(item -> nvl(item.getScrapQty()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        List<OpTaskDO> lastTasks = lastOpTasks(orderTasks);
+        List<OpTaskDO> lastTasks = lastExecutedOpTasks(orderTasks);
         boolean done = MesProdOrderStatusEnum.RUNNING.name().equals(order.getStatus())
                 && !lastTasks.isEmpty()
-                && lastTasks.stream().allMatch(item -> MesOpTaskStatusEnum.DONE.name().equals(item.getStatus()))
-                && lastTasks.stream().allMatch(this::qtyReached);
+                && lastTasks.stream().allMatch(this::lastOpReached);
         String toStatus = done
                 ? MesProdOrderStateMachine.next(order.getStatus(), MesProdOrderStateMachine.ACTION_DONE)
                 : null;
@@ -212,14 +219,37 @@ public class MesProgressPropagator {
     }
 
     /**
-     * 末道工序的完成数。
+     * 最后一道实际执行的工序的完成数。
      *
-     * <p>末道工序是 {@code seq} 最大的那道；并列多道（末尾是并行组）时取其中的最小值——
-     * 只有全部并行工序都做完的那部分件数才算真正流过了这一段。
+     * <p>跳过的工序贡献 0，不能让它把产出清零——并行组混合 DONE 与 SKIPPED 时只对未跳过的取最小值，
+     * 整层被跳过时退到前一层，见 {@link #lastExecutedOpTasks}。
      */
-    private BigDecimal lastOpCompletedQty(List<OpTaskDO> tasks) {
-        return lastOpTasks(tasks).stream().map(item -> nvl(item.getCompletedQty()))
+    private BigDecimal lastExecutedOpCompletedQty(List<OpTaskDO> tasks) {
+        return lastExecutedOpTasks(tasks).stream()
+                .filter(item -> !MesOpTaskStatusEnum.SKIPPED.name().equals(item.getStatus()))
+                .map(item -> nvl(item.getCompletedQty()))
                 .min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+    }
+
+    /**
+     * 末道是否已经把活干完：DONE 且数量达标，或 SKIPPED。
+     *
+     * <p>判定只对"最后一道实际执行的工序"层生效（见 {@link #lastExecutedOpTasks}），因此出现 SKIPPED
+     * 分支时整层必然全是跳过的工序；DONE 分支保留数量条件——完工动作自己校验过严格相等，
+     * 数量不达标的 DONE 是异常数据，不能拿去收尾整单。混合层（并行组跳了一道）按 DONE 的那道要求数量达标。
+     */
+    private boolean lastOpReached(OpTaskDO task) {
+        if (MesOpTaskStatusEnum.SKIPPED.name().equals(task.getStatus())) {
+            return true;
+        }
+        return MesOpTaskStatusEnum.DONE.name().equals(task.getStatus()) && qtyReached(task);
+    }
+
+    /** 只认已完工与已跳过，与开工门禁的前序判定口径一致：取消不算完成。 */
+    private boolean allDoneOrSkipped(List<OpTaskDO> tasks) {
+        return !tasks.isEmpty() && tasks.stream()
+                .allMatch(item -> MesOpTaskStatusEnum.DONE.name().equals(item.getStatus())
+                        || MesOpTaskStatusEnum.SKIPPED.name().equals(item.getStatus()));
     }
 
     /** 末道工序集合：{@code seq} 最大的那一批，并行组会有多道。 */
@@ -228,11 +258,26 @@ public class MesProgressPropagator {
         return tasks.stream().filter(item -> seqOf(item) == maxSeq).toList();
     }
 
-    /** 只认已完工与已跳过，与开工门禁的前序判定口径一致：取消不算完成。 */
-    private boolean allDoneOrSkipped(List<OpTaskDO> tasks) {
-        return !tasks.isEmpty() && tasks.stream()
-                .allMatch(item -> MesOpTaskStatusEnum.DONE.name().equals(item.getStatus())
-                        || MesOpTaskStatusEnum.SKIPPED.name().equals(item.getStatus()));
+    /**
+     * 最后一道实际执行的工序集合：从 {@code seq} 最大的那批开始，整批都被跳过就退到前一个 seq。
+     *
+     * <p>跳序的语义是"这道工序不干了"，被跳过的工序不出产出也不出报废，把它当末道会把产出清零、
+     * 把收尾判定压死在数量条件上。退层只看状态不看数量：没有任何一道真正执行过时返回空集、产出记 0。
+     */
+    private List<OpTaskDO> lastExecutedOpTasks(List<OpTaskDO> tasks) {
+        int seq = tasks.stream().mapToInt(this::seqOf).max().orElse(Integer.MIN_VALUE);
+        while (seq > Integer.MIN_VALUE) {
+            int layerSeq = seq;
+            List<OpTaskDO> layer = tasks.stream().filter(item -> seqOf(item) == layerSeq).toList();
+            if (layer.stream().anyMatch(item ->
+                    !MesOpTaskStatusEnum.SKIPPED.name().equals(item.getStatus()))) {
+                return layer;
+            }
+            // 整层全是跳过的，退到下一个更小的 seq
+            seq = tasks.stream().mapToInt(this::seqOf).filter(item -> item < layerSeq)
+                    .max().orElse(Integer.MIN_VALUE);
+        }
+        return List.of();
     }
 
     /**

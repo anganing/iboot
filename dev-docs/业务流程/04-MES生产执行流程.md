@@ -431,7 +431,7 @@ flowchart TB
 
 `mes_wip_txn` 是 MES 侧的"库存流水"，每次状态变更或数量变更写一条。生产代码当前从未写入，追溯链因此断在 MES 侧。
 
-九种事务类型与写入时机：
+事务类型与写入时机：
 
 | `txn_type` | 写入时机 | `qty` 含义 |
 | --- | --- | --- |
@@ -441,6 +441,7 @@ flowchart TB
 | `MOVE` | 工序间流转 | 流转数量，记 `from_op_task_id` / `to_op_task_id` |
 | `SKIP` | 跳序 | 0 |
 | `COMPLETE` | 工序完工 | 累计合格数 |
+| `FINISH_INBOUND` | 完工入库过账 | 本次入库量 |
 | `REWORK` | 生成返工任务 | 返工数量 |
 | `SCRAP` | 报废处置 | 报废数量 |
 

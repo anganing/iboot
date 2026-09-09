@@ -209,7 +209,7 @@ public class MesFinishInboundServiceImpl implements MesFinishInboundService {
         wipTxnRecorder.record(new MesWipTxnBO()
                 .setProdOrderId(order.getId())
                 .setWorkOrderId(nvl(bo.getWorkOrderId()))
-                .setTxnType(MesWipTxnTypeEnum.COMPLETE)
+                .setTxnType(MesWipTxnTypeEnum.FINISH_INBOUND)
                 .setQty(qty)
                 .setToStatus(WmsOrderStatusEnum.DONE.name())
                 .setBizType(MesBizTypeEnum.IN_ORDER)

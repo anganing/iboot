@@ -138,7 +138,7 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
 
         BigDecimal qtyGood = nvl(report.getQtyGood());
         BigDecimal qtyScrap = nvl(report.getQtyScrap());
-        // 反向流水：九种事务类型里没有"取消报工"，取语义最近的 REPORT 并用负数量表达冲销，
+        // 反向流水：事务类型里没有"取消报工"，取语义最近的 REPORT 并用负数量表达冲销，
         // 与 WMS 侧红字冲销同形。键用取消动作自己的键，与提交那条流水互不判重
         recordReportTxn(report, task, qtyGood.negate(), MesProdReportStatusEnum.SUBMITTED.name(),
                 MesProdReportStatusEnum.CANCELLED.name(), idempotencyKey, bo.getReason());

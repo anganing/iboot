@@ -34,7 +34,7 @@ import java.time.LocalDateTime;
  *     {@code to_op_task_id} 在库表里是 NOT NULL，落 null 会让统计口径失效</li>
  * </ol>
  *
- * <p>字段含义与九种 {@code txn_type} 的写入时机见 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"在制流水"章节。
+ * <p>字段含义与各 {@code txn_type} 的写入时机见 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"在制流水"章节。
  */
 @Component
 public class MesWipTxnRecorder {

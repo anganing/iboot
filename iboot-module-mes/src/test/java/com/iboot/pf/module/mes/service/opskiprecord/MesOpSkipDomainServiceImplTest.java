@@ -267,9 +267,13 @@ class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
         opTaskDomainService.skipOpTask(skipBO(task, SKIP_REASON, null));
 
         assertEquals(1L, opSkipRecordMapper.selectCount());
-        assertEquals(1L, wipTxnMapper.selectCount());
         assertEquals(1L, commandRecordMapper.selectCount());
         assertEquals(MesConstants.INIT_VERSION + 1, opTaskMapper.selectById(task.getId()).getVersion());
+        // 跳序生效会触发上卷（doSkip 接 MesProgressPropagator）：本段唯一工序被跳过，作业工单
+        // 按"本段全部完工或跳序"同步收尾，因此流水是 1 条 SKIP + 1 条作业工单完工；幂等第二次不追加
+        assertEquals(2L, wipTxnMapper.selectCount());
+        assertEquals(MesWorkOrderStatusEnum.DONE.name(),
+                workOrderMapper.selectById(task.getWorkOrderId()).getStatus());
     }
 
     @Test

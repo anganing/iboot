@@ -31,7 +31,7 @@ public class MesWipTxnBO {
     /** 工序任务编号，可选维度，为空落 0。工单级流水没有工序任务。 */
     private Long opTaskId;
 
-    /** 事务类型，必填。九种取值的写入时机见 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"在制流水"章节。 */
+    /** 事务类型，必填。各取值的写入时机见 {@code dev-docs/业务流程/04-MES生产执行流程.md} 的"在制流水"章节。 */
     private MesWipTxnTypeEnum txnType;
 
     /** 事务数量，为空落 0。状态类事务（开工、暂停、恢复、跳序）记 0，数量类事务（报工、完工、返工、报废）记实际数量。 */

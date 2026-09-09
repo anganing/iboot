@@ -25,6 +25,8 @@ public enum MesWipTxnTypeEnum implements ArrayValuable<String> {
     SKIP("跳序"),
     /** 完工。 */
     COMPLETE("完工"),
+    /** 完工入库：成品入库房过账，qty 记本次入库量，来源业务是 WMS 入库单。 */
+    FINISH_INBOUND("完工入库"),
     /** 返工。 */
     REWORK("返工"),
     /** 报废。 */

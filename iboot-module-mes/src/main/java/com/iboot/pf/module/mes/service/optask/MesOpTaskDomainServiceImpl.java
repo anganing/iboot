@@ -145,6 +145,10 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
             return;
         }
         advanceNextTasks(task, workOrder.getProdOrderId(), idempotencyKey);
+        // 上卷：跳序生效后本工序不再挡收尾，末道被跳过的工单要靠这次重算才能转 DONE。
+        // 与 doFinish 同构——零增量触发，propagate 按新的工序状态重算两级；跳序在前序完工之后
+        // 发生时，这里就是工单收尾的唯一触发点，不补这一下判定修得再对也没有人跑到
+        progressPropagator.propagate(task, MesConstants.ZERO_QTY, MesConstants.ZERO_QTY, idempotencyKey);
     }
 
     /**
@@ -388,7 +392,7 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
             String toStatus = MesOpTaskStateMachine.next(fromStatus, MesOpTaskStateMachine.ACTION_PREV_DONE);
             advanceOpTask(target, OpTaskDO.builder().status(toStatus).build());
             target.setStatus(toStatus);
-            // MOVE 是九种事务类型里唯一表达工序间流转的，两个专用列正好记流出与流入工序，
+            // MOVE 是事务类型里唯一表达工序间流转的，两个专用列正好记流出与流入工序，
             // qty 记流转数量，也就是本工序的累计合格数
             wipTxnRecorder.record(new MesWipTxnBO()
                     .setProdOrderId(prodOrderId)

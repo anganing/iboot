@@ -265,10 +265,11 @@ class MesFinishInboundServiceImplTest extends BaseDbUnitTest {
         assertEquals(1, batches.size());
         // 真的过账了：只建单不过账的话余额一分不动
         assertEquals(1, postedOrders.size());
-        // 账本：一条 IN_ORDER 流水，qty 记本次入库量，biz_no 记 WMS 入库单编号
+        // 账本：一条 IN_ORDER 流水，qty 记本次入库量，biz_no 记 WMS 入库单编号。
+        // 事务类型是 FINISH_INBOUND（完工入库）：COMPLETE 属于工序完工，入库借用它是语义错位
         List<WipTxnDO> txns = inboundTxns();
         assertEquals(1, txns.size());
-        assertEquals(MesWipTxnTypeEnum.COMPLETE.name(), txns.get(0).getTxnType());
+        assertEquals(MesWipTxnTypeEnum.FINISH_INBOUND.name(), txns.get(0).getTxnType());
         assertEquals(String.valueOf(inOrderId), txns.get(0).getBizNo());
         assertEquals(0, ORDER_QTY.compareTo(txns.get(0).getQty()));
         assertEquals(order.getId(), txns.get(0).getProdOrderId());

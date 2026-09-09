@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.BOM_NOT_EXISTS;
@@ -297,17 +298,23 @@ public class MesKitCheckServiceImpl implements MesKitCheckService {
      *
      * <p>两次批量查（先查本工单的领料申请，再按申请编号集合查明细），不按行回查。
      *
-     * <p>退料单不计：退料是把料还回仓库，还回去的量已经体现在可用量里，再算一遍就是重复计入。
-     * 草稿与已取消的明细行也不计：它们还没有、或已经没有任何库存后果。
+     * <p><b>issued 是净发料口径</b>：领料与补料按 {@code processed_qty} 正向计入，退料按负数计入。
+     * "领 100 退 30"之后车间手里只有 70，按毛领料算 100 会把只剩 70 的工单判成齐套并推到 READY。
+     * 与开工门禁 {@code KitOrIssuedChecker} 和 T1-16 关闭清单（{@code MesOrderCloseHelper#inspectUnreturned}）
+     * 的净发料口径完全一致，三处共用 {@code req_type} 维度的同一套正负号规则。
+     *
+     * <p>reserved 只由未退完的领料与补料产生：退料是把料还回仓库，它不再占用预留；
+     * 还回去的那部分量已经体现在可用量里。草稿与已取消的明细行不计：它们还没有、或已经没有任何库存后果。
      */
     private OwnedQty ownedQty(Long prodOrderId) {
-        List<MaterialReqDO> reqs = materialReqMapper.selectList(MaterialReqDO::getProdOrderId, prodOrderId)
-                .stream().filter(req -> !MesMaterialReqTypeEnum.isReturn(req.getReqType())).toList();
+        List<MaterialReqDO> reqs = materialReqMapper.selectList(MaterialReqDO::getProdOrderId, prodOrderId);
         if (CollUtil.isEmpty(reqs)) {
             return new OwnedQty(Map.of(), Map.of());
         }
+        Map<Long, Boolean> returnFlagByReq = reqs.stream().collect(Collectors.toMap(
+                MaterialReqDO::getId, req -> MesMaterialReqTypeEnum.isReturn(req.getReqType())));
         List<MaterialReqLineDO> lines = materialReqLineMapper.selectList(MaterialReqLineDO::getReqId,
-                reqs.stream().map(MaterialReqDO::getId).toList());
+                returnFlagByReq.keySet());
         Map<Long, BigDecimal> reserved = new HashMap<>();
         Map<Long, BigDecimal> issued = new HashMap<>();
         for (MaterialReqLineDO line : lines) {
@@ -317,6 +324,11 @@ public class MesKitCheckServiceImpl implements MesKitCheckService {
             }
             BigDecimal processedQty = line.getProcessedQty() == null
                     ? BigDecimal.ZERO : line.getProcessedQty();
+            if (Boolean.TRUE.equals(returnFlagByReq.get(line.getReqId()))) {
+                // 退料：净发料按负数扣，且不再产生预留
+                issued.merge(line.getMatId(), processedQty.negate(), BigDecimal::add);
+                continue;
+            }
             BigDecimal pendingQty = line.getQty().subtract(processedQty);
             issued.merge(line.getMatId(), processedQty, BigDecimal::add);
             if (pendingQty.signum() > 0) {
@@ -391,7 +403,7 @@ public class MesKitCheckServiceImpl implements MesKitCheckService {
             throw exception(PROD_ORDER_CONCURRENT_CONFLICT);
         }
         order.setStatus(toStatus).setVersion(currentVersion + 1);
-        // 04 文档的九种事务类型里没有"备料就绪"这一项，取语义最近的 START（工单下达与开工都用它），
+        // 04 文档的事务类型里没有"备料就绪"这一项，取语义最近的 START（工单下达与开工都用它），
         // 由 from/to 状态区分是哪一步：下达是 DRAFT->RELEASED，这里是 RELEASED->READY
         wipTxnRecorder.record(new MesWipTxnBO()
                 .setProdOrderId(order.getId())

@@ -506,8 +506,40 @@ class MesKitCheckServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    void testCheckKit_netIssuedDeductsReturn() {
+        // 准备（整改点名的构造）：需求 100、可用量 0；本工单领料 100 已全部发料，又退回仓库 30。
+        // 车间手里实际只有 70——按毛领料算 100 会把只剩 70 的工单判成齐套并推到 READY
+        ProdOrderDO order = insertOrder(MesProdOrderStatusEnum.RELEASED, BOM_ID);
+        givenBom(bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK));
+        stock.put(MAT_A, BigDecimal.ZERO);
+        MaterialReqDO issueReq = insertMaterialReq(order, MesMaterialReqTypeEnum.ISSUE,
+                MesMaterialReqStatusEnum.DONE);
+        insertMaterialReqLine(issueReq, MAT_A, "100", "100", MesMaterialReqLineStatusEnum.DONE);
+        MaterialReqDO returnReq = insertMaterialReq(order, MesMaterialReqTypeEnum.RETURN,
+                MesMaterialReqStatusEnum.DONE);
+        insertMaterialReqLine(returnReq, MAT_A, "30", "30", MesMaterialReqLineStatusEnum.DONE);
+
+        // 调用
+        MesKitCheckResultBO result = kitCheckService.checkKit(prodOrderBO(order));
+
+        // 断言：issued 是净发料口径 100 − 30 = 70，缺口 100 − 0 − 0 − 70 = 30，判短缺；
+        // 退料不产生预留；工单停在已下达不推进 READY、不留转就绪流水
+        KitSnapshotDO line = snapshotOf(MAT_A);
+        assertEquals(0, new BigDecimal("70").compareTo(line.getIssuedQty()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(line.getReservedQty()));
+        assertEquals(0, new BigDecimal("30").compareTo(line.getShortQty()));
+        assertEquals(MesKitStatusEnum.SHORTAGE.name(), line.getResult());
+        assertEquals(MesKitStatusEnum.SHORTAGE.name(), result.getResult());
+        ProdOrderDO checked = reloadOrder(order);
+        assertEquals(MesProdOrderStatusEnum.RELEASED.name(), checked.getStatus());
+        assertEquals(MesConstants.INIT_VERSION, checked.getVersion());
+        assertEquals(0L, wipTxnMapper.selectCount());
+    }
+
+    @Test
     void testCheckKit_returnReqNotOffset() {
-        // 准备：需求 100、可用量 0，本工单有一张退料单（申请 100、已处理 100）
+        // 准备：需求 100、可用量 0，本工单只有一张退料单（申请 100、已处理 100）。
+        // 纯退料（没有对应领料）在真实流程里不会出现，退料必有原领料；这个构造只为锁死公式本身
         ProdOrderDO order = insertOrder(MesProdOrderStatusEnum.RELEASED, BOM_ID);
         givenBom(bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK));
         stock.put(MAT_A, BigDecimal.ZERO);
@@ -518,12 +550,15 @@ class MesKitCheckServiceImplTest extends BaseDbUnitTest {
         // 调用
         MesKitCheckResultBO result = kitCheckService.checkKit(prodOrderBO(order));
 
-        // 断言：退料是把料还回仓库，还回去的量已经体现在可用量里，再当成"本工单已备"算一遍就是重复计入
+        // 断言（净发料口径）：退料按负数计入已领用而不是被整个忽略——issued = −100，
+        // 缺口按 需求 − 可用 − 预留 − issued 算出 200；退料不产生预留。结论仍是短缺、不推进：
+        // 退料在任何口径下都不许把快照判成齐套
         KitSnapshotDO line = snapshotOf(MAT_A);
-        assertEquals(0, BigDecimal.ZERO.compareTo(line.getIssuedQty()));
+        assertEquals(0, new BigDecimal("-100").compareTo(line.getIssuedQty()));
         assertEquals(0, BigDecimal.ZERO.compareTo(line.getReservedQty()));
-        assertEquals(0, new BigDecimal("100").compareTo(line.getShortQty()));
+        assertEquals(0, new BigDecimal("200").compareTo(line.getShortQty()));
         assertEquals(MesKitStatusEnum.SHORTAGE.name(), result.getResult());
+        assertEquals(MesProdOrderStatusEnum.RELEASED.name(), reloadOrder(order).getStatus());
     }
 
     @Test

@@ -26,6 +26,7 @@ import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainServiceImpl;
 import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
+import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesCancelReportBO;
@@ -60,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -396,6 +398,65 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    void testPropagate_prodOrderDoneWhenLastOpSkipped() {
+        // 准备（整改点名的构造）：三道工序，末道被跳序（SKIPPED 的工序 completed_qty 恒为 0）。
+        // 旧口径要求末道 DONE，被跳过的末道永远凑不出这个条件——工单停在 RUNNING、关不掉、预留永久挂着
+        TwoSegmentChain chain = twoSegmentChain();
+        reportFull(chain.first, 1);
+        reportFull(chain.second, 2);
+        // 跳序域在本类是 mock：桩成"立即生效"的真实行为——工序置 SKIPPED、返回 true。
+        // doSkip 收到 true 后会触发上卷（跳序场景工单收尾的唯一触发点）
+        when(opSkipDomainService.skip(any(), any(), any(), anyString())).thenAnswer(invocation -> {
+            OpTaskDO skipping = invocation.getArgument(0);
+            opTaskMapper.updateById(new OpTaskDO().setId(skipping.getId())
+                    .setStatus(MesOpTaskStatusEnum.SKIPPED.name()));
+            return true;
+        });
+        opTaskDomainService.skipOpTask(skipBO(chain.third));
+
+        // 调用：前两道报满并完工，触发上卷
+        opTaskDomainService.finishOpTask(finishBO(chain.first));
+        opTaskDomainService.finishOpTask(finishBO(chain.second));
+
+        // 断言（验收点名）：末道 SKIPPED 也算达标 -> 生产工单 DONE；
+        // 完成数取最后一道实际执行的工序（第二道）的值，不是被跳过的末道把产出清零
+        ProdOrderDO order = prodOrderMapper.selectById(chain.orderId);
+        assertEquals(MesProdOrderStatusEnum.DONE.name(), order.getStatus());
+        assertNotNull(order.getActualEndTime());
+        assertEquals(0, PLAN_QTY.compareTo(order.getCompletedQty()));
+        // 跳过的末道不贡献报废，汇总口径不被跳序打乱
+        assertEquals(0, BigDecimal.ZERO.compareTo(order.getScrapQty()));
+        // 完工流水照写
+        assertTrue(wipTxnMapper.selectList().stream()
+                .anyMatch(txn -> MesBizTypeEnum.PROD_ORDER.name().equals(txn.getBizType())
+                        && MesProdOrderStatusEnum.DONE.name().equals(txn.getToStatus())));
+        // 工单一转 DONE 就触发自动入库（T1-15 链路），入库量由 FinishInbound 自己按剩余算
+        verify(finishInboundService).autoInboundOnOrderDone(order.getId(), chain.second.getWorkOrderId());
+        // 喷漆段唯一的工序被跳过，整段作业工单在跳序触发的上卷里同步收尾
+        assertEquals(MesWorkOrderStatusEnum.DONE.name(),
+                workOrderMapper.selectById(chain.third.getWorkOrderId()).getStatus());
+    }
+
+    @Test
+    void testPropagate_lastOpRunningNotDone() {
+        // 反例锁边：末道还在加工（RUNNING，数量已报满但没人点完工）时，前序完工不许把工单推走。
+        // 数量达标与状态收尾是两个条件，收尾必须等末道 DONE 或 SKIPPED
+        TwoSegmentChain chain = twoSegmentChain();
+        reportFull(chain.first, 1);
+        reportFull(chain.second, 2);
+        reportFull(chain.third, 3);
+        opTaskDomainService.finishOpTask(finishBO(chain.first));
+        opTaskDomainService.finishOpTask(finishBO(chain.second));
+
+        // 断言：末道 RUNNING -> 生产工单与喷漆段作业工单都不收尾，产出照常上卷 100
+        ProdOrderDO order = prodOrderMapper.selectById(chain.orderId);
+        assertEquals(MesProdOrderStatusEnum.RUNNING.name(), order.getStatus());
+        assertEquals(MesWorkOrderStatusEnum.RUNNING.name(),
+                workOrderMapper.selectById(chain.third.getWorkOrderId()).getStatus());
+        assertEquals(0, PLAN_QTY.compareTo(order.getCompletedQty()));
+    }
+
+    @Test
     void testCancelReport_reverseThreeLevels() {
         // 准备：两道工序各报 90 + 10，整单完成 90、报废 20
         ProdOrderDO order = insertOrder();
@@ -604,6 +665,17 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         bo.setOpTaskId(task.getId());
         bo.setSourceModule(SOURCE_MODULE);
         bo.setSourceBizNo(task.getTaskNo());
+        return bo;
+    }
+
+    /** 跳序参数：填原因即可生效的一档，构造与跳序测试类保持同构。 */
+    private MesOpSkipBO skipBO(OpTaskDO task) {
+        MesOpSkipBO bo = new MesOpSkipBO();
+        bo.setOpTaskId(task.getId());
+        bo.setSourceModule(SOURCE_MODULE);
+        bo.setSourceBizNo(task.getTaskNo());
+        bo.setSkipReasonType("NOT_APPLICABLE");
+        bo.setReason("该型号不需要这道工序");
         return bo;
     }
 
