@@ -11,6 +11,7 @@ import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcrule.QcRuleDO;
 import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
+import com.iboot.pf.module.mes.enums.MesQcItemConclusionEnum;
 import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcplan.QcPlanMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
@@ -336,6 +337,10 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
     /**
      * 预生成检验结果空行。
      *
+     * <p>四列 NOT NULL 无默认值的列（pass_flag/inspector_id/inspect_time/conclusion）必须落初始值：
+     * 生产 MySQL 严格模式下缺一即插入失败。未检验的格子按 FAIL（pass_flag=false）占位，
+     * 与"未检验不算合格"的保守口径一致，录入时逐格覆盖。
+     *
      * @return 是否触发了降级（空行数超过上限，只生成每个检验项的第 1 个样本）
      */
     private boolean insertResultPlaceholders(QcTaskDO qcTask, List<QcItemDO> items, BigDecimal sampleQty) {
@@ -352,6 +357,10 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
                         .sampleNo(sampleNo)
                         .itemCode(item.getItemCode())
                         .itemName(item.getItemName())
+                        .passFlag(false)
+                        .inspectorId(0L)
+                        .inspectTime(qcTask.getCreateTime())
+                        .conclusion(MesQcItemConclusionEnum.FAIL.name())
                         .build());
             }
         }
