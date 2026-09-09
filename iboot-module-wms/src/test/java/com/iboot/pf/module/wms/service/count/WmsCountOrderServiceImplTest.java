@@ -40,7 +40,6 @@ import java.util.Map;
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_FREEZE;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_MODIFY;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -120,7 +119,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private WmsCreateCountOrderBO createCountBO() {
         WmsCreateCountOrderBO bo = new WmsCreateCountOrderBO();
-        bo.setIdempotencyKey("WMS:CNT:1");
+        bo.setIdempotencyKey("WMS:CNT:CREATE:1");
         bo.setSourceModule("UI");
         bo.setSourceBizNo("CNT-SRC-1");
         bo.setCountType("FULL");
@@ -131,7 +130,8 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private WmsSubmitCountResultBO submitBO(Long orderId, Long lineId, BigDecimal actualQty) {
         WmsSubmitCountResultBO bo = new WmsSubmitCountResultBO();
-        bo.setIdempotencyKey("WMS:CNT:1");
+        // 与确认差异的键区分开：两个动作都登记命令记录，同键会互相误判幂等
+        bo.setIdempotencyKey("UI:CNT-0001:SUBMIT_COUNT_RESULT:0");
         bo.setSourceModule("UI");
         bo.setSourceBizNo("CNT-SRC-1");
         bo.setOrderId(orderId);
@@ -145,7 +145,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private WmsConfirmCountDiffBO confirmDiffBO(Long orderId) {
         WmsConfirmCountDiffBO bo = new WmsConfirmCountDiffBO();
-        bo.setIdempotencyKey("WMS:CNT:1");
+        bo.setIdempotencyKey("UI:CNT-0001:CONFIRM_COUNT_DIFF:0");
         bo.setSourceModule("UI");
         bo.setSourceBizNo("CNT-SRC-1");
         bo.setOrderId(orderId);
@@ -311,10 +311,31 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    void testConfirmDiff_zeroDiff_marksDone_andReleasesFrozen() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
+
+        // 零差异确认：全盘平也是合法结论，直接置 DONE，不再抛"无差异"
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
+        // 冻结量归零：盘点收尾必须解冻，否则这批货可用量永久偏低
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(0, balance.getQtyFrozen().compareTo(BigDecimal.ZERO), "零差异收单后冻结量应归零");
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("100")), "解冻不动现存");
+        assertEquals(0, WmsInventoryService.availableQtyOf(balance).compareTo(new BigDecimal("100")),
+                "收单后可用量应恢复 100");
+    }
+
+    @Test
     void testConfirmDiff_gain_inPostsIncrementNotDirectModify() {
         seedBalance(new BigDecimal("100"));
         Long id = countOrderService.createCountOrder(createCountBO());
         Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
         countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("150")));
 
         countOrderService.confirmCountDiff(confirmDiffBO(id));
@@ -327,6 +348,8 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("150")));
+        // 冻结量随收单释放
+        assertEquals(0, balance.getQtyFrozen().compareTo(BigDecimal.ZERO), "差异收单后冻结量应归零");
         assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
     }
 
@@ -335,6 +358,7 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         seedBalance(new BigDecimal("100"));
         Long id = countOrderService.createCountOrder(createCountBO());
         Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
         countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
 
         countOrderService.confirmCountDiff(confirmDiffBO(id));
@@ -347,38 +371,69 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("70")));
+        // 冻结量随收单释放
+        assertEquals(0, balance.getQtyFrozen().compareTo(BigDecimal.ZERO), "盘亏收单后冻结量应归零");
     }
 
     @Test
-    void testConfirmDiff_noDiff_rejected() {
+    void testConfirmDiff_unfrozenDraftOrder_directlyDone() {
+        // 新建直接盘、未冻结：确认时不应因 UNFREEZE 过账无冻结量而抛错
         seedBalance(new BigDecimal("100"));
         Long id = countOrderService.createCountOrder(createCountBO());
         Long lineId = firstLine(id).getId();
-        // 未提交差异（状态 DRAFT）直接确认 → 状态不合法
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
+
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
+        assertEquals(0, requireBalance().getQtyFrozen().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void testConfirmDiff_statusInvalid_forDraft() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        // 未提交实盘（状态 DRAFT）直接确认 → 状态不合法
         assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
                 COUNT_ORDER_STATUS_INVALID);
-        // 提交无差异（实盘=账面）后再确认 → 无差异可确认
-        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
-        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
-                COUNT_ORDER_NO_DIFF);
     }
 
     @Test
-    void testConfirmDiff_duplicate_keepsSingleAdjustment() {
+    void testConfirmDiff_duplicate_sameKeyReturnsSilently() {
         seedBalance(new BigDecimal("100"));
         Long id = countOrderService.createCountOrder(createCountBO());
         Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
         countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("120")));
 
         countOrderService.confirmCountDiff(confirmDiffBO(id));
-        // 单据已 DONE，再次确认状态不合法
-        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
-                COUNT_ORDER_STATUS_INVALID);
-        // 余额仅 +20 一次
+        // 同一幂等键重复确认：命令层原样返回，不再推进、不再过账
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        // 余额仅 +20 一次，冻结量只解一次
         WmsInvBalanceDO balance = wmsInvBalanceMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)).get(0);
         assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("120")));
+        assertEquals(0, balance.getQtyFrozen().compareTo(BigDecimal.ZERO));
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
+    }
+
+    @Test
+    void testSubmitResult_duplicate_sameKeyDoesNotReAdvance() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+
+        WmsSubmitCountResultBO bo = submitBO(id, lineId, new BigDecimal("130"));
+        countOrderService.submitCountResult(bo);
+        // 同一幂等键重复提交实盘：命令层直接返回，不重复更新行
+        countOrderService.submitCountResult(bo);
+
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(0, line.getDiffQty().compareTo(new BigDecimal("30")));
+        assertEquals(WmsCountLineStatusEnum.DIFF.name(), line.getStatus());
+        assertEquals(WmsOrderStatusEnum.COUNTING.name(), wmsCountOrderMapper.selectById(id).getStatus());
     }
 
 }

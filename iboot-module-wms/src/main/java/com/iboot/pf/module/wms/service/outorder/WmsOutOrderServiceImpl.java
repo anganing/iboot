@@ -210,44 +210,51 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmOutOrder(WmsConfirmOrderBO bo) {
-        WmsOutOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
-        if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
-            throw exception(OUT_ORDER_CANNOT_CONFIRM);
-        }
-        List<WmsOutOrderLineDO> lines = wmsOutOrderLineMapper.selectListByOrderId(order.getId());
-        if (CollUtil.isEmpty(lines)) {
-            throw exception(OUT_ORDER_LINE_EMPTY);
-        }
-        warehouseService.validateWh(order.getWhId());
+        // 单据级命令幂等：同键重复确认原样返回，不再把 postedQty / pickedQty 加一遍；
+        // 行级流水幂等键与预留核销键由过账层继续兜底。状态校验放幂等壳内，
+        // 重复提交原样返回而非报非法状态，换键重试才真正走到状态机。
+        commandService.executeVoid(WmsCommandTypeEnum.CONFIRM_OUT_ORDER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsOutOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
+                        throw exception(OUT_ORDER_CANNOT_CONFIRM);
+                    }
+                    List<WmsOutOrderLineDO> lines = wmsOutOrderLineMapper.selectListByOrderId(order.getId());
+                    if (CollUtil.isEmpty(lines)) {
+                        throw exception(OUT_ORDER_LINE_EMPTY);
+                    }
+                    warehouseService.validateWh(order.getWhId());
 
-        for (WmsOutOrderLineDO line : lines) {
-            if (line.getFromLocId() == null) {
-                throw exception(OUT_ORDER_LOC_REQUIRED);
-            }
-            warehouseService.validateLoc(line.getFromLocId());
-            BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
-            if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-            // 出库过账前必须校验库位、批次、数量可用
-            BigDecimal available = inventoryService.getAvailableQty(buildQuery(order, line));
-            if (available.compareTo(qty) < 0) {
-                throw exception(INV_AVAILABLE_QTY_NOT_ENOUGH);
-            }
+                    for (WmsOutOrderLineDO line : lines) {
+                        if (line.getFromLocId() == null) {
+                            throw exception(OUT_ORDER_LOC_REQUIRED);
+                        }
+                        warehouseService.validateLoc(line.getFromLocId());
+                        BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
+                        if (qty.compareTo(BigDecimal.ZERO) <= 0) {
+                            continue;
+                        }
+                        // 出库过账前必须校验库位、批次、数量可用
+                        BigDecimal available = inventoryService.getAvailableQty(buildQuery(order, line));
+                        if (available.compareTo(qty) < 0) {
+                            throw exception(INV_AVAILABLE_QTY_NOT_ENOUGH);
+                        }
 
-            String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
-            inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
-            // 过账已扣现存，紧接着核销本行预留，否则预留与扣减会双重占用可用量
-            consumeReservation(order, line, qty, bo);
+                        String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
+                        inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
+                        // 过账已扣现存，紧接着核销本行预留，否则预留与扣减会双重占用可用量
+                        consumeReservation(order, line, qty, bo);
 
-            line.setPickedQty(nvl(line.getPickedQty()).add(qty));
-            line.setPostedQty(nvl(line.getPostedQty()).add(qty));
-            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
-            wmsOutOrderLineMapper.updateById(line);
-        }
+                        line.setPickedQty(nvl(line.getPickedQty()).add(qty));
+                        line.setPostedQty(nvl(line.getPostedQty()).add(qty));
+                        line.setStatus(WmsOrderLineStatusEnum.DONE.name());
+                        wmsOutOrderLineMapper.updateById(line);
+                    }
 
-        order.setStatus(WmsOrderStatusEnum.DONE.name());
-        wmsOutOrderMapper.updateById(order);
+                    order.setStatus(WmsOrderStatusEnum.DONE.name());
+                    wmsOutOrderMapper.updateById(order);
+                });
     }
 
     /**

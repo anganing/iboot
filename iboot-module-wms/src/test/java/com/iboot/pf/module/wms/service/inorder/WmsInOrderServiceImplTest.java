@@ -270,10 +270,29 @@ class WmsInOrderServiceImplTest extends BaseDbUnitTest {
         Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
         inOrderService.confirmInOrder(confirmBO(id));
 
-        // 已过账单据状态为 DONE，二次过账被状态机拒绝，流水不重复
-        assertServiceException(() -> inOrderService.confirmInOrder(confirmBO(id)), IN_ORDER_CANNOT_CONFIRM);
+        // 已过账单据状态为 DONE，换键二次过账被状态机拒绝，流水不重复
+        WmsConfirmOrderBO otherKey = confirmBO(id);
+        otherKey.setIdempotencyKey("WMS:IN:1:RETRY");
+        assertServiceException(() -> inOrderService.confirmInOrder(otherKey), IN_ORDER_CANNOT_CONFIRM);
         assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("100")));
         assertEquals(1, wmsInvTxnMapper.selectCount(), "重复过账不应产生第二条流水");
+    }
+
+    @Test
+    void testConfirm_sameKeyRepeated_noDoublePosting() {
+        Long id = inOrderService.createInOrder(createInBO(new BigDecimal("100")));
+        inOrderService.confirmInOrder(confirmBO(id));
+
+        // 界面连点、网关重发：同一幂等键重复确认，命令层原样返回，
+        // postedQty / completedQty 不被二次累加，也不产生第二批流水
+        inOrderService.confirmInOrder(confirmBO(id));
+
+        WmsInOrderLineDO line = wmsInOrderLineMapper.selectListByOrderId(id).get(0);
+        assertEquals(0, line.getPostedQty().compareTo(new BigDecimal("100")), "连点不应把过账量翻倍");
+        assertEquals(0, line.getCompletedQty().compareTo(new BigDecimal("100")));
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("100")));
+        assertEquals(1, wmsInvTxnMapper.selectCount(), "重复确认不应产生第二条流水");
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsInOrderMapper.selectById(id).getStatus());
     }
 
     private Long requireBalanceId() {

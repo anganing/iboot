@@ -130,6 +130,47 @@ class WmsInventoryServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    void testIn_existingBalance_snapshotNotOverwritten() {
+        // 预插一条快照列与过账参数完全不同的余额行，模拟历史上落库的旧快照
+        WmsInvBalanceDO existing = new WmsInvBalanceDO();
+        existing.setInvOrgId(INV_ORG);
+        existing.setPlantId(1L);
+        existing.setWhId(WH);
+        existing.setLocId(LOC);
+        existing.setMatId(MAT);
+        existing.setBatchId(BATCH);
+        existing.setContainerId(0L);
+        existing.setProjectId(0L);
+        existing.setProjectTaskId(0L);
+        existing.setStockScope("COMMON");
+        existing.setQualityStatus("QUALIFIED");
+        existing.setMatCode("OLD-CODE");
+        existing.setMatName("旧物料名");
+        existing.setUomCode("KG");
+        existing.setLotNo("OLD-LOT");
+        existing.setWhCode("WH-OLD");
+        existing.setLocCode("LOC-OLD");
+        existing.setQtyOnhand(BigDecimal.ZERO);
+        existing.setQtyReserved(BigDecimal.ZERO);
+        existing.setQtyFrozen(BigDecimal.ZERO);
+        existing.setVersion(0);
+        balanceMapper.insert(existing);
+
+        // 过账参数携带新快照：入方向命中的是已有余额行，快照不应被覆盖
+        postIn(new BigDecimal("50"));
+
+        WmsInvBalanceDO balance = requireBalance();
+        assertEquals(existing.getId(), balance.getId(), "应命中已有余额行而不是新建");
+        assertEquals(0, balance.getQtyOnhand().compareTo(new BigDecimal("50")));
+        assertEquals("OLD-CODE", balance.getMatCode());
+        assertEquals("旧物料名", balance.getMatName());
+        assertEquals("KG", balance.getUomCode());
+        assertEquals("OLD-LOT", balance.getLotNo());
+        assertEquals("WH-OLD", balance.getWhCode());
+        assertEquals("LOC-OLD", balance.getLocCode());
+    }
+
+    @Test
     void testIn_idempotent_returnsOriginalTxn() {
         when(codeRuleApi.generate("WMS_INV_TXN_NO")).thenReturn("TXN-0001");
         WmsInvPostBO bo = basePost();

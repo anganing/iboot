@@ -218,40 +218,47 @@ public class WmsInOrderServiceImpl implements WmsInOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmInOrder(WmsConfirmOrderBO bo) {
-        WmsInOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
-        if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
-            throw exception(IN_ORDER_CANNOT_CONFIRM);
-        }
-        List<WmsInOrderLineDO> lines = wmsInOrderLineMapper.selectListByOrderId(order.getId());
-        if (CollUtil.isEmpty(lines)) {
-            throw exception(IN_ORDER_LINE_EMPTY);
-        }
-        warehouseService.validateWh(order.getWhId());
+        // 单据级命令幂等：同键重复确认原样返回，不再把 postedQty / completedQty 加一遍；
+        // 行级流水幂等键（:POST:{行号}）由过账层继续兜底。状态校验放幂等壳内，
+        // 重复提交原样返回而非报非法状态，换键重试才真正走到状态机。
+        commandService.executeVoid(WmsCommandTypeEnum.CONFIRM_IN_ORDER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsInOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
+                        throw exception(IN_ORDER_CANNOT_CONFIRM);
+                    }
+                    List<WmsInOrderLineDO> lines = wmsInOrderLineMapper.selectListByOrderId(order.getId());
+                    if (CollUtil.isEmpty(lines)) {
+                        throw exception(IN_ORDER_LINE_EMPTY);
+                    }
+                    warehouseService.validateWh(order.getWhId());
 
-        for (WmsInOrderLineDO line : lines) {
-            if (line.getLocId() == null) {
-                throw exception(IN_ORDER_LOC_REQUIRED);
-            }
-            warehouseService.validateLoc(line.getLocId());
-            BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
-            if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-            // 批次已在创建阶段注册并回填，过账直接复用
-            WmsBatchDO batch = line.getBatchId() == null ? null : batchService.getBatch(line.getBatchId());
-            line.setLotNo(batch == null ? line.getLotNo() : batch.getLotNo());
+                    for (WmsInOrderLineDO line : lines) {
+                        if (line.getLocId() == null) {
+                            throw exception(IN_ORDER_LOC_REQUIRED);
+                        }
+                        warehouseService.validateLoc(line.getLocId());
+                        BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
+                        if (qty.compareTo(BigDecimal.ZERO) <= 0) {
+                            continue;
+                        }
+                        // 批次已在创建阶段注册并回填，过账直接复用
+                        WmsBatchDO batch = line.getBatchId() == null ? null : batchService.getBatch(line.getBatchId());
+                        line.setLotNo(batch == null ? line.getLotNo() : batch.getLotNo());
 
-            String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
-            inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
+                        String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
+                        inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
 
-            line.setPostedQty(nvl(line.getPostedQty()).add(qty));
-            line.setCompletedQty(nvl(line.getCompletedQty()).add(qty));
-            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
-            wmsInOrderLineMapper.updateById(line);
-        }
+                        line.setPostedQty(nvl(line.getPostedQty()).add(qty));
+                        line.setCompletedQty(nvl(line.getCompletedQty()).add(qty));
+                        line.setStatus(WmsOrderLineStatusEnum.DONE.name());
+                        wmsInOrderLineMapper.updateById(line);
+                    }
 
-        order.setStatus(WmsOrderStatusEnum.DONE.name());
-        wmsInOrderMapper.updateById(order);
+                    order.setStatus(WmsOrderStatusEnum.DONE.name());
+                    wmsInOrderMapper.updateById(order);
+                });
     }
 
     private Long registerBatch(WmsInOrderDO order, WmsCreateInOrderBO.Line line, MaterialRespDTO material) {

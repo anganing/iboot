@@ -91,7 +91,6 @@ public interface ErrorCodeConstants {
     ErrorCode COUNT_ORDER_NOT_EXISTS = new ErrorCode(1_063_010_000, "盘点单不存在");
     ErrorCode COUNT_ORDER_STATUS_INVALID = new ErrorCode(1_063_010_001, "盘点单当前状态不允许该操作");
     ErrorCode COUNT_ORDER_LINE_NOT_EXISTS = new ErrorCode(1_063_010_002, "盘点明细不存在");
-    ErrorCode COUNT_ORDER_NO_DIFF = new ErrorCode(1_063_010_003, "盘点单没有需要确认的差异");
     ErrorCode TRANSFER_ORDER_LINE_NOT_EXISTS = new ErrorCode(1_063_009_006, "转移单明细不存在");
 
     ErrorCode INV_TXN_NOT_EXISTS = new ErrorCode(1_063_004_006, "库存流水不存在");

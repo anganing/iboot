@@ -48,7 +48,6 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNO
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NOT_EXISTS;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NO_DIFF;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.COUNT_ORDER;
@@ -194,7 +193,8 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
                         }
                         String postKey = String.format("%s:%s:FREEZE:%d", WmsSourceModuleEnum.UI.name(),
                                 order.getCountNo(), line.getLineNo());
-                        inventoryService.post(buildFreezePostBO(order, line, plantId, postKey));
+                        inventoryService.post(buildFreezePostBO(order, line, plantId, postKey,
+                                WmsTxnTypeEnum.FREEZE, "盘点冻结"));
                     }
                     order.setStatus(WmsOrderStatusEnum.FROZEN.name());
                     if (bo.getRemark() != null) {
@@ -213,16 +213,12 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
         return order;
     }
 
-    /**
-     * 构造盘点冻结的过账参数。
-     *
-     * <p>{@code FREEZE} 走 {@code applyStatusChange}，只加 {@code qty_frozen} 不动 {@code qty_onhand}，
-     * 所以来源与目标的质量状态、项目维度都填同一个值。
-     */
+    /** 盘点冻结/解冻共用的过账参数构造：维度一致，仅事务类型与备注不同。 */
     private WmsInvPostBO buildFreezePostBO(WmsCountOrderDO order, WmsCountOrderLineDO line,
-                                           Long plantId, String postKey) {
+                                           Long plantId, String postKey,
+                                           WmsTxnTypeEnum txnType, String remark) {
         WmsInvPostBO postBO = new WmsInvPostBO();
-        postBO.setTxnType(WmsTxnTypeEnum.FREEZE.name());
+        postBO.setTxnType(txnType.name());
         postBO.setBizType(WmsSourceBizTypeEnum.COUNT_FREEZE.name());
         postBO.setBizNo(order.getCountNo());
         postBO.setBizLineNo(String.valueOf(line.getLineNo()));
@@ -243,51 +239,66 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
         postBO.setBatchId(line.getBatchId());
         postBO.setLotNo(line.getLotNo());
         postBO.setContainerId(line.getContainerId());
-        postBO.setRemark("盘点冻结");
+        postBO.setRemark(remark);
         return postBO;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitCountResult(WmsSubmitCountResultBO bo) {
-        WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getCountNo());
-        // 允许 FROZEN 与 COUNTING：冻结后录实盘是常规路径，不冻结直接盘（DRAFT）也放行
-        if (!WmsOrderStatusEnum.DRAFT.name().equals(order.getStatus())
-                && !WmsOrderStatusEnum.FROZEN.name().equals(order.getStatus())
-                && !WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())) {
-            throw exception(COUNT_ORDER_STATUS_INVALID);
-        }
-        if (CollUtil.isEmpty(bo.getResults())) {
-            return;
-        }
-        List<WmsCountOrderLineDO> lines = wmsCountOrderLineMapper.selectListByOrderId(order.getId());
-        for (WmsSubmitCountResultBO.LineResult result : bo.getResults()) {
-            WmsCountOrderLineDO line = findLine(lines, result);
-            if (result.getActualQty() == null || result.getActualQty().compareTo(BigDecimal.ZERO) < 0) {
-                throw exception(QTY_MUST_BE_POSITIVE);
-            }
-            BigDecimal diff = result.getActualQty().subtract(nvl(line.getBookQty()));
-            line.setActualQty(result.getActualQty());
-            line.setDiffQty(diff);
-            line.setStatus(diff.compareTo(BigDecimal.ZERO) == 0
-                    ? WmsCountLineStatusEnum.COUNTED.name() : WmsCountLineStatusEnum.DIFF.name());
-            line.setRemark(result.getRemark());
-            wmsCountOrderLineMapper.updateById(line);
-        }
-        order.setStatus(WmsOrderStatusEnum.COUNTING.name());
-        wmsCountOrderMapper.updateById(order);
+        // 命令幂等：实盘是覆盖式录入，重复提交不得二次推进。状态校验放幂等壳内，
+        // 同键重试原样返回而非报非法状态。
+        commandService.executeVoid(WmsCommandTypeEnum.SUBMIT_COUNT_RESULT,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getCountNo());
+                    // 允许 FROZEN 与 COUNTING：冻结后录实盘是常规路径，不冻结直接盘（DRAFT）也放行
+                    if (!WmsOrderStatusEnum.DRAFT.name().equals(order.getStatus())
+                            && !WmsOrderStatusEnum.FROZEN.name().equals(order.getStatus())
+                            && !WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())) {
+                        throw exception(COUNT_ORDER_STATUS_INVALID);
+                    }
+                    if (CollUtil.isEmpty(bo.getResults())) {
+                        return;
+                    }
+                    List<WmsCountOrderLineDO> lines = wmsCountOrderLineMapper.selectListByOrderId(order.getId());
+                    for (WmsSubmitCountResultBO.LineResult result : bo.getResults()) {
+                        WmsCountOrderLineDO line = findLine(lines, result);
+                        if (result.getActualQty() == null || result.getActualQty().compareTo(BigDecimal.ZERO) < 0) {
+                            throw exception(QTY_MUST_BE_POSITIVE);
+                        }
+                        BigDecimal diff = result.getActualQty().subtract(nvl(line.getBookQty()));
+                        line.setActualQty(result.getActualQty());
+                        line.setDiffQty(diff);
+                        line.setStatus(diff.compareTo(BigDecimal.ZERO) == 0
+                                ? WmsCountLineStatusEnum.COUNTED.name() : WmsCountLineStatusEnum.DIFF.name());
+                        line.setRemark(result.getRemark());
+                        wmsCountOrderLineMapper.updateById(line);
+                    }
+                    order.setStatus(WmsOrderStatusEnum.COUNTING.name());
+                    wmsCountOrderMapper.updateById(order);
+                });
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmCountDiff(WmsConfirmCountDiffBO bo) {
+        // 单据级命令幂等：同键重复确认原样返回。差异单据（盘盈入库/盘亏出库）自身带
+        // idempotency_key 列判重，行级流水键由过账层兜底，这里只挡整单动作重放。
+        commandService.executeVoid(WmsCommandTypeEnum.CONFIRM_COUNT_DIFF,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> doConfirmCountDiff(bo));
+    }
+
+    private void doConfirmCountDiff(WmsConfirmCountDiffBO bo) {
         WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getCountNo());
         if (!WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())
                 && !WmsOrderStatusEnum.DIFF_CONFIRMED.name().equals(order.getStatus())) {
             throw exception(COUNT_ORDER_STATUS_INVALID);
         }
+        List<WmsCountOrderLineDO> allLines = wmsCountOrderLineMapper.selectListByOrderId(order.getId());
         List<WmsCountOrderLineDO> diffLines = new ArrayList<>();
-        for (WmsCountOrderLineDO line : wmsCountOrderLineMapper.selectListByOrderId(order.getId())) {
+        for (WmsCountOrderLineDO line : allLines) {
             if (line.getDiffQty() == null || line.getDiffQty().compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
@@ -296,8 +307,18 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
             }
             diffLines.add(line);
         }
+
+        // 收单即解冻：整单走到 DONE，盘点范围内所有冻结都必须释放，不只差异行——
+        // 无差异行同样被冻结占着可用量。解冻放在盘亏过账之前：冻结量占用可用量，
+        // 不先释放的话盘亏出库会被可用量校验拦住。未冻结过的单（新建直接盘）按
+        // 冻结流水判据自然跳过，见 unfreezeLines。
+        unfreezeLines(order, allLines);
+
+        // 零差异直接收单：全盘平的盘点也是合法结论，必须能走到 DONE，否则整单永远停在 COUNTING
         if (diffLines.isEmpty()) {
-            throw exception(COUNT_ORDER_NO_DIFF);
+            order.setStatus(WmsOrderStatusEnum.DONE.name());
+            wmsCountOrderMapper.updateById(order);
+            return;
         }
 
         for (WmsCountOrderLineDO line : diffLines) {
@@ -314,6 +335,35 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
 
         order.setStatus(WmsOrderStatusEnum.DONE.name());
         wmsCountOrderMapper.updateById(order);
+    }
+
+    /**
+     * 按冻结时的同样维度做 UNFREEZE 过账，释放盘点冻结占用的可用量。
+     *
+     * <p>{@code freezeCountOrder} 逐行按账面量挂了 {@code qty_frozen}，盘点收尾不解冻的话
+     * 这批货可用量永久偏低。以"该行是否落过冻结流水"为准：从没冻结过的单（新建直接盘）
+     * 没有 FREEZE 流水，整行跳过，不会因"解冻超过冻结余量"抛错。
+     */
+    private void unfreezeLines(WmsCountOrderDO order, List<WmsCountOrderLineDO> lines) {
+        Long plantId = warehouseService.getWh(order.getWhId()).getPlantId();
+        for (WmsCountOrderLineDO line : lines) {
+            if (nvl(line.getBookQty()).compareTo(BigDecimal.ZERO) <= 0) {
+                // 账面为 0 的行冻结时被跳过，收尾同样没有冻结量可放
+                continue;
+            }
+            String freezeKey = String.format("%s:%s:FREEZE:%d", WmsSourceModuleEnum.UI.name(),
+                    order.getCountNo(), line.getLineNo());
+            if (!inventoryService.posted(freezeKey)) {
+                // 新建直接盘的单没冻结过，无需解冻
+                continue;
+            }
+            // 行级解冻键与冻结键同构：UI:{盘点单号}:FREEZE:{行号} 对 UI:{盘点单号}:UNFREEZE:{行号}，
+            // 与单据级确认幂等键解耦，行级解冻按流水幂等只落一次
+            String postKey = String.format("%s:%s:UNFREEZE:%d", WmsSourceModuleEnum.UI.name(),
+                    order.getCountNo(), line.getLineNo());
+            inventoryService.post(buildFreezePostBO(order, line, plantId, postKey,
+                    WmsTxnTypeEnum.UNFREEZE, "盘点收尾解冻"));
+        }
     }
 
     private String createGainInOrder(WmsCountOrderDO order, WmsCountOrderLineDO line, String lineKey) {
