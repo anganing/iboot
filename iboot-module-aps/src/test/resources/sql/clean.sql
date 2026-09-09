@@ -1,0 +1,14 @@
+DELETE FROM aps_command_record;
+DELETE FROM aps_solver_snapshot;
+DELETE FROM aps_load;
+DELETE FROM aps_shortage;
+DELETE FROM aps_task_lock;
+DELETE FROM aps_task_dep;
+DELETE FROM aps_task;
+DELETE FROM aps_projection_resource;
+DELETE FROM aps_projection_order;
+DELETE FROM aps_projection_inv;
+DELETE FROM aps_projection_mat;
+DELETE FROM aps_version;
+DELETE FROM aps_scenario;
+DELETE FROM aps_strategy;

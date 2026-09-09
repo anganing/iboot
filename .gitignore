@@ -56,7 +56,7 @@ application-my.yaml
 **/.DS_Store
 
 .firecrawl/
-sql/
+/sql/
 业务建模/
 .zcode/
 
