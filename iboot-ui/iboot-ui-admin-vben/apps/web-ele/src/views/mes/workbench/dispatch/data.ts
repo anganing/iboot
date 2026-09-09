@@ -15,6 +15,16 @@ import {
   USER_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
+/**
+ * 工序任务列表行：物料与齐套状态在作业工单上，后端工序任务 RespVO 不带，
+ * 页面查询后按 workOrderId 补全到行，故在此扩展而不动 api 类型。
+ */
+export interface OpTaskRow extends MesOpTaskApi.OpTask {
+  kitStatus?: string;
+  matCode?: string;
+  matName?: string;
+}
+
 export function useTaskGridFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -40,29 +50,41 @@ export function useTaskGridFormSchema(): VbenFormSchema[] {
 export function useTaskGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
-    { type: 'seq', title: '序号', width: 60 },
-    { field: 'prodOrderNo', title: '生产工单号', minWidth: 150 },
-    { field: 'workOrderNo', title: '作业工单号', minWidth: 150 },
-    { field: 'opCode', title: '工序编码', minWidth: 120 },
-    { field: 'opName', title: '工序名称', minWidth: 140 },
-    { field: 'plannedQty', title: '计划数量', width: 100 },
-    { field: 'resName', title: '已分配资源', minWidth: 130 },
+    { type: 'seq', title: '序号', width: 55 },
+    { field: 'prodOrderNo', title: '生产工单号', minWidth: 130 },
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 130 },
+    // 物料编码/名称与齐套状态在作业工单上，index.vue 查询后按 workOrderId 补全到行
+    { field: 'matCode', title: '物料编码', minWidth: 110 },
+    { field: 'matName', title: '物料名称', minWidth: 120 },
+    { field: 'opCode', title: '工序编码', minWidth: 100 },
+    { field: 'opName', title: '工序名称', minWidth: 120 },
+    { field: 'plannedQty', title: '计划数量', width: 90 },
+    { field: 'resName', title: '已分配资源', minWidth: 110 },
     {
       field: 'plannedStartTime',
       title: '计划开始',
-      minWidth: 160,
+      minWidth: 150,
       formatter: 'formatDateTime',
     },
     {
       field: 'plannedEndTime',
       title: '计划结束',
-      minWidth: 160,
+      minWidth: 150,
       formatter: 'formatDateTime',
+    },
+    {
+      field: 'kitStatus',
+      title: '齐套状态',
+      width: 100,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.MES_KIT_STATUS },
+      },
     },
     {
       field: 'status',
       title: '状态',
-      width: 100,
+      width: 90,
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.MES_OP_TASK_STATUS },
