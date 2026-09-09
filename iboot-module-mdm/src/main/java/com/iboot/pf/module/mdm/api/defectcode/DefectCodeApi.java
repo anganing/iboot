@@ -39,4 +39,18 @@ public interface DefectCodeApi {
      */
     Map<Long, DefectCodeRespDTO> getDefectCodeMap(Collection<Long> ids);
 
+    /**
+     * 查询指定物料分类与工序下可选的缺陷代码（仅启用）
+     *
+     * <p>按 {@code mdm_defect_code_mat_cat} 与 {@code mdm_defect_code_op} 两张适用范围表过滤：
+     * 有适用物料分类记录的代码仅在该分类下可选，有适用工序记录的代码仅在该工序下可选；
+     * 两张关联表都没有记录的代码视为通用码，任何场景可选。调用方没有某个维度的上下文
+     * （如 IQC / OQC 检验没有工序）时传 {@code null}，该维度受限的代码一律不可选。
+     *
+     * @param matCatId 物料分类编号，可空
+     * @param opId     工序编号，可空
+     * @return 可选缺陷代码列表；无数据返回空列表
+     */
+    List<DefectCodeRespDTO> getAvailableDefectCodeList(Long matCatId, Long opId);
+
 }

@@ -5,10 +5,12 @@ import com.iboot.pf.framework.common.pojo.CommonResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
+import com.iboot.pf.module.mdm.api.defectcode.dto.DefectCodeRespDTO;
 import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectRespVO;
 import com.iboot.pf.module.mes.controller.admin.defect.vo.DefectSaveReqVO;
 import com.iboot.pf.module.mes.service.defect.DefectService;
+import com.iboot.pf.module.mes.service.defect.MesDefectDomainService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,6 +47,17 @@ public class DefectController {
 
     @Resource
     private DefectService defectService;
+    @Resource
+    private MesDefectDomainService defectDomainService;
+
+    @GetMapping("/available-codes")
+    @Operation(summary = "查询当前物料分类与工序可选的缺陷码", description = "缺陷录入的缺陷码选择器数据源，按物料分类与工序过滤，通用码任何场景可选")
+    @PreAuthorize("@ss.hasPermission('mes:defect:query')")
+    public CommonResult<List<DefectCodeRespDTO>> getAvailableDefectCodes(
+            @RequestParam(value = "matId", required = false) Long matId,
+            @RequestParam(value = "opId", required = false) Long opId) {
+        return success(defectDomainService.getAvailableDefectCodes(matId, opId));
+    }
 
     @PostMapping("/create")
     @Operation(summary = "创建缺陷记录")

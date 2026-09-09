@@ -219,5 +219,10 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_064_102_002, "质检任务正被其他操作更新，请刷新后重试");
     ErrorCode QC_TASK_NOT_INSPECTING =
             new ErrorCode(1_064_102_003, "质检任务({})不在检验中，不能录入检验结果");
+    // ========== 缺陷录入（质量子域 1_064_103 段） ==========
+    ErrorCode DEFECT_CODE_NOT_AVAILABLE =
+            new ErrorCode(1_064_103_001, "缺陷代码({})不在当前物料分类与工序的可选范围内");
+    ErrorCode QC_TASK_REJECT_WITHOUT_DEFECT =
+            new ErrorCode(1_064_103_002, "拒收结论必须至少有一条缺陷记录，请先录入缺陷");
 
 }

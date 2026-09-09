@@ -16,9 +16,11 @@ import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcplan.QcPlanMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
 import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
 import com.iboot.pf.module.mes.enums.MesCodeRuleConstants;
 import com.iboot.pf.module.mes.enums.MesCommandTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesQcConclusionEnum;
 import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
 import com.iboot.pf.module.mes.enums.MesQcTaskStateMachine;
 import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
@@ -47,6 +49,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_CONCURREN
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_ITEM_EMPTY;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_NOT_PUBLISHED;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_REJECT_WITHOUT_DEFECT;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 
 /**
@@ -98,6 +101,8 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
     private MesSnapshotService snapshotService;
     @Resource
     private MesCommandService commandService;
+    @Resource
+    private DefectMapper defectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -200,6 +205,11 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
                     // 数量校验在状态推进之前：先落 DONE 再发现数量对不上，DONE 是终态没有回退边
                     MesBusinessRules.validateQualityQty(task.getSampleQty(),
                             bo.getQtyQualified(), bo.getQtyRejected());
+                    // 拒收必须先录缺陷：没有缺陷记录的拒收无法定位问题，也不满足处置与帕累托统计的前提
+                    if (MesQcConclusionEnum.REJECTED.name().equals(bo.getConclusion())
+                            && defectMapper.selectCountByTaskId(task.getId()) == 0) {
+                        throw exception(QC_TASK_REJECT_WITHOUT_DEFECT);
+                    }
                     String toStatus = MesQcTaskStateMachine.next(fromStatus,
                             MesQcTaskStateMachine.ACTION_SUBMIT_CONCLUSION);
                     advanceQcTask(task, QcTaskDO.builder()

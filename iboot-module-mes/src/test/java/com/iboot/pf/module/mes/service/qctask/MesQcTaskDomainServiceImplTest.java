@@ -2,6 +2,7 @@ package com.iboot.pf.module.mes.service.qctask;
 
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.mes.dal.dataobject.defect.DefectDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcitem.QcItemDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
@@ -11,8 +12,10 @@ import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcplan.QcPlanMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
 import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
 import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesDefectLevelEnum;
 import com.iboot.pf.module.mes.enums.MesQcConclusionEnum;
 import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
 import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
@@ -39,6 +42,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_REJECT_WITHOUT_DEFECT;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QUALITY_QTY_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,6 +87,8 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
     private QcPlanMapper qcPlanMapper;
     @Resource
     private QcItemMapper qcItemMapper;
+    @Resource
+    private DefectMapper defectMapper;
 
     @MockitoBean
     private QcTriggerService qcTriggerService;
@@ -349,6 +355,38 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
         assertEquals(MesQcTaskStatusEnum.RESULT_POSTING.name(), unchanged.getStatus());
         assertNull(unchanged.getConclusion());
         assertNull(unchanged.getInspectEndTime());
+    }
+
+    @Test
+    void testSubmitConclusion_rejectedWithoutDefect() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.RESULT_POSTING.name());
+
+        // 拒收必须有缺陷记录：没有缺陷的拒收无法定位问题，处置与统计都没有依据（T2-06）
+        assertServiceException(() -> qcTaskDomainService.submitConclusion(
+                        conclusionBO(task, MesQcConclusionEnum.REJECTED.name(),
+                                new BigDecimal("0"), new BigDecimal("6"))),
+                QC_TASK_REJECT_WITHOUT_DEFECT);
+        // 校验在状态推进之前，任务停在 RESULT_POSTING 等补录缺陷
+        QcTaskDO unchanged = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.RESULT_POSTING.name(), unchanged.getStatus());
+        assertNull(unchanged.getConclusion());
+    }
+
+    @Test
+    void testSubmitConclusion_rejectedWithDefectPasses() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.RESULT_POSTING.name());
+        defectMapper.insert(DefectDO.builder()
+                .taskId(task.getId()).resultId(MesConstants.NONE_ID)
+                .defectCodeId(51L).defectCode("DEF-001").defectName("绕线松动")
+                .defectLevel(MesDefectLevelEnum.MAJOR.name()).qty(new BigDecimal("1"))
+                .build());
+
+        qcTaskDomainService.submitConclusion(conclusionBO(task, MesQcConclusionEnum.REJECTED.name(),
+                new BigDecimal("0"), new BigDecimal("6")));
+
+        QcTaskDO done = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.DONE.name(), done.getStatus());
+        assertEquals(MesQcConclusionEnum.REJECTED.name(), done.getConclusion());
     }
 
     @Test
