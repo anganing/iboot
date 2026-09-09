@@ -6,6 +6,7 @@ import type { MesOpTaskApi } from '#/api/mes/optask';
 import { computed, ref } from 'vue';
 
 import { ColPage } from '@vben/common-ui';
+
 import {
   ElAlert,
   ElDescriptions,
@@ -138,13 +139,15 @@ async function handleDispatch() {
         border
         size="small"
       >
-        <ElDescriptionsItem label="首个任务"
-          >{{ checkedTasks[0]?.taskNo }} -
-          {{ checkedTasks[0]?.opName }}</ElDescriptionsItem
-        >
-        <ElDescriptionsItem label="批量数量">{{
+        <ElDescriptionsItem label="首个任务">
+{{ checkedTasks[0]?.taskNo }} -
+          {{ checkedTasks[0]?.opName }}
+</ElDescriptionsItem>
+        <ElDescriptionsItem label="批量数量">
+{{
           selectedCount
-        }}</ElDescriptionsItem>
+        }}
+</ElDescriptionsItem>
       </ElDescriptions>
       <DispatchForm class="mt-4" />
       <div class="mt-4 shrink-0">

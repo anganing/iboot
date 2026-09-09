@@ -7,6 +7,7 @@ import { computed, ref } from 'vue';
 import { ColPage } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
+
 import {
   ElAlert,
   ElDescriptions,
@@ -130,13 +131,14 @@ async function handleConfirm() {
     split-line
     split-handle
   >
-    <template #left
-      ><section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+    <template #left>
+<section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
         <ReqGrid
           class="w-full min-w-0 overflow-hidden"
           table-title="待确认领料申请"
-        /></section
-    ></template>
+        />
+</section>
+</template>
     <section class="flex h-full min-h-0 w-full flex-col overflow-hidden p-4">
       <ElAlert
         v-if="!request"
@@ -146,27 +148,34 @@ async function handleConfirm() {
         type="info"
       />
       <template v-else>
-        <ElDescriptions :column="3" border size="small" class="mb-3 shrink-0"
-          ><ElDescriptionsItem label="申请单号">{{
+        <ElDescriptions :column="3" border size="small" class="mb-3 shrink-0">
+<ElDescriptionsItem label="申请单号">
+{{
             request.reqNo
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="申请类型">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="申请类型">
+{{
             getDictLabel(DICT_TYPE.MES_MATERIAL_REQ_TYPE, request.reqType) ||
             '-'
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="仓库">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="仓库">
+{{
             request.whName || '-'
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="生产工单">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="生产工单">
+{{
             request.prodOrderNo || '-'
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="工序任务">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="工序任务">
+{{
             request.opTaskNo || '-'
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="WMS 单号">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="WMS 单号">
+{{
             request.wmsBizNo || '-'
-          }}</ElDescriptionsItem></ElDescriptions
-        >
+          }}
+</ElDescriptionsItem>
+</ElDescriptions>
         <ElAlert
           v-if="truncated"
           class="mb-3 shrink-0"
@@ -179,8 +188,9 @@ async function handleConfirm() {
           v-loading="lineLoading"
           class="w-full min-w-0 flex-1 overflow-hidden"
           :table-title="`领料明细 - ${request.reqNo}`"
-          ><template #toolbar-tools
-            ><TableAction
+          >
+<template #toolbar-tools>
+<TableAction
               :actions="[
                 {
                   label: '确认出库',
@@ -190,8 +200,10 @@ async function handleConfirm() {
                   disabled: truncated || request.status !== 'SUBMITTED',
                   onClick: handleConfirm,
                 },
-              ]" /></template
-        ></LineGrid>
+              ]"
+/>
+</template>
+</LineGrid>
       </template>
     </section>
   </ColPage>

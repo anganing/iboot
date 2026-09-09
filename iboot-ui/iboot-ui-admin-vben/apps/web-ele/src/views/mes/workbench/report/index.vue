@@ -7,6 +7,7 @@ import { computed, ref } from 'vue';
 import { ColPage } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
+
 import {
   ElAlert,
   ElDescriptions,
@@ -154,13 +155,14 @@ async function handleFinish() {
     split-line
     split-handle
   >
-    <template #left
-      ><section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+    <template #left>
+<section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
         <TaskGrid
           class="w-full min-w-0 overflow-hidden"
           table-title="我的工序任务"
-        /></section
-    ></template>
+        />
+</section>
+</template>
     <section class="flex h-full min-h-0 w-full flex-col overflow-hidden p-4">
       <ElAlert
         v-if="!selectedTask"
@@ -171,26 +173,33 @@ async function handleFinish() {
       />
       <template v-else>
         <ElDescriptions :column="2" border size="small" class="mb-3 shrink-0">
-          <ElDescriptionsItem label="工序任务">{{
+          <ElDescriptionsItem label="工序任务">
+{{
             selectedTask.taskNo
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="工序"
-            >{{ selectedTask.opCode }}
-            {{ selectedTask.opName }}</ElDescriptionsItem
-          >
-          <ElDescriptionsItem label="计划数量">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="工序">
+{{ selectedTask.opCode }}
+            {{ selectedTask.opName }}
+</ElDescriptionsItem>
+          <ElDescriptionsItem label="计划数量">
+{{
             selectedTask.plannedQty
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="已完成">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="已完成">
+{{
             selectedTask.completedQty
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="剩余数量">{{
+          }}
+</ElDescriptionsItem>
+          <ElDescriptionsItem label="剩余数量">
+{{
             remainingQty
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="当前状态">{{
+          }}
+</ElDescriptionsItem><ElDescriptionsItem label="当前状态">
+{{
             getDictLabel(DICT_TYPE.MES_OP_TASK_STATUS, selectedTask.status) ||
             '-'
-          }}</ElDescriptionsItem>
+          }}
+</ElDescriptionsItem>
         </ElDescriptions>
         <ElAlert
           v-if="selectedTask.status !== 'RUNNING'"

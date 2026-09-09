@@ -12,47 +12,25 @@ import { getRangePickerDefaultProps } from '#/utils';
 import {
   OP_RELATION_PROPS,
   RES_RELATION_PROPS,
-  USER_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
 
 import { QTY_PROPS } from '../form-props';
 
 /**
- * 工序动作表单：开工需要操作人员，暂停需要原因。
+ * 工序任务状态取值，与后端 MesOpTaskStatusEnum 对齐。
  *
- * 完工的对账数量只在两个都填时才由后端校验，所以都设为可选；
- * 跳序原因类型、原因、影响说明独立在跳序表单里，不混进普通动作。
+ * 页面门控判断一律引用本常量，不散落字符串字面量。
  */
-export function useOpTaskActionFormSchema(
-  action: 'start' | 'pause',
-): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'operatorId',
-      label: '操作人员',
-      component: markRaw(RelationSelect),
-      componentProps: USER_RELATION_PROPS,
-      dependencies: {
-        triggerFields: [''],
-        show: () => action === 'start',
-      },
-    },
-    {
-      fieldName: 'reason',
-      label: '原因',
-      component: 'Textarea',
-      componentProps: {
-        maxLength: 500,
-        placeholder: action === 'pause' ? '请输入暂停原因' : '请输入开工备注',
-        rows: 2,
-      },
-      dependencies: {
-        triggerFields: [''],
-        show: () => action === 'start' || action === 'pause',
-      },
-    },
-  ];
-}
+export const OP_TASK_STATUS = {
+  PENDING: 'PENDING',
+  READY: 'READY',
+  RUNNING: 'RUNNING',
+  PAUSED: 'PAUSED',
+  HOLD: 'HOLD',
+  DONE: 'DONE',
+  SKIPPED: 'SKIPPED',
+  CANCELLED: 'CANCELLED',
+} as const;
 
 /** 完工对账声明：留空时后端只校验累计数量，两个一起给才要求与累计值一致。 */
 export function useOpTaskFinishFormSchema(): VbenFormSchema[] {
@@ -269,6 +247,12 @@ export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['colu
       title: '创建时间',
       minWidth: 160,
       formatter: 'formatDateTime',
+    },
+    {
+      title: '操作',
+      width: 180,
+      fixed: 'right',
+      slots: { default: 'actions' },
     },
   ];
 }
