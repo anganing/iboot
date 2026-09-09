@@ -181,38 +181,45 @@ public class WmsTransferOrderServiceImpl implements WmsTransferOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmTransferOrder(WmsConfirmOrderBO bo) {
-        WmsTransferOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
-        if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
-            throw exception(TRANSFER_ORDER_CANNOT_CONFIRM);
-        }
-        List<WmsTransferOrderLineDO> lines = wmsTransferOrderLineMapper.selectListByOrderId(order.getId());
-        if (CollUtil.isEmpty(lines)) {
-            throw exception(TRANSFER_ORDER_LINE_EMPTY);
-        }
+        // 单据级命令幂等：同键重复确认原样返回，不再把 postedQty / movedQty 加一遍；
+        // 行级流水幂等键（:POST:{行号}）由过账层继续兜底。状态校验放幂等壳内，
+        // 重复提交原样返回而非报非法状态，换键重试才真正走到状态机。
+        commandService.executeVoid(WmsCommandTypeEnum.CONFIRM_TRANSFER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
+                () -> {
+                    WmsTransferOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
+                        throw exception(TRANSFER_ORDER_CANNOT_CONFIRM);
+                    }
+                    List<WmsTransferOrderLineDO> lines = wmsTransferOrderLineMapper.selectListByOrderId(order.getId());
+                    if (CollUtil.isEmpty(lines)) {
+                        throw exception(TRANSFER_ORDER_LINE_EMPTY);
+                    }
 
-        for (WmsTransferOrderLineDO line : lines) {
-            if (line.getFromLocId() == null || line.getToLocId() == null) {
-                throw exception(TRANSFER_ORDER_LOC_REQUIRED);
-            }
-            if (sameTarget(order, line)) {
-                throw exception(TRANSFER_ORDER_SAME_TARGET);
-            }
-            BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
-            if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
+                    for (WmsTransferOrderLineDO line : lines) {
+                        if (line.getFromLocId() == null || line.getToLocId() == null) {
+                            throw exception(TRANSFER_ORDER_LOC_REQUIRED);
+                        }
+                        if (sameTarget(order, line)) {
+                            throw exception(TRANSFER_ORDER_SAME_TARGET);
+                        }
+                        BigDecimal qty = line.getPlanQty().subtract(nvl(line.getPostedQty()));
+                        if (qty.compareTo(BigDecimal.ZERO) <= 0) {
+                            continue;
+                        }
 
-            String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
-            inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
+                        String postKey = bo.getIdempotencyKey() + ":POST:" + line.getLineNo();
+                        inventoryService.post(buildPostBO(order, line, qty, postKey, bo.getRemark()));
 
-            line.setMovedQty(nvl(line.getMovedQty()).add(qty));
-            line.setPostedQty(nvl(line.getPostedQty()).add(qty));
-            line.setStatus(WmsOrderLineStatusEnum.DONE.name());
-            wmsTransferOrderLineMapper.updateById(line);
-        }
+                        line.setMovedQty(nvl(line.getMovedQty()).add(qty));
+                        line.setPostedQty(nvl(line.getPostedQty()).add(qty));
+                        line.setStatus(WmsOrderLineStatusEnum.DONE.name());
+                        wmsTransferOrderLineMapper.updateById(line);
+                    }
 
-        order.setStatus(WmsOrderStatusEnum.DONE.name());
-        wmsTransferOrderMapper.updateById(order);
+                    order.setStatus(WmsOrderStatusEnum.DONE.name());
+                    wmsTransferOrderMapper.updateById(order);
+                });
     }
 
     /** 来源与目标维度完全一致时没有转移意义，直接拒绝，避免产生无意义流水。 */

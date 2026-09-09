@@ -288,4 +288,23 @@ class WmsTransferOrderServiceImplTest extends BaseDbUnitTest {
         assertServiceException(() -> transferOrderService.confirmTransferOrder(confirmBO(id)),
                 TRANSFER_ORDER_SAME_TARGET);
     }
+
+    @Test
+    void testConfirm_sameKeyRepeated_noDoublePosting() {
+        seedBalance(new BigDecimal("100"));
+        Long id = transferOrderService.createTransferOrder(createBO(new BigDecimal("40")));
+        transferOrderService.confirmTransferOrder(confirmBO(id));
+
+        // 界面连点、网关重发：同一幂等键重复确认，命令层原样返回，
+        // postedQty / movedQty 不被二次累加，也不产生第二条流水
+        transferOrderService.confirmTransferOrder(confirmBO(id));
+
+        WmsTransferOrderLineDO line = wmsTransferOrderLineMapper.selectListByOrderId(id).get(0);
+        assertEquals(0, line.getPostedQty().compareTo(new BigDecimal("40")), "连点不应把过账量翻倍");
+        assertEquals(0, line.getMovedQty().compareTo(new BigDecimal("40")));
+        assertEquals(0, balanceAt(FROM_LOC).getQtyOnhand().compareTo(new BigDecimal("60")));
+        assertEquals(0, balanceAt(TO_LOC).getQtyOnhand().compareTo(new BigDecimal("40")));
+        assertEquals(1, wmsInvTxnMapper.selectCount(), "重复确认不应产生第二条流水");
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsTransferOrderMapper.selectById(id).getStatus());
+    }
 }

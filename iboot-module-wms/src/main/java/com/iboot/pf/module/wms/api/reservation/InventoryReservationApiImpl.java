@@ -22,6 +22,9 @@ import static com.iboot.pf.framework.common.util.collection.CollectionUtils.conv
  * 库存预留 API 实现类。
  *
  * <p>命令方法由 {@link WmsInventoryReservationService} 承载事务与幂等，本类只做参数转换。
+ *
+ * <p>类上一个 {@code @DataPermission(enable = false)} 兜住全部方法：跨模块调用天生是系统身份
+ * 而不是用户身份，与调用方登录用户的数据范围无关。打在类上而不是逐方法加，是为了不出现"加了一半"的漏洞。
  */
 @Service
 @Validated

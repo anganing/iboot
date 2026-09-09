@@ -6,7 +6,8 @@
  *
  * <p>约定：
  * <ol>
- *     <li>查询方法在实现类上加 {@code @DataPermission(enable = false)}，避免被当前用户数据权限过滤。</li>
+ *     <li>实现类统一在类上加 {@code @DataPermission(enable = false)}，兜住全部方法：门面是给别的模块
+ *     调的，跨模块调用天生是系统身份而不是用户身份，与调用方登录用户的数据范围无关。</li>
  *     <li>命令方法在实现类上加 {@code @Validated}，入参 DTO 使用 Jakarta Validation。</li>
  *     <li>所有命令 DTO 继承 {@link com.iboot.pf.module.wms.api.dto.WmsCommandReqDTO}，必须带幂等键。</li>
  *     <li>批量查询统一收 {@code Collection<Long>}，空集合返回空结果，不抛异常。</li>

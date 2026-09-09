@@ -1,8 +1,12 @@
 package com.iboot.pf.module.wms.api.inorder;
 
 import com.iboot.pf.module.wms.api.inorder.dto.CreateInOrderReqDTO;
+import com.iboot.pf.module.wms.api.inorder.dto.InOrderRespDTO;
 import com.iboot.pf.module.wms.api.order.dto.CancelOrderReqDTO;
 import com.iboot.pf.module.wms.api.order.dto.ConfirmOrderReqDTO;
+
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * 入库单 API 门面。
@@ -34,5 +38,16 @@ public interface InOrderApi {
      * @param reqDTO 过账命令
      */
     void confirmInOrder(ConfirmOrderReqDTO reqDTO);
+
+    /**
+     * 按编号批量反查入库单的可读字段。
+     *
+     * <p>{@link #createInOrder} 只返回单据 id，调用方要落真实的入库单号或展示单据状态时，
+     * 用这个方法把 id 换成 {@code inNo} 等可读字段，避免在业务表里存裸 id。
+     *
+     * @param ids 入库单编号集合
+     * @return 编号到入库单只读事实的映射；空集合返回空 Map，不抛异常
+     */
+    Map<Long, InOrderRespDTO> getInOrderMap(Collection<Long> ids);
 
 }
