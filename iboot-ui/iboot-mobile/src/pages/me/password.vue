@@ -59,8 +59,8 @@ async function handleSave() {
 </script>
 
 <template>
-  <view class="flex min-h-screen flex-col bg-gray-100">
-    <wd-cell-group border>
+  <view class="min-h-screen flex flex-col bg-[#f5f7fb]">
+    <wd-cell-group custom-class="mx-4 mt-4 rounded-2xl overflow-hidden" border>
       <wd-cell title="旧密码" required center>
         <wd-input
           v-model="oldPassword"
@@ -90,8 +90,8 @@ async function handleSave() {
       </wd-cell>
     </wd-cell-group>
 
-    <view class="mt-10 px-6">
-      <wd-button block :loading="saving" @click="handleSave">
+    <view class="mt-10 px-4 pb-safe">
+      <wd-button round block size="large" :loading="saving" @click="handleSave">
         保存
       </wd-button>
     </view>

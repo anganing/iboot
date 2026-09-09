@@ -40,6 +40,7 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - `iboot-server` 是 Spring Boot 启动入口（`IbootServerApplication`），也是可运行的应用。
 - `iboot-module-*` 是业务模块，每个模块都包含 `src/main/java` 和 `src/test/java`。
 - `iboot-ui/iboot-ui-admin-vben` 是管理后台使用Element-UI-plus。
+- `iboot-ui/iboot-mobile` 是移动端 H5/小程序应用，技术栈为 unibest 模板（详见下方"移动端开发约定"）。
 - `sql/` 存放数据库脚本；`script/` 包含 Docker、Jenkins 和 Shell 辅助脚本。
 
 ## 构建、测试与开发命令
@@ -51,6 +52,18 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 - `mvn -pl <module> -am test`：构建并测试指定模块及其依赖。
 - 配置 MySQL 和 Redis 后，从 IDE 运行 `com.iboot.pf.server.IbootServerApplication`。
 - 在 `iboot-ui/iboot-ui-admin-vben` 中，使用 `pnpm install`、`pnpm dev`、`pnpm build:prod` 和 `pnpm lint`。
+- 在 `iboot-ui/iboot-mobile` 中，使用 `pnpm install`、`pnpm dev`（H5，默认端口 19000）、`pnpm dev:mp`（微信小程序）、`pnpm build:h5`、`pnpm lint` 和 `pnpm test`（vitest）。
+
+## 移动端开发约定（iboot-ui/iboot-mobile）
+
+移动端基于 **unibest** 模板（uni-app + Vue 3 + Vite + TypeScript + UnoCSS），UI 组件库是 **wot-ui v2**（npm 包 `@wot-ui/ui`，非旧版 `wot-design-uni`）。
+
+- **技术栈**：uni-app（3.0.0-4070620250821001）+ Vue 3.4 + Vite 5 + TypeScript 5.8 + Pinia 2.0（持久化）+ UnoCSS 6 + Sass；工程化由 `@uni-helper/*` 插件族驱动（vite-plugin-uni-pages 生成 `pages.json`、vite-plugin-uni-manifest 生成 `manifest.json`、vite-plugin-uni-layouts 布局、unocss-preset-uni 原子化样式）。
+- **UI 组件**：一律用 wot-ui v2 的 `wd-*` 组件（easycom 自动引入，前缀映射见 `src/pages.json` 的 easycom 配置），不要手写原生标签堆砌，也不要混入其他组件库。API 查询用 wot-ui MCP 工具或 `.claude/skills/wot-ui-v2/SKILL.md`。已知差异：按钮危险态 `type="danger"` 不是 `error`；`wd-picker` 的 `modelValue` 是数组。
+- **路由与页面**：页面文件用 `definePage()` 声明路由与导航栏样式（由 vite-plugin-uni-pages 编译进 `pages.json`，不手工编辑该生成文件）。路由拦截在 `src/router/`：当前是白名单强制登录策略（`LOGIN_STRATEGY = DEFAULT_NEED_LOGIN`），所有页面默认要登录，免登录页在 `definePage` 配 `excludeLoginPath` 或 `router/config.ts` 的 `EXCLUDE_LOGIN_PATH_LIST`。
+- **请求层**：`src/http/http.ts` 封装 `uni.request`（baseUrl 已含 `/admin-api`，业务 `code=0` 自动解包，401 触发双 token 无感刷新，刷新失败经 `src/utils/toLoginPage.ts` 回登录页）。接口文件放 `src/api/`，照 `src/api/login.ts` 的模式写。token 与用户信息在 `src/store/token.ts` / `src/store/user.ts`（pinia persist），登录态判断用 `tokenStore.updateNowTime().hasLogin`。
+- **样式**：UnoCSS 原子类 + 自定义 `p-safe`/`pt-safe`/`pb-safe` 安全区规则；主题色统一锚点在 `src/style/index.scss` 的 `--wot-color-theme: #1c64fd`（wot-ui v2 默认 blue-6），`uno.config.ts` 的 `text-primary` 与自绘 tabbar 激活色都从这里取色，改主题色只改这一处。
+- **认证约定**：复用 admin 用户体系（`/admin-api/system/auth/*`），双 token 模式（`VITE_AUTH_MODE='double'`），不接入租户（请求不带 `tenant-id`）；验证码开关 `VITE_APP_CAPTCHA_ENABLE` 预留、滑块组件未实现。
 
 ## 编码风格与命名约定
 
@@ -82,3 +95,10 @@ iboot 是基于 Java 17 / Spring Boot 3 的多模块后端项目，前端包含 
 
 - 注意校验范围：commitlint 由 `iboot-ui/iboot-ui-admin-vben/lefthook.yml` 的 `commit-msg` 钩子触发，**只在前端子项目内提交时生效**，后端 Java 代码的提交不经过它，但仍需遵守同一套格式。
 - 仓库根目录的 `lefthook.yml` 是 `pnpm install` 误生成的示例模板，已被 `.gitignore` 忽略，不要提交；生效的钩子配置只有前端子项目那一份。
+
+<!-- open-wot agent instructions start -->
+## Wot UI Agent Instructions
+
+Before generating or modifying wot-ui component code, read the project Skill at `.claude/skills/wot-ui-v2/SKILL.md` and query the configured `wot-ui` MCP server for version-accurate APIs and examples.
+
+<!-- open-wot agent instructions end -->

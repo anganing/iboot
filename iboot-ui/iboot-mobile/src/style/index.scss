@@ -11,6 +11,10 @@
 
 :root,
 page {
+  // 统一主题色锚点：wot-ui v2 默认主色 blue-6
+  // tabbar 高亮色与 uno 的 text-primary 都通过 var(--wot-color-theme, fallback) 取色，此处对齐
+  --wot-color-theme: #1c64fd;
+
   // 修改按主题色
   // --wot-color-theme: #37c2bc;
 

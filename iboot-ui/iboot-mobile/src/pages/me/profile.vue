@@ -61,7 +61,7 @@ function validate(): string {
   if (form.mobile && !/^\d{11}$/.test(form.mobile)) {
     return '手机号必须为 11 位数字'
   }
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  if (form.email && !/^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(form.email)) {
     return '邮箱格式不正确'
   }
   return ''
@@ -102,8 +102,8 @@ async function handleSave() {
 </script>
 
 <template>
-  <view class="flex min-h-screen flex-col bg-gray-100">
-    <wd-cell-group border>
+  <view class="min-h-screen flex flex-col bg-[#f5f7fb]">
+    <wd-cell-group custom-class="mx-4 mt-4 rounded-2xl overflow-hidden" border>
       <wd-cell title="昵称" required center>
         <wd-input
           v-model="form.nickname"
@@ -146,8 +146,8 @@ async function handleSave() {
       :columns="sexColumns"
     />
 
-    <view class="mt-10 px-6">
-      <wd-button block :loading="saving" @click="handleSave">
+    <view class="mt-10 px-4 pb-safe">
+      <wd-button round block size="large" :loading="saving" @click="handleSave">
         保存
       </wd-button>
     </view>

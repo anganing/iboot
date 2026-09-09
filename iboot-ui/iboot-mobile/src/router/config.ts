@@ -4,8 +4,8 @@ export const LOGIN_STRATEGY_MAP = {
   DEFAULT_NO_NEED_LOGIN: 0, // 黑名单策略，默认可以进入APP
   DEFAULT_NEED_LOGIN: 1, // 白名单策略，默认不可以进入APP，需要强制登录
 }
-// TODO: 1/3 登录策略，默认使用`无需登录策略`，即默认不需要登录就可以访问
-export const LOGIN_STRATEGY = LOGIN_STRATEGY_MAP.DEFAULT_NO_NEED_LOGIN
+// 所有页面默认需要登录，登录页等通过 EXCLUDE_LOGIN_PATH_LIST 放行
+export const LOGIN_STRATEGY = LOGIN_STRATEGY_MAP.DEFAULT_NEED_LOGIN
 export const isNeedLoginMode = LOGIN_STRATEGY === LOGIN_STRATEGY_MAP.DEFAULT_NEED_LOGIN
 
 export const LOGIN_PAGE = '/pages/auth/login'
@@ -16,11 +16,8 @@ export const LOGIN_PAGE_LIST = [LOGIN_PAGE, REGISTER_PAGE]
 // 在 definePage 里面配置了 excludeLoginPath 的页面，功能与 EXCLUDE_LOGIN_PATH_LIST 相同
 export const excludeLoginPathList = getAllPages('excludeLoginPath').map(page => page.path)
 
-// 排除在外的列表，白名单策略指白名单列表，黑名单策略指黑名单列表
-// TODO: 2/3 在 definePage 配置 excludeLoginPath，或者在下面配置 EXCLUDE_LOGIN_PATH_LIST
+// 白名单策略下的免登录页面列表
 export const EXCLUDE_LOGIN_PATH_LIST = [
-  '/pages/xxx/index', // 示例值
-  '/pages-sub/xxx/index', // 示例值
   ...excludeLoginPathList, // 都是以 / 开头的 path
 ]
 
