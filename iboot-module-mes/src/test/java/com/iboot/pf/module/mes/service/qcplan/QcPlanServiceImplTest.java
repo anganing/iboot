@@ -39,7 +39,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
- * 检验方案 Service 测试：抽样配置跨字段校验、编码与版本唯一、已发布只允许改状态、被规则引用禁删、删除级联清理检验项。
+ * 检验方案 Service 测试：抽样配置跨字段校验、编码与版本唯一、新建强制落草稿、
+ * 已发布方案禁改禁删、被规则引用禁删、删除级联清理检验项。
  */
 @Import(QcPlanServiceImpl.class)
 class QcPlanServiceImplTest extends BaseDbUnitTest {
@@ -128,24 +129,13 @@ class QcPlanServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testUpdateQcPlan_publishedOnlyStatusAndRemark() {
+    void testCreateQcPlan_statusForcedDraft() {
+        // 状态由发布动作推进，create 直落已发布等于绕过"至少一个检验项"的发布校验
         QcPlanSaveReqVO createReqVO = buildReqVO("QCP-A", "V1.0");
         createReqVO.setStatus(MesQcPlanStatusEnum.PUBLISHED.name());
         Long id = qcPlanService.createQcPlan(createReqVO);
 
-        QcPlanSaveReqVO updateReqVO = buildReqVO("QCP-A", "V9.9");
-        updateReqVO.setId(id);
-        updateReqVO.setName("被改掉的名称");
-        updateReqVO.setStatus(MesQcPlanStatusEnum.DISABLED.name());
-        updateReqVO.setRemark("停用说明");
-        qcPlanService.updateQcPlan(updateReqVO);
-
-        QcPlanDO qcPlan = qcPlanMapper.selectById(id);
-        // 已发布方案被质检任务锁定引用，只放行状态与备注
-        assertEquals(MesQcPlanStatusEnum.DISABLED.name(), qcPlan.getStatus());
-        assertEquals("停用说明", qcPlan.getRemark());
-        assertEquals("定子外观检验方案", qcPlan.getName());
-        assertEquals("V1.0", qcPlan.getVersionNo());
+        assertEquals(MesQcPlanStatusEnum.DRAFT.name(), qcPlanMapper.selectById(id).getStatus());
     }
 
     @Test
@@ -154,6 +144,20 @@ class QcPlanServiceImplTest extends BaseDbUnitTest {
         updateReqVO.setId(randomLongId());
 
         assertServiceException(() -> qcPlanService.updateQcPlan(updateReqVO), QC_PLAN_NOT_EXISTS);
+    }
+
+    @Test
+    void testUpdateQcPlan_publishedRejected() {
+        // 已发布方案被质检任务锁定引用，表单一律不许改，状态由发布/停用动作推进
+        QcPlanDO plan = QcPlanDO.builder().code("QCP-A").name("定子外观检验方案")
+                .versionNo("V1.0").sampleType(MesQcSampleTypeEnum.FULL.name())
+                .status(MesQcPlanStatusEnum.PUBLISHED.name()).build();
+        qcPlanMapper.insert(plan);
+
+        QcPlanSaveReqVO updateReqVO = buildReqVO("QCP-A", "V1.0");
+        updateReqVO.setId(plan.getId());
+
+        assertServiceException(() -> qcPlanService.updateQcPlan(updateReqVO), QC_PLAN_STATUS_INVALID);
     }
 
     @Test
@@ -171,11 +175,12 @@ class QcPlanServiceImplTest extends BaseDbUnitTest {
 
     @Test
     void testDeleteQcPlan_publishedRejected() {
-        QcPlanSaveReqVO createReqVO = buildReqVO("QCP-A", "V1.0");
-        createReqVO.setStatus(MesQcPlanStatusEnum.PUBLISHED.name());
-        Long id = qcPlanService.createQcPlan(createReqVO);
+        QcPlanDO plan = QcPlanDO.builder().code("QCP-A").name("定子外观检验方案")
+                .versionNo("V1.0").sampleType(MesQcSampleTypeEnum.FULL.name())
+                .status(MesQcPlanStatusEnum.PUBLISHED.name()).build();
+        qcPlanMapper.insert(plan);
 
-        assertServiceException(() -> qcPlanService.deleteQcPlan(id), QC_PLAN_STATUS_INVALID);
+        assertServiceException(() -> qcPlanService.deleteQcPlan(plan.getId()), QC_PLAN_STATUS_INVALID);
     }
 
     @Test

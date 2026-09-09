@@ -60,6 +60,14 @@ public enum MesCommandTypeEnum {
      * <p>MES 侧没有承载入库的业务表，因此走命令记录：{@code result_id} 落 WMS 入库单编号，
      * 重复下发时直接返回首次那张单，不会产生第二笔过账。
      */
-    FINISH_INBOUND
+    FINISH_INBOUND,
+    /**
+     * 发布检验方案。
+     *
+     * <p>方案发布后进入版本锁定，规则引用与任务生成都要以它为判定口径，重复发布有命令记录拦着。
+     */
+    PUBLISH_QC_PLAN,
+    /** 停用检验方案，启用中的规则引用着时领域校验会先拦下。 */
+    DISABLE_QC_PLAN
 
 }

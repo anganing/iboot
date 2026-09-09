@@ -52,6 +52,9 @@ public class QcPlanServiceImpl implements QcPlanService {
         QcPlanDO qcPlan = BeanUtils.toBean(createReqVO, QcPlanDO.class);
         qcPlan.setId(null);
         qcPlan.setCode(codeService.generate(MesCodeRuleConstants.QC_PLAN, qcPlan.getCode()));
+        // 新建一律落草稿：发布必须走 MesQcPlanDomainService.publishPlan，否则空方案直落已发布
+        // 就绕过了"至少一个检验项"的发布校验，任务生成时展开不出检验项
+        qcPlan.setStatus(MesQcPlanStatusEnum.DRAFT.name());
         validateSampleConfig(qcPlan);
         validateCodeAndVersionUnique(qcPlan, null);
         qcPlanMapper.insert(qcPlan);
@@ -61,16 +64,13 @@ public class QcPlanServiceImpl implements QcPlanService {
     @Override
     public void updateQcPlan(QcPlanSaveReqVO updateReqVO) {
         QcPlanDO existed = validateQcPlanExists(updateReqVO.getId());
+        // 已发布方案被质检任务锁定引用，状态只能由发布/停用动作推进，表单一律不许改
+        if (!MesQcPlanStatusEnum.isDraft(existed.getStatus())) {
+            throw exception(QC_PLAN_STATUS_INVALID);
+        }
         QcPlanDO updateObj = BeanUtils.toBean(updateReqVO, QcPlanDO.class);
         // 编码由编码规则分配，更新时不允许改
         updateObj.setCode(existed.getCode());
-        // 已发布的方案被质检任务锁定引用，只允许改状态与备注，抽样规则不能动
-        if (!MesQcPlanStatusEnum.isDraft(existed.getStatus())) {
-            existed.setStatus(updateObj.getStatus());
-            existed.setRemark(updateObj.getRemark());
-            qcPlanMapper.updateById(existed);
-            return;
-        }
         validateSampleConfig(updateObj);
         validateCodeAndVersionUnique(updateObj, updateReqVO.getId());
         qcPlanMapper.updateById(updateObj);

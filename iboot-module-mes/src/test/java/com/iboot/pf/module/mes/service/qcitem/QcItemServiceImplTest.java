@@ -139,6 +139,19 @@ class QcItemServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    void testUpdateQcItem_moveFromPublishedPlanRejected() {
+        // 原所属方案是已发布时，把 planId 改成草稿方案等于把检验项"合法搬走"，仍要拦
+        Long id = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
+        QcItemDO existed = qcItemMapper.selectById(id);
+        existed.setPlanId(PUBLISHED_PLAN);
+        qcItemMapper.updateById(existed);
+
+        QcItemSaveReqVO updateReqVO = buildReqVO(DRAFT_PLAN, "IT-01");
+        updateReqVO.setId(id);
+        assertServiceException(() -> qcItemService.updateQcItem(updateReqVO), QC_ITEM_PLAN_NOT_DRAFT);
+    }
+
+    @Test
     void testUpdateQcItem_duplicateCodeRejected() {
         qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-01"));
         Long secondId = qcItemService.createQcItem(buildReqVO(DRAFT_PLAN, "IT-02"));

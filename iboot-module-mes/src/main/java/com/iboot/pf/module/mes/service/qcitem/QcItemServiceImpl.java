@@ -53,7 +53,10 @@ public class QcItemServiceImpl implements QcItemService {
 
     @Override
     public void updateQcItem(QcItemSaveReqVO updateReqVO) {
-        validateQcItemExists(updateReqVO.getId());
+        QcItemDO existed = validateQcItemExists(updateReqVO.getId());
+        // 原所属方案与目标方案都要是草稿：只查目标方案的话，已发布方案下的检验项
+        // 可以靠把 planId 改成草稿方案"合法搬走"，等于篡改已发布方案的检验内容
+        validatePlanDraft(existed.getPlanId());
         validatePlanDraft(updateReqVO.getPlanId());
         QcItemDO qcItem = BeanUtils.toBean(updateReqVO, QcItemDO.class);
         validateLimit(qcItem);

@@ -207,4 +207,13 @@ public interface ErrorCodeConstants {
     ErrorCode RGV_TASK_STATUS_INVALID = new ErrorCode(1_064_026_003, "RGV 任务当前状态不允许该操作");
     ErrorCode RGV_TASK_SAME_STATION = new ErrorCode(1_064_026_004, "来源工位与目标工位不能相同");
 
+    // ========== 质检规则触发（质量子域 1_064_100 段） ==========
+    ErrorCode QC_PLAN_NOT_PUBLISHED = new ErrorCode(1_064_100_001, "质检规则引用的检验方案未发布或已停用");
+    // ========== 检验方案领域动作（质量子域 1_064_101 段） ==========
+    ErrorCode QC_PLAN_PUBLISH_WITHOUT_ITEM = new ErrorCode(1_064_101_001, "检验方案没有检验项，不能发布");
+    ErrorCode QC_PLAN_IN_USE = new ErrorCode(1_064_101_002, "检验方案已被启用中的质检规则引用，不能停用");
+    // ========== 质检任务生成（质量子域 1_064_102 段） ==========
+    ErrorCode QC_TASK_PLAN_ITEM_EMPTY =
+            new ErrorCode(1_064_102_001, "检验方案({})下没有启用的检验项，无法生成质检任务");
+
 }

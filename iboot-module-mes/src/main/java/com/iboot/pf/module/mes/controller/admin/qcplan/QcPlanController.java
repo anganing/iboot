@@ -5,10 +5,15 @@ import com.iboot.pf.framework.common.pojo.CommonResult;
 import com.iboot.pf.framework.common.pojo.PageParam;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
+import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
+import com.iboot.pf.module.mes.controller.admin.qcplan.vo.QcPlanActionReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcplan.vo.QcPlanPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcplan.vo.QcPlanRespVO;
 import com.iboot.pf.module.mes.controller.admin.qcplan.vo.QcPlanSaveReqVO;
+import com.iboot.pf.module.mes.enums.MesSourceModuleEnum;
+import com.iboot.pf.module.mes.service.qcplan.MesQcPlanDomainService;
 import com.iboot.pf.module.mes.service.qcplan.QcPlanService;
+import com.iboot.pf.module.mes.service.qcplan.bo.MesQcPlanActionBO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,6 +50,42 @@ public class QcPlanController {
 
     @Resource
     private QcPlanService qcPlanService;
+    @Resource
+    private MesQcPlanDomainService qcPlanDomainService;
+
+    // ==================== 领域动作 ====================
+
+    @PostMapping("/publish")
+    @Operation(summary = "发布检验方案，发布后进入版本锁定，规则只能引用已发布方案")
+    @PreAuthorize("@ss.hasPermission('mes:qc-plan:publish')")
+    public CommonResult<Boolean> publishQcPlan(@Valid @RequestBody QcPlanActionReqVO reqVO) {
+        qcPlanDomainService.publishPlan(toActionBO(reqVO));
+        return success(true);
+    }
+
+    @PostMapping("/disable")
+    @Operation(summary = "停用检验方案，启用中的质检规则引用着时会拒绝")
+    @PreAuthorize("@ss.hasPermission('mes:qc-plan:disable')")
+    public CommonResult<Boolean> disableQcPlan(@Valid @RequestBody QcPlanActionReqVO reqVO) {
+        qcPlanDomainService.disablePlan(toActionBO(reqVO));
+        return success(true);
+    }
+
+    // ==================== 内部转换 ====================
+
+    /** 发布、停用共用一个 BO：两个动作的入参相同，目标状态由动作名与当前状态校验决定。 */
+    private MesQcPlanActionBO toActionBO(QcPlanActionReqVO reqVO) {
+        MesQcPlanActionBO bo = new MesQcPlanActionBO();
+        bo.setPlanId(reqVO.getId());
+        fillCommand(bo, reqVO.getIdempotencyKey());
+        return bo;
+    }
+
+    /** 管理后台的动作端点来源固定 UI，幂等键留空时由领域 Service 按方案编码派生。 */
+    private void fillCommand(MesCommandReqDTO command, String idempotencyKey) {
+        command.setSourceModule(MesSourceModuleEnum.UI.name());
+        command.setIdempotencyKey(idempotencyKey);
+    }
 
     @PostMapping("/create")
     @Operation(summary = "创建检验方案")
