@@ -21,6 +21,7 @@ import { $t } from '#/locales';
 import { useGridColumns, useGridFormSchema } from './data';
 import AssignDataPermissionForm from './modules/assign-data-permission-form.vue';
 import AssignMenuForm from './modules/assign-menu-form.vue';
+import AssignMobileMenuForm from './modules/assign-mobile-menu-modal.vue';
 import Form from './modules/form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
@@ -36,6 +37,11 @@ const [AssignDataPermissionFormModel, assignDataPermissionFormApi] =
 
 const [AssignMenuFormModel, assignMenuFormApi] = useVbenModal({
   connectedComponent: AssignMenuForm,
+  destroyOnClose: true,
+});
+
+const [AssignMobileMenuFormModel, assignMobileMenuFormApi] = useVbenModal({
+  connectedComponent: AssignMobileMenuForm,
   destroyOnClose: true,
 });
 
@@ -109,6 +115,11 @@ function handleAssignMenu(row: SystemRoleApi.Role) {
   assignMenuFormApi.setData(row).open();
 }
 
+/** 分配角色的移动端菜单权限 */
+function handleAssignMobileMenu(row: SystemRoleApi.Role) {
+  assignMobileMenuFormApi.setData(row).open();
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
@@ -157,6 +168,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     <FormModal @success="handleRefresh" />
     <AssignDataPermissionFormModel @success="handleRefresh" />
     <AssignMenuFormModel @success="handleRefresh" />
+    <AssignMobileMenuFormModel @success="handleRefresh" />
     <Grid table-title="角色列表">
       <template #toolbar-tools>
         <TableAction
@@ -223,6 +235,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['system:permission:assign-role-menu'],
               onClick: handleAssignMenu.bind(null, row),
+            },
+            {
+              label: '移动端菜单',
+              type: 'primary',
+              link: true,
+              auth: ['system:mobile-menu:assign'],
+              onClick: handleAssignMobileMenu.bind(null, row),
             },
           ]"
         />

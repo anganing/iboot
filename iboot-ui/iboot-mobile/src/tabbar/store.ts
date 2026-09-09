@@ -72,7 +72,7 @@ const tabbarStore = reactive({
     this.curIdx = idx
     uni.setStorageSync('app-tabbar-index', idx)
   },
-  setTabbarItemBadge(idx: number, badge: CustomTabBarItemBadge) {
+  setTabbarItemBadge(idx: number, badge?: CustomTabBarItemBadge) {
     const list = tabbarList.value
     if (list[idx]) {
       list[idx].badge = badge

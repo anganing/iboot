@@ -124,7 +124,7 @@ public interface ErrorCodeConstants {
     ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_QRCODE_ERROR = new ErrorCode(1_002_018_201, "获得小程序码失败");
     ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_SUBSCRIBE_TEMPLATE_ERROR = new ErrorCode(1_002_018_202, "获得小程序订阅消息模版失败");
     ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_SUBSCRIBE_MESSAGE_ERROR = new ErrorCode(1_002_018_203, "发送小程序订阅消息失败");
-    ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_ORDER_UPLOAD_SHIPPING_INFO_ERROR = new ErrorCode(1_002_018_204, "上传微信小程序发货信息失败");
+    ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_ORDER_UPLOAD_SHIPPING_INFO_ERROR = new ErrorCode(1_002_018_204, "上传微信小程序订单收货信息失败");
     ErrorCode SOCIAL_CLIENT_WEIXIN_MINI_APP_ORDER_NOTIFY_CONFIRM_RECEIVE_ERROR = new ErrorCode(1_002_018_205, "上传微信小程序订单收货信息失败");
     ErrorCode SOCIAL_CLIENT_NOT_EXISTS = new ErrorCode(1_002_018_210, "社交客户端不存在");
     ErrorCode SOCIAL_CLIENT_UNIQUE = new ErrorCode(1_002_018_211, "社交客户端已存在配置");
@@ -167,5 +167,12 @@ public interface ErrorCodeConstants {
 
     // ========== 站内信发送 1-002-028-000 ==========
     ErrorCode NOTIFY_SEND_TEMPLATE_PARAM_MISS = new ErrorCode(1_002_028_000, "模板参数({})缺失");
+
+    // ========== 移动端菜单 1-002-029-000 ==========
+    ErrorCode MOBILE_MENU_NOT_EXISTS = new ErrorCode(1_002_029_000, "移动端菜单不存在");
+    ErrorCode MOBILE_MENU_EXISTS_CHILDREN = new ErrorCode(1_002_029_001, "存在子菜单，无法删除");
+    ErrorCode MOBILE_MENU_PARENT_NOT_EXISTS = new ErrorCode(1_002_029_002, "父菜单不存在");
+    ErrorCode MOBILE_MENU_PARENT_ERROR = new ErrorCode(1_002_029_003, "不能设置自己或自己的子菜单为父菜单");
+    ErrorCode MOBILE_MENU_PARENT_NOT_DIR = new ErrorCode(1_002_029_004, "父菜单的类型必须是分组");
 
 }

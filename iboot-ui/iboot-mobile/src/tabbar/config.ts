@@ -23,6 +23,7 @@ export const selectedTabbarStrategy = TABBAR_STRATEGY_MAP.CUSTOM_TABBAR
 
 // TODO: 2/3. 使用 NATIVE_TABBAR 时，更新下面的 tabbar 配置
 // 原生 tabbar 不支持运行时按角色动态变更；要按角色动态显示/隐藏，必须切换到自定义 tabbar
+// 注意：当前策略为 CUSTOM_TABBAR，本列表不生效，仅作为切回原生策略时的备档
 export const nativeTabbarList: NativeTabBarItem[] = [
   {
     iconPath: 'static/tabbar/home.png',
@@ -40,6 +41,7 @@ export const nativeTabbarList: NativeTabBarItem[] = [
 
 // TODO: 3/3. 使用 CUSTOM_TABBAR 时，更新下面的 tabbar 配置
 // 如果需要配置鼓包，需要在 'tabbar/store.ts' 里面设置，最后在 `tabbar/index.vue` 里面更改鼓包的图片
+// 顺序即下标：0=首页 1=消息 2=我的；消息中心的未读角标走 tabbarStore.setTabbarItemBadge(1, count)
 export const customTabbarList: CustomTabBarItem[] = [
   {
     text: '首页',
@@ -51,32 +53,16 @@ export const customTabbarList: CustomTabBarItem[] = [
     icon: 'i-carbon-home',
     // badge: 'dot',
   },
-  // 鼓包配置示例（2025-12-31）
-  // 中间鼓包tabbarItem配置：通常是扫描按钮、发布按钮、更多按钮等，点击触发业务逻辑
-  // {
-  //   pagePath: 'pages/me/me',
-  //   text: '我的',
-  //   // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-  //   // 2）配置到 unocss.config.ts 的 safelist 中
-  //   iconType: 'image',
-  //   icon: '/static/tabbar/scan.png',
-  //   isBulge: true,
-  // },
   {
-    pagePath: 'pages/about/about',
-    text: '关于',
-    // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-    // 2）配置到 unocss.config.ts 的 safelist 中
+    text: '消息',
+    pagePath: 'pages/notify/index',
     iconType: 'unocss',
-    icon: 'i-carbon-menu',
+    icon: 'i-carbon-email',
     // badge: 10,
-    roles: ['admin'],
   },
   {
-    pagePath: 'pages/me/me',
     text: '我的',
-    // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-    // 2）配置到 unocss.config.ts 的 safelist 中
+    pagePath: 'pages/me/me',
     iconType: 'unocss',
     icon: 'i-carbon-user',
     // badge: 10,
