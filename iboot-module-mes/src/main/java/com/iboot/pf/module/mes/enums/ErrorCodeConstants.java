@@ -215,5 +215,7 @@ public interface ErrorCodeConstants {
     // ========== 质检任务生成（质量子域 1_064_102 段） ==========
     ErrorCode QC_TASK_PLAN_ITEM_EMPTY =
             new ErrorCode(1_064_102_001, "检验方案({})下没有启用的检验项，无法生成质检任务");
+    ErrorCode QC_TASK_CONCURRENT_CONFLICT =
+            new ErrorCode(1_064_102_002, "质检任务正被其他操作更新，请刷新后重试");
 
 }

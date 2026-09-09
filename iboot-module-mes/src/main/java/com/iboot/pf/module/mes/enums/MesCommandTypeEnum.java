@@ -68,6 +68,36 @@ public enum MesCommandTypeEnum {
      */
     PUBLISH_QC_PLAN,
     /** 停用检验方案，启用中的规则引用着时领域校验会先拦下。 */
-    DISABLE_QC_PLAN
+    DISABLE_QC_PLAN,
+    // ========== 质量子域（T2-04 统一追加，后续处置与返工任务复用，只允许追加） ==========
+    /**
+     * 生成质检任务。
+     *
+     * <p>仅登记类型：{@code createQcTask} 的幂等走 {@code mes_qc_task.idempotency_key}
+     * 唯一索引列判重，不写命令记录。登记它是为了让质量子域八个命令在类型表里齐备，
+     * 命令记录里若出现该类型能对上口径，避免跨模块调用方自造字面量。
+     */
+    CREATE_QC_TASK,
+    /** 指派质检任务。 */
+    ASSIGN_QC_TASK,
+    /** 开始检验。 */
+    START_INSPECT,
+    /** 取消质检任务（仅未开检的任务允许）。 */
+    CANCEL_QC_TASK,
+    /**
+     * 提交检验结论。
+     *
+     * <p>结果录入（batchSaveResult）不在这里：{@code mes_qc_result} 每行落 {@code inspector_id}
+     * 与 {@code inspect_time}，结果数据本身就是载体，T2-05 实现时按行判重。
+     */
+    SUBMIT_CONCLUSION,
+    /** 提交处置单（T2-12）。 */
+    SUBMIT_DISPOSITION,
+    /** 执行处置单（T2-12）。 */
+    EXECUTE_DISPOSITION,
+    /** 下达返工任务（T2-13）。 */
+    RELEASE_REWORK,
+    /** 返工完工（T2-13）。 */
+    FINISH_REWORK
 
 }

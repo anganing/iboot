@@ -1,8 +1,11 @@
 package com.iboot.pf.module.mes.service.qctask;
 
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
 import com.iboot.pf.module.mes.dal.dataobject.qcitem.QcItemDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
 import com.iboot.pf.module.mes.dal.dataobject.qcresult.QcResultDO;
@@ -13,11 +16,17 @@ import com.iboot.pf.module.mes.dal.mysql.qcplan.QcPlanMapper;
 import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
 import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
 import com.iboot.pf.module.mes.enums.MesCodeRuleConstants;
+import com.iboot.pf.module.mes.enums.MesCommandTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcTaskStateMachine;
 import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
+import com.iboot.pf.module.mes.service.MesBusinessRules;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskActionBO;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskConclusionBO;
 import com.iboot.pf.module.mes.service.qcrule.QcTriggerService;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
@@ -26,12 +35,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_CONCURRENT_CONFLICT;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_ITEM_EMPTY;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_PLAN_NOT_PUBLISHED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
@@ -39,9 +51,12 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QTY_MUST_BE_POSIT
 /**
  * 质检任务领域动作实现。
  *
- * <p>本类只实现 {@link #createQcTask}：规则命中后的"建任务 + 锁方案版本 + 算抽样 + 展开空行"
+ * <p>{@link #createQcTask} 负责任务怎么来：规则命中后的"建任务 + 锁方案版本 + 算抽样 + 展开空行"
  * 四步是同一个事务，任何一步失败整个回滚，不会留下没有检验项的半截任务。
- * 生命周期动作（指派、开始检验、提交结论、取消）由 T2-04 在本类追加。
+ *
+ * <p>四个生命周期动作（指派、开始检验、提交结论、取消）共用一套骨架：命令幂等 -&gt; 状态机裁决
+ * 目标状态 -&gt; 带乐观锁条件落库，与工序任务域动作同构。目标状态一律由状态机给出，方法签名里只有
+ * 动作名。提交结论末尾预留按触发点分派 Handler 的钩子位，五个检验点的下游联动由 T2-07 ~ T2-11 接入。
  *
  * @author iboot
  */
@@ -63,6 +78,9 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
     /** 幂等键命令段，创建型动作固定走列判重，不进 {@code MesCommandService}。 */
     private static final String COMMAND_QC_CREATE = "QC_CREATE";
 
+    /** 任务级动作没有行号，幂等键第四段固定 0。 */
+    private static final String WHOLE_TASK_LINE_NO = "0";
+
     @Resource
     private QcTriggerService qcTriggerService;
     @Resource
@@ -77,6 +95,8 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
     private MesCodeService codeService;
     @Resource
     private MesSnapshotService snapshotService;
+    @Resource
+    private MesCommandService commandService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -131,6 +151,143 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
         if (qty == null || qty.signum() <= 0) {
             throw exception(QTY_MUST_BE_POSITIVE);
         }
+    }
+
+    // ========== 生命周期动作 ==========
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void assignQcTask(MesQcTaskActionBO bo) {
+        Assert.notNull(bo.getInspectorId(), "指派检验员不能为空");
+        QcTaskDO task = requireQcTask(bo.getTaskId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.ASSIGN_QC_TASK, task.getTaskNo());
+        commandService.executeVoid(MesCommandTypeEnum.ASSIGN_QC_TASK, command,
+                () -> {
+                    String toStatus = MesQcTaskStateMachine.next(task.getStatus(),
+                            MesQcTaskStateMachine.ACTION_ASSIGN);
+                    advanceQcTask(task, QcTaskDO.builder()
+                            .status(toStatus)
+                            .assignedInspectorId(bo.getInspectorId())
+                            .build());
+                });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void startInspect(MesQcTaskActionBO bo) {
+        QcTaskDO task = requireQcTask(bo.getTaskId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.START_INSPECT, task.getTaskNo());
+        commandService.executeVoid(MesCommandTypeEnum.START_INSPECT, command,
+                () -> {
+                    String toStatus = MesQcTaskStateMachine.next(task.getStatus(),
+                            MesQcTaskStateMachine.ACTION_START_INSPECT);
+                    advanceQcTask(task, QcTaskDO.builder()
+                            .status(toStatus)
+                            .inspectStartTime(LocalDateTime.now())
+                            .build());
+                });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitConclusion(MesQcTaskConclusionBO bo) {
+        QcTaskDO task = requireQcTask(bo.getTaskId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.SUBMIT_CONCLUSION, task.getTaskNo());
+        commandService.executeVoid(MesCommandTypeEnum.SUBMIT_CONCLUSION, command,
+                () -> {
+                    String fromStatus = task.getStatus();
+                    // 数量校验在状态推进之前：先落 DONE 再发现数量对不上，DONE 是终态没有回退边
+                    MesBusinessRules.validateQualityQty(task.getSampleQty(),
+                            bo.getQtyQualified(), bo.getQtyRejected());
+                    String toStatus = MesQcTaskStateMachine.next(fromStatus,
+                            MesQcTaskStateMachine.ACTION_SUBMIT_CONCLUSION);
+                    advanceQcTask(task, QcTaskDO.builder()
+                            .status(toStatus)
+                            .inspectEndTime(LocalDateTime.now())
+                            .conclusion(bo.getConclusion())
+                            .qtyQualified(bo.getQtyQualified())
+                            .qtyRejected(bo.getQtyRejected())
+                            .build());
+
+                    // TODO T2-07 ~ T2-11 按 task.getTriggerPoint() 分派五个检验点的结果 Handler
+                    //  （IQC/FAI/IPQC/FQC/OQC 各自的 onXxxDone），放行或拦截下游动作。
+                    //  分派要覆盖 CONCESSION（让步接收走审批，通过前按各自检验点的口径处理），
+                    //  REJECTED 不在分派里放行——强制等处置单。本任务只预留钩子位。
+                });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelQcTask(MesQcTaskActionBO bo) {
+        QcTaskDO task = requireQcTask(bo.getTaskId());
+        MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.CANCEL_QC_TASK, task.getTaskNo());
+        commandService.executeVoid(MesCommandTypeEnum.CANCEL_QC_TASK, command,
+                () -> {
+                    String toStatus = MesQcTaskStateMachine.next(task.getStatus(),
+                            MesQcTaskStateMachine.ACTION_CANCEL);
+                    QcTaskDO.QcTaskDOBuilder builder = QcTaskDO.builder().status(toStatus);
+                    if (StrUtil.isNotBlank(bo.getRemark())) {
+                        builder.remark(bo.getRemark());
+                    }
+                    advanceQcTask(task, builder.build());
+                });
+    }
+
+    /**
+     * 带乐观锁条件推进质检任务，并把新版本号同步回内存对象。
+     *
+     * <p>质检任务与工序任务同属并发热点：结果录入（T2-05 自动推进 INSPECTING -&gt; RESULT_POSTING）
+     * 与检验员手工动作可能同时到达。少了 {@code WHERE version = 读到的版本}，并发提交会各自基于
+     * 同一份旧值写回，后写的把前写的整条覆盖掉。
+     */
+    private void advanceQcTask(QcTaskDO task, QcTaskDO update) {
+        int currentVersion = task.getVersion() == null ? MesConstants.INIT_VERSION : task.getVersion();
+        update.setVersion(currentVersion + 1);
+        LambdaUpdateWrapper<QcTaskDO> wrapper = new LambdaUpdateWrapper<QcTaskDO>()
+                .eq(QcTaskDO::getId, task.getId())
+                .eq(QcTaskDO::getVersion, currentVersion);
+        if (qcTaskMapper.update(update, wrapper) == 0) {
+            throw exception(QC_TASK_CONCURRENT_CONFLICT);
+        }
+        task.setVersion(currentVersion + 1);
+    }
+
+    /**
+     * 组装幂等命令。
+     *
+     * <p>幂等键调用方给了以它为准，留空时按四段格式 {@code {来源模块}:{质检任务号}:{命令类型}:0}
+     * 派生，与工序任务域的幂等键格式一致。动作段取 {@link MesCommandTypeEnum} 的枚举名而不是字面量：
+     * 键会落进 {@code mes_command_record}，字面量拼出来的历史键在命令改名后就与枚举对不上。
+     */
+    private MesCommandReqDTO buildCommand(MesQcTaskActionBO source, MesCommandTypeEnum commandType, String taskNo) {
+        // 来源模块是幂等键的第一段，也是排查"这条命令谁下的"的唯一线索，漏传属于调用方契约违约
+        Assert.notBlank(source.getSourceModule(), "来源模块不能为空，它是幂等键的第一段");
+        QcTaskCommand command = new QcTaskCommand();
+        command.setSourceModule(source.getSourceModule());
+        command.setSourceBizNo(StrUtil.isBlank(source.getSourceBizNo()) ? taskNo : source.getSourceBizNo());
+        command.setSourceBizLineNo(source.getSourceBizLineNo());
+        command.setIdempotencyKey(StrUtil.isBlank(source.getIdempotencyKey())
+                ? String.join(KEY_SEPARATOR, source.getSourceModule(), taskNo,
+                commandType.name(), WHOLE_TASK_LINE_NO)
+                : source.getIdempotencyKey());
+        return command;
+    }
+
+    /**
+     * 幂等命令载体。
+     *
+     * <p>{@link MesCommandReqDTO} 是抽象类，质检任务域给它一个最小实现：既不必新建公共 DTO，
+     * 也不用把派生出来的幂等键写回调用方的 BO——改调用方传进来的对象是隐蔽的副作用。
+     */
+    private static class QcTaskCommand extends MesCommandReqDTO {
+    }
+
+    private QcTaskDO requireQcTask(Long id) {
+        QcTaskDO task = id == null ? null : qcTaskMapper.selectById(id);
+        if (task == null) {
+            throw exception(QC_TASK_NOT_EXISTS);
+        }
+        return task;
     }
 
     /** 组装任务：锁方案版本、快照物料与批次、落幂等键与初始状态。 */

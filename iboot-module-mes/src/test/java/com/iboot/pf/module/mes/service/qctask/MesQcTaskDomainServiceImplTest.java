@@ -13,6 +13,7 @@ import com.iboot.pf.module.mes.dal.mysql.qcresult.QcResultMapper;
 import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
 import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesQcConclusionEnum;
 import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
 import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
 import com.iboot.pf.module.mes.enums.MesQcSampleTypeEnum;
@@ -20,7 +21,10 @@ import com.iboot.pf.module.mes.enums.MesQcTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
 import com.iboot.pf.module.mes.service.MesTestFixtures;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
+import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
 import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskActionBO;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskConclusionBO;
 import com.iboot.pf.module.mes.service.qcrule.QcTriggerService;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
@@ -32,8 +36,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_STATUS_INVALID;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QUALITY_QTY_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -45,10 +55,11 @@ import static org.mockito.Mockito.when;
  * 断言 sample_qty=11）、方案版本已锁、检验项空行数量正确、未命中规则返回空、幂等重复调用
  * 不产生第二个任务。
  *
- * <p>{@link QcTriggerService} 是 T2-01 的产出，这里只 mock 契约不引真实实现，
- * 两边可并行开发互不阻塞。
+ * <p>T2-04 追加：四个生命周期动作各 1 个正常 + 1 个非法状态、数量校验失败、动作幂等。
+ * 生命周期用例直接插桩任务，不关心建任务链路；{@link QcTriggerService} 是 T2-01 的产出，
+ * 这里只 mock 契约不引真实实现，两边可并行开发互不阻塞。
  */
-@Import(MesQcTaskDomainServiceImpl.class)
+@Import({MesQcTaskDomainServiceImpl.class, MesCommandServiceImpl.class})
 class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final Long RULE_ID = 100L;
@@ -56,6 +67,11 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
     private static final Long ITEM_ID_1 = 301L;
     private static final Long ITEM_ID_2 = 302L;
     private static final String BIZ_NO = "ARR20260910001";
+    private static final String SOURCE_MODULE = "UI";
+    private static final Long INSPECTOR_ID = 666L;
+
+    /** 生命周期用例的任务号计数器，同一用例里的任务号互不相同（生产上由编码规则分配）。 */
+    private final AtomicInteger taskSeq = new AtomicInteger();
 
     @Resource
     private MesQcTaskDomainService qcTaskDomainService;
@@ -241,6 +257,134 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
         assertTrue(task.getRemark().contains("仅预生成第 1 个样本"));
     }
 
+    // ========== 生命周期动作（T2-04） ==========
+
+    @Test
+    void testAssignQcTask_success() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.CREATED.name());
+
+        qcTaskDomainService.assignQcTask(actionBO(task));
+
+        QcTaskDO assigned = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.ASSIGNED.name(), assigned.getStatus());
+        assertEquals(INSPECTOR_ID, assigned.getAssignedInspectorId());
+        // 乐观锁版本自增，证明走的是带 version 条件的更新
+        assertEquals(MesConstants.INIT_VERSION + 1, assigned.getVersion());
+        // 指派不动其他时间字段
+        assertNull(assigned.getInspectStartTime());
+    }
+
+    @Test
+    void testAssignQcTask_illegalStatus() {
+        // 已开检的任务没有 assign 出边，重复指派被状态机拒掉
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.INSPECTING.name());
+
+        assertServiceException(() -> qcTaskDomainService.assignQcTask(actionBO(task)),
+                QC_TASK_STATUS_INVALID);
+        // 状态与检验员都没被改
+        QcTaskDO unchanged = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.INSPECTING.name(), unchanged.getStatus());
+        assertEquals(MesConstants.NONE_ID, unchanged.getAssignedInspectorId());
+    }
+
+    @Test
+    void testStartInspect_success() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.ASSIGNED.name());
+
+        qcTaskDomainService.startInspect(actionBO(task));
+
+        QcTaskDO inspecting = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.INSPECTING.name(), inspecting.getStatus());
+        assertNotNull(inspecting.getInspectStartTime());
+    }
+
+    @Test
+    void testStartInspect_illegalStatus() {
+        // 未指派不能直接开检，必须先经 assign
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.CREATED.name());
+
+        assertServiceException(() -> qcTaskDomainService.startInspect(actionBO(task)),
+                QC_TASK_STATUS_INVALID);
+        assertNull(qcTaskMapper.selectById(task.getId()).getInspectStartTime());
+    }
+
+    @Test
+    void testSubmitConclusion_success() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.RESULT_POSTING.name());
+
+        qcTaskDomainService.submitConclusion(conclusionBO(task, MesQcConclusionEnum.QUALIFIED.name(),
+                new BigDecimal("5"), new BigDecimal("1")));
+
+        QcTaskDO done = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.DONE.name(), done.getStatus());
+        assertEquals(MesQcConclusionEnum.QUALIFIED.name(), done.getConclusion());
+        assertEquals(0, done.getQtyQualified().compareTo(new BigDecimal("5")));
+        assertEquals(0, done.getQtyRejected().compareTo(new BigDecimal("1")));
+        assertNotNull(done.getInspectEndTime());
+    }
+
+    @Test
+    void testSubmitConclusion_illegalStatus() {
+        // 结果未录完不能提交结论，INSPECTING 没有 submitConclusion 出边
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.INSPECTING.name());
+
+        assertServiceException(() -> qcTaskDomainService.submitConclusion(
+                        conclusionBO(task, MesQcConclusionEnum.QUALIFIED.name(),
+                                new BigDecimal("5"), new BigDecimal("1"))),
+                QC_TASK_STATUS_INVALID);
+        assertNull(qcTaskMapper.selectById(task.getId()).getConclusion());
+    }
+
+    @Test
+    void testSubmitConclusion_qtyMismatchRejected() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.RESULT_POSTING.name());
+
+        // 合格 5 + 不合格 2 = 7 != 抽样数 6，数量对不上必须先于状态推进被拦
+        assertServiceException(() -> qcTaskDomainService.submitConclusion(
+                        conclusionBO(task, MesQcConclusionEnum.QUALIFIED.name(),
+                                new BigDecimal("5"), new BigDecimal("2"))),
+                QUALITY_QTY_INVALID);
+        // 数量校验不过时一行都不许改：DONE 是终态，落了就回不去
+        QcTaskDO unchanged = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.RESULT_POSTING.name(), unchanged.getStatus());
+        assertNull(unchanged.getConclusion());
+        assertNull(unchanged.getInspectEndTime());
+    }
+
+    @Test
+    void testCancelQcTask_success() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.CREATED.name());
+
+        qcTaskDomainService.cancelQcTask(actionBO(task));
+
+        assertEquals(MesQcTaskStatusEnum.CANCELLED.name(), qcTaskMapper.selectById(task.getId()).getStatus());
+    }
+
+    @Test
+    void testCancelQcTask_illegalStatus() {
+        // 检验已开始则产生过检验事实，取消等于销毁记录，被状态机拒掉
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.INSPECTING.name());
+
+        assertServiceException(() -> qcTaskDomainService.cancelQcTask(actionBO(task)),
+                QC_TASK_STATUS_INVALID);
+        assertEquals(MesQcTaskStatusEnum.INSPECTING.name(), qcTaskMapper.selectById(task.getId()).getStatus());
+    }
+
+    @Test
+    void testLifecycleAction_idempotent() {
+        QcTaskDO task = insertTask(MesQcTaskStatusEnum.CREATED.name());
+        MesQcTaskActionBO bo = actionBO(task);
+
+        // 同键两次：第二次若真执行，ASSIGNED 没有 assign 出边，状态机会直接抛错
+        qcTaskDomainService.assignQcTask(bo);
+        qcTaskDomainService.assignQcTask(bo);
+
+        // 只推进一次、版本只加 1，命令记录把重复下发拦在了状态校验之前
+        QcTaskDO assigned = qcTaskMapper.selectById(task.getId());
+        assertEquals(MesQcTaskStatusEnum.ASSIGNED.name(), assigned.getStatus());
+        assertEquals(MesConstants.INIT_VERSION + 1, assigned.getVersion());
+    }
+
     // ========== 桩数据 ==========
 
     /** 启用规则桩，指向 PLAN_ID。 */
@@ -297,6 +441,61 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
         bo.setQty(qty);
         bo.setUomId(1L);
         bo.setRemark("单测数据");
+        return bo;
+    }
+
+    // ========== 生命周期桩数据 ==========
+
+    /**
+     * 插一条指定状态的任务，字段按 {@code createQcTask} 落库形态给全：动作测试只关心
+     * 状态推进不关心建任务链路，但乐观锁条件更新要求 version 非空、数量校验要用 sampleQty。
+     */
+    private QcTaskDO insertTask(String status) {
+        QcTaskDO task = QcTaskDO.builder()
+                .taskNo("QCT-" + taskSeq.incrementAndGet())
+                .ruleId(RULE_ID)
+                .qcPlanId(PLAN_ID)
+                .qcPlanVersion("V1.0")
+                .triggerPoint(MesQcTriggerPointEnum.IQC.name())
+                .bizType(MesBizTypeEnum.ARRIVAL.name())
+                .bizNo(BIZ_NO)
+                .bizLineId(MesConstants.NONE_ID)
+                .matId(1L)
+                .matCode("MAT-001")
+                .matName("定子铁芯")
+                .batchId(MesConstants.NONE_ID)
+                .qty(new BigDecimal("20"))
+                .sampleQty(new BigDecimal("6"))
+                .uomId(1L)
+                .uomCode("PCS")
+                .assignedInspectorId(MesConstants.NONE_ID)
+                .qtyQualified(MesConstants.ZERO_QTY)
+                .qtyRejected(MesConstants.ZERO_QTY)
+                .status(status)
+                .version(MesConstants.INIT_VERSION)
+                .build();
+        qcTaskMapper.insert(task);
+        return task;
+    }
+
+    /** 生命周期动作参数：不带幂等键，走服务端按四段格式派生的那条路。 */
+    private MesQcTaskActionBO actionBO(QcTaskDO task) {
+        MesQcTaskActionBO bo = new MesQcTaskActionBO();
+        bo.setTaskId(task.getId());
+        bo.setSourceModule(SOURCE_MODULE);
+        bo.setInspectorId(INSPECTOR_ID);
+        return bo;
+    }
+
+    /** 提交结论参数：合格 5 + 不合格 1 = 抽样数 6，合法。 */
+    private MesQcTaskConclusionBO conclusionBO(QcTaskDO task, String conclusion,
+                                               BigDecimal qualified, BigDecimal rejected) {
+        MesQcTaskConclusionBO bo = new MesQcTaskConclusionBO();
+        bo.setTaskId(task.getId());
+        bo.setSourceModule(SOURCE_MODULE);
+        bo.setConclusion(conclusion);
+        bo.setQtyQualified(qualified);
+        bo.setQtyRejected(rejected);
         return bo;
     }
 
