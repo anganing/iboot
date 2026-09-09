@@ -11,6 +11,7 @@ import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { exportInvLock, getInvLockPage, unlockInvLock } from '#/api/wms/invlock';
 import { $t } from '#/locales';
 
+import { canReleaseInvHold } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 
 /**
@@ -20,7 +21,7 @@ import { useGridColumns, useGridFormSchema } from './data';
  * RELEASED / CANCELLED 已经没有冻结量可还，按钮直接禁用而不是隐藏，便于用户看到"为什么不能点"。
  */
 function canUnlock(status?: string) {
-  return status === 'ACTIVE' || status === 'PARTIAL';
+  return canReleaseInvHold(status);
 }
 
 /** 刷新表格 */

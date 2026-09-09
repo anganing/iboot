@@ -15,6 +15,7 @@ import {
 } from '#/api/wms/invreservation';
 import { $t } from '#/locales';
 
+import { canReleaseInvHold } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 
 /**
@@ -24,7 +25,7 @@ import { useGridColumns, useGridFormSchema } from './data';
  * RELEASED / CONSUMED / CANCELLED 已经没有占用量可还，按钮直接禁用而不是隐藏，便于用户看到"为什么不能点"。
  */
 function canRelease(status?: string) {
-  return status === 'ACTIVE' || status === 'PARTIAL';
+  return canReleaseInvHold(status);
 }
 
 /** 刷新表格 */

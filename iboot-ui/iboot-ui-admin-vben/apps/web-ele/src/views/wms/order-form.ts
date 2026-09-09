@@ -125,6 +125,29 @@ export function isCountLineDiff(status?: string) {
   return status === WMS_COUNT_LINE_STATUS.DIFF;
 }
 
+/** 库存占用记录状态，与后端预留/冻结的状态取值对齐（WmsInventoryReservationDO / WmsInventoryLockDO） */
+export const WMS_INV_HOLD_STATUS = {
+  /** 生效中 */
+  ACTIVE: 'ACTIVE',
+  /** 部分核销/解冻 */
+  PARTIAL: 'PARTIAL',
+  /** 已核销/解冻 */
+  CONSUMED: 'CONSUMED',
+  /** 已释放 */
+  RELEASED: 'RELEASED',
+} as const;
+
+/**
+ * 库存占用记录（预留/冻结）是否可释放或解冻：生效中或部分占用时可用，
+ * 与后端 release / unlock 的放行条件一致。
+ */
+export function canReleaseInvHold(status?: string) {
+  return (
+    status === WMS_INV_HOLD_STATUS.ACTIVE ||
+    status === WMS_INV_HOLD_STATUS.PARTIAL
+  );
+}
+
 /** 到货登记是否草稿态：编辑、删除、确认到货都只放行草稿 */
 export function isArrivalDraft(status?: string) {
   return status === WMS_ARRIVAL_STATUS.DRAFT;
