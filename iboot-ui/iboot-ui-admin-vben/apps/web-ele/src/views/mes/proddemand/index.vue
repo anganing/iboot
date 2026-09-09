@@ -27,6 +27,7 @@ import {
 } from '#/api/mes/proddemand';
 import { $t } from '#/locales';
 
+import { MES_DEMAND_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import ProdDemandImport from './modules/import-form.vue';
@@ -41,15 +42,18 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 });
 
 function canConfirm(row: MesProdDemandApi.ProdDemand) {
-  return row.status === 'DRAFT';
+  return row.status === MES_DEMAND_STATUS.DRAFT;
 }
 
 function canCancel(row: MesProdDemandApi.ProdDemand) {
-  return row.status !== 'DONE' && row.status !== 'CANCELLED';
+  return row.status !== MES_DEMAND_STATUS.DONE && row.status !== MES_DEMAND_STATUS.CANCELLED;
 }
 
 function canToProdOrder(row: MesProdDemandApi.ProdDemand) {
-  return row.status === 'CONFIRMED' || row.status === 'PLANNED';
+  return (
+    row.status === MES_DEMAND_STATUS.CONFIRMED ||
+    row.status === MES_DEMAND_STATUS.PLANNED
+  );
 }
 
 /** 导入生产需求 */

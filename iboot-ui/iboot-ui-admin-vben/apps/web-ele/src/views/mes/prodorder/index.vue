@@ -30,6 +30,14 @@ import {
 } from '#/api/mes/prodorder';
 import { $t } from '#/locales';
 
+import {
+  canCancelProdOrder,
+  canCheckKitProdOrder,
+  canCloseProdOrder,
+  canHoldProdOrder,
+  canResumeProdOrder,
+  isProdOrderDraft,
+} from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import ProdOrderImport from './modules/import-form.vue';
@@ -44,31 +52,31 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
 });
 
 function canEdit(row: MesProdOrderApi.ProdOrder) {
-  return row.status === 'DRAFT';
+  return isProdOrderDraft(row.status);
 }
 
 function canRelease(row: MesProdOrderApi.ProdOrder) {
-  return row.status === 'DRAFT';
+  return isProdOrderDraft(row.status);
 }
 
 function canHold(row: MesProdOrderApi.ProdOrder) {
-  return row.status === 'RUNNING';
+  return canHoldProdOrder(row.status);
 }
 
 function canResume(row: MesProdOrderApi.ProdOrder) {
-  return row.status === 'HOLD';
+  return canResumeProdOrder(row.status);
 }
 
 function canClose(row: MesProdOrderApi.ProdOrder) {
-  return row.status === 'DONE';
+  return canCloseProdOrder(row.status);
 }
 
 function canCancelOrder(row: MesProdOrderApi.ProdOrder) {
-  return ['DRAFT', 'RELEASED', 'READY'].includes(row.status ?? '');
+  return canCancelProdOrder(row.status);
 }
 
 function canCheckKit(row: MesProdOrderApi.ProdOrder) {
-  return ['RELEASED', 'READY', 'RUNNING'].includes(row.status ?? '');
+  return canCheckKitProdOrder(row.status);
 }
 
 /** 导入生产工单 */
@@ -354,24 +362,27 @@ const [Grid, gridApi] = useVbenVxeGrid({
             link
             type="primary"
             @click="handleRelease(row)"
-            >下达</ElButton
-          >
+            >
+下达
+</ElButton>
           <ElButton
             v-access:code="['mes:prod-order:check-kit']"
             :disabled="!canCheckKit(row)"
             link
             type="primary"
             @click="handleCheckKit(row)"
-            >齐套检查</ElButton
-          >
+            >
+齐套检查
+</ElButton>
           <ElButton
             v-access:code="['mes:prod-order:hold']"
             :disabled="!canHold(row)"
             link
             type="warning"
             @click="handleHold(row)"
-            >挂起</ElButton
-          >
+            >
+挂起
+</ElButton>
           <ElDropdown placement="bottom-end" trigger="click">
             <ElButton link type="primary">更多</ElButton>
             <template #dropdown>
@@ -380,32 +391,37 @@ const [Grid, gridApi] = useVbenVxeGrid({
                   v-access:code="['mes:prod-order:resume']"
                   :disabled="!canResume(row)"
                   @click="handleResume(row)"
-                  >恢复</el-dropdown-item
-                >
+                  >
+恢复
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:prod-order:close']"
                   :disabled="!canClose(row)"
                   @click="handleClose(row)"
-                  >关闭</el-dropdown-item
-                >
+                  >
+关闭
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:prod-order:cancel']"
                   :disabled="!canCancelOrder(row)"
                   @click="handleCancel(row)"
-                  >取消</el-dropdown-item
-                >
+                  >
+取消
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:prod-order:update']"
                   :disabled="!canEdit(row)"
                   @click="handleEdit(row)"
-                  >修改</el-dropdown-item
-                >
+                  >
+修改
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:prod-order:delete']"
                   :disabled="!canEdit(row)"
                   @click="handleDelete(row)"
-                  >删除</el-dropdown-item
-                >
+                  >
+删除
+</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </ElDropdown>

@@ -22,6 +22,7 @@ import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { finishOpTask, getOpTaskPage, startOpTask } from '#/api/mes/optask';
 import { submitProdReport } from '#/api/mes/prodreport';
 
+import { MES_OP_TASK_STATUS } from '../../order-form';
 import {
   useReportFormSchema,
   useTaskGridColumns,
@@ -35,10 +36,16 @@ const remainingQty = computed(
     Number(selectedTask.value?.completedQty ?? 0) -
     Number(selectedTask.value?.scrapQty ?? 0),
 );
-const canStart = computed(() => selectedTask.value?.status === 'READY');
-const canReport = computed(() => selectedTask.value?.status === 'RUNNING');
+const canStart = computed(
+  () => selectedTask.value?.status === MES_OP_TASK_STATUS.READY,
+);
+const canReport = computed(
+  () => selectedTask.value?.status === MES_OP_TASK_STATUS.RUNNING,
+);
 const canFinish = computed(
-  () => selectedTask.value?.status === 'RUNNING' && remainingQty.value <= 0,
+  () =>
+    selectedTask.value?.status === MES_OP_TASK_STATUS.RUNNING &&
+    remainingQty.value <= 0,
 );
 
 const [ReportForm, reportFormApi] = useVbenForm({

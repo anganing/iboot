@@ -27,6 +27,7 @@ import {
 } from '#/api/mes/materialreq';
 import { $t } from '#/locales';
 
+import { MES_MATERIAL_REQ_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import MaterialReqLineDrawer from './modules/material-req-line-drawer.vue';
@@ -52,19 +53,22 @@ function handleCreate() {
 }
 
 function isDraft(row: MesMaterialReqApi.MaterialReq) {
-  return row.status === 'DRAFT';
+  return row.status === MES_MATERIAL_REQ_STATUS.DRAFT;
 }
 
 function canSubmit(row: MesMaterialReqApi.MaterialReq) {
-  return row.status === 'DRAFT';
+  return row.status === MES_MATERIAL_REQ_STATUS.DRAFT;
 }
 
 function canConfirm(row: MesMaterialReqApi.MaterialReq) {
-  return row.status === 'SUBMITTED';
+  return row.status === MES_MATERIAL_REQ_STATUS.SUBMITTED;
 }
 
 function canCancel(row: MesMaterialReqApi.MaterialReq) {
-  return row.status === 'DRAFT' || row.status === 'SUBMITTED';
+  return (
+    row.status === MES_MATERIAL_REQ_STATUS.DRAFT ||
+    row.status === MES_MATERIAL_REQ_STATUS.SUBMITTED
+  );
 }
 
 /** 提交申请：领料与补料逐行占库存预留 */
@@ -290,16 +294,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
             link
             type="primary"
             @click="handleSubmit(row)"
-            >提交</ElButton
-          >
+            >
+提交
+</ElButton>
           <ElButton
             v-access:code="['mes:material-req:confirm']"
             :disabled="!canConfirm(row)"
             link
             type="primary"
             @click="handleConfirm(row)"
-            >确认</ElButton
-          >
+            >
+确认
+</ElButton>
           <ElDropdown placement="bottom-end" trigger="click">
             <ElButton link type="primary">更多</ElButton>
             <template #dropdown>
@@ -308,20 +314,23 @@ const [Grid, gridApi] = useVbenVxeGrid({
                   v-access:code="['mes:material-req:cancel']"
                   :disabled="!canCancel(row)"
                   @click="handleCancel(row)"
-                  >取消</el-dropdown-item
-                >
+                  >
+取消
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:material-req:update']"
                   :disabled="!isDraft(row)"
                   @click="handleEdit(row)"
-                  >修改</el-dropdown-item
-                >
+                  >
+修改
+</el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:material-req:delete']"
                   :disabled="!isDraft(row)"
                   @click="handleDelete(row)"
-                  >删除</el-dropdown-item
-                >
+                  >
+删除
+</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </ElDropdown>

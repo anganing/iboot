@@ -15,6 +15,7 @@ import {
 } from '#/api/mes/prodreport';
 import { $t } from '#/locales';
 
+import { MES_PROD_REPORT_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 
@@ -34,7 +35,7 @@ function handleCreate() {
 }
 
 function canCancelReport(row: MesProdReportApi.ProdReport) {
-  return row.status === 'SUBMITTED';
+  return row.status === MES_PROD_REPORT_STATUS.SUBMITTED;
 }
 
 /** 取消报工：反向扣减三级数量并写反向流水 */

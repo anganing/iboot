@@ -15,10 +15,14 @@ import {
 } from '#/api/mes/opskiprecord';
 import { $t } from '#/locales';
 
+import { MES_OP_SKIP_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 
 function canRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
-  return row.status === 'PENDING' || row.status === 'EFFECTIVE';
+  return (
+    row.status === MES_OP_SKIP_STATUS.PENDING ||
+    row.status === MES_OP_SKIP_STATUS.EFFECTIVE
+  );
 }
 
 /** 刷新表格 */
