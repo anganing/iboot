@@ -145,6 +145,15 @@ public class BpmTaskServiceImpl implements BpmTaskService {
     }
 
     @Override
+    public long getTaskTodoCount(Long userId) {
+        return taskService.createTaskQuery()
+                .taskAssignee(String.valueOf(userId))
+                .active()
+                .taskTenantId(FlowableUtils.getTenantId())
+                .count();
+    }
+
+    @Override
     public BpmTaskRespVO getTodoTask(Long userId, String taskId, String processInstanceId) {
         // 1.1 获取指定的用户待办任务
         Task todoTask = getMyTodoTask(userId, taskId);

@@ -38,6 +38,14 @@ public interface BpmTaskService {
     PageResult<Task> getTaskTodoPage(Long userId, BpmTaskPageReqVO pageReqVO);
 
     /**
+     * 获得用户待办任务数量。
+     *
+     * @param userId 用户编号
+     * @return 待办任务数量
+     */
+    long getTaskTodoCount(Long userId);
+
+    /**
      * 获得用户（待办）的任务：
      * 1. 根据 taskId 查询待办任务
      * 2. 如果任务不存在（或者已审核），获取指定流程下，首个需要处理任务

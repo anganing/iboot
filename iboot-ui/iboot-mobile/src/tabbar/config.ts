@@ -32,6 +32,18 @@ export const nativeTabbarList: NativeTabBarItem[] = [
     text: '首页',
   },
   {
+    iconPath: 'static/tabbar/home.png',
+    selectedIconPath: 'static/tabbar/homeHL.png',
+    pagePath: 'pages/work/index',
+    text: '工作',
+  },
+  {
+    iconPath: 'static/tabbar/example.png',
+    selectedIconPath: 'static/tabbar/exampleHL.png',
+    pagePath: 'pages/notify/index',
+    text: '消息',
+  },
+  {
     iconPath: 'static/tabbar/personal.png',
     selectedIconPath: 'static/tabbar/personalHL.png',
     pagePath: 'pages/me/me',
@@ -41,7 +53,7 @@ export const nativeTabbarList: NativeTabBarItem[] = [
 
 // TODO: 3/3. 使用 CUSTOM_TABBAR 时，更新下面的 tabbar 配置
 // 如果需要配置鼓包，需要在 'tabbar/store.ts' 里面设置，最后在 `tabbar/index.vue` 里面更改鼓包的图片
-// 顺序即下标：0=首页 1=消息 2=我的；消息中心的未读角标走 tabbarStore.setTabbarItemBadge(1, count)
+// 顺序即下标：0=首页 1=工作 2=消息 3=我的；消息中心角标走 tabbarStore.setTabbarItemBadge(2, count)
 export const customTabbarList: CustomTabBarItem[] = [
   {
     text: '首页',
@@ -54,10 +66,16 @@ export const customTabbarList: CustomTabBarItem[] = [
     // badge: 'dot',
   },
   {
+    text: '工作',
+    pagePath: 'pages/work/index',
+    iconType: 'unocss',
+    icon: 'i-carbon-application',
+  },
+  {
     text: '消息',
     pagePath: 'pages/notify/index',
     iconType: 'unocss',
-    icon: 'i-carbon-email',
+    icon: 'i-carbon-notification',
     // badge: 10,
   },
   {

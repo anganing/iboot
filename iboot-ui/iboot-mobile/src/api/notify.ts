@@ -9,8 +9,8 @@ export interface NotifyMessageItem {
   templateContent: string
   /** 是否已读，false=未读 */
   readStatus: boolean
-  createTime: string
-  readTime: string | null
+  createTime: number | string
+  readTime: number | string | null
 }
 
 /** 站内信分页返回结构 */

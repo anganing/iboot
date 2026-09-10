@@ -82,6 +82,13 @@ public class BpmTaskController {
         return success(BpmTaskConvert.INSTANCE.buildTodoTaskPage(pageResult, processInstanceMap, userMap, processDefinitionInfoMap));
     }
 
+    @GetMapping("todo-count")
+    @Operation(summary = "获取当前用户待办任务数量")
+    @PreAuthorize("@ss.hasPermission('bpm:task:query')")
+    public CommonResult<Long> getTaskTodoCount() {
+        return success(taskService.getTaskTodoCount(getLoginUserId()));
+    }
+
     @GetMapping("done-page")
     @Operation(summary = "获取 Done 已办任务分页")
     @PreAuthorize("@ss.hasPermission('bpm:task:query')")
