@@ -14,8 +14,22 @@ page {
   // Wot UI 组件、UnoCSS 的 text-primary 和自定义页面视觉共用这一组语义变量。
   --wot-color-theme: #1c64fd;
   --wot-button-primary-bg: #1c64fd;
-  --app-primary-soft: #e8f0ff;
-  --app-page-bg: #f5f7fb;
+  --wot-button-primary-color: #ffffff;
+  --app-page-bg: #f6f8fb;
+  --app-surface: #ffffff;
+  --app-primary-soft: #eaf1ff;
+  --app-border: #e6ebf2;
+  --app-text: #172033;
+  --app-text-secondary: #667085;
+  --app-text-tertiary: #98a2b3;
+  --app-success: #149b61;
+  --app-success-soft: #eaf8f0;
+  --app-warning: #c97812;
+  --app-warning-soft: #fff4e5;
+  --app-danger: #dc3e4d;
+  --app-danger-soft: #fff0f1;
+  --app-radius: 8px;
+  --app-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
 }
 
 /*
