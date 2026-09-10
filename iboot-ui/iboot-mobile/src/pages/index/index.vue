@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { getTaskTodoCount } from '@/api/bpm'
+import { getMyNotice, getMyNoticePage } from '@/api/notice'
 import { getUnreadNotifyCount } from '@/api/notify'
 import { useUserStore } from '@/store'
 import { tabbarStore } from '@/tabbar/store'
@@ -20,6 +21,9 @@ const userStore = useUserStore()
 const nickname = computed(() => userStore.userInfo.nickname || '用户')
 const todoCount = ref(0)
 const notifyCount = ref(0)
+const noticeList = ref<Array<{ content: string, id: number, title: string }>>([])
+const selectedNotice = ref<{ content: string, createTime: number | string, title: string }>()
+const showNoticeDetail = ref(false)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -46,6 +50,64 @@ async function refreshOverview() {
   tabbarStore.setTabbarItemBadge(MESSAGE_TAB_INDEX, messageBadge.value || undefined)
 }
 
+async function refreshNotices() {
+  try {
+    const result = await getMyNoticePage()
+    noticeList.value = result.list.map(item => ({
+      content: getPlainText(item.content),
+      id: item.id,
+      title: item.title,
+    }))
+  }
+  catch {
+    noticeList.value = []
+  }
+}
+
+async function openNotice({ index }: { index: number }) {
+  const notice = noticeList.value[index]
+  if (!notice) {
+    return
+  }
+  try {
+    const detail = await getMyNotice(notice.id)
+    selectedNotice.value = detail
+    showNoticeDetail.value = true
+  }
+  catch {}
+}
+
+function formatTime(value?: number | string) {
+  if (!value) {
+    return ''
+  }
+  const timestamp = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+  const pad = (num: number) => String(num).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function getMobileRichText(content: string) {
+  return content
+    .replace(/\s(?:width|height)=(['"]).*?\1/gi, '')
+    .replace(/\sstyle=(['"]).*?\1/gi, '')
+    .replace(/<img\b/gi, '<img style="max-width:100%;height:auto;display:block;"')
+}
+
+function getPlainText(content: string) {
+  return content
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function goMessage() {
   uni.switchTab({ url: '/pages/notify/index' })
 }
@@ -56,11 +118,13 @@ function goWork() {
 
 onShow(() => {
   refreshOverview()
+  refreshNotices()
 })
 
 onPullDownRefresh(async () => {
   try {
     await refreshOverview()
+    await refreshNotices()
   }
   finally {
     uni.stopPullDownRefresh()
@@ -76,6 +140,18 @@ onPullDownRefresh(async () => {
     </view>
 
     <view class="mx-4 -mt-7">
+      <wd-notice-bar
+        v-if="noticeList.length"
+        :text="noticeList.map(item => `${item.title}：${item.content}`)"
+        prefix="sound"
+        type="warning"
+        :delay="3"
+        :speed="45"
+        closable
+        custom-class="home-notice"
+        @click="openNotice"
+      />
+
       <view class="rounded-lg bg-white p-4 shadow-sm" @click="goMessage">
         <view class="flex items-center">
           <view class="h-11 w-11 center rounded-lg bg-[#e8f0ff] text-primary">
@@ -125,11 +201,61 @@ onPullDownRefresh(async () => {
         <wd-icon name="arrow-right" class="text-gray-300" />
       </view>
     </view>
+
+    <wd-popup v-model="showNoticeDetail" position="bottom" round safe-area-inset-bottom :z-index="1100" custom-class="notice-detail-popup">
+      <view v-if="selectedNotice" class="h-[70vh] flex flex-col bg-white">
+        <view class="flex items-center justify-between px-5 py-4">
+          <text class="truncate pr-4 text-lg text-gray-900 font-semibold">{{ selectedNotice.title }}</text>
+          <wd-icon name="close" size="20px" class="shrink-0 text-gray-400" @click="showNoticeDetail = false" />
+        </view>
+        <scroll-view scroll-y :scroll-x="false" class="notice-detail-scroll">
+          <view class="notice-detail-content">
+            <text class="block text-xs text-gray-400">{{ formatTime(selectedNotice.createTime) }}</text>
+            <view class="my-4 h-px bg-[#edf0f4]" />
+            <rich-text :nodes="getMobileRichText(selectedNotice.content)" class="notice-rich-text" />
+          </view>
+        </scroll-view>
+      </view>
+    </wd-popup>
   </view>
 </template>
 
 <style lang="scss" scoped>
 .home-header {
   background: linear-gradient(180deg, #1c64fd 0%, #4d8bff 100%);
+}
+
+:deep(.home-notice) {
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+:deep(.notice-detail-popup) {
+  z-index: 1100;
+}
+
+.notice-detail-scroll {
+  flex: 1;
+  width: 100%;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.notice-detail-content {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 20px 24px;
+  overflow-wrap: anywhere;
+}
+
+.notice-rich-text {
+  display: block;
+  max-width: 100%;
+  color: #374151;
+  font-size: 30rpx;
+  line-height: 1.75;
+  word-break: break-all;
 }
 </style>

@@ -68,9 +68,8 @@ onPullDownRefresh(async () => {
       <view class="pt-5 text-2xl text-white font-bold">工作</view>
       <view class="mt-2 text-sm text-white/80">选择一个功能，开始处理今天的工作</view>
     </view>
-    <view class="header-fade" />
 
-    <view v-if="sections.length" class="px-4 pb-4">
+    <view v-if="sections.length" class="px-4 pb-4 pt-5">
       <view v-for="section in sections" :key="section.key" class="mb-6">
         <view class="mb-3 flex items-center px-1">
           <wd-icon :name="section.icon" size="20px" class="text-primary" />
@@ -102,8 +101,4 @@ onPullDownRefresh(async () => {
   background: linear-gradient(180deg, #1c64fd 0%, #4d8bff 100%);
 }
 
-.header-fade {
-  height: 48rpx;
-  background: linear-gradient(180deg, #4d8bff 0%, #f5f7fb 100%);
-}
 </style>

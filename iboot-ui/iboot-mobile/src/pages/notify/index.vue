@@ -18,13 +18,6 @@ type MessageTab = 'todo' | 'done' | 'copy' | 'notify'
 type MessageItem = BpmCopyItem | BpmTaskItem | NotifyMessageItem
 
 const MESSAGE_TAB_INDEX = 2
-const tabs: Array<{ name: MessageTab, title: string }> = [
-  { name: 'todo', title: '待办' },
-  { name: 'done', title: '已办' },
-  { name: 'copy', title: '抄送' },
-  { name: 'notify', title: '通知' },
-]
-
 const pagingRef = ref<ZPagingRef>()
 const dataList = ref<MessageItem[]>([])
 const activeTab = ref<MessageTab>('todo')
@@ -32,7 +25,19 @@ const todoCount = ref(0)
 const notifyCount = ref(0)
 const selectedNotify = ref<NotifyMessageItem>()
 const showNotifyDetail = ref(false)
-const todoTabTitle = computed(() => todoCount.value > 0 ? `待办 ${todoCount.value}` : '待办')
+const segmentedOptions = ['待办', '已办', '抄送', '通知']
+const segmentedTab = computed({
+  get: () => ({ todo: '待办', done: '已办', copy: '抄送', notify: '通知' })[activeTab.value],
+  set: (value: string) => {
+    const tabMap: Record<string, MessageTab> = {
+      待办: 'todo',
+      已办: 'done',
+      抄送: 'copy',
+      通知: 'notify',
+    }
+    activeTab.value = tabMap[value] || 'todo'
+  },
+})
 const messageBadge = computed(() => todoCount.value + notifyCount.value)
 
 function isNotifyItem(item: MessageItem): item is NotifyMessageItem {
@@ -141,11 +146,6 @@ async function queryList(pageNo: number, pageSize: number) {
   }
 }
 
-function selectTab(tab: MessageTab) {
-  if (activeTab.value !== tab)
-    activeTab.value = tab
-}
-
 watch(activeTab, () => {
   pagingRef.value?.reload()
 })
@@ -192,13 +192,11 @@ onShow(() => {
   <view class="h-full bg-[#f5f7fb]">
     <z-paging ref="pagingRef" v-model="dataList" :default-page-size="5" bg-color="#f5f7fb" :empty-view-text="activeTab === 'todo' ? '暂无待办任务' : '暂无消息'" safe-area-inset-bottom @query="queryList">
       <template #top>
-        <view class="bg-white px-4 pb-3 pt-safe">
-          <view class="pt-3 text-xl text-gray-900 font-bold">消息</view>
-          <view class="mt-4 flex rounded-lg bg-[#f1f4f8] p-1">
-            <view v-for="tab in tabs" :key="tab.name" class="min-w-0 flex flex-1 items-center justify-center rounded-md py-2 text-sm" :class="activeTab === tab.name ? 'bg-white text-primary font-semibold shadow-sm' : 'text-gray-500'" @click="selectTab(tab.name)">
-              <text class="truncate">{{ tab.name === 'todo' ? todoTabTitle : tab.title }}</text>
-            </view>
-          </view>
+        <view class="message-header px-5 pb-6 pt-safe">
+          <view class="pt-5 text-2xl text-white font-bold">消息</view>
+        </view>
+        <view class="bg-[#f5f7fb] px-4 pb-3 pt-4">
+          <wd-segmented v-model:value="segmentedTab" :options="segmentedOptions" theme="outline" custom-class="message-tabs" />
           <view v-if="activeTab === 'notify' && notifyCount > 0" class="mt-3 text-right">
             <text class="text-sm text-primary" @click="onReadAll">全部标记已读</text>
           </view>
@@ -247,6 +245,14 @@ onShow(() => {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.message-header {
+  background: linear-gradient(180deg, #1c64fd 0%, #4d8bff 100%);
+}
+
+.message-tabs {
+  width: 100%;
 }
 
 :deep(.notify-detail-popup) {
