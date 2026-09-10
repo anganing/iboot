@@ -68,3 +68,5 @@ application-my.yaml
 .tmp-codegen/
 .arts/
 .codeartsdoer/
+.claude/
+.codex/
