@@ -1,6 +1,8 @@
 package com.iboot.pf.module.mes.service.materialreq;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
 import com.iboot.pf.module.mdm.api.bom.dto.BomLineRespDTO;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
@@ -161,6 +163,8 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
     private InOrderApi inOrderApi;
     @MockitoBean
     private MesCodeService codeService;
+    @MockitoBean
+    private BpmProcessInstanceApi processInstanceApi;
 
     /** 物料到可用量的账面，恒等于现存 − 预留。 */
     private final Map<Long, BigDecimal> stock = new HashMap<>();
@@ -232,6 +236,7 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
         });
         when(bomApi.getBomLineList(any())).thenReturn(List.of());
         when(routeApi.getRouteOpMatList(any())).thenReturn(List.of());
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("supplement-process-1");
         mockReservationApi();
         mockOrderApi();
     }
@@ -1048,8 +1053,13 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
         givenInventory(MAT_A, "500");
         Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
         domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+        MaterialReqDO submitted = reqOf(reqId);
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), submitted.getApprovalStatus());
+        assertEquals("supplement-process-1", submitted.getProcessInstanceId());
+        domainService.updateSupplementApprovalStatus(reqId, submitted.getProcessInstanceId(),
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意补料");
 
-        // 调用
+        // 审批通过后才允许确认，补料与领料技术路径相同，都走出库单
         domainService.confirmMaterialReq(confirmBO(reqOf(reqId)));
 
         // 断言：补料同样是 PROD_ISSUE_OUT，现存下降、预留核销、可用量不变
@@ -1160,6 +1170,23 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
         assertServiceException(() -> domainService.cancelMaterialReq(actionBO(req, "反悔了")),
                 MATERIAL_REQ_STATUS_INVALID);
         // 预留没被释放，可用量仍是被占住的状态
+        assertEquals(0, new BigDecimal("400").compareTo(stock.get(MAT_A)));
+    }
+
+    @Test
+    void testCancel_runningSupplementApprovalRejected() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        stock.put(MAT_A, new BigDecimal("500"));
+        MaterialReqDO req = submittedIssueReq(order);
+        materialReqMapper.updateById(new MaterialReqDO().setId(req.getId())
+                .setProcessInstanceId("supplement-process-running")
+                .setApprovalStatus(BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
+
+        assertServiceException(() -> domainService.cancelMaterialReq(actionBO(req, "审批中撤销")),
+                MATERIAL_REQ_STATUS_INVALID);
+        assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), reqOf(req.getId()).getStatus());
         assertEquals(0, new BigDecimal("400").compareTo(stock.get(MAT_A)));
     }
 

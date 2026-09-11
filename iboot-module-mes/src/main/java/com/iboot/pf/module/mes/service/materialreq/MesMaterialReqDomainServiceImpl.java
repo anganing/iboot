@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.iboot.pf.framework.security.core.util.SecurityFrameworkUtils;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.mdm.api.uom.UomApi;
@@ -25,6 +27,9 @@ import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesMaterialReqLineStatusEnum;
 import com.iboot.pf.module.mes.enums.MesMaterialReqStatusEnum;
 import com.iboot.pf.module.mes.enums.MesMaterialReqTypeEnum;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.kitsnapshot.MesKitRequirementExpander;
@@ -53,6 +58,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -70,6 +76,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LINE
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LINE_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LOC_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_NOT_APPROVED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_RETURN_BATCH_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_WAREHOUSE_REQUIRED;
@@ -154,6 +161,11 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
     private OutOrderApi outOrderApi;
     @Resource
     private InOrderApi inOrderApi;
+    @Resource
+    private BpmProcessInstanceApi processInstanceApi;
+
+    /** 超发领料流程定义 key。 */
+    public static final String PROCESS_KEY_SUPPLEMENT = "mes-supplement";
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -316,11 +328,26 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
     public void submitMaterialReq(MesMaterialReqActionBO bo) {
         MaterialReqDO req = requireMaterialReq(bo.getMaterialReqId());
         MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.SUBMIT_MATERIAL_REQ, req.getReqNo());
-        commandService.executeVoid(MesCommandTypeEnum.SUBMIT_MATERIAL_REQ, command, () -> doSubmit(req));
+        commandService.executeVoid(MesCommandTypeEnum.SUBMIT_MATERIAL_REQ, command, () -> {
+            boolean approvalRequired = requiresSupplementApproval(req);
+            doSubmit(req);
+            if (!approvalRequired) {
+                return;
+            }
+            BpmProcessInstanceCreateReqDTO createReq = new BpmProcessInstanceCreateReqDTO();
+            createReq.setProcessDefinitionKey(PROCESS_KEY_SUPPLEMENT);
+            createReq.setBusinessKey(String.valueOf(req.getId()));
+            String instanceId = processInstanceApi.createProcessInstance(
+                    SecurityFrameworkUtils.getLoginUserId(), createReq);
+            materialReqMapper.updateById(new MaterialReqDO().setId(req.getId())
+                    .setProcessInstanceId(instanceId)
+                    .setApprovalStatus(BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
+        });
     }
 
     /**
-     * 提交：领料与补料逐行占预留，退料只推状态。
+     * 提交：领料与补料逐行占预留，退料只推状态。超发场景在此发起审批，形成“申请、提交发起审批、
+     * 审批通过、确认出库”四段；审批中只占预留，不产生出入库事实。
      *
      * <p>预留前先按物料汇总做一次可用量前置校验，目的是把错误信息里的物料编码给出来——
      * WMS 侧的可用量不足只知道物料编号，车间看不懂。并发下真正的最终防线仍是 WMS 的预留动作。
@@ -423,6 +450,10 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
         if (!ObjUtil.equal(MesMaterialReqStatusEnum.SUBMITTED.name(), req.getStatus())) {
             throw exception(MATERIAL_REQ_STATUS_INVALID);
         }
+        if (StrUtil.isNotBlank(req.getProcessInstanceId())
+                && !BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(req.getApprovalStatus())) {
+            throw exception(MATERIAL_REQ_NOT_APPROVED);
+        }
         List<ConfirmLine> plan = buildConfirmPlan(req, linesOf(req.getId()), bo);
         // 交给 WMS 之前先落中间态：事务内的标记，WMS 调用抛异常时随事务回滚到 SUBMITTED
         materialReqMapper.updateById(new MaterialReqDO().setId(req.getId())
@@ -481,6 +512,10 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
      * 已交给 WMS 之后不允许取消：料已经在路上或已出库，MES 单方面取消会让两侧数量对不上。
      */
     private void doCancel(MaterialReqDO req, String reason) {
+        // 运行中的补料审批必须由流程终态回调收尾；直接取消会让审批状态与预留状态分叉。
+        if (BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(req.getApprovalStatus())) {
+            throw exception(MATERIAL_REQ_STATUS_INVALID);
+        }
         boolean draft = MesMaterialReqStatusEnum.isDraft(req.getStatus());
         boolean submitted = ObjUtil.equal(MesMaterialReqStatusEnum.SUBMITTED.name(), req.getStatus());
         if (!draft && !submitted) {
@@ -499,6 +534,72 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
                 .setId(req.getId())
                 .setStatus(MesMaterialReqStatusEnum.CANCELLED.name())
                 .setRemark(reason));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSupplementApprovalStatus(Long materialReqId, String processInstanceId,
+                                               Integer status, String reason) {
+        // 第一层：审批中事件不改变业务状态
+        if (!BpmProcessInstanceStatusEnum.isProcessEndStatus(status)) {
+            return;
+        }
+        MaterialReqDO req = requireMaterialReq(materialReqId);
+        // 第二层：只接受当前申请正在等待的那一个流程实例
+        if (!processInstanceId.equals(req.getProcessInstanceId())
+                || !BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(req.getApprovalStatus())) {
+            return;
+        }
+        // 第三层：条件更新抢占终态处理权，重复事件不会二次释放预留
+        int updated = materialReqMapper.update(new MaterialReqDO()
+                        .setId(materialReqId)
+                        .setApprovalStatus(status)
+                        .setApprovalTime(LocalDateTime.now())
+                        .setApprovalReason(reason),
+                new LambdaUpdateWrapper<MaterialReqDO>()
+                        .eq(MaterialReqDO::getId, materialReqId)
+                        .eq(MaterialReqDO::getApprovalStatus,
+                                BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
+        if (updated != 1 || BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(status)) {
+            return;
+        }
+        // 驳回或撤销均不再允许确认，释放提交阶段的预留并收尾申请。
+        doCancel(req, reason);
+    }
+
+    /**
+     * 是否为超发领料审批。补料天然代表计划外领用；普通领料按同工单历史实发量加本单申请量
+     * 与下达工单锁定 BOM 的需求量逐物料比较，任一物料超出即审批。
+     */
+    private boolean requiresSupplementApproval(MaterialReqDO req) {
+        if (MesMaterialReqTypeEnum.SUPPLEMENT.name().equals(req.getReqType())) {
+            return true;
+        }
+        if (!MesMaterialReqTypeEnum.ISSUE.name().equals(req.getReqType())) {
+            return false;
+        }
+        ProdOrderDO order = requireProdOrder(req.getProdOrderId());
+        Map<Long, BigDecimal> plannedQtyByMat = new HashMap<>();
+        if (!isNone(order.getBomId())) {
+            requirementExpander.expandByBom(order.getBomId(), order.getQty()).forEach(requirement ->
+                    plannedQtyByMat.put(requirement.getMatId(), requirement.getReqQty()));
+        }
+        Map<Long, BigDecimal> requestedQtyByMat = new HashMap<>();
+        linesOf(req.getId()).forEach(line -> requestedQtyByMat.merge(line.getMatId(), line.getQty(), BigDecimal::add));
+
+        List<MaterialReqDO> historicalReqs = materialReqMapper.selectList(MaterialReqDO::getProdOrderId,
+                req.getProdOrderId()).stream().filter(item -> !item.getId().equals(req.getId()))
+                .filter(item -> !MesMaterialReqTypeEnum.isReturn(item.getReqType())).toList();
+        Map<Long, BigDecimal> issuedQtyByMat = new HashMap<>();
+        if (CollUtil.isNotEmpty(historicalReqs)) {
+            List<MaterialReqLineDO> historicalLines = materialReqLineMapper.selectList(MaterialReqLineDO::getReqId,
+                    historicalReqs.stream().map(MaterialReqDO::getId).toList());
+            historicalLines.forEach(line -> issuedQtyByMat.merge(line.getMatId(), nvlQty(line.getProcessedQty()),
+                    BigDecimal::add));
+        }
+        return requestedQtyByMat.entrySet().stream().anyMatch(entry -> issuedQtyByMat
+                .getOrDefault(entry.getKey(), BigDecimal.ZERO).add(entry.getValue())
+                .compareTo(plannedQtyByMat.getOrDefault(entry.getKey(), BigDecimal.ZERO)) > 0);
     }
 
     @Override

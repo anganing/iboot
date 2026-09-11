@@ -38,8 +38,14 @@ public enum MesBizTypeEnum implements ArrayValuable<String> {
     IN_ORDER("WMS入库单"),
     /** WMS出库单。 */
     OUT_ORDER("WMS出库单"),
+    /** WMS库存流水。 */
+    INV_TXN("WMS库存流水"),
+    /** WMS库存冻结。 */
+    INV_LOCK("WMS库存冻结"),
     /** 到货登记。 */
-    ARRIVAL("到货登记");
+    ARRIVAL("到货登记"),
+    /** 排程下达：APS 发布排程版本回写工序计划，在制流水用它标注计划来源。 */
+    SCHEDULE_RELEASE("排程下达");
 
     public static final String[] ARRAYS = Arrays.stream(values()).map(Enum::name).toArray(String[]::new);
 

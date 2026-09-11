@@ -129,12 +129,21 @@ public class CountOrderController {
         return success(true);
     }
 
+    @PostMapping("/submit-diff-approval")
+    @Operation(summary = "提交盘点差异审批")
+    @PreAuthorize("@ss.hasPermission('wms:count-order:submit-diff-approval')")
+    public CommonResult<Boolean> submitCountDiffApproval(@Valid @RequestBody CountOrderActionReqVO reqVO) {
+        wmsCountOrderService.submitCountDiffApproval(reqVO.getId());
+        return success(true);
+    }
+
     // ==================== 展示查询 ====================
 
     @GetMapping("/get")
     @Operation(summary = "获得WMS-盘点单")
     @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('wms:count-order:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('wms:count-order:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<CountOrderRespVO> getCountOrder(@RequestParam("id") Long id) {
         return success(countOrderService.getCountOrder(id));
     }
@@ -167,7 +176,8 @@ public class CountOrderController {
 
     @GetMapping("/count-order-line/page")
     @Operation(summary = "获得WMS-盘点明细分页")
-    @PreAuthorize("@ss.hasPermission('wms:count-order:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('wms:count-order:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<PageResult<CountOrderLineRespVO>> getCountOrderLinePage(@Valid CountOrderLinePageReqVO pageReqVO) {
         return success(countOrderService.getCountOrderLinePage(pageReqVO));
     }

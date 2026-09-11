@@ -8,11 +8,14 @@ import com.iboot.pf.module.wms.api.inventory.dto.InventoryPageReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryQueryReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryTxnQueryReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryTxnRespDTO;
+import com.iboot.pf.module.wms.api.inventory.dto.QualityChangeReqDTO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
 import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryQueryBO;
 import com.iboot.pf.module.wms.service.inventory.bo.WmsInventoryTxnQueryBO;
+import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
+import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -73,6 +76,28 @@ public class InventoryApiImpl implements InventoryApi {
         WmsInventoryQueryBO bo = toBOPage(pageReq);
         PageResult<WmsInvBalanceDO> page = inventoryService.getBalancePage(pageReq, bo);
         return BeanUtils.toBean(page, InventoryBalanceRespDTO.class, this::fillAvailable);
+    }
+
+    @Override
+    public Long changeQualityStatus(QualityChangeReqDTO reqDTO) {
+        WmsInvPostBO bo = BeanUtils.toBean(reqDTO, WmsInvPostBO.class);
+        bo.setTxnType(WmsTxnTypeEnum.QUALITY_CHANGE.name());
+        bo.setBizType("QUALITY_DISPOSITION");
+        bo.setBizNo(reqDTO.getSourceBizNo());
+        bo.setBizLineNo(reqDTO.getSourceBizLineNo());
+        bo.setFromLocId(reqDTO.getLocId());
+        bo.setToLocId(reqDTO.getLocId());
+        bo.setQualityStatusFrom(reqDTO.getQualityStatusFrom());
+        bo.setQualityStatusTo(reqDTO.getQualityStatusTo());
+        bo.setProjectIdFrom(reqDTO.getProjectId());
+        bo.setProjectTaskIdFrom(reqDTO.getProjectTaskId());
+        bo.setProjectIdTo(reqDTO.getProjectId());
+        bo.setProjectTaskIdTo(reqDTO.getProjectTaskId());
+        bo.setFromStockScope(reqDTO.getStockScope());
+        bo.setToStockScope(reqDTO.getStockScope());
+        bo.setFromLocCode(reqDTO.getLocCode());
+        bo.setToLocCode(reqDTO.getLocCode());
+        return inventoryService.post(bo).getId();
     }
 
     private WmsInventoryQueryBO toBOPage(InventoryPageReqDTO query) {

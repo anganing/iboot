@@ -85,4 +85,13 @@ public class DispositionDO extends BaseDO {
      */
     private String remark;
 
+    /** 审批状态，取值见 BpmProcessInstanceStatusEnum。 */
+    private Integer approvalStatus;
+    /** 流程实例编号。 */
+    private String processInstanceId;
+    /** 审批完成时间。 */
+    private LocalDateTime approvalTime;
+    /** 审批意见或驳回原因。 */
+    private String approvalReason;
+
 }

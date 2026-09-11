@@ -82,7 +82,8 @@ public class OpSkipRecordController {
     @GetMapping("/get")
     @Operation(summary = "获得工序跳过记录")
     @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:op-skip-record:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('mes:op-skip-record:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<OpSkipRecordRespVO> getOpSkipRecord(@RequestParam("id") Long id) {
         return success(opSkipRecordService.getOpSkipRecord(id));
     }

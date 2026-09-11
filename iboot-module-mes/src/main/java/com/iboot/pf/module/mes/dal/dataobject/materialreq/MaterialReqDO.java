@@ -11,6 +11,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 /**
  * MES-领退补料申请 DO
  *
@@ -91,5 +93,14 @@ public class MaterialReqDO extends BaseDO {
      * 备注
      */
     private String remark;
+
+    /** 审批状态，取值见 BpmProcessInstanceStatusEnum。 */
+    private Integer approvalStatus;
+    /** 流程实例编号。 */
+    private String processInstanceId;
+    /** 审批完成时间。 */
+    private LocalDateTime approvalTime;
+    /** 审批意见或驳回原因。 */
+    private String approvalReason;
 
 }

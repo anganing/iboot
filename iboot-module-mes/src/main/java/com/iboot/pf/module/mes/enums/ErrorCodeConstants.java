@@ -103,6 +103,7 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_REQ_LINE_NO_DUPLICATE = new ErrorCode(1_064_013_003, "同一申请下行号已存在");
     ErrorCode MATERIAL_REQ_STATUS_INVALID = new ErrorCode(1_064_013_004, "领退补料申请当前状态不允许该操作");
     ErrorCode MATERIAL_REQ_RETURN_BATCH_REQUIRED = new ErrorCode(1_064_013_005, "退料明细必须指定批次");
+    ErrorCode MATERIAL_REQ_NOT_APPROVED = new ErrorCode(1_064_013_012, "超发领料申请未审批通过，不能确认出库");
     ErrorCode MATERIAL_REQ_LINE_EMPTY =
             new ErrorCode(1_064_013_006, "领退补料申请没有明细行，请检查 BOM 或工序用料配置");
     ErrorCode MATERIAL_REQ_AVAILABLE_QTY_INSUFFICIENT =
@@ -224,5 +225,15 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_064_103_001, "缺陷代码({})不在当前物料分类与工序的可选范围内");
     ErrorCode QC_TASK_REJECT_WITHOUT_DEFECT =
             new ErrorCode(1_064_103_002, "拒收结论必须至少有一条缺陷记录，请先录入缺陷");
+    // ========== FQC 完工检验（质量子域 1_064_104 段） ==========
+    ErrorCode FINISH_INBOUND_QC_NOT_PASSED =
+            new ErrorCode(1_064_104_001, "完工检验未通过或合格数量不足，不能完工入库");
+    // ========== 不合格处置执行（质量子域 1_064_105 段） ==========
+    ErrorCode DISPOSITION_HANDLER_NOT_FOUND =
+            new ErrorCode(1_064_105_001, "处置类型没有对应执行器");
+    ErrorCode DISPOSITION_TARGET_EMPTY =
+            new ErrorCode(1_064_105_002, "处置执行完成但未返回联动业务凭据");
+    ErrorCode DISPOSITION_CONCESSION_WITHOUT_REASON =
+            new ErrorCode(1_064_105_003, "让步接收必须填写依据说明");
 
 }

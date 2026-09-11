@@ -6,6 +6,7 @@ import com.iboot.pf.module.wms.api.inventory.dto.InventoryPageReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryQueryReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryTxnQueryReqDTO;
 import com.iboot.pf.module.wms.api.inventory.dto.InventoryTxnRespDTO;
+import com.iboot.pf.module.wms.api.inventory.dto.QualityChangeReqDTO;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -61,5 +62,8 @@ public interface InventoryApi {
      * @return 分页结果
      */
     PageResult<InventoryBalanceRespDTO> getInventoryBalancePage(InventoryPageReqDTO pageReq);
+
+    /** 按完整库存维度迁移质量状态，底层仍只走库存过账。 */
+    Long changeQualityStatus(QualityChangeReqDTO reqDTO);
 
 }

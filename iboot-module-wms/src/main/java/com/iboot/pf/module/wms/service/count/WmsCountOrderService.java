@@ -48,6 +48,9 @@ public interface WmsCountOrderService {
     /** 确认盘点差异：生成盘盈入库单或盘亏出库单并过账，禁止直接修改余额。 */
     void confirmCountDiff(WmsConfirmCountDiffBO bo);
 
+    /** 提交盘点差异审批：发起 BPM 流程，审批通过后由回调逐行确认差异。 */
+    void submitCountDiffApproval(Long countOrderId);
+
     WmsCountOrderDO getCountOrder(Long id);
 
     List<WmsCountOrderLineDO> getCountOrderLineList(Long orderId);

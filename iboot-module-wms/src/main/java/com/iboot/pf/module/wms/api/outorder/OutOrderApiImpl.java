@@ -8,6 +8,8 @@ import com.iboot.pf.module.wms.api.order.dto.CancelOrderReqDTO;
 import com.iboot.pf.module.wms.api.order.dto.ConfirmOrderReqDTO;
 import com.iboot.pf.module.wms.api.outorder.dto.CreateOutOrderReqDTO;
 import com.iboot.pf.module.wms.api.outorder.dto.OutOrderRespDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.ResolveOqcTaskReqDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.CompleteOqcReqDTO;
 import com.iboot.pf.module.wms.dal.dataobject.outorder.WmsOutOrderDO;
 import com.iboot.pf.module.wms.dal.mysql.outorder.WmsOutOrderMapper;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
@@ -77,6 +79,16 @@ public class OutOrderApiImpl implements OutOrderApi {
         }
         List<WmsOutOrderDO> orders = outOrderMapper.selectByIds(ids);
         return CollectionUtils.convertMap(BeanUtils.toBean(orders, OutOrderRespDTO.class), OutOrderRespDTO::getId);
+    }
+
+    @Override
+    public void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO) {
+        outOrderService.resolveOqcTask(reqDTO);
+    }
+
+    @Override
+    public void completeOqc(CompleteOqcReqDTO reqDTO) {
+        outOrderService.completeOqc(reqDTO);
     }
 
 }

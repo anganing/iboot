@@ -24,6 +24,10 @@ public interface WmsInOrderLineMapper extends BaseMapperX<WmsInOrderLineDO> {
                 .orderByAsc(WmsInOrderLineDO::getLineNo));
     }
 
+    default List<WmsInOrderLineDO> selectListBySourceLineId(Long sourceLineId) {
+        return selectList(WmsInOrderLineDO::getSourceLineId, sourceLineId);
+    }
+
     default PageResult<WmsInOrderLineDO> selectPage(PageParam reqVO, Long orderId) {
         return selectPage(reqVO, new LambdaQueryWrapperX<WmsInOrderLineDO>()
             .eq(WmsInOrderLineDO::getOrderId, orderId)

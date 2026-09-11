@@ -4,6 +4,8 @@ import com.iboot.pf.module.wms.api.order.dto.CancelOrderReqDTO;
 import com.iboot.pf.module.wms.api.order.dto.ConfirmOrderReqDTO;
 import com.iboot.pf.module.wms.api.outorder.dto.CreateOutOrderReqDTO;
 import com.iboot.pf.module.wms.api.outorder.dto.OutOrderRespDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.ResolveOqcTaskReqDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.CompleteOqcReqDTO;
 
 import java.util.Collection;
 import java.util.Map;
@@ -49,5 +51,11 @@ public interface OutOrderApi {
      * @return 编号到出库单只读事实的映射；空集合返回空 Map，不抛异常
      */
     Map<Long, OutOrderRespDTO> getOutOrderMap(Collection<Long> ids);
+
+    /** 回写 OQC 规则解析结果；由 MES 监听拣选事件后调用。 */
+    void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO);
+
+    /** OQC 合格后放行确认发货。 */
+    void completeOqc(CompleteOqcReqDTO reqDTO);
 
 }

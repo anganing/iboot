@@ -1,6 +1,8 @@
 package com.iboot.pf.module.wms.service.count;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 import com.iboot.pf.module.infra.api.coderule.CodeRuleApi;
 import com.iboot.pf.module.mdm.api.material.MaterialApi;
 import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
@@ -74,6 +76,8 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
     private CodeRuleApi codeRuleApi;
     @MockitoBean
     private MaterialApi materialApi;
+    @MockitoBean
+    private BpmProcessInstanceApi processInstanceApi;
 
     @BeforeEach
     void setUp() {
@@ -89,6 +93,8 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         material.setCode("M-001");
         material.setName("物料A");
         when(materialApi.getMaterialMap(anyCollection())).thenReturn(Map.of(MAT, material));
+        when(processInstanceApi.createProcessInstance(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenReturn("count-diff-process-1");
     }
 
     /** 预置 100 在库余额。 */
@@ -171,6 +177,36 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<WmsInvBalanceDO>lambdaQuery()
                         .eq(WmsInvBalanceDO::getMatId, MAT)
                         .eq(WmsInvBalanceDO::getLocId, LOC)).stream().findFirst().orElse(null);
+    }
+
+    @Test
+    void testSubmitDiffApproval_requiresDiffLineAndStartsProcess() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("90")));
+
+        countOrderService.submitCountDiffApproval(id);
+
+        WmsCountOrderDO order = wmsCountOrderMapper.selectById(id);
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), order.getApprovalStatus());
+        assertEquals("count-diff-process-1", order.getProcessInstanceId());
+
+        WmsSubmitCountResultBO retry = submitBO(id, lineId, new BigDecimal("80"));
+        retry.setIdempotencyKey("UI:CNT-0001:SUBMIT_COUNT_RESULT:RETRY");
+        assertServiceException(() -> countOrderService.submitCountResult(retry), COUNT_ORDER_STATUS_INVALID);
+    }
+
+    @Test
+    void testSubmitDiffApproval_rejectsZeroDiff() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("100")));
+
+        assertServiceException(() -> countOrderService.submitCountDiffApproval(id), COUNT_ORDER_STATUS_INVALID);
     }
 
     @Test

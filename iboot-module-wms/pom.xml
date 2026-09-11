@@ -23,6 +23,11 @@
             <artifactId>iboot-module-system</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>com.iboot</groupId>
+            <artifactId>iboot-module-bpm</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <!-- 依赖 MDM 主数据模块，用于跨模块 API 门面取主数据 -->
         <dependency>

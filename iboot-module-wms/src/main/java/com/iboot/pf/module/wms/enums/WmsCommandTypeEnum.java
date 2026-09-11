@@ -21,6 +21,8 @@ public enum WmsCommandTypeEnum {
     SUBMIT_OUT_ORDER,
     /** 确认出库单并过账。 */
     CONFIRM_OUT_ORDER,
+    /** 拣选完成。 */
+    PICK_OUT_ORDER,
     /** 取消出库单。 */
     CANCEL_OUT_ORDER,
     /** 提交转移单。 */

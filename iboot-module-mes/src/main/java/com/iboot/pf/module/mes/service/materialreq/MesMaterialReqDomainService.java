@@ -78,6 +78,16 @@ public interface MesMaterialReqDomainService {
     void cancelMaterialReq(MesMaterialReqActionBO bo);
 
     /**
+     * 回写超发领料流程终态。审批通过后放开确认；驳回或撤销后释放提交阶段预留并取消申请。
+     *
+     * @param materialReqId 领退补料申请编号
+     * @param processInstanceId 流程实例编号
+     * @param status 流程状态
+     * @param reason 审批意见或驳回原因
+     */
+    void updateSupplementApprovalStatus(Long materialReqId, String processInstanceId, Integer status, String reason);
+
+    /**
      * 校验领退补料申请处于 {@code DRAFT}，可以被表单修改或删除。
      *
      * <p>状态规则属于领域侧，表单入口只转调这一个校验。codegen 的

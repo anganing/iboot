@@ -1,14 +1,14 @@
 package com.iboot.pf.module.wms.controller.admin.countorder.vo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import java.util.*;
-import org.springframework.format.annotation.DateTimeFormat;
-import java.time.LocalDateTime;
-import cn.idev.excel.annotation.*;
+import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
+import cn.idev.excel.annotation.ExcelProperty;
 import com.iboot.pf.framework.excel.core.annotations.DictFormat;
 import com.iboot.pf.framework.excel.core.convert.DictConvert;
 import com.iboot.pf.module.wms.enums.WmsDictTypeConstants;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Schema(description = "管理后台 - WMS-盘点单 Response VO")
 @Data
@@ -64,6 +64,18 @@ public class CountOrderRespVO {
     @Schema(description = "备注")
     @ExcelProperty("备注")
     private String remark;
+
+    @Schema(description = "流程审批状态，取值见 BpmProcessInstanceStatusEnum")
+    private Integer approvalStatus;
+
+    @Schema(description = "流程实例编号")
+    private String processInstanceId;
+
+    @Schema(description = "审批完成时间")
+    private LocalDateTime approvalTime;
+
+    @Schema(description = "审批意见或驳回原因")
+    private String approvalReason;
 
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("创建时间")

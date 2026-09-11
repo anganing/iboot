@@ -89,6 +89,9 @@ public class WmsOutOrderDO extends BaseDO {
     /** 拣选策略编号。 */
     private Long pickStrategyId;
 
+    /** 出货检验任务编号，0 表示规则未命中。 */
+    private Long oqcTaskId;
+
     /** 外部设备触发方式：NONE、WCS、AGV。 */
     private String hookMode;
 

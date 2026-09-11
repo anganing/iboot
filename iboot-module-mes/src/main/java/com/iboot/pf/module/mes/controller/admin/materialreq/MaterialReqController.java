@@ -146,7 +146,8 @@ public class MaterialReqController {
     @GetMapping("/get")
     @Operation(summary = "获得领退补料申请")
     @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:material-req:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('mes:material-req:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<MaterialReqRespVO> getMaterialReq(@RequestParam("id") Long id) {
         return success(materialReqService.getMaterialReq(id));
     }
@@ -173,7 +174,8 @@ public class MaterialReqController {
 
     @GetMapping("/material-req-line/page")
     @Operation(summary = "获得领退补料申请明细分页")
-    @PreAuthorize("@ss.hasPermission('mes:material-req:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('mes:material-req:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<PageResult<MaterialReqLineRespVO>> getMaterialReqLinePage(
             @Valid MaterialReqLinePageReqVO pageReqVO) {
         return success(materialReqService.getMaterialReqLinePage(pageReqVO));

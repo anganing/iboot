@@ -136,11 +136,13 @@ public interface ErrorCodeConstants {
     ErrorCode IN_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_007_009, "只有新建状态的入库单可以修改或删除");
     ErrorCode OUT_ORDER_CANNOT_SUBMIT = new ErrorCode(1_063_008_008, "只有新建状态的出库单可以提交");
     ErrorCode OUT_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_008_009, "只有新建状态的出库单可以修改或删除");
+    ErrorCode OUT_ORDER_OQC_NOT_PASSED = new ErrorCode(1_063_008_010, "出货检验未通过，不能确认发货");
     ErrorCode TRANSFER_ORDER_CANNOT_SUBMIT = new ErrorCode(1_063_009_009, "只有新建状态的转移单可以提交");
     ErrorCode TRANSFER_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_009_010, "只有新建状态的转移单可以修改或删除");
     ErrorCode COUNT_ORDER_CANNOT_FREEZE = new ErrorCode(1_063_010_007, "只有新建状态的盘点单可以冻结盘点范围");
     ErrorCode COUNT_ORDER_CANNOT_MODIFY = new ErrorCode(1_063_010_008, "只有新建状态的盘点单可以修改或删除");
     ErrorCode COUNT_ORDER_LINE_EMPTY = new ErrorCode(1_063_010_009, "盘点单至少包含一条明细");
+    ErrorCode COUNT_DIFF_NOT_APPROVED = new ErrorCode(1_063_010_010, "盘点差异未审批通过，不能确认");
 
     // ========== 到货登记动作（T0-07 追加） ==========
     ErrorCode ARRIVAL_CANNOT_CONFIRM = new ErrorCode(1_063_011_006, "只有新建状态的到货登记可以确认到货");

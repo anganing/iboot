@@ -114,6 +114,20 @@ public class OutOrderController {
         return success(true);
     }
 
+    @PostMapping("/pick")
+    @Operation(summary = "拣选完成，销售出库按规则触发出货检验")
+    @PreAuthorize("@ss.hasPermission('wms:out-order:pick')")
+    public CommonResult<Boolean> pickOutOrder(@Valid @RequestBody OutOrderActionReqVO reqVO) {
+        WmsConfirmOrderBO bo = new WmsConfirmOrderBO();
+        bo.setOrderId(reqVO.getId());
+        bo.setRemark(reqVO.getRemark());
+        bo.setSourceModule(WmsSourceModuleEnum.UI.name());
+        bo.setSourceBizNo(String.valueOf(reqVO.getId()));
+        bo.setIdempotencyKey(actionKey(reqVO.getIdempotencyKey(), reqVO.getId(), WmsCommandTypeEnum.PICK_OUT_ORDER));
+        wmsOutOrderService.pickOutOrder(bo);
+        return success(true);
+    }
+
     @PostMapping("/cancel")
     @Operation(summary = "取消WMS-出库单，仅新建状态可取消")
     @PreAuthorize("@ss.hasPermission('wms:out-order:cancel')")

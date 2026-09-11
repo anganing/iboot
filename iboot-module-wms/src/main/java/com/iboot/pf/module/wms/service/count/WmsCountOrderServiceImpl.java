@@ -1,6 +1,10 @@
 package com.iboot.pf.module.wms.service.count;
 
 import cn.hutool.core.collection.CollUtil;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
+import com.iboot.pf.framework.security.core.util.SecurityFrameworkUtils;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
@@ -43,18 +47,14 @@ import java.util.Set;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertSet;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_FREEZE;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_MODIFY;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_EMPTY;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_LINE_NOT_EXISTS;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_NOT_EXISTS;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
-import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.COUNT_ORDER;
 
 /** 盘点单 Service 实现。 */
 @Service
 public class WmsCountOrderServiceImpl implements WmsCountOrderService {
+
+    public static final String PROCESS_KEY_COUNT_DIFF = "wms-count-diff";
 
     @Resource
     private WmsCountOrderMapper wmsCountOrderMapper;
@@ -68,6 +68,8 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
     private WmsInOrderService inOrderService;
     @Resource
     private WmsOutOrderService outOrderService;
+    @Resource
+    private BpmProcessInstanceApi processInstanceApi;
     @Resource
     private WmsCodeService codeService;
     @Resource
@@ -258,6 +260,9 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
                             && !WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())) {
                         throw exception(COUNT_ORDER_STATUS_INVALID);
                     }
+                    if (BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(order.getApprovalStatus())) {
+                        throw exception(COUNT_ORDER_STATUS_INVALID);
+                    }
                     if (CollUtil.isEmpty(bo.getResults())) {
                         return;
                     }
@@ -290,11 +295,41 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
                 () -> doConfirmCountDiff(bo));
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitCountDiffApproval(Long countOrderId) {
+        WmsCountOrderDO order = wmsCountOrderMapper.selectById(countOrderId);
+        if (order == null || !WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())) {
+            throw exception(COUNT_ORDER_STATUS_INVALID);
+        }
+        boolean hasDiffLine = wmsCountOrderLineMapper.selectListByOrderId(countOrderId).stream()
+                .anyMatch(line -> WmsCountLineStatusEnum.DIFF.name().equals(line.getStatus()));
+        if (!hasDiffLine) {
+            throw exception(COUNT_ORDER_STATUS_INVALID);
+        }
+        if (BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(order.getApprovalStatus())) {
+            throw exception(COUNT_ORDER_STATUS_INVALID);
+        }
+        BpmProcessInstanceCreateReqDTO createReq = new BpmProcessInstanceCreateReqDTO();
+        createReq.setProcessDefinitionKey(PROCESS_KEY_COUNT_DIFF);
+        createReq.setBusinessKey(String.valueOf(countOrderId));
+        String instanceId = processInstanceApi.createProcessInstance(
+                SecurityFrameworkUtils.getLoginUserId(), createReq);
+        order.setProcessInstanceId(instanceId);
+        order.setApprovalStatus(BpmProcessInstanceStatusEnum.RUNNING.getStatus());
+        wmsCountOrderMapper.updateById(order);
+    }
+
     private void doConfirmCountDiff(WmsConfirmCountDiffBO bo) {
         WmsCountOrderDO order = requireOrder(bo.getOrderId(), bo.getCountNo());
         if (!WmsOrderStatusEnum.COUNTING.name().equals(order.getStatus())
                 && !WmsOrderStatusEnum.DIFF_CONFIRMED.name().equals(order.getStatus())) {
             throw exception(COUNT_ORDER_STATUS_INVALID);
+        }
+        // 有审批流程实例的单据必须审批通过后才能确认差异
+        if (order.getProcessInstanceId() != null
+                && !BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(order.getApprovalStatus())) {
+            throw exception(COUNT_DIFF_NOT_APPROVED);
         }
         List<WmsCountOrderLineDO> allLines = wmsCountOrderLineMapper.selectListByOrderId(order.getId());
         List<WmsCountOrderLineDO> diffLines = new ArrayList<>();

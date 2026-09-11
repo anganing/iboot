@@ -4,6 +4,10 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
+import com.iboot.pf.framework.security.core.util.SecurityFrameworkUtils;
 import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
 import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
@@ -58,6 +62,9 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EX
 @Service
 public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
 
+    /** 工序跳序审批流程定义 key，与状态监听器共用。 */
+    public static final String PROCESS_KEY_OP_SKIP = "mes-op-skip";
+
     /** 幂等键的段分隔符，格式见 08 文档的幂等键全表。 */
     private static final String KEY_SEPARATOR = ":";
     /** 工序任务级动作没有行号，第四段固定 0。 */
@@ -73,6 +80,8 @@ public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
     private MesCommandService commandService;
     @Resource
     private MesWipTxnRecorder wipTxnRecorder;
+    @Resource
+    private BpmProcessInstanceApi processInstanceApi;
 
     @Override
     public boolean skip(OpTaskDO task, Long prodOrderId, MesOpSkipBO bo, String idempotencyKey) {
@@ -113,9 +122,17 @@ public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
                 .build();
         opSkipRecordMapper.insert(record);
         if (approvalRequired) {
-            // TODO T3-07 发起 BPM 审批：以本条记录为业务单据发起流程，审批通过后再走生效那一支
-            // （置记录 EFFECTIVE、工序 -> SKIPPED、写 SKIP 流水、推后序）。本阶段不接 BPM，
-            // 记录停在 PENDING 等人处理，工序任务状态一行不动
+            // 发起 BPM 审批：以跳序记录 id 为 businessKey，审批通过后由监听器走生效那一支
+            BpmProcessInstanceCreateReqDTO createReq = new BpmProcessInstanceCreateReqDTO();
+            createReq.setProcessDefinitionKey(PROCESS_KEY_OP_SKIP);
+            createReq.setBusinessKey(String.valueOf(record.getId()));
+            String processInstanceId = processInstanceApi.createProcessInstance(
+                    SecurityFrameworkUtils.getLoginUserId(), createReq);
+            // 流程实例是回调幂等校验的第二道身份；不回写会使任何终态回调都被当成无关事件忽略。
+            opSkipRecordMapper.updateById(new OpSkipRecordDO()
+                    .setId(record.getId())
+                    .setProcessInstanceId(processInstanceId)
+                    .setApprovalStatus(BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
             return false;
         }
         advanceToSkipped(task, toStatus);

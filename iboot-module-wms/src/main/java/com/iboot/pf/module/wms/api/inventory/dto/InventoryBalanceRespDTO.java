@@ -69,6 +69,9 @@ public class InventoryBalanceRespDTO {
     @Schema(description = "项目编号", example = "0")
     private Long projectId;
 
+    /** 项目任务编号，0 表示无项目任务归属。 */
+    private Long projectTaskId;
+
     /** 库存范围：COMMON、PROJECT_DEDICATED。 */
     @Schema(description = "库存范围", example = "COMMON")
     private String stockScope;
