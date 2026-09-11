@@ -196,7 +196,8 @@ class MesQcTaskDomainServiceImplTest extends BaseDbUnitTest {
         assertEquals(BIZ_NO, task.getBizNo());
         assertEquals(MesQcTaskStatusEnum.CREATED.name(), task.getStatus());
         // 幂等键按任务书格式落库
-        assertEquals("MES:" + BIZ_NO + ":QC_CREATE:" + MesQcTriggerPointEnum.IQC.name(),
+        assertEquals("MES:" + BIZ_NO + ":" + MesConstants.NONE_ID + ":QC_CREATE:"
+                        + MesQcTriggerPointEnum.IQC.name(),
                 task.getIdempotencyKey());
         // 物料与批次快照
         assertEquals("MAT-001", task.getMatCode());

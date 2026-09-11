@@ -7,6 +7,7 @@
         t.*
         , qc_plan.code AS plan_code
         , qc_plan.name AS plan_name
+        , qc_plan.status AS plan_status
     </sql>
 
     <sql id="joinTables">

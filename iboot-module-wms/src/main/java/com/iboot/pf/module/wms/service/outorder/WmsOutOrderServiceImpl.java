@@ -16,6 +16,7 @@ import com.iboot.pf.module.wms.enums.WmsOrderLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
+import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.command.WmsCommandService;
 import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
@@ -26,10 +27,14 @@ import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
+import com.iboot.pf.module.wms.api.outorder.dto.ResolveOqcTaskReqDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.CompleteOqcReqDTO;
+import com.iboot.pf.module.wms.service.outorder.event.OutOrderPickedEvent;
 import com.iboot.pf.module.wms.service.reservation.WmsInventoryReservationService;
 import com.iboot.pf.module.wms.service.reservation.bo.WmsReservationHandleBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +51,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_CANNOT_
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LINE_EMPTY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_LOC_REQUIRED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_NOT_EXISTS;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.OUT_ORDER_OQC_NOT_PASSED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.RESERVATION_NOT_EXISTS;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.OUT_ORDER;
@@ -70,6 +76,8 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
     private WmsCommandService commandService;
     @Resource
     private MaterialApi materialApi;
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -217,7 +225,11 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
                 WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null),
                 () -> {
                     WmsOutOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
-                    if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
+                    if (WmsOutBizTypeEnum.SALES_DELIVERY_OUT.name().equals(order.getBizType())) {
+                        if (!WmsOrderStatusEnum.READY.name().equals(order.getStatus())) {
+                            throw exception(OUT_ORDER_OQC_NOT_PASSED);
+                        }
+                    } else if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
                         throw exception(OUT_ORDER_CANNOT_CONFIRM);
                     }
                     List<WmsOutOrderLineDO> lines = wmsOutOrderLineMapper.selectListByOrderId(order.getId());
@@ -255,6 +267,64 @@ public class WmsOutOrderServiceImpl implements WmsOutOrderService {
                     order.setStatus(WmsOrderStatusEnum.DONE.name());
                     wmsOutOrderMapper.updateById(order);
                 });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void pickOutOrder(WmsConfirmOrderBO bo) {
+        commandService.executeVoid(WmsCommandTypeEnum.PICK_OUT_ORDER,
+                WmsCommandBO.of(bo.getIdempotencyKey(), bo.getSourceModule(), bo.getSourceBizNo(), null), () -> {
+                    WmsOutOrderDO order = requireOrder(bo.getOrderId(), bo.getOrderNo());
+                    if (!WmsOrderStatusEnum.canPost(order.getStatus())) {
+                        throw exception(OUT_ORDER_CANNOT_CONFIRM);
+                    }
+                    List<WmsOutOrderLineDO> lines = wmsOutOrderLineMapper.selectListByOrderId(order.getId());
+                    if (CollUtil.isEmpty(lines)) {
+                        throw exception(OUT_ORDER_LINE_EMPTY);
+                    }
+                    for (WmsOutOrderLineDO line : lines) {
+                        line.setPickedQty(line.getPlanQty());
+                        wmsOutOrderLineMapper.updateById(line);
+                    }
+                    order.setStatus(WmsOrderStatusEnum.IN_PROGRESS.name());
+                    wmsOutOrderMapper.updateById(order);
+                    if (WmsOutBizTypeEnum.SALES_DELIVERY_OUT.name().equals(order.getBizType())) {
+                        WmsOutOrderLineDO line = lines.get(0);
+                        eventPublisher.publishEvent(new OutOrderPickedEvent(order.getId(), order.getOutNo(),
+                                line.getMatId(), line.getUomId(), line.getPlanQty()));
+                    } else {
+                        order.setStatus(WmsOrderStatusEnum.READY.name());
+                        wmsOutOrderMapper.updateById(order);
+                    }
+                });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO) {
+        WmsOutOrderDO order = reqDTO.getOutOrderId() == null ? null : wmsOutOrderMapper.selectById(reqDTO.getOutOrderId());
+        if (order == null || !WmsOrderStatusEnum.IN_PROGRESS.name().equals(order.getStatus())) {
+            return;
+        }
+        order.setOqcTaskId(reqDTO.getQcTaskId());
+        if (reqDTO.getQcTaskId() == null) {
+            // 统一“未命中/无任务”的持久化口径：0 而不是 NULL，后续状态判断和报表不用双分支。
+            order.setOqcTaskId(0L);
+            order.setStatus(WmsOrderStatusEnum.READY.name());
+        }
+        wmsOutOrderMapper.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void completeOqc(CompleteOqcReqDTO reqDTO) {
+        WmsOutOrderDO order = reqDTO.getOutOrderId() == null ? null : wmsOutOrderMapper.selectById(reqDTO.getOutOrderId());
+        if (order == null || !WmsOrderStatusEnum.IN_PROGRESS.name().equals(order.getStatus())
+                || !java.util.Objects.equals(order.getOqcTaskId(), reqDTO.getQcTaskId())) {
+            return;
+        }
+        order.setStatus(WmsOrderStatusEnum.READY.name());
+        wmsOutOrderMapper.updateById(order);
     }
 
     /**

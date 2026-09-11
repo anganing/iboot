@@ -31,6 +31,8 @@ public class QcItemRespVO {
     @Schema(description = "检验方案名称")
     @ExcelProperty("方案名称")
     private String planName;
+    /** 所属方案的当前状态，用于前端判断检验项是否可编辑（仅方案 DRAFT 可改）。 */
+    private String planStatus;
 
     @Schema(description = "检验项编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("检验项编码")

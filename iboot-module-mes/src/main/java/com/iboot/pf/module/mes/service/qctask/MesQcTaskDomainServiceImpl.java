@@ -30,10 +30,12 @@ import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
 import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskActionBO;
 import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskConclusionBO;
+import com.iboot.pf.module.mes.service.qctask.hook.MesQcResultHandler;
 import com.iboot.pf.module.mes.service.qcrule.QcTriggerService;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +44,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QC_TASK_CONCURRENT_CONFLICT;
@@ -103,6 +109,8 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
     private MesCommandService commandService;
     @Resource
     private DefectMapper defectMapper;
+    @Autowired(required = false)
+    private List<MesQcResultHandler> resultHandlers = Collections.emptyList();
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -118,7 +126,7 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
         QcRuleDO rule = ruleOpt.get();
 
         // 幂等：同业务单同触发点重复触发直接返回首次任务，不产生第二条
-        String idempotencyKey = buildIdempotencyKey(bo.getBizNo(), bo.getTriggerPoint());
+        String idempotencyKey = buildIdempotencyKey(bo.getBizNo(), bo.getBizLineId(), bo.getTriggerPoint());
         QcTaskDO existed = qcTaskMapper.selectByIdempotencyKey(idempotencyKey);
         if (existed != null) {
             log.info("[createQcTask] 幂等命中，返回既有任务 {}。idempotencyKey={}", existed.getTaskNo(), idempotencyKey);
@@ -219,11 +227,10 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
                             .qtyQualified(bo.getQtyQualified())
                             .qtyRejected(bo.getQtyRejected())
                             .build());
-
-                    // TODO T2-07 ~ T2-11 按 task.getTriggerPoint() 分派五个检验点的结果 Handler
-                    //  （IQC/FAI/IPQC/FQC/OQC 各自的 onXxxDone），放行或拦截下游动作。
-                    //  分派要覆盖 CONCESSION（让步接收走审批，通过前按各自检验点的口径处理），
-                    //  REJECTED 不在分派里放行——强制等处置单。本任务只预留钩子位。
+                    task.setConclusion(bo.getConclusion());
+                    task.setQtyQualified(bo.getQtyQualified());
+                    task.setQtyRejected(bo.getQtyRejected());
+                    dispatchConclusion(task);
                 });
     }
 
@@ -261,6 +268,16 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
             throw exception(QC_TASK_CONCURRENT_CONFLICT);
         }
         task.setVersion(currentVersion + 1);
+    }
+
+    /** 质检结论只由对应检验点的 Handler 消费，避免在领域动作中堆五套业务分支。 */
+    private void dispatchConclusion(QcTaskDO task) {
+        Map<String, MesQcResultHandler> handlers = resultHandlers.stream()
+                .collect(Collectors.toMap(MesQcResultHandler::triggerPoint, Function.identity()));
+        MesQcResultHandler handler = handlers.get(task.getTriggerPoint());
+        if (handler != null) {
+            handler.onConclusion(task);
+        }
     }
 
     /**
@@ -378,9 +395,11 @@ public class MesQcTaskDomainServiceImpl implements MesQcTaskDomainService {
         return truncated;
     }
 
-    /** 幂等键格式 {@code MES:{bizNo}:QC_CREATE:{triggerPoint}}，见任务书 T2-02。 */
-    private String buildIdempotencyKey(String bizNo, String triggerPoint) {
-        return String.join(KEY_SEPARATOR, "MES", bizNo, COMMAND_QC_CREATE, triggerPoint);
+    /** 幂等键按业务明细区分，避免同一到货单或出库单多行只生成第一条任务。 */
+    private String buildIdempotencyKey(String bizNo, Long bizLineId, String triggerPoint) {
+        return String.join(KEY_SEPARATOR, "MES", bizNo,
+                String.valueOf(bizLineId == null ? MesConstants.NONE_ID : bizLineId),
+                COMMAND_QC_CREATE, triggerPoint);
     }
 
     /** 可选维度落 0 不落 null，与库表 NOT NULL DEFAULT 0 的口径一致。 */

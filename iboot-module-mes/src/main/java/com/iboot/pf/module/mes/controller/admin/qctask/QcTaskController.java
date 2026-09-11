@@ -7,7 +7,13 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskRespVO;
-import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskSaveReqVO;
+import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskActionReqVO;
+import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskAssignReqVO;
+import com.iboot.pf.module.mes.controller.admin.qctask.vo.QcTaskConclusionReqVO;
+import com.iboot.pf.module.mes.enums.MesSourceModuleEnum;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskActionBO;
+import com.iboot.pf.module.mes.service.qctask.bo.MesQcTaskConclusionBO;
 import com.iboot.pf.module.mes.service.qctask.QcTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,10 +23,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,39 +49,8 @@ public class QcTaskController {
 
     @Resource
     private QcTaskService qcTaskService;
-
-    @PostMapping("/create")
-    @Operation(summary = "创建质检任务")
-    @PreAuthorize("@ss.hasPermission('mes:qc-task:create')")
-    public CommonResult<Long> createQcTask(@Valid @RequestBody QcTaskSaveReqVO createReqVO) {
-        return success(qcTaskService.createQcTask(createReqVO));
-    }
-
-    @PutMapping("/update")
-    @Operation(summary = "更新质检任务")
-    @PreAuthorize("@ss.hasPermission('mes:qc-task:update')")
-    public CommonResult<Boolean> updateQcTask(@Valid @RequestBody QcTaskSaveReqVO updateReqVO) {
-        qcTaskService.updateQcTask(updateReqVO);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "删除质检任务")
-    @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:qc-task:delete')")
-    public CommonResult<Boolean> deleteQcTask(@RequestParam("id") Long id) {
-        qcTaskService.deleteQcTask(id);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete-list")
-    @Operation(summary = "批量删除质检任务")
-    @Parameter(name = "ids", description = "编号列表", required = true)
-    @PreAuthorize("@ss.hasPermission('mes:qc-task:delete')")
-    public CommonResult<Boolean> deleteQcTaskList(@RequestParam("ids") List<Long> ids) {
-        qcTaskService.deleteQcTaskListByIds(ids);
-        return success(true);
-    }
+    @Resource
+    private MesQcTaskDomainService qcTaskDomainService;
 
     @GetMapping("/get")
     @Operation(summary = "获得质检任务")
@@ -103,6 +76,63 @@ public class QcTaskController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<QcTaskRespVO> list = qcTaskService.getQcTaskPage(pageReqVO).getList();
         ExcelUtils.write(response, "MES-质检任务.xls", "数据", QcTaskRespVO.class, list);
+    }
+
+    @PostMapping("/assign")
+    @Operation(summary = "指派检验员")
+    @PreAuthorize("@ss.hasPermission('mes:qc-task:assign')")
+    public CommonResult<Boolean> assignQcTask(@Valid @RequestBody QcTaskAssignReqVO reqVO) {
+        MesQcTaskActionBO bo = new MesQcTaskActionBO();
+        bo.setTaskId(reqVO.getId());
+        bo.setInspectorId(reqVO.getInspectorId());
+        bo.setRemark(reqVO.getRemark());
+        fillCommand(bo, reqVO.getIdempotencyKey());
+        qcTaskDomainService.assignQcTask(bo);
+        return success(true);
+    }
+
+    @PostMapping("/start-inspect")
+    @Operation(summary = "开始检验")
+    @PreAuthorize("@ss.hasPermission('mes:qc-task:start-inspect')")
+    public CommonResult<Boolean> startInspect(@Valid @RequestBody QcTaskActionReqVO reqVO) {
+        MesQcTaskActionBO bo = new MesQcTaskActionBO();
+        bo.setTaskId(reqVO.getId());
+        bo.setRemark(reqVO.getRemark());
+        fillCommand(bo, reqVO.getIdempotencyKey());
+        qcTaskDomainService.startInspect(bo);
+        return success(true);
+    }
+
+    @PostMapping("/submit-conclusion")
+    @Operation(summary = "提交检验结论")
+    @PreAuthorize("@ss.hasPermission('mes:qc-task:submit-conclusion')")
+    public CommonResult<Boolean> submitConclusion(@Valid @RequestBody QcTaskConclusionReqVO reqVO) {
+        MesQcTaskConclusionBO bo = new MesQcTaskConclusionBO();
+        bo.setTaskId(reqVO.getId());
+        bo.setRemark(reqVO.getRemark());
+        bo.setConclusion(reqVO.getConclusion());
+        bo.setQtyQualified(reqVO.getQtyQualified());
+        bo.setQtyRejected(reqVO.getQtyRejected());
+        fillCommand(bo, reqVO.getIdempotencyKey());
+        qcTaskDomainService.submitConclusion(bo);
+        return success(true);
+    }
+
+    @PostMapping("/cancel")
+    @Operation(summary = "取消质检任务")
+    @PreAuthorize("@ss.hasPermission('mes:qc-task:cancel')")
+    public CommonResult<Boolean> cancelQcTask(@Valid @RequestBody QcTaskActionReqVO reqVO) {
+        MesQcTaskActionBO bo = new MesQcTaskActionBO();
+        bo.setTaskId(reqVO.getId());
+        bo.setRemark(reqVO.getRemark());
+        fillCommand(bo, reqVO.getIdempotencyKey());
+        qcTaskDomainService.cancelQcTask(bo);
+        return success(true);
+    }
+
+    private void fillCommand(MesQcTaskActionBO bo, String idempotencyKey) {
+        bo.setSourceModule(MesSourceModuleEnum.UI.name());
+        bo.setIdempotencyKey(idempotencyKey);
     }
 
 }

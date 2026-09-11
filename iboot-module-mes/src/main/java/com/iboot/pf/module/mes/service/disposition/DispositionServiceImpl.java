@@ -69,9 +69,8 @@ public class DispositionServiceImpl implements DispositionService {
     @Override
     public void updateDisposition(DispositionSaveReqVO updateReqVO) {
         DispositionDO existed = validateDispositionExists(updateReqVO.getId());
-        // 审批通过后已经联动返工、报废或库存冻结，处置主体不允许再改
-        if (!MesDispositionStatusEnum.isDraft(existed.getStatus())
-                && MesDispositionStatusEnum.isApprovalDecided(existed.getStatus())) {
+        // 只有新建可改；提交后进入审批或执行链，改主体会让执行凭据与处置内容对不上
+        if (!MesDispositionStatusEnum.isDraft(existed.getStatus())) {
             throw exception(DISPOSITION_STATUS_INVALID);
         }
         DispositionDO updateObj = BeanUtils.toBean(updateReqVO, DispositionDO.class);

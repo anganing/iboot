@@ -7,7 +7,9 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultRespVO;
-import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultSaveReqVO;
+import com.iboot.pf.module.mes.controller.admin.qcresult.vo.QcResultBatchSaveReqVO;
+import com.iboot.pf.module.mes.service.qcresult.MesQcResultDomainService;
+import com.iboot.pf.module.mes.service.qcresult.bo.MesSaveQcResultBO;
 import com.iboot.pf.module.mes.service.qcresult.QcResultService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,10 +19,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,39 +45,8 @@ public class QcResultController {
 
     @Resource
     private QcResultService qcResultService;
-
-    @PostMapping("/create")
-    @Operation(summary = "创建检验结果")
-    @PreAuthorize("@ss.hasPermission('mes:qc-result:create')")
-    public CommonResult<Long> createQcResult(@Valid @RequestBody QcResultSaveReqVO createReqVO) {
-        return success(qcResultService.createQcResult(createReqVO));
-    }
-
-    @PutMapping("/update")
-    @Operation(summary = "更新检验结果")
-    @PreAuthorize("@ss.hasPermission('mes:qc-result:update')")
-    public CommonResult<Boolean> updateQcResult(@Valid @RequestBody QcResultSaveReqVO updateReqVO) {
-        qcResultService.updateQcResult(updateReqVO);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "删除检验结果")
-    @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:qc-result:delete')")
-    public CommonResult<Boolean> deleteQcResult(@RequestParam("id") Long id) {
-        qcResultService.deleteQcResult(id);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete-list")
-    @Operation(summary = "批量删除检验结果")
-    @Parameter(name = "ids", description = "编号列表", required = true)
-    @PreAuthorize("@ss.hasPermission('mes:qc-result:delete')")
-    public CommonResult<Boolean> deleteQcResultList(@RequestParam("ids") List<Long> ids) {
-        qcResultService.deleteQcResultListByIds(ids);
-        return success(true);
-    }
+    @Resource
+    private MesQcResultDomainService qcResultDomainService;
 
     @GetMapping("/get")
     @Operation(summary = "获得检验结果")
@@ -103,6 +72,24 @@ public class QcResultController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<QcResultRespVO> list = qcResultService.getQcResultPage(pageReqVO).getList();
         ExcelUtils.write(response, "MES-检验结果.xls", "数据", QcResultRespVO.class, list);
+    }
+
+    @PostMapping("/batch-save")
+    @Operation(summary = "批量保存检验结果")
+    @PreAuthorize("@ss.hasPermission('mes:qc-result:batch-save')")
+    public CommonResult<Integer> batchSaveResult(
+            @Valid @RequestBody QcResultBatchSaveReqVO reqVO) {
+        MesSaveQcResultBO bo = new MesSaveQcResultBO();
+        bo.setTaskId(reqVO.getTaskId());
+        bo.setInspectorId(reqVO.getInspectorId());
+        bo.setResults(reqVO.getItems().stream().map(item -> {
+            MesSaveQcResultBO.Item result = new MesSaveQcResultBO.Item();
+            result.setItemId(item.getItemId());
+            result.setSampleNo(item.getSampleNo());
+            result.setActualValue(item.getActualValue());
+            return result;
+        }).toList());
+        return success(qcResultDomainService.batchSaveResult(bo));
     }
 
 }

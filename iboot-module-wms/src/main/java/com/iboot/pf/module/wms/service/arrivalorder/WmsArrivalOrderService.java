@@ -2,6 +2,7 @@ package com.iboot.pf.module.wms.service.arrivalorder;
 
 import com.iboot.pf.module.wms.dal.dataobject.arrival.ArrivalDO;
 import com.iboot.pf.module.wms.dal.dataobject.arrivalline.ArrivalLineDO;
+import com.iboot.pf.module.wms.api.arrivalorder.dto.CompleteIqcReqDTO;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsConfirmArrivalBO;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsCreateArrivalBO;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsUpdateArrivalBO;
@@ -65,6 +66,12 @@ public interface WmsArrivalOrderService {
      * @return 入库单编号
      */
     Long createInOrderFromArrival(Long arrivalId, List<Long> lineIds);
+
+    /** 回写 IQC 规则解析结果；任务为空代表规则未命中，业务直接放行。 */
+    void resolveIqcTask(Long arrivalLineId, Long qcTaskId);
+
+    /** 回写 IQC 结论；仅 MES 通过 {@code ArrivalOrderApi} 调用。 */
+    void completeIqc(CompleteIqcReqDTO reqDTO);
 
     ArrivalDO getArrival(Long id);
 

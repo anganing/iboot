@@ -10,8 +10,13 @@ import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.arrival.ArrivalDO;
 import com.iboot.pf.module.wms.dal.dataobject.arrivalline.ArrivalLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.batch.WmsBatchDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderDO;
+import com.iboot.pf.module.wms.dal.dataobject.inorder.WmsInOrderLineDO;
 import com.iboot.pf.module.wms.dal.mysql.arrival.ArrivalMapper;
 import com.iboot.pf.module.wms.dal.mysql.arrivalline.ArrivalLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderLineMapper;
+import com.iboot.pf.module.wms.dal.mysql.inorder.WmsInOrderMapper;
+import com.iboot.pf.module.wms.api.arrivalorder.dto.CompleteIqcReqDTO;
 import com.iboot.pf.module.wms.enums.WmsArrivalLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsArrivalStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsCommandTypeEnum;
@@ -20,6 +25,7 @@ import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsIqcModeEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsSourceModuleEnum;
+import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsConfirmArrivalBO;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsCreateArrivalBO;
 import com.iboot.pf.module.wms.service.arrivalorder.bo.WmsUpdateArrivalBO;
@@ -30,9 +36,13 @@ import com.iboot.pf.module.wms.service.command.WmsCommandService;
 import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
 import com.iboot.pf.module.wms.service.inorder.WmsInOrderService;
 import com.iboot.pf.module.wms.service.inorder.bo.WmsCreateInOrderBO;
+import com.iboot.pf.module.wms.service.inventory.WmsInventoryService;
+import com.iboot.pf.module.wms.service.inventory.bo.WmsInvPostBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
+import com.iboot.pf.module.wms.service.arrivalorder.event.ArrivalConfirmedEvent;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +83,14 @@ public class WmsArrivalOrderServiceImpl implements WmsArrivalOrderService {
     private WmsBatchService batchService;
     @Resource
     private WmsInOrderService inOrderService;
+    @Resource
+    private WmsInOrderMapper wmsInOrderMapper;
+    @Resource
+    private WmsInOrderLineMapper wmsInOrderLineMapper;
+    @Resource
+    private WmsInventoryService inventoryService;
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
     @Resource
     private WmsCodeService codeService;
     @Resource
@@ -201,13 +219,14 @@ public class WmsArrivalOrderServiceImpl implements WmsArrivalOrderService {
                         // 批次在确认时注册而不是登记时：登记只是预告，确认才是"实物到了"的事实
                         WmsBatchDO batch = registerBatch(arrival, line, materialMap.get(line.getMatId()));
                         line.setLotNo(batch.getLotNo());
-                        // TODO T2-06 接入 QcTriggerService：按物料、分类、供应商匹配 mes_qc_rule 解析
-                        // need_qc 与 iqc_mode，生成 IQC 任务并回写 qc_task_id。
-                        // 本任务只按明细上已有的值分流，不做规则解析。
+                        // 是否检验最终由 MES 规则裁决；先按既有提示给默认状态，监听器会同步回写最终结果。
                         line.setStatus(Boolean.TRUE.equals(line.getNeedQc())
                                 ? WmsArrivalLineStatusEnum.QC_PENDING.name()
                                 : WmsArrivalLineStatusEnum.READY.name());
                         arrivalLineMapper.updateById(line);
+                        eventPublisher.publishEvent(new ArrivalConfirmedEvent(line.getId(), arrival.getArrivalNo(),
+                                arrival.getSupplierId(), line.getMatId(), line.getUomId(), batch.getId(),
+                                line.getArrivalQty(), line.getLotNo()));
                     }
 
                     arrival.setStatus(WmsArrivalStatusEnum.ARRIVED.name());
@@ -281,6 +300,90 @@ public class WmsArrivalOrderServiceImpl implements WmsArrivalOrderService {
             arrivalMapper.updateById(arrival);
         }
         return inOrderId;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resolveIqcTask(Long arrivalLineId, Long qcTaskId) {
+        ArrivalLineDO line = arrivalLineId == null ? null : arrivalLineMapper.selectById(arrivalLineId);
+        if (line == null) {
+            return;
+        }
+        line.setQcTaskId(qcTaskId);
+        // 规则未命中直接放行；先入待检模式命中后也要放行建入库单，但库存质量状态仍保持 QC_PENDING。
+        if (qcTaskId == null || WmsIqcModeEnum.POST_INBOUND_PENDING.name().equals(line.getIqcMode())) {
+            line.setStatus(WmsArrivalLineStatusEnum.READY.name());
+        } else {
+            line.setStatus(WmsArrivalLineStatusEnum.QC_PENDING.name());
+        }
+        arrivalLineMapper.updateById(line);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void completeIqc(CompleteIqcReqDTO reqDTO) {
+        ArrivalLineDO line = reqDTO.getArrivalLineId() == null ? null
+                : arrivalLineMapper.selectById(reqDTO.getArrivalLineId());
+        // 先入待检的行在规则命中后已经放行到 READY 并可能完成入库，不能因状态不是 QC_PENDING 而丢结论。
+        boolean postInbound = line != null
+                && WmsIqcModeEnum.POST_INBOUND_PENDING.name().equals(line.getIqcMode());
+        if (line == null || (!WmsArrivalLineStatusEnum.QC_PENDING.name().equals(line.getStatus())
+                && !(postInbound && WmsArrivalLineStatusEnum.READY.name().equals(line.getStatus())))) {
+            return;
+        }
+        line.setQcTaskId(reqDTO.getQcTaskId());
+        line.setQualifiedQty(reqDTO.getQtyQualified());
+        line.setRejectedQty(reqDTO.getQtyRejected());
+        if (!"QUALIFIED".equals(reqDTO.getConclusion()) && !"CONCESSION".equals(reqDTO.getConclusion())) {
+            arrivalLineMapper.updateById(line);
+            return;
+        }
+        line.setStatus(WmsArrivalLineStatusEnum.READY.name());
+        arrivalLineMapper.updateById(line);
+        if (WmsIqcModeEnum.POST_INBOUND_PENDING.name().equals(line.getIqcMode())) {
+            changePendingInboundQuality(line, reqDTO.getQcTaskId());
+        }
+    }
+
+    /** 已过账的待检入库行按 IQC 结论迁移质量状态；尚未过账的行会在后续入库时直接带合格状态。 */
+    private void changePendingInboundQuality(ArrivalLineDO arrivalLine, Long qcTaskId) {
+        for (WmsInOrderLineDO inLine : wmsInOrderLineMapper.selectListBySourceLineId(arrivalLine.getId())) {
+            if (inLine.getPostedQty() == null || inLine.getPostedQty().signum() <= 0) {
+                inLine.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+                inLine.setQcTaskId(qcTaskId);
+                wmsInOrderLineMapper.updateById(inLine);
+                continue;
+            }
+            WmsInOrderDO order = wmsInOrderMapper.selectById(inLine.getOrderId());
+            WmsInvPostBO postBO = new WmsInvPostBO();
+            postBO.setTxnType(WmsTxnTypeEnum.QUALITY_CHANGE.name());
+            postBO.setBizType(order.getBizType());
+            postBO.setBizNo(order.getInNo());
+            postBO.setBizLineNo(String.valueOf(inLine.getLineNo()));
+            postBO.setIdempotencyKey("MES:" + qcTaskId + ":QUALITY_CHANGE:" + inLine.getLineNo());
+            postBO.setQty(inLine.getPostedQty());
+            postBO.setInvOrgId(order.getInvOrgId());
+            postBO.setPlantId(order.getPlantId());
+            postBO.setWhId(order.getWhId());
+            postBO.setFromLocId(inLine.getLocId());
+            postBO.setFromLocCode(inLine.getLocCode());
+            postBO.setToLocId(inLine.getLocId());
+            postBO.setToLocCode(inLine.getLocCode());
+            postBO.setQualityStatusFrom(WmsQualityStatusEnum.QC_PENDING.name());
+            postBO.setQualityStatusTo(WmsQualityStatusEnum.QUALIFIED.name());
+            postBO.setMatId(inLine.getMatId());
+            postBO.setBatchId(inLine.getBatchId());
+            postBO.setContainerId(inLine.getContainerId());
+            postBO.setUomId(inLine.getUomId());
+            postBO.setMatCode(inLine.getMatCode());
+            postBO.setMatName(inLine.getMatName());
+            postBO.setUomCode(inLine.getUomCode());
+            postBO.setLotNo(inLine.getLotNo());
+            inventoryService.post(postBO);
+            inLine.setQualityStatus(WmsQualityStatusEnum.QUALIFIED.name());
+            inLine.setQcTaskId(qcTaskId);
+            wmsInOrderLineMapper.updateById(inLine);
+        }
     }
 
     /** 挑出本次要生成入库单的明细。不指定编号时取全部待入库明细，界面上"整单生成"是常用操作。 */

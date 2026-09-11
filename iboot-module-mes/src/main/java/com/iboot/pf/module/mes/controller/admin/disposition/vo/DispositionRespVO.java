@@ -85,6 +85,18 @@ public class DispositionRespVO {
     @ExcelProperty("处置说明")
     private String remark;
 
+    @Schema(description = "流程审批状态，取值见 BpmProcessInstanceStatusEnum")
+    private Integer approvalStatus;
+
+    @Schema(description = "流程实例编号")
+    private String processInstanceId;
+
+    @Schema(description = "审批完成时间")
+    private LocalDateTime approvalTime;
+
+    @Schema(description = "审批意见或驳回原因")
+    private String approvalReason;
+
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @ExcelProperty("创建时间")
     private LocalDateTime createTime;

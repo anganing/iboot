@@ -7,8 +7,11 @@ import com.iboot.pf.framework.common.pojo.PageResult;
 import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.module.mes.controller.admin.rework.vo.ReworkPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.rework.vo.ReworkRespVO;
-import com.iboot.pf.module.mes.controller.admin.rework.vo.ReworkSaveReqVO;
+import com.iboot.pf.module.mes.controller.admin.rework.vo.ReworkActionReqVO;
+import com.iboot.pf.module.mes.enums.MesSourceModuleEnum;
 import com.iboot.pf.module.mes.service.rework.ReworkService;
+import com.iboot.pf.module.mes.service.rework.MesReworkDomainService;
+import com.iboot.pf.module.mes.service.rework.bo.MesReworkActionBO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,10 +20,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,39 +46,8 @@ public class ReworkController {
 
     @Resource
     private ReworkService reworkService;
-
-    @PostMapping("/create")
-    @Operation(summary = "创建返工任务")
-    @PreAuthorize("@ss.hasPermission('mes:rework:create')")
-    public CommonResult<Long> createRework(@Valid @RequestBody ReworkSaveReqVO createReqVO) {
-        return success(reworkService.createRework(createReqVO));
-    }
-
-    @PutMapping("/update")
-    @Operation(summary = "更新返工任务")
-    @PreAuthorize("@ss.hasPermission('mes:rework:update')")
-    public CommonResult<Boolean> updateRework(@Valid @RequestBody ReworkSaveReqVO updateReqVO) {
-        reworkService.updateRework(updateReqVO);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "删除返工任务")
-    @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:rework:delete')")
-    public CommonResult<Boolean> deleteRework(@RequestParam("id") Long id) {
-        reworkService.deleteRework(id);
-        return success(true);
-    }
-
-    @DeleteMapping("/delete-list")
-    @Operation(summary = "批量删除返工任务")
-    @Parameter(name = "ids", description = "编号列表", required = true)
-    @PreAuthorize("@ss.hasPermission('mes:rework:delete')")
-    public CommonResult<Boolean> deleteReworkList(@RequestParam("ids") List<Long> ids) {
-        reworkService.deleteReworkListByIds(ids);
-        return success(true);
-    }
+    @Resource
+    private MesReworkDomainService reworkDomainService;
 
     @GetMapping("/get")
     @Operation(summary = "获得返工任务")
@@ -103,6 +73,39 @@ public class ReworkController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<ReworkRespVO> list = reworkService.getReworkPage(pageReqVO).getList();
         ExcelUtils.write(response, "MES-返工任务.xls", "数据", ReworkRespVO.class, list);
+    }
+
+    @PostMapping("/release")
+    @Operation(summary = "下达返工任务并展开返工工序")
+    @PreAuthorize("@ss.hasPermission('mes:rework:release')")
+    public CommonResult<Boolean> releaseRework(@Valid @RequestBody ReworkActionReqVO reqVO) {
+        reworkDomainService.releaseRework(toActionBO(reqVO));
+        return success(true);
+    }
+
+    @PostMapping("/finish")
+    @Operation(summary = "返工完工并生成复检任务")
+    @PreAuthorize("@ss.hasPermission('mes:rework:finish')")
+    public CommonResult<Boolean> finishRework(@Valid @RequestBody ReworkActionReqVO reqVO) {
+        reworkDomainService.finishRework(toActionBO(reqVO));
+        return success(true);
+    }
+
+    @PostMapping("/cancel")
+    @Operation(summary = "取消返工任务")
+    @PreAuthorize("@ss.hasPermission('mes:rework:cancel')")
+    public CommonResult<Boolean> cancelRework(@Valid @RequestBody ReworkActionReqVO reqVO) {
+        reworkDomainService.cancelRework(toActionBO(reqVO));
+        return success(true);
+    }
+
+    private MesReworkActionBO toActionBO(ReworkActionReqVO reqVO) {
+        MesReworkActionBO bo = new MesReworkActionBO();
+        bo.setReworkId(reqVO.getId());
+        bo.setReason(reqVO.getReason());
+        bo.setSourceModule(MesSourceModuleEnum.UI.name());
+        bo.setIdempotencyKey(reqVO.getIdempotencyKey());
+        return bo;
     }
 
 }

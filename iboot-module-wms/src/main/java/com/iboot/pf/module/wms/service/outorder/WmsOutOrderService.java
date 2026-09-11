@@ -6,6 +6,8 @@ import com.iboot.pf.module.wms.service.order.bo.WmsCancelOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsConfirmOrderBO;
 import com.iboot.pf.module.wms.service.order.bo.WmsSubmitOrderBO;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
+import com.iboot.pf.module.wms.api.outorder.dto.ResolveOqcTaskReqDTO;
+import com.iboot.pf.module.wms.api.outorder.dto.CompleteOqcReqDTO;
 
 import java.util.List;
 
@@ -42,6 +44,15 @@ public interface WmsOutOrderService {
 
     /** 过账出库单：校验库位、批次、可用量后写库存流水并扣减库存余额。 */
     void confirmOutOrder(WmsConfirmOrderBO bo);
+
+    /** 拣选完成。销售出库会触发 OQC 规则解析。 */
+    void pickOutOrder(WmsConfirmOrderBO bo);
+
+    /** 回写 OQC 规则解析结果，供 MES 跨模块监听器调用。 */
+    void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO);
+
+    /** OQC 合格后放行确认发货。 */
+    void completeOqc(CompleteOqcReqDTO reqDTO);
 
     WmsOutOrderDO getOutOrder(Long id);
 

@@ -8,7 +8,11 @@ import com.iboot.pf.framework.excel.core.util.ExcelUtils;
 import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionPageReqVO;
 import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionRespVO;
 import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionSaveReqVO;
+import com.iboot.pf.module.mes.controller.admin.disposition.vo.DispositionActionReqVO;
+import com.iboot.pf.module.mes.enums.MesSourceModuleEnum;
 import com.iboot.pf.module.mes.service.disposition.DispositionService;
+import com.iboot.pf.module.mes.service.disposition.MesDispositionDomainService;
+import com.iboot.pf.module.mes.service.disposition.bo.MesDispositionActionBO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,6 +49,8 @@ public class DispositionController {
 
     @Resource
     private DispositionService dispositionService;
+    @Resource
+    private MesDispositionDomainService dispositionDomainService;
 
     @PostMapping("/create")
     @Operation(summary = "创建不合格品处置单")
@@ -82,7 +88,8 @@ public class DispositionController {
     @GetMapping("/get")
     @Operation(summary = "获得不合格品处置单")
     @Parameter(name = "id", description = "编号", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('mes:disposition:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('mes:disposition:query', "
+            + "'bpm:process-instance:query', 'bpm:task:query')")
     public CommonResult<DispositionRespVO> getDisposition(@RequestParam("id") Long id) {
         return success(dispositionService.getDisposition(id));
     }
@@ -104,6 +111,38 @@ public class DispositionController {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<DispositionRespVO> list = dispositionService.getDispositionPage(pageReqVO).getList();
         ExcelUtils.write(response, "MES-不合格品处置单.xls", "数据", DispositionRespVO.class, list);
+    }
+
+    @PostMapping("/submit")
+    @Operation(summary = "提交处置单")
+    @PreAuthorize("@ss.hasPermission('mes:disposition:submit')")
+    public CommonResult<Boolean> submitDisposition(@Valid @RequestBody DispositionActionReqVO reqVO) {
+        dispositionDomainService.submitDisposition(toActionBO(reqVO));
+        return success(true);
+    }
+
+    @PostMapping("/execute")
+    @Operation(summary = "执行处置单")
+    @PreAuthorize("@ss.hasPermission('mes:disposition:execute')")
+    public CommonResult<Boolean> executeDisposition(@Valid @RequestBody DispositionActionReqVO reqVO) {
+        dispositionDomainService.executeDisposition(toActionBO(reqVO));
+        return success(true);
+    }
+
+    @PostMapping("/cancel")
+    @Operation(summary = "取消处置单")
+    @PreAuthorize("@ss.hasPermission('mes:disposition:cancel')")
+    public CommonResult<Boolean> cancelDisposition(@Valid @RequestBody DispositionActionReqVO reqVO) {
+        dispositionDomainService.cancelDisposition(toActionBO(reqVO));
+        return success(true);
+    }
+
+    private MesDispositionActionBO toActionBO(DispositionActionReqVO reqVO) {
+        MesDispositionActionBO bo = new MesDispositionActionBO();
+        bo.setDispositionId(reqVO.getId());
+        bo.setSourceModule(MesSourceModuleEnum.UI.name());
+        bo.setIdempotencyKey(reqVO.getIdempotencyKey());
+        return bo;
     }
 
 }

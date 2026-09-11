@@ -3,6 +3,11 @@ package com.iboot.pf.module.mes.api.rework;
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.mes.api.rework.dto.CreateReworkReqDTO;
 import com.iboot.pf.module.mes.api.rework.dto.ReworkRespDTO;
+import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.mes.dal.dataobject.rework.ReworkDO;
+import com.iboot.pf.module.mes.dal.mysql.rework.ReworkMapper;
+import com.iboot.pf.module.mes.service.rework.MesReworkDomainService;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -12,23 +17,29 @@ import java.util.List;
 /** 返工任务 API 实现。 */
 @Service
 @Validated
+@DataPermission(enable = false)
 public class ReworkApiImpl implements ReworkApi {
+
+    @Resource
+    private MesReworkDomainService reworkDomainService;
+    @Resource
+    private ReworkMapper reworkMapper;
 
     @Override
     public Long createRework(CreateReworkReqDTO reqDTO) {
-        throw new UnsupportedOperationException("返工任务创建命令尚未接入领域规则");
+        ReworkDO rework = BeanUtils.toBean(reqDTO, ReworkDO.class);
+        return reworkDomainService.createRework(rework);
     }
 
     @Override
-    @DataPermission(enable = false)
     public ReworkRespDTO getRework(Long id) {
-        throw new UnsupportedOperationException("返工任务查询尚未接入领域 Service");
+        return BeanUtils.toBean(id == null ? null : reworkMapper.selectById(id), ReworkRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<ReworkRespDTO> getReworkList(Collection<Long> ids) {
-        throw new UnsupportedOperationException("返工任务查询尚未接入领域 Service");
+        return ids == null || ids.isEmpty() ? List.of()
+                : BeanUtils.toBean(reworkMapper.selectByIds(ids), ReworkRespDTO.class);
     }
 
 }
