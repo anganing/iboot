@@ -100,7 +100,7 @@ Flowable 在 dev 库里自建了 39 张 `ACT_*` 表，业务上要认的是三�
 
 ### 3.3 数据库操作口径
 
-`bpm_*` 表和字典、菜单一律用 dbx MCP 操作（连接 `芋道-dev`，库 `ruoyi-vue-pro-20260817`），不写 SQL 脚本。`ACT_*` 表由引擎 `database-schema-update: true` 自建，**任何情况下不许手工 DDL 改动 `ACT_*`**，引擎启动时会校验版本，改了就起不来。
+`bpm_*` 表和字典、菜单一律用 dbx MCP 操作（连接 `芋道-dev`，库 `ruoyi-vue-pro-20260817`），不写 SQL 脚本。`ACT_*` 表由引擎 `database-schema-update: true` 自建，**任何情况下不许手工 DDL 改动 `ACT_*`**，引擎启动时会校验版本，改了就起不来。流程模型（`ACT_RE_MODEL` + 扩展配置）的创建、修改与发布只能通过 BPM 管理界面进行，禁止直接 INSERT/UPDATE `ACT_RE_MODEL`——模型 JSON 的结构与设计器的序列化格式强耦合，手写数据设计器打不开。
 
 bpm 相关字典共 9 个，已在库里：`bpm_model_type`、`bpm_model_form_type`、`bpm_process_instance_status`、`bpm_task_status`、`bpm_task_candidate_strategy`、`bpm_comment_type`、`bpm_process_listener_type`、`bpm_process_listener_value_type`、`bpm_oa_leave_type`。业务模块展示审批状态直接复用 `bpm_process_instance_status`，不要自己再建一份。
 
@@ -129,6 +129,10 @@ SIMPLE 的节点类型见 `BpmSimpleModelNodeTypeEnum`：发起人、审批人�
 判断标准只有一条：**这份数据审批完之后还要不要被业务继续用**。要，就必须 `CUSTOM`。请假记录后续要参与考勤统计，所以 HRM 用 `CUSTOM`；一次性的用章申请这类流程变量就够，可以用 `NORMAL`。
 
 **业务模块接入一律是 `CUSTOM`。** 用 `NORMAL` 会把业务数据埋进流程变量表，查询、统计、导出全都做不了，这是不可逆的建模错误。
+
+两个挂载路径（`form_custom_create_path` / `form_custom_view_path`）统一写**不带 `.vue` 后缀**的路径：`registerComponent`（`apps/web-ele/src/utils/routerHelper.ts`）按模糊包含匹配 `import.meta.glob('../views/**/*.{vue,tsx}')` 的键，配置值必须能唯一命中一个组件文件。`form_custom_create_path` 填业务单据列表页路由（发起入口在业务单据的领域动作上，不提供独立发起页），`form_custom_view_path` 填只读详情组件路径。
+
+CUSTOM 表单下 SIMPLE 设计器的**条件分支只能用"条件表达式"**：`condition.vue` 在 `formType = CUSTOM` 时把"条件规则"选项过滤掉了（条件规则依赖流程表单字段，CUSTOM 没有流程表单），表达式引用服务端 `createProcessInstance` 时传入的流程变量，如 `mes-scrap` 的 `${qty < 100}`（`qty` 由服务端以数字字符串传入，JUEL 自动转数值比较）。流程变量只放审批链需要的字段，不放业务全量数据。
 
 ### 4.3 部署链路
 
@@ -461,6 +465,10 @@ when(processInstanceApi.createProcessInstance(eq(userId), any())).thenReturn("le
 选 `START_USER_SELECT` 时，发起接口必须带 `startUserSelectAssignees`，否则发起直接失败（`PROCESS_INSTANCE_START_USER_SELECT_ASSIGNEES_NOT_CONFIG`）。服务端会先跑一遍节点预测，只校验**预测会走到的**自选节点，所以条件分支没走到的节点不用传。
 
 审批人算空时的兜底行为由节点上的 `BpmUserTaskAssignEmptyHandlerTypeEnum` 决定（自动通过/自动拒绝/指定人员/转交流程管理员）；审批人恰好是发起人时的行为由 `BpmUserTaskAssignStartUserHandlerTypeEnum` 决定（自己审/跳过/转部门负责人）。多人审批的方式见 `BpmUserTaskApproveMethodEnum`：随机一人、按比例会签、或签、依次审批。
+
+iboot 的审批链候选人策略**统一用"指定角色"（`ROLE=10`）**，`candidateParam` 存角色 ID。审批岗位与角色对应关系（`system_role`，type=2 自建角色，2026-09-11 建，ID 164–171）：质量主管 `mes_quality_manager`、技术负责人 `mes_tech_leader`、班组长 `mes_team_leader`、生产经理 `mes_production_manager`、仓储主管 `wms_warehouse_leader`、财务 `finance`、车间主管 `mes_workshop_leader`、工艺工程师 `mes_process_engineer`。新审批流先从这里复用，不要另建平行角色；角色与人员的映射在系统管理-角色管理里维护。
+
+流程模型的创建、修改与发布一律在 BPM 管理界面完成（统一 SIMPLE 设计器 + CUSTOM 业务表单），dbx 对 `ACT_*` 与 `bpm_process_definition_info` 只做只读核对。建模前置是审批岗位角色先建好——候选人策略不能配空，部署时 `BpmTaskCandidateInvoker#validateBpmnConfig` 会拦。
 
 ## 10. 无侵入集成：触发器与 HTTP 通知
 
