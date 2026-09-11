@@ -238,6 +238,16 @@ export function useGridColumns(): VxeTableGridOptions<MesDispositionApi.Disposit
         props: { type: DICT_TYPE.MES_DISPOSITION_STATUS },
       },
     },
+    {
+      field: 'approvalStatus',
+      title: '流程审批',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS },
+      },
+    },
+    { field: 'approvalReason', title: '审批意见', minWidth: 160 },
     { field: 'remark', title: '处置说明', minWidth: 160 },
     {
       field: 'createTime',
@@ -247,7 +257,7 @@ export function useGridColumns(): VxeTableGridOptions<MesDispositionApi.Disposit
     },
     {
       title: '操作',
-      width: 160,
+      width: 260,
       fixed: 'right',
       slots: { default: 'actions' },
     },

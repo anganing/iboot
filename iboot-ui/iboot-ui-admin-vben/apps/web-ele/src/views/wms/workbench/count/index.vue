@@ -22,11 +22,11 @@ import {
 
 import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  confirmCountDiff,
   freezeCountOrder,
   getCountOrder,
   getCountOrderLinePage,
   getCountOrderPage,
+  submitDiffApproval,
   submitCountResult,
 } from '#/api/wms/countorder';
 import { LINE_MAX_COUNT, loadAllLines } from '#/api/wms/workbench';
@@ -65,15 +65,15 @@ function canFreeze(status?: string) {
  * 一旦从 `DRAFT` 直接录实盘，单据就跳到 `COUNTING`，而 `freezeCountOrder` 只认新建态——
  * 这批货再也冻不上，盘点期间照样能被领走，账实对比的基准当场失效。
  */
-function canSubmitResult(status?: string) {
+function canSubmitResult(order?: WmsCountOrderApi.CountOrder) {
   return (
-    status === WMS_ORDER_STATUS.FROZEN || status === WMS_ORDER_STATUS.COUNTING
-  );
+    order?.status === WMS_ORDER_STATUS.FROZEN || order?.status === WMS_ORDER_STATUS.COUNTING
+  ) && order?.approvalStatus !== 1;
 }
 
-/** 可确认差异：录过实盘之后（盘点中）。`DIFF_CONFIRMED` 代码里无人写入，界面不为它开按钮 */
-function canConfirmDiff(status?: string) {
-  return status === WMS_ORDER_STATUS.COUNTING;
+/** 差异审批只允许从盘点中发起，审批中保留按钮但禁用。 */
+function canSubmitDiffApproval(order?: WmsCountOrderApi.CountOrder) {
+  return order?.status === WMS_ORDER_STATUS.COUNTING && order.approvalStatus !== 1;
 }
 
 /** 实盘数量为空表示这一行还没盘：请求 VO 上 `actualQty` 必填，不能把空值当 0 提交 */
@@ -351,34 +351,30 @@ async function handleSubmitResult() {
 }
 
 /**
- * 确认差异：按差异逐行生成盘盈入库单或盘亏出库单并立即过账。
- *
- * 刻意做成独立按钮而不是挂在提交实盘的成功回调里：阶段 3 接入 BPM 差异审批后，这个入口会
- * 换成"提交差异审批"，届时只改本函数与对应的那一个按钮，提交实盘的链路完全不受影响。
- * 提交实盘与确认差异本来也是两个决定——录完数不等于认账，差异要有人拍板。
+ * 提交差异审批。录完数不等于认账，审批通过的回调才逐行生成调整出入库单并过账。
  */
-async function handleConfirmDiff() {
+async function handleSubmitDiffApproval() {
   const current = order.value;
   if (!current) {
     return;
   }
   try {
     await ElMessageBox.confirm(
-      `确认盘点单【${current.countNo}】的 ${diffLines.value.length} 行差异？服务端会逐行生成盘盈入库单或盘亏出库单并立即过账，库存余额随之变动，不可撤销。`,
-      '确认盘点差异',
+      `确认提交盘点单【${current.countNo}】的 ${diffLines.value.length} 行差异审批？审批通过后才会生成盘盈入库或盘亏出库调整单。`,
+      '提交差异审批',
       {
-        cancelButtonText: '取消',
-        confirmButtonText: '确定确认差异',
+        cancelButtonText: '返回',
+        confirmButtonText: '提交审批',
         type: 'warning',
       },
     );
   } catch {
     return;
   }
-  const loadingInstance = ElLoading.service({ text: '正在确认差异...' });
+  const loadingInstance = ElLoading.service({ text: '正在提交差异审批...' });
   try {
-    await confirmCountDiff({ id: current.id });
-    ElMessage.success('差异已确认，已生成调整单并过账');
+    await submitDiffApproval({ id: current.id });
+    ElMessage.success('已提交差异审批');
     await reload();
   } finally {
     loadingInstance.close();
@@ -508,21 +504,21 @@ async function handleConfirmDiff() {
                 auth: ['wms:count-order:submit-result'],
                 disabled:
                   !order ||
-                  !canSubmitResult(order.status) ||
+                  !canSubmitResult(order) ||
                   truncated ||
                   recordedCount === 0,
                 onClick: handleSubmitResult,
               },
               {
-                label: '确认差异',
+                label: '提交差异审批',
                 type: 'warning',
                 icon: 'lucide:check-check',
-                auth: ['wms:count-order:confirm-diff'],
+                auth: ['wms:count-order:submit-diff-approval'],
                 disabled:
                   !order ||
-                  !canConfirmDiff(order.status) ||
+                  !canSubmitDiffApproval(order) ||
                   diffLines.length === 0,
-                onClick: handleConfirmDiff,
+                onClick: handleSubmitDiffApproval,
               },
               {
                 label: '重新载入',
@@ -539,7 +535,7 @@ async function handleConfirmDiff() {
           <ElInputNumber
             class="!w-full"
             controls-position="right"
-            :disabled="!order || !canSubmitResult(order.status)"
+            :disabled="!canSubmitResult(order)"
             :min="0"
             :model-value="lineOf(row)?.actualQty"
             placeholder="请输入实盘数量"
@@ -562,7 +558,7 @@ async function handleConfirmDiff() {
         <template #lineRemark="{ row }">
           <ElInput
             clearable
-            :disabled="!order || !canSubmitResult(order.status)"
+            :disabled="!order || !canSubmitResult(order)"
             :maxlength="500"
             :model-value="lineOf(row)?.remark"
             placeholder="盘点备注"

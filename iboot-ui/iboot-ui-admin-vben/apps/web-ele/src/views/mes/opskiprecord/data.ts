@@ -219,6 +219,16 @@ export function useGridColumns(): VxeTableGridOptions<MesOpSkipRecordApi.OpSkipR
       },
     },
     {
+      field: 'approvalStatus',
+      title: '流程审批',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS },
+      },
+    },
+    { field: 'approvalReason', title: '审批意见', minWidth: 160 },
+    {
       field: 'skipTime',
       title: '跳过时间',
       minWidth: 160,
@@ -243,7 +253,7 @@ export function useGridColumns(): VxeTableGridOptions<MesOpSkipRecordApi.OpSkipR
     },
     {
       title: '操作',
-      width: 160,
+      width: 240,
       fixed: 'right',
       slots: { default: 'actions' },
     },

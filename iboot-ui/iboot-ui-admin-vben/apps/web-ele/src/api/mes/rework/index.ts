@@ -42,24 +42,19 @@ export function getRework(id: number) {
   return requestClient.get<MesReworkApi.Rework>(`/mes/rework/get?id=${id}`);
 }
 
-/** 新增返工任务 */
-export function createRework(data: MesReworkApi.Rework) {
-  return requestClient.post('/mes/rework/create', data);
+/** 下达返工任务 */
+export function releaseRework(id: number) {
+  return requestClient.post('/mes/rework/release', { id });
 }
 
-/** 修改返工任务 */
-export function updateRework(data: MesReworkApi.Rework) {
-  return requestClient.put('/mes/rework/update', data);
+/** 返工完工 */
+export function finishRework(id: number) {
+  return requestClient.post('/mes/rework/finish', { id });
 }
 
-/** 删除返工任务 */
-export function deleteRework(id: number) {
-  return requestClient.delete(`/mes/rework/delete?id=${id}`);
-}
-
-/** 批量删除返工任务 */
-export function deleteReworkList(ids: number[]) {
-  return requestClient.delete(`/mes/rework/delete-list?ids=${ids.join(',')}`);
+/** 取消返工任务 */
+export function cancelRework(id: number) {
+  return requestClient.post('/mes/rework/cancel', { id });
 }
 
 /** 导出返工任务 */

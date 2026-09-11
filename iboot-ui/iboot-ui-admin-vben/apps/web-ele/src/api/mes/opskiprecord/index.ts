@@ -25,6 +25,10 @@ export namespace MesOpSkipRecordApi {
     effectRemark?: string;
     status?: string;
     remark?: string;
+    approvalStatus?: number;
+    processInstanceId?: string;
+    approvalTime?: number | string;
+    approvalReason?: string;
     createTime?: string;
   }
 

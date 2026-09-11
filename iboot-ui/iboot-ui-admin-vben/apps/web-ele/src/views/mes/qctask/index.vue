@@ -2,82 +2,82 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcTaskApi } from '#/api/mes/qctask';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteQcTask,
-  deleteQcTaskList,
+  assignQcTask,
+  cancelQcTask,
   exportQcTask,
   getQcTaskPage,
+  startInspectQcTask,
+  submitQcTaskConclusion,
 } from '#/api/mes/qctask';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建质检任务 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑质检任务 */
-function handleEdit(row: MesQcTaskApi.QcTask) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除质检任务 */
-async function handleDelete(row: MesQcTaskApi.QcTask) {
+/** 指派检验员 */
+async function handleAssign(row: MesQcTaskApi.QcTask) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.taskNo]),
+    text: `正在指派 ${row.taskNo}`,
   });
   try {
-    await deleteQcTask(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.taskNo]));
+    // 检验任务页先给当前登录主管常用动作；作业页再支持精确选人
+    await assignQcTask(row.id!, row.assignedInspectorId || 1);
+    ElMessage.success('检验员已指派');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除质检任务 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
+/** 开始检验 */
+async function handleStart(row: MesQcTaskApi.QcTask) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
+    text: `正在开始 ${row.taskNo}`,
   });
   try {
-    await deleteQcTaskList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    await startInspectQcTask(row.id!);
+    ElMessage.success('检验已开始');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MesQcTaskApi.QcTask[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
+/** 提交检验结论 */
+async function handleSubmit(row: MesQcTaskApi.QcTask) {
+  const loadingInstance = ElLoading.service({
+    text: `正在提交 ${row.taskNo}`,
+  });
+  try {
+    await submitQcTaskConclusion({
+      id: row.id!,
+      conclusion: row.conclusion || 'QUALIFIED',
+      qtyQualified: row.qtyQualified || 0,
+      qtyRejected: row.qtyRejected || 0,
+    });
+    ElMessage.success('结论已提交');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 取消质检任务 */
+async function handleCancel(row: MesQcTaskApi.QcTask) {
+  await cancelQcTask(row.id!, '来源业务取消');
+  ElMessage.success('质检任务已取消');
+  handleRefresh();
 }
 
 /** 导出表格 */
@@ -114,41 +114,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<MesQcTaskApi.QcTask>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
     <Grid table-title="质检任务列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['质检任务']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['mes:qc-task:create'],
-              onClick: handleCreate,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['mes:qc-task:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:qc-task:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -157,22 +137,38 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '指派',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:qc-task:update'],
-              onClick: handleEdit.bind(null, row),
+              auth: ['mes:qc-task:assign'],
+              disabled: row.status !== 'CREATED',
+              onClick: handleAssign.bind(null, row),
             },
             {
-              label: $t('common.delete'),
+              label: '开始检验',
+              type: 'primary',
+              link: true,
+              auth: ['mes:qc-task:start-inspect'],
+              disabled: row.status !== 'ASSIGNED',
+              onClick: handleStart.bind(null, row),
+            },
+            {
+              label: '提交结论',
+              type: 'primary',
+              link: true,
+              auth: ['mes:qc-task:submit-conclusion'],
+              disabled: row.status !== 'RESULT_POSTING',
+              onClick: handleSubmit.bind(null, row),
+            },
+            {
+              label: '取消',
               type: 'danger',
               link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:qc-task:delete'],
+              auth: ['mes:qc-task:cancel'],
+              disabled: !['CREATED', 'ASSIGNED'].includes(row.status || ''),
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.taskNo]),
-                confirm: handleDelete.bind(null, row),
+                title: `确认取消质检任务 ${row.taskNo}？`,
+                confirm: handleCancel.bind(null, row),
               },
             },
           ]"

@@ -56,3 +56,13 @@ export function deleteQcPlanList(ids: number[]) {
 export function exportQcPlan(params: any) {
   return requestClient.download('/mes/qc-plan/export-excel', { params });
 }
+
+/** 发布检验方案 */
+export function publishQcPlan(id: number) {
+  return requestClient.post('/mes/qc-plan/publish', { id });
+}
+
+/** 停用检验方案 */
+export function disableQcPlan(id: number) {
+  return requestClient.post('/mes/qc-plan/disable', { id });
+}

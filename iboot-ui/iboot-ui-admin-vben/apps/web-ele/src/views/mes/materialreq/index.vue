@@ -3,6 +3,7 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesMaterialReqApi } from '#/api/mes/materialreq';
 
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
@@ -41,6 +42,11 @@ const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: MaterialReqLineDrawer,
   destroyOnClose: true,
 });
+const router = useRouter();
+
+function isApprovalRunning(row: MesMaterialReqApi.MaterialReq) {
+  return row.approvalStatus === 1;
+}
 
 /** 刷新表格 */
 function handleRefresh() {
@@ -61,21 +67,30 @@ function canSubmit(row: MesMaterialReqApi.MaterialReq) {
 }
 
 function canConfirm(row: MesMaterialReqApi.MaterialReq) {
-  return row.status === MES_MATERIAL_REQ_STATUS.SUBMITTED;
+  return row.status === MES_MATERIAL_REQ_STATUS.SUBMITTED && !isApprovalRunning(row);
 }
 
 function canCancel(row: MesMaterialReqApi.MaterialReq) {
   return (
     row.status === MES_MATERIAL_REQ_STATUS.DRAFT ||
     row.status === MES_MATERIAL_REQ_STATUS.SUBMITTED
-  );
+  ) && !isApprovalRunning(row);
+}
+
+function handleProcessDetail(processInstanceId?: string) {
+  if (processInstanceId) {
+    router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
+  }
 }
 
 /** 提交申请：领料与补料逐行占库存预留 */
 async function handleSubmit(row: MesMaterialReqApi.MaterialReq) {
+  const approvalHint = row.reqType === 'SUPPLEMENT'
+    ? '补料属于超发领料，提交后将进入审批，审批通过才可确认出库。'
+    : '系统会按 BOM 计划量与历史领用量判断是否需要审批；进入审批后须审批通过才可确认出库。';
   try {
     await ElMessageBox.confirm(
-      `确认提交领退补料申请【${row.reqNo}】？领料与补料会逐行占库存预留。`,
+      `确认提交领退补料申请【${row.reqNo}】？领料与补料会逐行占库存预留。${approvalHint}`,
       '提交申请',
       {
         confirmButtonText: '确认提交',
@@ -286,6 +301,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
                 auth: ['mes:material-req:query'],
                 onClick: handleLines.bind(null, row),
               },
+              {
+                label: '审批进度',
+                type: 'primary',
+                link: true,
+                icon: ACTION_ICON.VIEW,
+                ifShow: !!row.processInstanceId,
+                onClick: handleProcessDetail.bind(null, row.processInstanceId),
+              },
             ]"
           />
           <ElButton
@@ -319,14 +342,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
 </el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:material-req:update']"
-                  :disabled="!isDraft(row)"
+                  :disabled="!isDraft(row) || isApprovalRunning(row)"
                   @click="handleEdit(row)"
                   >
 修改
 </el-dropdown-item>
                 <el-dropdown-item
                   v-access:code="['mes:material-req:delete']"
-                  :disabled="!isDraft(row)"
+                  :disabled="!isDraft(row) || isApprovalRunning(row)"
                   @click="handleDelete(row)"
                   >
 删除

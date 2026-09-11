@@ -3,6 +3,7 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsCountOrderApi } from '#/api/wms/countorder';
 
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
@@ -11,12 +12,12 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  confirmCountDiff,
   deleteCountOrder,
   deleteCountOrderList,
   exportCountOrder,
   freezeCountOrder,
   getCountOrderPage,
+  submitDiffApproval,
 } from '#/api/wms/countorder';
 import { $t } from '#/locales';
 
@@ -30,9 +31,8 @@ import Form from './modules/form.vue';
  * 盘点单状态机是 `DRAFT → FROZEN → COUNTING → DIFF_CONFIRMED → DONE`，没有取消动作。
  * 按钮的启用条件贴着这条链走，非可用状态一律禁用而不是隐藏，用户才知道"为什么不能点"。
  *
- * 三个动作的判定写在本文件而不是取 `order-form.ts` 里的 `canSubmitCountResult` /
- * `canConfirmCountDiff`：那两个函数照抄的是领域 Service 的入口校验（放行 `DRAFT` 与
- * `DIFF_CONFIRMED`），是"接口收什么"；这里要的是"界面给不给点"，比接口更严，理由见下。
+ * 动作判定写在本文件而不是照搬领域 Service 的入口校验：这里要的是"界面给不给点"，
+ * 比接口更严，理由见下。
  * 盘点动作只有这一个页面用，判定留在页面里不存在"改一处漏四处"。
  */
 
@@ -48,21 +48,22 @@ function canFreeze(status?: string) {
  * 一旦从 `DRAFT` 直接录实盘，单据就跳到 `COUNTING`，而 `freezeCountOrder` 只认新建态——
  * 这批货再也冻不上，盘点期间照样能被领走。要不冻结直接盘只能走接口，不在界面上开这条路。
  */
-function canSubmitResult(status?: string) {
+function canSubmitResult(row: WmsCountOrderApi.CountOrder) {
   return (
-    status === WMS_ORDER_STATUS.FROZEN || status === WMS_ORDER_STATUS.COUNTING
-  );
+    row.status === WMS_ORDER_STATUS.FROZEN || row.status === WMS_ORDER_STATUS.COUNTING
+  ) && row.approvalStatus !== 1;
 }
 
-/**
- * 可确认差异：录过实盘之后（盘点中）。
- *
- * 领域侧还放行 `DIFF_CONFIRMED`（为重试留的口子，已 ADJUSTED 的行会跳过），但
- * `confirmCountDiff` 成功后直接把单据置 `DONE`，代码里没有任何地方写入 `DIFF_CONFIRMED`，
- * 界面上不会出现这个状态的单据，因此不为它开按钮。
- */
-function canConfirmDiff(status?: string) {
-  return status === WMS_ORDER_STATUS.COUNTING;
+function canSubmitDiffApproval(row: WmsCountOrderApi.CountOrder) {
+  return row.status === WMS_ORDER_STATUS.COUNTING && row.approvalStatus !== 1;
+}
+
+const router = useRouter();
+
+function handleProcessDetail(processInstanceId?: string) {
+  if (processInstanceId) {
+    router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
+  }
 }
 
 const [LineDrawer, lineDrawerApi] = useVbenDrawer({
@@ -159,25 +160,25 @@ function handleSubmitResult(row: WmsCountOrderApi.CountOrder) {
   countResultModalApi.setData(row).open();
 }
 
-/** 确认差异：生成盘盈入库单或盘亏出库单并过账，不可撤销 */
-async function handleConfirmDiff(row: WmsCountOrderApi.CountOrder) {
+/** 提交差异审批：审批通过后由后端回调逐行生成调整出入库单并过账。 */
+async function handleSubmitDiffApproval(row: WmsCountOrderApi.CountOrder) {
   try {
     await ElMessageBox.confirm(
-      `确认盘点单【${row.countNo}】的差异？服务端会按差异逐行生成盘盈入库单或盘亏出库单并立即过账，库存余额随之变动，不可撤销。`,
-      '确认盘点差异',
+      `确认提交盘点单【${row.countNo}】的差异审批？审批通过后才会生成盘盈入库或盘亏出库调整单。`,
+      '提交差异审批',
       {
-        cancelButtonText: '取消',
-        confirmButtonText: '确定确认差异',
+        cancelButtonText: '返回',
+        confirmButtonText: '提交审批',
         type: 'warning',
       },
     );
   } catch {
     return;
   }
-  const loadingInstance = ElLoading.service({ text: '正在确认差异...' });
+  const loadingInstance = ElLoading.service({ text: '正在提交差异审批...' });
   try {
-    await confirmCountDiff({ id: row.id! });
-    ElMessage.success('差异已确认');
+    await submitDiffApproval({ id: row.id! });
+    ElMessage.success('已提交差异审批');
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -303,17 +304,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: 'lucide:clipboard-pen-line',
               auth: ['wms:count-order:submit-result'],
-              disabled: !canSubmitResult(row.status),
+              disabled: !canSubmitResult(row),
               onClick: handleSubmitResult.bind(null, row),
             },
             {
-              label: '确认差异',
+              label: '提交差异审批',
               type: 'warning',
               link: true,
               icon: 'lucide:check-check',
-              auth: ['wms:count-order:confirm-diff'],
-              disabled: !canConfirmDiff(row.status),
-              onClick: handleConfirmDiff.bind(null, row),
+              auth: ['wms:count-order:submit-diff-approval'],
+              disabled: !canSubmitDiffApproval(row),
+              onClick: handleSubmitDiffApproval.bind(null, row),
             },
             {
               label: $t('common.edit'),
@@ -335,6 +336,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
                 title: $t('ui.actionMessage.deleteConfirm', [row.countNo]),
                 confirm: handleDelete.bind(null, row),
               },
+            },
+            {
+              label: '审批进度',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              ifShow: !!row.processInstanceId,
+              onClick: handleProcessDetail.bind(null, row.processInstanceId),
             },
           ]"
         />

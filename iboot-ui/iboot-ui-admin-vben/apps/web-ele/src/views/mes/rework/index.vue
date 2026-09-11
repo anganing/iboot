@@ -2,82 +2,61 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesReworkApi } from '#/api/mes/rework';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  deleteRework,
-  deleteReworkList,
+  cancelRework,
   exportRework,
+  finishRework,
   getReworkPage,
+  releaseRework,
 } from '#/api/mes/rework';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
 
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
 }
 
-/** 创建返工任务 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑返工任务 */
-function handleEdit(row: MesReworkApi.Rework) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除返工任务 */
-async function handleDelete(row: MesReworkApi.Rework) {
+/** 下达返工任务 */
+async function handleRelease(row: MesReworkApi.Rework) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.reworkNo]),
+    text: `正在下达 ${row.reworkNo}`,
   });
   try {
-    await deleteRework(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.reworkNo]));
+    await releaseRework(row.id!);
+    ElMessage.success('返工任务已下达');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-/** 批量删除返工任务 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
+/** 返工完工 */
+async function handleFinish(row: MesReworkApi.Rework) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
+    text: `正在完工 ${row.reworkNo}`,
   });
   try {
-    await deleteReworkList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
+    await finishRework(row.id!);
+    ElMessage.success('返工已完工');
     handleRefresh();
   } finally {
     loadingInstance.close();
   }
 }
 
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MesReworkApi.Rework[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
+/** 取消返工任务 */
+async function handleCancel(row: MesReworkApi.Rework) {
+  await cancelRework(row.id!);
+  ElMessage.success('返工任务已取消');
+  handleRefresh();
 }
 
 /** 导出表格 */
@@ -114,41 +93,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<MesReworkApi.Rework>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
     <Grid table-title="返工任务列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['返工任务']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['mes:rework:create'],
-              onClick: handleCreate,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
               icon: ACTION_ICON.DOWNLOAD,
               auth: ['mes:rework:export'],
               onClick: handleExport,
-            },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:rework:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
             },
           ]"
         />
@@ -157,22 +116,30 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '下达',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:rework:update'],
-              onClick: handleEdit.bind(null, row),
+              auth: ['mes:rework:release'],
+              disabled: row.status !== 'DRAFT',
+              onClick: handleRelease.bind(null, row),
             },
             {
-              label: $t('common.delete'),
+              label: '完工',
+              type: 'primary',
+              link: true,
+              auth: ['mes:rework:finish'],
+              disabled: row.status !== 'RUNNING',
+              onClick: handleFinish.bind(null, row),
+            },
+            {
+              label: '取消',
               type: 'danger',
               link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:rework:delete'],
+              auth: ['mes:rework:cancel'],
+              disabled: row.status === 'DONE' || row.status === 'CANCELLED',
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.reworkNo]),
-                confirm: handleDelete.bind(null, row),
+                title: `确认取消返工任务 ${row.reworkNo}？`,
+                confirm: handleCancel.bind(null, row),
               },
             },
           ]"

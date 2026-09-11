@@ -11,10 +11,12 @@ import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  disableQcPlan,
   deleteQcPlan,
   deleteQcPlanList,
   exportQcPlan,
   getQcPlanPage,
+  publishQcPlan,
 } from '#/api/mes/qcplan';
 import { $t } from '#/locales';
 
@@ -84,6 +86,34 @@ function handleRowCheckboxChange({
 async function handleExport() {
   const data = await exportQcPlan(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '检验方案.xls', source: data });
+}
+
+/** 发布检验方案 */
+async function handlePublish(row: MesQcPlanApi.QcPlan) {
+  const loadingInstance = ElLoading.service({
+    text: `正在发布 ${row.code}`,
+  });
+  try {
+    await publishQcPlan(row.id!);
+    ElMessage.success('检验方案已发布');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 停用检验方案 */
+async function handleDisable(row: MesQcPlanApi.QcPlan) {
+  const loadingInstance = ElLoading.service({
+    text: `正在停用 ${row.code}`,
+  });
+  try {
+    await disableQcPlan(row.id!);
+    ElMessage.success('检验方案已停用');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
 }
 
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -162,7 +192,30 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mes:qc-plan:update'],
+              disabled: row.status !== 'DRAFT',
               onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: '发布',
+              type: 'primary',
+              link: true,
+              auth: ['mes:qc-plan:publish'],
+              disabled: row.status !== 'DRAFT',
+              popConfirm: {
+                title: `确认发布检验方案 ${row.code}？发布后不可编辑。`,
+                confirm: handlePublish.bind(null, row),
+              },
+            },
+            {
+              label: '停用',
+              type: 'danger',
+              link: true,
+              auth: ['mes:qc-plan:disable'],
+              disabled: row.status !== 'PUBLISHED',
+              popConfirm: {
+                title: `确认停用检验方案 ${row.code}？`,
+                confirm: handleDisable.bind(null, row),
+              },
             },
             {
               label: $t('common.delete'),

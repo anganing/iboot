@@ -44,6 +44,10 @@ export namespace WmsCountOrderApi {
     status?: string; // 状态
     idempotencyKey?: string; // 创建幂等键
     remark?: string; // 备注
+    approvalStatus?: number; // 流程审批状态
+    processInstanceId?: string; // 流程实例编号
+    approvalTime?: number | string; // 审批完成时间
+    approvalReason?: string; // 审批意见或驳回原因
     createTime?: string; // 创建时间
     whCode?: string; // 仓库编码
     whName?: string; // 仓库名称
@@ -137,6 +141,11 @@ export function submitCountResult(data: WmsCountOrderApi.CountResultSubmitReq) {
 /** 确认盘点差异：生成盘盈入库单或盘亏出库单并过账 */
 export function confirmCountDiff(data: WmsCountOrderApi.CountActionReq) {
   return requestClient.post('/wms/count-order/confirm-diff', data);
+}
+
+/** 提交盘点差异审批：审批通过后才生成调整出入库单并过账 */
+export function submitDiffApproval(data: WmsCountOrderApi.CountActionReq) {
+  return requestClient.post('/wms/count-order/submit-diff-approval', data);
 }
 
 // ==================== 子表（盘点明细，只读 + 录实盘） ====================

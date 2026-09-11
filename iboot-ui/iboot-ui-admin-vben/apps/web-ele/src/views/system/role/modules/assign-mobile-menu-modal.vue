@@ -22,7 +22,7 @@ import {
 } from '#/api/system/mobile-menu';
 import { $t } from '#/locales';
 
-import { useAssignMobileMenuFormSchema } from '../data';
+import { useAssignMenuFormSchema } from '../data';
 
 const emit = defineEmits(['success']);
 
@@ -41,7 +41,7 @@ const [Form, formApi] = useVbenForm({
     labelWidth: 80,
   },
   layout: 'horizontal',
-  schema: useAssignMobileMenuFormSchema(),
+  schema: useAssignMenuFormSchema(),
   showDefaultActions: false,
 });
 

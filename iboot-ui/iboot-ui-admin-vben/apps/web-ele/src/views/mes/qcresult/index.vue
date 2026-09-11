@@ -2,83 +2,14 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcResultApi } from '#/api/mes/qcresult';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
-
-import { ElLoading, ElMessage } from 'element-plus';
+import { Page } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteQcResult,
-  deleteQcResultList,
-  exportQcResult,
-  getQcResultPage,
-} from '#/api/mes/qcresult';
+import { exportQcResult, getQcResultPage } from '#/api/mes/qcresult';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-
-const [FormModal, formModalApi] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
-
-/** 刷新表格 */
-function handleRefresh() {
-  gridApi.query();
-}
-
-/** 创建检验结果 */
-function handleCreate() {
-  formModalApi.setData(null).open();
-}
-
-/** 编辑检验结果 */
-function handleEdit(row: MesQcResultApi.QcResult) {
-  formModalApi.setData(row).open();
-}
-
-/** 删除检验结果 */
-async function handleDelete(row: MesQcResultApi.QcResult) {
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.itemCode]),
-  });
-  try {
-    await deleteQcResult(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.itemCode]));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-/** 批量删除检验结果 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deletingBatch'),
-  });
-  try {
-    await deleteQcResultList(checkedIds.value);
-    checkedIds.value = [];
-    ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    loadingInstance.close();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: MesQcResultApi.QcResult[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
-}
 
 /** 导出表格 */
 async function handleExport() {
@@ -114,27 +45,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<MesQcResultApi.QcResult>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
     <Grid table-title="检验结果列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
-            {
-              label: $t('ui.actionTitle.create', ['检验结果']),
-              type: 'primary',
-              icon: ACTION_ICON.ADD,
-              auth: ['mes:qc-result:create'],
-              onClick: handleCreate,
-            },
             {
               label: $t('ui.actionTitle.export'),
               type: 'primary',
@@ -142,39 +61,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['mes:qc-result:export'],
               onClick: handleExport,
             },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'danger',
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:qc-result:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
           ]"
         />
       </template>
-      <template #actions="{ row }">
+      <template #actions>
         <TableAction
           :actions="[
-            {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:qc-result:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'danger',
-              link: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['mes:qc-result:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.itemCode]),
-                confirm: handleDelete.bind(null, row),
-              },
-            },
           ]"
         />
       </template>

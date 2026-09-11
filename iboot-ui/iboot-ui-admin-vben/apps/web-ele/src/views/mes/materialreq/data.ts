@@ -214,6 +214,16 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
         props: { type: DICT_TYPE.MES_MATERIAL_REQ_STATUS },
       },
     },
+    {
+      field: 'approvalStatus',
+      title: '流程审批',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS },
+      },
+    },
+    { field: 'approvalReason', title: '审批意见', minWidth: 160 },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
@@ -223,7 +233,7 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
     },
     {
       title: '操作',
-      width: 200,
+      width: 260,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -162,6 +162,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mes:qc-item:update'],
+              disabled: row.planStatus !== 'DRAFT',
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -170,6 +171,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mes:qc-item:delete'],
+              disabled: row.planStatus !== 'DRAFT',
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.itemCode]),
                 confirm: handleDelete.bind(null, row),

@@ -28,6 +28,10 @@ export namespace MesMaterialReqApi {
     status?: string;
     idempotencyKey?: string;
     remark?: string;
+    approvalStatus?: number;
+    processInstanceId?: string;
+    approvalTime?: number | string;
+    approvalReason?: string;
     createTime?: string;
   }
 

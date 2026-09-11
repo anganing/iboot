@@ -219,6 +219,16 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
       minWidth: 110,
       cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
+    {
+      field: 'approvalStatus',
+      title: '流程审批',
+      minWidth: 110,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS },
+      },
+    },
+    { field: 'approvalReason', title: '审批意见', minWidth: 160 },
     { field: 'remark', title: '备注', minWidth: 140 },
     {
       field: 'createTime',
@@ -228,8 +238,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
     },
     {
       title: '操作',
-      // 六个按钮：明细、冻结、录实盘、确认差异、编辑、删除
-      width: 360,
+      // 六个按钮：明细、冻结、录实盘、提交差异审批、编辑、删除
+      width: 440,
       fixed: 'right',
       slots: { default: 'actions' },
     },

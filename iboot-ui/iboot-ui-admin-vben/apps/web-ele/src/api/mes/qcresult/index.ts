@@ -44,26 +44,17 @@ export function getQcResult(id: number) {
   );
 }
 
-/** 新增检验结果 */
-export function createQcResult(data: MesQcResultApi.QcResult) {
-  return requestClient.post('/mes/qc-result/create', data);
-}
-
-/** 修改检验结果 */
-export function updateQcResult(data: MesQcResultApi.QcResult) {
-  return requestClient.put('/mes/qc-result/update', data);
-}
-
-/** 删除检验结果 */
-export function deleteQcResult(id: number) {
-  return requestClient.delete(`/mes/qc-result/delete?id=${id}`);
-}
-
-/** 批量删除检验结果 */
-export function deleteQcResultList(ids: number[]) {
-  return requestClient.delete(
-    `/mes/qc-result/delete-list?ids=${ids.join(',')}`,
-  );
+/** 批量保存检验结果 */
+export function batchSaveQcResult(data: {
+  taskId: number;
+  inspectorId: number;
+  items: {
+    itemId: number;
+    sampleNo: number;
+    actualValue?: string;
+  }[];
+}) {
+  return requestClient.post('/mes/qc-result/batch-save', data);
 }
 
 /** 导出检验结果 */

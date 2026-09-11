@@ -4,6 +4,7 @@ import type { MesOpSkipRecordApi } from '#/api/mes/opskiprecord';
 
 import { Page } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
+import { useRouter } from 'vue-router';
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
@@ -18,11 +19,19 @@ import { $t } from '#/locales';
 import { MES_OP_SKIP_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 
+const router = useRouter();
+
 function canRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
   return (
     row.status === MES_OP_SKIP_STATUS.PENDING ||
     row.status === MES_OP_SKIP_STATUS.EFFECTIVE
-  );
+  ) && row.approvalStatus !== 1;
+}
+
+function handleProcessDetail(processInstanceId?: string) {
+  if (processInstanceId) {
+    router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
+  }
 }
 
 /** 刷新表格 */
@@ -124,6 +133,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['mes:op-task:revoke-skip'],
               disabled: !canRevoke(row),
               onClick: handleRevoke.bind(null, row),
+            },
+            {
+              label: '审批进度',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              ifShow: !!row.processInstanceId,
+              onClick: handleProcessDetail.bind(null, row.processInstanceId),
             },
           ]"
         />

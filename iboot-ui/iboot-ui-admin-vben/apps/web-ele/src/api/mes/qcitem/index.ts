@@ -9,6 +9,7 @@ export namespace MesQcItemApi {
     planId?: number;
     planCode?: string;
     planName?: string;
+    planStatus?: string;
     itemCode?: string;
     itemName?: string;
     itemType?: string;

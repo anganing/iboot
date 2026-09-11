@@ -25,6 +25,10 @@ export namespace MesDispositionApi {
     status?: string;
     idempotencyKey?: string;
     remark?: string;
+    approvalStatus?: number;
+    processInstanceId?: string;
+    approvalTime?: number | string;
+    approvalReason?: string;
     createTime?: string;
   }
 }
@@ -69,4 +73,19 @@ export function deleteDispositionList(ids: number[]) {
 /** 导出不合格品处置单 */
 export function exportDisposition(params: any) {
   return requestClient.download('/mes/disposition/export-excel', { params });
+}
+
+/** 提交处置单 */
+export function submitDisposition(id: number) {
+  return requestClient.post('/mes/disposition/submit', { id });
+}
+
+/** 执行处置单 */
+export function executeDisposition(id: number) {
+  return requestClient.post('/mes/disposition/execute', { id });
+}
+
+/** 取消处置单 */
+export function cancelDisposition(id: number) {
+  return requestClient.post('/mes/disposition/cancel', { id });
 }

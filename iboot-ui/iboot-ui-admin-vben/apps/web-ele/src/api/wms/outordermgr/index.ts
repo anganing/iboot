@@ -153,6 +153,11 @@ export function confirmOutOrder(data: WmsOutOrderApi.OrderActionReq) {
   return requestClient.post('/wms/out-order/confirm', data);
 }
 
+/** 拣选完成：销售出库按规则触发出货检验 */
+export function pickOutOrder(data: WmsOutOrderApi.OrderActionReq) {
+  return requestClient.post('/wms/out-order/pick', data);
+}
+
 /** 取消出库单：仅新建状态可取消 */
 export function cancelOutOrder(data: WmsOutOrderApi.OrderCancelReq) {
   return requestClient.post('/wms/out-order/cancel', data);

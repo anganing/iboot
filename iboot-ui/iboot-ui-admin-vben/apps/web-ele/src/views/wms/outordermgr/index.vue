@@ -16,6 +16,7 @@ import {
   deleteOutOrder,
   deleteOutOrderList,
   exportOutOrder,
+  pickOutOrder,
   getOutOrderPage,
   submitOutOrder,
 } from '#/api/wms/outordermgr';
@@ -130,6 +131,31 @@ async function handleConfirm(row: WmsOutOrderApi.OutOrder) {
   try {
     await confirmOutOrder({ id: row.id! });
     ElMessage.success('过账成功');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 拣选完成：销售出库按规则触发出货检验 */
+async function handlePick(row: WmsOutOrderApi.OutOrder) {
+  try {
+    await ElMessageBox.confirm(
+      `确认拣选完成出库单【${row.outNo}】？销售出库将按规则触发出货检验。`,
+      '拣选完成',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: '确定拣选',
+        type: 'info',
+      },
+    );
+  } catch {
+    return;
+  }
+  const loadingInstance = ElLoading.service({ text: '正在拣选...' });
+  try {
+    await pickOutOrder({ id: row.id! });
+    ElMessage.success('拣选完成');
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -286,6 +312,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['wms:out-order:confirm'],
               disabled: !canPostOrder(row.status),
               onClick: handleConfirm.bind(null, row),
+            },
+            {
+              label: '拣选',
+              type: 'primary',
+              link: true,
+              icon: 'lucide:package-check',
+              auth: ['wms:out-order:pick'],
+              disabled:
+                row.bizType !== 'SALES_DELIVERY_OUT' ||
+                !canPostOrder(row.status),
+              onClick: handlePick.bind(null, row),
             },
             {
               label: '取消',

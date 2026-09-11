@@ -3,6 +3,7 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesDispositionApi } from '#/api/mes/disposition';
 
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
@@ -11,10 +12,13 @@ import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  cancelDisposition,
+  executeDisposition,
   deleteDisposition,
   deleteDispositionList,
   exportDisposition,
   getDispositionPage,
+  submitDisposition,
 } from '#/api/mes/disposition';
 import { $t } from '#/locales';
 
@@ -25,6 +29,17 @@ const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
+const router = useRouter();
+
+function isApprovalRunning(row: MesDispositionApi.Disposition) {
+  return row.approvalStatus === 1;
+}
+
+function handleProcessDetail(processInstanceId?: string) {
+  if (processInstanceId) {
+    router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
+  }
+}
 
 /** 刷新表格 */
 function handleRefresh() {
@@ -53,6 +68,34 @@ async function handleDelete(row: MesDispositionApi.Disposition) {
   } finally {
     loadingInstance.close();
   }
+}
+
+/** 提交处置单 */
+async function handleSubmit(row: MesDispositionApi.Disposition) {
+  await submitDisposition(row.id!);
+  ElMessage.success('处置单已提交');
+  handleRefresh();
+}
+
+/** 执行处置单 */
+async function handleExecute(row: MesDispositionApi.Disposition) {
+  const loadingInstance = ElLoading.service({
+    text: `正在执行 ${row.dispositionNo}`,
+  });
+  try {
+    await executeDisposition(row.id!);
+    ElMessage.success('处置已执行');
+    handleRefresh();
+  } finally {
+    loadingInstance.close();
+  }
+}
+
+/** 取消处置单 */
+async function handleCancel(row: MesDispositionApi.Disposition) {
+  await cancelDisposition(row.id!);
+  ElMessage.success('处置单已取消');
+  handleRefresh();
 }
 
 /** 批量删除不合格品处置单 */
@@ -162,7 +205,41 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['mes:disposition:update'],
+              disabled: row.status !== 'DRAFT' || isApprovalRunning(row),
               onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: ['CONCESSION', 'SCRAP'].includes(row.dispositionType || '') ? '提交审批' : '提交',
+              type: 'primary',
+              link: true,
+              auth: ['mes:disposition:submit'],
+              disabled: row.status !== 'DRAFT',
+              popConfirm: {
+                title: `确认提交处置单 ${row.dispositionNo}？`,
+                confirm: handleSubmit.bind(null, row),
+              },
+            },
+            {
+              label: '执行',
+              type: 'primary',
+              link: true,
+              auth: ['mes:disposition:execute'],
+              disabled: row.status !== 'APPROVED',
+              popConfirm: {
+                title: `确认执行处置单 ${row.dispositionNo}？执行会联动库存或返工。`,
+                confirm: handleExecute.bind(null, row),
+              },
+            },
+            {
+              label: '取消',
+              type: 'danger',
+              link: true,
+              auth: ['mes:disposition:cancel'],
+              disabled: !['DRAFT', 'SUBMITTED'].includes(row.status || '') || isApprovalRunning(row),
+              popConfirm: {
+                title: `确认取消处置单 ${row.dispositionNo}？`,
+                confirm: handleCancel.bind(null, row),
+              },
             },
             {
               label: $t('common.delete'),
@@ -170,10 +247,19 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['mes:disposition:delete'],
+              disabled: row.status !== 'DRAFT' || isApprovalRunning(row),
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.dispositionNo]),
                 confirm: handleDelete.bind(null, row),
               },
+            },
+            {
+              label: '审批进度',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              ifShow: !!row.processInstanceId,
+              onClick: handleProcessDetail.bind(null, row.processInstanceId),
             },
           ]"
         />

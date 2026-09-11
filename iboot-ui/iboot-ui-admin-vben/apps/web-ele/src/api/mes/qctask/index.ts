@@ -60,24 +60,29 @@ export function getQcTask(id: number) {
   return requestClient.get<MesQcTaskApi.QcTask>(`/mes/qc-task/get?id=${id}`);
 }
 
-/** 新增质检任务 */
-export function createQcTask(data: MesQcTaskApi.QcTask) {
-  return requestClient.post('/mes/qc-task/create', data);
+/** 指派检验员 */
+export function assignQcTask(id: number, inspectorId: number) {
+  return requestClient.post('/mes/qc-task/assign', { id, inspectorId });
 }
 
-/** 修改质检任务 */
-export function updateQcTask(data: MesQcTaskApi.QcTask) {
-  return requestClient.put('/mes/qc-task/update', data);
+/** 开始检验 */
+export function startInspectQcTask(id: number) {
+  return requestClient.post('/mes/qc-task/start-inspect', { id });
 }
 
-/** 删除质检任务 */
-export function deleteQcTask(id: number) {
-  return requestClient.delete(`/mes/qc-task/delete?id=${id}`);
+/** 提交检验结论 */
+export function submitQcTaskConclusion(data: {
+  id: number;
+  conclusion: string;
+  qtyQualified: number;
+  qtyRejected: number;
+}) {
+  return requestClient.post('/mes/qc-task/submit-conclusion', data);
 }
 
-/** 批量删除质检任务 */
-export function deleteQcTaskList(ids: number[]) {
-  return requestClient.delete(`/mes/qc-task/delete-list?ids=${ids.join(',')}`);
+/** 取消质检任务 */
+export function cancelQcTask(id: number, remark?: string) {
+  return requestClient.post('/mes/qc-task/cancel', { id, remark });
 }
 
 /** 导出质检任务 */
