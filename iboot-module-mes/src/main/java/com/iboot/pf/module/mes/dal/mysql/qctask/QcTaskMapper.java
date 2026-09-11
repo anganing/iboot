@@ -10,6 +10,8 @@ import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * MES-质检任务 Mapper
  *
@@ -41,6 +43,14 @@ public interface QcTaskMapper extends BaseMapperX<QcTaskDO> {
     /** 统计命中某质检规则的任务数，规则删除前校验占用。 */
     default Long selectCountByRuleId(Long ruleId) {
         return selectCount(QcTaskDO::getRuleId, ruleId);
+    }
+
+    /** 查询某张生产工单已生成的 FQC 任务，按创建时间倒序便于取当前结论。 */
+    default List<QcTaskDO> selectFqcTasksByProdOrderNo(String prodOrderNo) {
+        return selectList(new com.iboot.pf.framework.mybatis.core.query.LambdaQueryWrapperX<QcTaskDO>()
+                .eq(QcTaskDO::getTriggerPoint, com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum.FQC.name())
+                .eq(QcTaskDO::getBizNo, prodOrderNo)
+                .orderByDesc(QcTaskDO::getCreateTime));
     }
 
 }

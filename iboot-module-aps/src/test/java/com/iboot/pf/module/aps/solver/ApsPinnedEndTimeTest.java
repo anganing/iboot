@@ -140,8 +140,8 @@ class ApsPinnedEndTimeTest extends BaseDbUnitTest {
     }
 
     @Test
-    void shouldKeepActualEndTimeWhenReported() {
-        // 已报完工的工序直接用 MES 的实际完工时间，不再推算
+    void shouldExcludeCompletedTaskFromSolverInput() {
+        // 已报完工工序保留在投影里用于追溯，但不能再次进入求解域、占用资源队列。
         orderProjectionMapper.insert(baseOrder(803L, 10)
                 .lockedFlag(true)
                 .actualStartTime(LocalDateTime.of(2026, 9, 5, 8, 0))
@@ -151,9 +151,9 @@ class ApsPinnedEndTimeTest extends BaseDbUnitTest {
 
         ApsSolution solution = problemBuilder.build(scenario(), 1L, new ApsStrategyConfig());
 
-        ApsSolverTask done = solution.getTasks().stream()
-                .filter(ApsSolverTask::isPinned).findFirst().orElseThrow();
-        assertEquals(LocalDateTime.of(2026, 9, 6, 15, 30), done.getPinnedEndTime());
+        assertEquals(1, solution.getTasks().size());
+        assertEquals(804L, solution.getTasks().get(0).getId());
+        assertFalse(solution.getTasks().get(0).isPinned());
     }
 
     @Test

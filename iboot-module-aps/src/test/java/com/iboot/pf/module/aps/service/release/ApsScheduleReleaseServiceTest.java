@@ -2,12 +2,16 @@ package com.iboot.pf.module.aps.service.release;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
 import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
+import com.iboot.pf.module.aps.dal.mysql.version.ApsVersionMapper;
 import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.aps.enums.ApsTaskStatusEnum;
+import com.iboot.pf.module.aps.enums.ApsVersionStatusEnum;
 import com.iboot.pf.module.mes.api.optask.OpTaskApi;
 import com.iboot.pf.module.mes.api.optask.dto.ApplyScheduleReqDTO;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.annotation.Import;
@@ -37,9 +41,20 @@ class ApsScheduleReleaseServiceTest extends BaseDbUnitTest {
     private ApsScheduleReleaseService releaseService;
     @Resource
     private ApsTaskMapper taskMapper;
+    @Resource
+    private ApsVersionMapper versionMapper;
 
     @MockitoBean
     private OpTaskApi opTaskApi;
+
+    @BeforeEach
+    void insertVersion() {
+        // 下达要从版本表取场景内版本号，MES 侧流水幂等键与来源单号都从它派生
+        versionMapper.insert(ApsVersionDO.builder()
+                .id(VERSION_ID).scenarioId(1L).versionNo(1)
+                .status(ApsVersionStatusEnum.PUBLISHED.name()).version(1)
+                .build());
+    }
 
     private Long insertTask(String taskNo, Long opTaskId, Long resId, String status) {
         ApsTaskDO task = ApsTaskDO.builder()
@@ -67,6 +82,8 @@ class ApsScheduleReleaseServiceTest extends BaseDbUnitTest {
         verify(opTaskApi).applySchedule(captor.capture());
         ApplyScheduleReqDTO command = captor.getValue();
         assertEquals(2, command.getItems().size());
+        // 版本号随命令下传，MES 侧下达流水的幂等键与来源单号从它派生
+        assertEquals("1", command.getVersionNo());
         // 幂等键固定，重复发布是同一次下达
         assertEquals("APS:RELEASE_SCHEDULE:" + VERSION_ID, command.getIdempotencyKey());
         ApplyScheduleReqDTO.Item item = command.getItems().stream()

@@ -1,8 +1,11 @@
 package com.iboot.pf.module.aps.service.release;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.Assert;
 import com.iboot.pf.module.aps.dal.dataobject.task.ApsTaskDO;
+import com.iboot.pf.module.aps.dal.dataobject.version.ApsVersionDO;
 import com.iboot.pf.module.aps.dal.mysql.task.ApsTaskMapper;
+import com.iboot.pf.module.aps.dal.mysql.version.ApsVersionMapper;
 import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.aps.enums.ApsSourceModuleEnum;
 import com.iboot.pf.module.aps.enums.ApsTaskStatusEnum;
@@ -34,6 +37,8 @@ public class ApsScheduleReleaseService {
     @Resource
     private ApsTaskMapper taskMapper;
     @Resource
+    private ApsVersionMapper versionMapper;
+    @Resource
     private OpTaskApi opTaskApi;
 
     /**
@@ -45,6 +50,9 @@ public class ApsScheduleReleaseService {
      * @return 实际在 MES 生效的工序条数
      */
     public int release(Long versionId) {
+        // 版本号随命令下传：MES 侧状态推进流水要用它做幂等键与来源单号，没有它下达无从对账
+        ApsVersionDO version = versionMapper.selectById(versionId);
+        Assert.notNull(version, "排程版本({})不存在", versionId);
         List<ApsTaskDO> tasks = taskMapper.selectListByVersionId(versionId);
         if (CollUtil.isEmpty(tasks)) {
             return 0;
@@ -68,7 +76,7 @@ public class ApsScheduleReleaseService {
         if (items.isEmpty()) {
             return 0;
         }
-        int affected = opTaskApi.applySchedule(buildCommand(versionId, items));
+        int affected = opTaskApi.applySchedule(buildCommand(version, items));
         if (CollUtil.isNotEmpty(releasedTasks)) {
             taskMapper.updateBatch(releasedTasks);
         }
@@ -93,14 +101,16 @@ public class ApsScheduleReleaseService {
      * 构建回写命令。
      *
      * <p>幂等键用固定的"版本 + 下达"：对同一个版本重复发布是同一次下达，键带时间戳反而会让重试
-     * 变成第二次下达。
+     * 变成第二次下达。{@code versionNo} 传场景内版本号（不是版本主键），MES 侧下达流水的
+     * 幂等键与来源单号都从它派生。
      */
-    private ApplyScheduleReqDTO buildCommand(Long versionId, List<ApplyScheduleReqDTO.Item> items) {
+    private ApplyScheduleReqDTO buildCommand(ApsVersionDO version, List<ApplyScheduleReqDTO.Item> items) {
         ApplyScheduleReqDTO reqDTO = new ApplyScheduleReqDTO();
+        reqDTO.setVersionNo(String.valueOf(version.getVersionNo()));
         reqDTO.setItems(items);
-        reqDTO.setIdempotencyKey(ApsSourceModuleEnum.APS.name() + ":RELEASE_SCHEDULE:" + versionId);
+        reqDTO.setIdempotencyKey(ApsSourceModuleEnum.APS.name() + ":RELEASE_SCHEDULE:" + version.getId());
         reqDTO.setSourceModule(ApsSourceModuleEnum.APS.name());
-        reqDTO.setSourceBizNo(String.valueOf(versionId));
+        reqDTO.setSourceBizNo(String.valueOf(version.getId()));
         return reqDTO;
     }
 

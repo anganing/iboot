@@ -5,22 +5,30 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodreport.ProdReportDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
 import com.iboot.pf.module.mes.dal.mysql.prodreport.ProdReportMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
 import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesCodeRuleConstants;
 import com.iboot.pf.module.mes.enums.MesCommandTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
+import com.iboot.pf.module.mes.enums.MesOpTaskStateMachine;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdReportStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesCancelReportBO;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesSubmitReportBO;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
+import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import com.iboot.pf.module.mes.service.wiptxn.bo.MesWipTxnBO;
 import jakarta.annotation.Resource;
@@ -32,6 +40,7 @@ import java.time.LocalDateTime;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_CONCURRENT_CONFLICT;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_CANCEL_OP_TASK_DONE;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_REPORT_NOT_EXISTS;
@@ -67,6 +76,8 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
     @Resource
     private WorkOrderMapper workOrderMapper;
     @Resource
+    private ProdOrderMapper prodOrderMapper;
+    @Resource
     private MesCodeService codeService;
     @Resource
     private MesCommandService commandService;
@@ -74,6 +85,8 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
     private MesWipTxnRecorder wipTxnRecorder;
     @Resource
     private MesProgressPropagator progressPropagator;
+    @Resource
+    private MesQcTaskDomainService qcTaskDomainService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -102,7 +115,53 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
         recordReportTxn(report, task, qtyGood, null,
                 MesProdReportStatusEnum.SUBMITTED.name(), bo.getIdempotencyKey(), bo.getRemark());
         progressPropagator.propagate(task, qtyGood, qtyScrap, bo.getIdempotencyKey());
+        handleIpqc(task, workOrder, report, qtyGood);
         return report.getId();
+    }
+
+    /**
+     * 过程检验只在规则命中时建立门禁：配置了 {@code PROCESS} 但未命中规则，业务应按规则约定直接放行。
+     * 任务、报工、工序的三项状态都在报工事务内同步写入，不能留下"任务已建但工序仍可继续报工"的窗口。
+     */
+    private void handleIpqc(OpTaskDO task, WorkOrderDO workOrder, ProdReportDO report, BigDecimal qtyGood) {
+        if (!MesQcModeEnum.PROCESS.name().equals(task.getQcMode())) {
+            updateReportStatus(report, MesProdReportStatusEnum.CONFIRMED);
+            return;
+        }
+        MesCreateQcTaskBO qcTask = new MesCreateQcTaskBO();
+        qcTask.setTriggerPoint(MesQcTriggerPointEnum.IPQC.name());
+        qcTask.setObjectType(MesQcObjectTypeEnum.OP_TASK.name());
+        qcTask.setBizType(MesBizTypeEnum.PROD_REPORT.name());
+        qcTask.setBizNo(report.getReportNo());
+        qcTask.setBizLineId(MesConstants.NONE_ID);
+        ProdOrderDO order = prodOrderMapper.selectById(workOrder.getProdOrderId());
+        qcTask.setMatId(order == null ? MesConstants.NONE_ID : order.getMatId());
+        qcTask.setOpId(task.getOpId());
+        qcTask.setWcId(workOrder.getWcId());
+        qcTask.setQty(qtyGood);
+        qcTask.setUomId(order == null ? MesConstants.NONE_ID : order.getUomId());
+        if (qcTaskDomainService.createQcTask(qcTask).isEmpty()) {
+            updateReportStatus(report, MesProdReportStatusEnum.CONFIRMED);
+            return;
+        }
+        String targetStatus = MesOpTaskStateMachine.next(task.getStatus(), MesOpTaskStateMachine.ACTION_TO_QC);
+        int version = task.getVersion() == null ? MesConstants.INIT_VERSION : task.getVersion();
+        if (opTaskMapper.update(OpTaskDO.builder().status(targetStatus).version(version + 1).build(),
+                new LambdaUpdateWrapper<OpTaskDO>().eq(OpTaskDO::getId, task.getId())
+                        .eq(OpTaskDO::getVersion, version)) == 0) {
+            throw exception(OP_TASK_CONCURRENT_CONFLICT);
+        }
+        task.setStatus(targetStatus).setVersion(version + 1);
+        updateReportStatus(report, MesProdReportStatusEnum.QC_PENDING);
+    }
+
+    private void updateReportStatus(ProdReportDO report, MesProdReportStatusEnum targetStatus) {
+        if (prodReportMapper.update(new ProdReportDO().setStatus(targetStatus.name()),
+                new LambdaUpdateWrapper<ProdReportDO>().eq(ProdReportDO::getId, report.getId())
+                        .eq(ProdReportDO::getStatus, MesProdReportStatusEnum.SUBMITTED.name())) == 0) {
+            throw exception(PROD_REPORT_STATUS_INVALID);
+        }
+        report.setStatus(targetStatus.name());
     }
 
     @Override

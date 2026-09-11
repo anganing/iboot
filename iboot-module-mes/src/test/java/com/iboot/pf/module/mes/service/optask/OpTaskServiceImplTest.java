@@ -7,19 +7,24 @@ import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskRespVO;
 import com.iboot.pf.module.mes.controller.admin.optask.vo.OpTaskSaveReqVO;
 import com.iboot.pf.module.mes.dal.dataobject.dispatchtask.DispatchTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
+import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.dispatchtask.DispatchTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
+import com.iboot.pf.module.mes.dal.mysql.wiptxn.WipTxnMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesOpExecModeEnum;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesQcModeEnum;
 import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
+import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.service.MesTestFixtures;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
+import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import com.iboot.pf.module.mes.service.workorder.WorkOrderService;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +55,7 @@ import static org.mockito.Mockito.when;
 /**
  * 工序任务 Service 测试：工序快照从路线工序带出、执行模式按并行组推导、同工单同路线工序唯一、已派工禁删。
  */
-@Import(OpTaskServiceImpl.class)
+@Import({OpTaskServiceImpl.class, MesWipTxnRecorder.class})
 class OpTaskServiceImplTest extends BaseDbUnitTest {
 
     @Resource
@@ -61,6 +66,8 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
     private WorkOrderMapper workOrderMapper;
     @Resource
     private DispatchTaskMapper dispatchTaskMapper;
+    @Resource
+    private WipTxnMapper wipTxnMapper;
 
     @MockitoBean
     private WorkOrderService workOrderService;
@@ -253,9 +260,50 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
         assertEquals(900L, opTask.getResId());
         assertEquals(LocalDateTime.of(2026, 9, 10, 8, 0), opTask.getPlannedStartTime());
         assertEquals(LocalDateTime.of(2026, 9, 10, 16, 0), opTask.getPlannedEndTime());
-        // 计划回写不动数量与状态，它们由派工与报工推进
-        assertEquals(0, opTask.getCompletedQty().compareTo(BigDecimal.ZERO));
-        assertEquals(MesOpTaskStatusEnum.PENDING.name(), opTask.getStatus());
+        // 待排产的任务随计划下达转入待开工，车间靠这个状态区分"等计划"和"可以干"
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTask.getStatus());
+        // 状态推进必须留痕：来源业务是排程下达，来源单号是排程版本号
+        List<WipTxnDO> txns = wipTxnMapper.selectList(WipTxnDO::getOpTaskId, id);
+        assertEquals(1, txns.size());
+        WipTxnDO txn = txns.get(0);
+        assertEquals(MesWipTxnTypeEnum.START.name(), txn.getTxnType());
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), txn.getFromStatus());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), txn.getToStatus());
+        assertEquals(MesBizTypeEnum.SCHEDULE_RELEASE.name(), txn.getBizType());
+        assertEquals("1", txn.getBizNo());
+        assertEquals("APS:1:APPLY_SCHEDULE:" + id, txn.getIdempotencyKey());
+    }
+
+    @Test
+    void testApplySchedule_readyTask_keepsStatusAndRefreshesPlan() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+        opTaskService.applySchedule(buildApplyReqVO(id, 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0)));
+
+        // 已待开工的工序重新下达：只刷新计划与资源，状态不动，也不产生第二条流水
+        int affected = opTaskService.applySchedule(buildApplyReqVO(id, 902L,
+                LocalDateTime.of(2026, 9, 12, 8, 0), LocalDateTime.of(2026, 9, 12, 16, 0)));
+
+        assertEquals(1, affected);
+        OpTaskDO opTask = opTaskMapper.selectById(id);
+        assertEquals(902L, opTask.getResId());
+        assertEquals(LocalDateTime.of(2026, 9, 12, 8, 0), opTask.getPlannedStartTime());
+        assertEquals(LocalDateTime.of(2026, 9, 12, 16, 0), opTask.getPlannedEndTime());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTask.getStatus());
+        assertEquals(1, wipTxnMapper.selectList(WipTxnDO::getOpTaskId, id).size());
+    }
+
+    @Test
+    void testApplySchedule_repeatSameVersion_noDuplicateTxn() {
+        Long id = opTaskService.createOpTask(buildReqVO("OPT-A", 31L));
+
+        // 同一版本重复下达：第一次推进状态并留痕，第二次按幂等键判重，不产生第二条流水
+        opTaskService.applySchedule(buildApplyReqVO(id, 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0)));
+        opTaskService.applySchedule(buildApplyReqVO(id, 900L,
+                LocalDateTime.of(2026, 9, 10, 8, 0), LocalDateTime.of(2026, 9, 10, 16, 0)));
+
+        assertEquals(1, wipTxnMapper.selectList(WipTxnDO::getOpTaskId, id).size());
     }
 
     @Test
@@ -288,6 +336,7 @@ class OpTaskServiceImplTest extends BaseDbUnitTest {
         reqDTO.setIdempotencyKey("APS:RELEASE_SCHEDULE:1");
         reqDTO.setSourceModule("APS");
         reqDTO.setSourceBizNo("1");
+        reqDTO.setVersionNo("1");
         List<ApplyScheduleReqDTO.Item> items = new java.util.ArrayList<>();
         items.add(buildItem(opTaskId, resId, startTime, endTime));
         reqDTO.setItems(items);

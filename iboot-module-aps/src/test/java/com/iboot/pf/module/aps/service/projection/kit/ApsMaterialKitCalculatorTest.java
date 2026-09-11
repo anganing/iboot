@@ -8,6 +8,7 @@ import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
 import com.iboot.pf.module.mdm.api.bom.dto.BomLineRespDTO;
 import com.iboot.pf.module.mdm.api.bom.dto.BomRespDTO;
+import com.iboot.pf.module.mes.enums.MesIssueMethodEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
@@ -177,6 +179,68 @@ class ApsMaterialKitCalculatorTest extends BaseDbUnitTest {
 
         // 已开工的工序料已经领了，不该被判缺料把它挪走
         assertFalse(locked.getMaterialShortageFlag());
+    }
+
+    @Test
+    void testFillMaterialShortage_skipsFinalTaskEvenWhenNotLocked() {
+        mockBom(new BigDecimal("2"), 10);
+        insertInventory(COMPONENT_MAT_ID, "0", WmsQualityStatusEnum.QUALIFIED.name());
+        ApsOrderProjectionDO completed = orderRow(1L, "10", LocalDateTime.of(2026, 9, 20, 8, 0));
+        completed.setCurrentStatus("DONE");
+        completed.setLockedFlag(false);
+
+        calculator.fillMaterialShortage(SCENARIO_ID, List.of(completed));
+
+        assertFalse(completed.getMaterialShortageFlag());
+        assertEquals(0, completed.getMaterialShortQty().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void testFillMaterialShortage_alignsWithMesRequirementRules() {
+        Long phantomMatId = 902L;
+        Long phantomChildMatId = 903L;
+        Long backflushMatId = 904L;
+        BomRespDTO mainBom = new BomRespDTO();
+        mainBom.setId(1L);
+        mainBom.setMatId(FINISHED_MAT_ID);
+        BomRespDTO phantomBom = new BomRespDTO();
+        phantomBom.setId(2L);
+        phantomBom.setMatId(phantomMatId);
+        when(bomApi.getEffectiveBom(anyLong(), any(LocalDate.class))).thenReturn(mainBom);
+        when(bomApi.getEffectiveBom(eq(phantomMatId), any(LocalDate.class))).thenReturn(phantomBom);
+
+        BomLineRespDTO regular = new BomLineRespDTO();
+        regular.setMatId(COMPONENT_MAT_ID);
+        regular.setQty(new BigDecimal("2"));
+        regular.setScrapRate(new BigDecimal("0.1"));
+        regular.setRouteOpSeq(10);
+        BomLineRespDTO phantom = new BomLineRespDTO();
+        phantom.setMatId(phantomMatId);
+        phantom.setQty(BigDecimal.ONE);
+        phantom.setRouteOpSeq(10);
+        phantom.setIssueMethod(MesIssueMethodEnum.PHANTOM.name());
+        BomLineRespDTO backflush = new BomLineRespDTO();
+        backflush.setMatId(backflushMatId);
+        backflush.setQty(new BigDecimal("100"));
+        backflush.setRouteOpSeq(10);
+        backflush.setIssueMethod(MesIssueMethodEnum.BACKFLUSH.name());
+        BomLineRespDTO phantomChild = new BomLineRespDTO();
+        phantomChild.setMatId(phantomChildMatId);
+        phantomChild.setQty(new BigDecimal("3"));
+        phantomChild.setScrapRate(new BigDecimal("0.2"));
+        when(bomApi.getBomLineList(1L)).thenReturn(List.of(regular, phantom, backflush));
+        when(bomApi.getBomLineList(2L)).thenReturn(List.of(phantomChild));
+        insertInventory(COMPONENT_MAT_ID, "20", WmsQualityStatusEnum.QUALIFIED.name());
+        insertInventory(phantomChildMatId, "30", WmsQualityStatusEnum.QUALIFIED.name());
+        List<ApsOrderProjectionDO> rows = List.of(
+                orderRow(1L, "10", LocalDateTime.of(2026, 9, 20, 8, 0)));
+
+        calculator.fillMaterialShortage(SCENARIO_ID, rows);
+
+        // 常规料：10 × 2 ÷ 0.9 = 22.222222，虚拟件子件：10 × 3 ÷ 0.8 = 37.500000；
+        // 分别缺 2.222222 与 7.500000。倒冲件完全不进入缺料口径。
+        assertTrue(rows.get(0).getMaterialShortageFlag());
+        assertEquals(0, rows.get(0).getMaterialShortQty().compareTo(new BigDecimal("9.722222")));
     }
 
 }

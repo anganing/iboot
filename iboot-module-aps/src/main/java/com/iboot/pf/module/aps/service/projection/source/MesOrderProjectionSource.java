@@ -129,8 +129,9 @@ public class MesOrderProjectionSource implements OrderProjectionSource {
                 .currentStatus(task.getStatus())
                 .actualStartTime(task.getActualStartTime())
                 .actualEndTime(task.getActualEndTime())
-                // 已经开工（不再是待排产/待开工）的工序不允许被重排挪走，投影阶段就打上锁定标记
-                .lockedFlag(!MesOpTaskStatusEnum.isNotStarted(task.getStatus()))
+                // 只有在制工序需要锁定在原资源；终态工序保留投影用于追溯，但不会进入求解域。
+                .lockedFlag(!MesOpTaskStatusEnum.isNotStarted(task.getStatus())
+                        && !MesOpTaskStatusEnum.isFinal(task.getStatus()))
                 .sourceUpdateTime(now)
                 .snapshotTime(now)
                 .build();

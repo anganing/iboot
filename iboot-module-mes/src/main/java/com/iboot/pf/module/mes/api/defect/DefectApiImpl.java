@@ -2,6 +2,10 @@ package com.iboot.pf.module.mes.api.defect;
 
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.mes.api.defect.dto.DefectRespDTO;
+import com.iboot.pf.framework.common.util.object.BeanUtils;
+import com.iboot.pf.module.mes.dal.dataobject.defect.DefectDO;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -9,24 +13,30 @@ import java.util.List;
 
 /** 缺陷 API 实现。 */
 @Service
+@DataPermission(enable = false)
 public class DefectApiImpl implements DefectApi {
 
+    @Resource
+    private DefectMapper defectMapper;
+
     @Override
-    @DataPermission(enable = false)
     public DefectRespDTO getDefect(Long id) {
-        throw new UnsupportedOperationException("缺陷记录查询尚未接入领域 Service");
+        return BeanUtils.toBean(id == null ? null : defectMapper.selectById(id), DefectRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<DefectRespDTO> getDefectList(Collection<Long> ids) {
-        throw new UnsupportedOperationException("缺陷记录查询尚未接入领域 Service");
+        return ids == null || ids.isEmpty() ? List.of()
+                : BeanUtils.toBean(defectMapper.selectByIds(ids), DefectRespDTO.class);
     }
 
     @Override
-    @DataPermission(enable = false)
     public List<DefectRespDTO> getDefectListByQualityTaskIds(Collection<Long> qualityTaskIds) {
-        throw new UnsupportedOperationException("缺陷记录查询尚未接入领域 Service");
+        if (qualityTaskIds == null || qualityTaskIds.isEmpty()) {
+            return List.of();
+        }
+        List<DefectDO> defects = defectMapper.selectList(DefectDO::getTaskId, qualityTaskIds);
+        return BeanUtils.toBean(defects, DefectRespDTO.class);
     }
 
 }

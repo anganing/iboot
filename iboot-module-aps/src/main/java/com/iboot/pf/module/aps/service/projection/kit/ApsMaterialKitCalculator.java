@@ -8,11 +8,14 @@ import com.iboot.pf.module.aps.enums.ApsConstants;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
 import com.iboot.pf.module.mdm.api.bom.dto.BomLineRespDTO;
 import com.iboot.pf.module.mdm.api.bom.dto.BomRespDTO;
+import com.iboot.pf.module.mes.enums.MesIssueMethodEnum;
+import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsQualityStatusEnum;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,6 +39,9 @@ import java.util.Map;
 @Component
 public class ApsMaterialKitCalculator {
 
+    private static final int MAX_PHANTOM_DEPTH = 10;
+    private static final int QTY_SCALE = 6;
+
     @Resource
     private ApsInventoryProjectionMapper inventoryProjectionMapper;
     @Resource
@@ -58,27 +64,60 @@ public class ApsMaterialKitCalculator {
             row.setMaterialShortageFlag(false);
             row.setMaterialShortQty(ApsConstants.ZERO_QTY);
         });
+        for (MaterialRequirementAllocation allocation : calculateRequirementAllocations(scenarioId, rows)) {
+            if (allocation.shortQty().signum() > 0) {
+                allocation.order().setMaterialShortageFlag(true);
+                allocation.order().setMaterialShortQty(allocation.order().getMaterialShortQty()
+                        .add(allocation.shortQty()));
+            }
+        }
+    }
+
+    /**
+     * 按投影冻结的库存，计算每道待排工序、每种物料的需求/可用/缺口。
+     *
+     * <p>投影齐套标记和 {@code aps_shortage} 重建必须共用该方法，二者才能保证需求展开、交期优先扣料
+     * 与短缺数量完全一致。
+     */
+    public List<MaterialRequirementAllocation> calculateRequirementAllocations(Long scenarioId,
+                                                                                 List<ApsOrderProjectionDO> rows) {
+        if (CollUtil.isEmpty(rows)) {
+            return List.of();
+        }
         Map<Long, List<BomLineRespDTO>> bomLineMap = loadBomLines(rows);
         if (bomLineMap.isEmpty()) {
-            return;
+            return List.of();
         }
         Map<Long, BigDecimal> availableMap = sumAvailableByMat(scenarioId);
+        List<MaterialRequirementAllocation> result = new ArrayList<>();
         for (ApsOrderProjectionDO row : sortByAllocationOrder(rows)) {
-            // 已开工的工序料已经领了，不参与分配也不判缺料
-            if (Boolean.TRUE.equals(row.getLockedFlag())) {
+            // 已开工已领料；已完工、跳过、取消的工序只作追溯，都不应再占用待排库存。
+            if (Boolean.TRUE.equals(row.getLockedFlag())
+                    || MesOpTaskStatusEnum.isFinal(row.getCurrentStatus())) {
                 continue;
             }
-            allocate(row, bomLineMap.getOrDefault(row.getMatId(), List.of()), availableMap,
-                    firstSeqOfOrder(rows, row.getProdOrderId()));
+            Map<Long, BigDecimal> requirements = calculateRequirements(row,
+                    bomLineMap.getOrDefault(row.getMatId(), List.of()), firstSeqOfOrder(rows, row.getProdOrderId()));
+            for (Map.Entry<Long, BigDecimal> entry : requirements.entrySet()) {
+                BigDecimal required = entry.getValue();
+                if (required.signum() <= 0) {
+                    continue;
+                }
+                BigDecimal available = availableMap.getOrDefault(entry.getKey(), ApsConstants.ZERO_QTY);
+                BigDecimal consumed = required.min(available);
+                availableMap.put(entry.getKey(), available.subtract(consumed));
+                result.add(new MaterialRequirementAllocation(row, entry.getKey(), required, available,
+                        required.subtract(consumed)));
+            }
         }
+        return result;
     }
 
     /**
      * 成品物料 -> BOM 明细。
      *
-     * <p>只展开一层：多层展开要靠 MRP 逐层下达，那是另一套逻辑；排程关心的是"这道工序要领的料够不够"，
-     * 而领料清单本来就是单层 BOM。虚拟件（PHANTOM）跳过，它不占实物库存，需要继续往下展开，
-     * 本版按"不影响齐套判定"处理。
+     * <p>保留 BOM 原始行，实际需求在分配时按 MES 齐套规则展开：虚拟件本身不占库存、但要递归展开其子件；
+     * 倒冲件不计需求。不能在此处提前过滤虚拟件，否则其子件会从 APS 齐套口径中丢失。
      */
     private Map<Long, List<BomLineRespDTO>> loadBomLines(List<ApsOrderProjectionDO> rows) {
         LocalDate today = LocalDate.now();
@@ -93,9 +132,7 @@ public class ApsMaterialKitCalculator {
                 continue;
             }
             List<BomLineRespDTO> lines = bomApi.getBomLineList(bom.getId()).stream()
-                    .filter(line -> !PHANTOM_ISSUE_METHOD.equals(line.getIssueMethod()))
-                    .filter(line -> line.getMatId() != null)
-                    .toList();
+                    .filter(line -> line.getMatId() != null).toList();
             result.put(row.getMatId(), lines);
         }
         return result;
@@ -133,33 +170,23 @@ public class ApsMaterialKitCalculator {
      * <p>用料绑定到工序：BOM 行的 {@code routeOpSeq} 与工序顺序号一致时归到这道工序。
      * 没绑工序（为空或 0）的料归到工单的首道工序——整单开工前就得齐，不能等到某道中间工序。
      */
-    private void allocate(ApsOrderProjectionDO row, List<BomLineRespDTO> lines,
-                          Map<Long, BigDecimal> availableMap, Integer firstSeq) {
+    private Map<Long, BigDecimal> calculateRequirements(ApsOrderProjectionDO row, List<BomLineRespDTO> lines,
+                                                          Integer firstSeq) {
+        Map<Long, BigDecimal> requirements = new LinkedHashMap<>();
         if (lines.isEmpty()) {
-            return;
+            return requirements;
         }
         BigDecimal remaining = remainingQty(row);
         if (remaining.signum() <= 0) {
-            return;
+            return requirements;
         }
-        BigDecimal shortTotal = ApsConstants.ZERO_QTY;
         for (BomLineRespDTO line : lines) {
             if (!belongsToOperation(line, row.getSeq(), firstSeq)) {
                 continue;
             }
-            BigDecimal required = requiredQty(line, remaining);
-            if (required.signum() <= 0) {
-                continue;
-            }
-            BigDecimal available = availableMap.getOrDefault(line.getMatId(), ApsConstants.ZERO_QTY);
-            BigDecimal consumed = required.min(available);
-            availableMap.put(line.getMatId(), available.subtract(consumed));
-            shortTotal = shortTotal.add(required.subtract(consumed));
+            accumulateRequirement(requirements, line, remaining, LocalDate.now(), 0);
         }
-        if (shortTotal.signum() > 0) {
-            row.setMaterialShortageFlag(true);
-            row.setMaterialShortQty(shortTotal);
-        }
+        return requirements;
     }
 
     /** 用料是否归属这道工序。 */
@@ -171,11 +198,50 @@ public class ApsMaterialKitCalculator {
         return java.util.Objects.equals(bindSeq, seq);
     }
 
-    /** 需求量 = 单件用量 × 待加工数量 × (1 + 损耗率)，损耗率按小数配置。 */
-    private BigDecimal requiredQty(BomLineRespDTO line, BigDecimal remaining) {
-        BigDecimal lineQty = line.getQty() == null ? ApsConstants.ZERO_QTY : line.getQty();
-        BigDecimal scrapRate = line.getScrapRate() == null ? ApsConstants.ZERO_QTY : line.getScrapRate();
-        return lineQty.multiply(remaining).multiply(BigDecimal.ONE.add(scrapRate));
+    /**
+     * 按 MES 齐套规则递归展开一行需求。
+     *
+     * <p>损耗量用 {@code parentQty × unitQty ÷ (1 - scrapRate)}；虚拟件不记自身、改向下展开；
+     * 倒冲件完全剔除。三条规则必须与 {@code MesKitRequirementExpander} 同步，否则 APS 缺料结论
+     * 会和开工门禁相互矛盾。
+     */
+    private void accumulateRequirement(Map<Long, BigDecimal> requirements, BomLineRespDTO line,
+                                       BigDecimal parentQty, LocalDate today, int depth) {
+        if (MesIssueMethodEnum.isBackflush(line.getIssueMethod())) {
+            return;
+        }
+        BigDecimal required = requiredQty(parentQty, line.getQty(), line.getScrapRate());
+        if (!MesIssueMethodEnum.isPhantom(line.getIssueMethod())) {
+            requirements.merge(line.getMatId(), required, BigDecimal::add);
+            return;
+        }
+        if (depth >= MAX_PHANTOM_DEPTH) {
+            throw new IllegalStateException("虚拟件 BOM 展开超过最大层数：" + MAX_PHANTOM_DEPTH);
+        }
+        BomRespDTO childBom = bomApi.getEffectiveBom(line.getMatId(), today);
+        if (childBom == null) {
+            throw new IllegalStateException("虚拟件缺少生效 BOM：" + line.getMatId());
+        }
+        List<BomLineRespDTO> childLines = bomApi.getBomLineList(childBom.getId());
+        if (CollUtil.isEmpty(childLines)) {
+            throw new IllegalStateException("虚拟件缺少子件：" + line.getMatId());
+        }
+        for (BomLineRespDTO child : childLines) {
+            if (child.getMatId() != null) {
+                accumulateRequirement(requirements, child, required, today, depth + 1);
+            }
+        }
+    }
+
+    /** 与 MES {@code requiredQty} 同口径：父项数量 × 单位用量 ÷ (1 - 损耗率)。 */
+    private BigDecimal requiredQty(BigDecimal parentQty, BigDecimal unitQty, BigDecimal scrapRate) {
+        BigDecimal actualScrapRate = scrapRate == null ? ApsConstants.ZERO_QTY : scrapRate;
+        if (parentQty == null || unitQty == null || actualScrapRate.signum() < 0
+                || actualScrapRate.compareTo(BigDecimal.ONE) >= 0) {
+            throw new IllegalArgumentException("数量和损耗率参数不合法");
+        }
+        return parentQty.multiply(unitQty).divide(BigDecimal.ONE.subtract(actualScrapRate),
+                QTY_SCALE, RoundingMode.HALF_UP);
     }
 
     /** 待加工数量 = 计划数量 - 已完成数量，负数归零。 */
@@ -196,7 +262,8 @@ public class ApsMaterialKitCalculator {
                 .orElse(null);
     }
 
-    /** 虚拟件供料方式：不占实物库存，不参与齐套判定。 */
-    private static final String PHANTOM_ISSUE_METHOD = "PHANTOM";
-
+    /** 单道工序、单种物料按交期优先分配后的冻结数量。 */
+    public record MaterialRequirementAllocation(ApsOrderProjectionDO order, Long matId, BigDecimal reqQty,
+                                                BigDecimal availQty, BigDecimal shortQty) {
+    }
 }

@@ -11,14 +11,17 @@ import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
+import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
 import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
 import com.iboot.pf.module.mes.dal.mysql.wiptxn.WipTxnMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
 import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesCommandTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcConclusionEnum;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.prodorder.bo.MesFinishInboundBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
@@ -50,6 +53,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_INBOUN
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.QTY_MUST_BE_POSITIVE;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.FINISH_INBOUND_QC_NOT_PASSED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.UOM_NOT_EXISTS;
 
 /**
@@ -95,6 +99,8 @@ public class MesFinishInboundServiceImpl implements MesFinishInboundService {
     private InOrderApi inOrderApi;
     @Resource
     private WarehouseApi warehouseApi;
+    @Resource
+    private QcTaskMapper qcTaskMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -147,6 +153,7 @@ public class MesFinishInboundServiceImpl implements MesFinishInboundService {
             return null;
         }
         BigDecimal qty = bo.getQty() == null ? remaining : bo.getQty();
+        validateFqc(order, qty);
 
         MaterialRespDTO material = materialApi.getMaterial(order.getMatId());
         if (material == null) {
@@ -182,6 +189,20 @@ public class MesFinishInboundServiceImpl implements MesFinishInboundService {
             }
             return doInbound(order, bo, material, qty, whId, locId, idempotencyKey);
         });
+    }
+
+    /** 只在已生成 FQC 任务时启用门禁；未命中规则的工单保持原完工入库路径。 */
+    private void validateFqc(ProdOrderDO order, BigDecimal qty) {
+        List<QcTaskDO> tasks = qcTaskMapper.selectFqcTasksByProdOrderNo(order.getOrderNo());
+        if (tasks.isEmpty()) {
+            return;
+        }
+        QcTaskDO task = tasks.get(0);
+        boolean passed = MesQcConclusionEnum.QUALIFIED.name().equals(task.getConclusion())
+                || MesQcConclusionEnum.CONCESSION.name().equals(task.getConclusion());
+        if (!passed || (qty != null && qty.compareTo(nvl(task.getQtyQualified())) > 0)) {
+            throw exception(FINISH_INBOUND_QC_NOT_PASSED);
+        }
     }
 
     /**

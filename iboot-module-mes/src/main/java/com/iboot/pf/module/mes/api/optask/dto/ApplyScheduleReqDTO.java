@@ -3,6 +3,7 @@ package com.iboot.pf.module.mes.api.optask.dto;
 import com.iboot.pf.module.mes.api.dto.MesCommandReqDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -23,6 +24,10 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ApplyScheduleReqDTO extends MesCommandReqDTO {
+
+    @Schema(description = "排程版本号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @NotBlank(message = "排程版本号不能为空")
+    private String versionNo;
 
     @Schema(description = "回写明细", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "回写明细不能为空")

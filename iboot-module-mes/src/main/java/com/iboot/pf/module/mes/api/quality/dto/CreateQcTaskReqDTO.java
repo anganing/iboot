@@ -19,6 +19,9 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class CreateQcTaskReqDTO extends MesCommandReqDTO {
 
+    @Schema(description = "检验对象类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "MATERIAL")
+    private String objectType;
+
     /** 触发点，取值为 MesQcTriggerPointEnum 的枚举名。 */
     @Schema(description = "触发点", requiredMode = Schema.RequiredMode.REQUIRED, example = "IQC")
     private String triggerPoint;
@@ -36,6 +39,11 @@ public class CreateQcTaskReqDTO extends MesCommandReqDTO {
     @Schema(description = "检验物料编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "检验物料编号不能为空")
     private Long matId;
+
+    private Long matCatId;
+    private Long opId;
+    private Long wcId;
+    private Long supplierId;
 
     @Schema(description = "检验批次编号，0 表示不区分批次", example = "1")
     private Long batchId;

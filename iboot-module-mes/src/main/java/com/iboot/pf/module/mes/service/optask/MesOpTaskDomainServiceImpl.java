@@ -15,6 +15,8 @@ import com.iboot.pf.module.mes.enums.MesCommandTypeEnum;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesOpTaskStateMachine;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
 import com.iboot.pf.module.mes.enums.MesProdOrderStateMachine;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
@@ -29,6 +31,8 @@ import com.iboot.pf.module.mes.service.optask.bo.MesOpTaskFinishBO;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateContext;
 import com.iboot.pf.module.mes.service.prodreport.MesProgressPropagator;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
+import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import com.iboot.pf.module.mes.service.wiptxn.bo.MesWipTxnBO;
 import jakarta.annotation.Resource;
@@ -88,6 +92,8 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
     private MesProgressPropagator progressPropagator;
     @Resource
     private MesOpSkipDomainService opSkipDomainService;
+    @Resource
+    private MesQcTaskDomainService qcTaskDomainService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -128,6 +134,18 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
         MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.SKIP_OP_TASK, task.getTaskNo());
         commandService.executeVoid(MesCommandTypeEnum.SKIP_OP_TASK, command,
                 () -> doSkip(task, bo, command.getIdempotencyKey()));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void completeApprovedSkip(Long opTaskId, String idempotencyKey) {
+        OpTaskDO task = requireOpTask(opTaskId);
+        if (!MesOpTaskStatusEnum.SKIPPED.name().equals(task.getStatus())) {
+            return;
+        }
+        WorkOrderDO workOrder = requireWorkOrder(task.getWorkOrderId());
+        advanceNextTasks(task, workOrder.getProdOrderId(), idempotencyKey);
+        progressPropagator.propagate(task, MesConstants.ZERO_QTY, MesConstants.ZERO_QTY, idempotencyKey);
     }
 
     /**
@@ -175,6 +193,33 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
         recordTaskTxn(task, workOrder.getProdOrderId(), MesWipTxnTypeEnum.START,
                 fromStatus, toStatus, null, idempotencyKey, bo.getReason());
         cascadeStart(task, workOrder, startTime, idempotencyKey);
+        createFaiTaskIfRequired(task, workOrder, gateContext);
+    }
+
+    /**
+     * 工序开工完成后创建首件检验任务。
+     *
+     * <p>必须排在开工门禁之后：第一次开工没有报工记录，首件门禁放行，随后才按规则生成 FAI
+     * 任务，供首件产出后的后续开工校验使用。规则未命中由质检任务域返回空，不能因为缺少配置
+     * 把生产动作卡住。
+     */
+    private void createFaiTaskIfRequired(OpTaskDO task, WorkOrderDO workOrder, MesStartGateContext gateContext) {
+        if (!gateContext.faiRequired()) {
+            return;
+        }
+        ProdOrderDO order = requireProdOrder(workOrder.getProdOrderId());
+        MesCreateQcTaskBO faiTask = new MesCreateQcTaskBO();
+        faiTask.setTriggerPoint(MesQcTriggerPointEnum.FAI.name());
+        faiTask.setObjectType(MesQcObjectTypeEnum.OP_TASK.name());
+        faiTask.setMatId(order.getMatId());
+        faiTask.setOpId(task.getOpId());
+        faiTask.setWcId(workOrder.getWcId());
+        faiTask.setBizType(MesBizTypeEnum.OP_TASK.name());
+        faiTask.setBizNo(task.getTaskNo());
+        faiTask.setBizLineId(MesConstants.NONE_ID);
+        faiTask.setQty(BigDecimal.ONE);
+        faiTask.setUomId(order.getUomId());
+        qcTaskDomainService.createQcTask(faiTask);
     }
 
     /**
@@ -185,12 +230,16 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
      */
     private void doFinish(OpTaskDO task, MesOpTaskFinishBO bo, String idempotencyKey) {
         String fromStatus = task.getStatus();
-        String toStatus = MesOpTaskStateMachine.next(fromStatus, MesOpTaskStateMachine.ACTION_FINISH);
         validateDeclaredQty(task, bo);
         // 累计合格 + 累计报废 = 计划数。累计值只由报工推进，完工只校验它凑齐了，不自己写数量
         MesBusinessRules.validateFinishQty(task.getPlannedQty(), task.getCompletedQty(), task.getScrapQty());
 
         WorkOrderDO workOrder = requireWorkOrder(task.getWorkOrderId());
+        boolean lastTask = task.getNextTaskId() == null || MesConstants.NONE_ID.equals(task.getNextTaskId());
+        ProdOrderDO order = lastTask ? requireProdOrder(workOrder.getProdOrderId()) : null;
+        boolean fqcRequired = lastTask && createFqcTask(task, workOrder, order);
+        String action = fqcRequired ? MesOpTaskStateMachine.ACTION_TO_QC : MesOpTaskStateMachine.ACTION_FINISH;
+        String toStatus = MesOpTaskStateMachine.next(fromStatus, action);
         LocalDateTime endTime = LocalDateTime.now();
         advanceOpTask(task, OpTaskDO.builder().status(toStatus).actualEndTime(endTime).build());
         task.setStatus(toStatus).setActualEndTime(endTime);
@@ -198,11 +247,30 @@ public class MesOpTaskDomainServiceImpl implements MesOpTaskDomainService {
         // COMPLETE 的 qty 按 04 文档记"累计合格数"，不是状态类事务的 0
         recordTaskTxn(task, workOrder.getProdOrderId(), MesWipTxnTypeEnum.COMPLETE,
                 fromStatus, toStatus, task.getCompletedQty(), idempotencyKey, bo.getReason());
+        if (fqcRequired) {
+            return;
+        }
         advanceNextTasks(task, workOrder.getProdOrderId(), idempotencyKey);
         // 上卷：本段全部工序完工时作业工单收尾，末道工序完工且数量达标时生产工单收尾。
         // 数量增量为零——完工不写数量，只是让上卷按新的工序状态重算一遍。这一步必须由完工触发：
         // "本段全部工序 DONE" 只可能在完工的那一刻成立，而最后一次报工发生在完工之前
         progressPropagator.propagate(task, MesConstants.ZERO_QTY, MesConstants.ZERO_QTY, idempotencyKey);
+    }
+
+    /** 末道工序完工前按规则生成 FQC；未命中时保持原完工链路。 */
+    private boolean createFqcTask(OpTaskDO task, WorkOrderDO workOrder, ProdOrderDO order) {
+        MesCreateQcTaskBO fqcTask = new MesCreateQcTaskBO();
+        fqcTask.setTriggerPoint(MesQcTriggerPointEnum.FQC.name());
+        fqcTask.setObjectType(MesQcObjectTypeEnum.PROD_ORDER.name());
+        fqcTask.setMatId(order.getMatId());
+        fqcTask.setOpId(task.getOpId());
+        fqcTask.setWcId(workOrder.getWcId());
+        fqcTask.setBizType(MesBizTypeEnum.PROD_ORDER.name());
+        fqcTask.setBizNo(order.getOrderNo());
+        fqcTask.setBizLineId(task.getId());
+        fqcTask.setQty(task.getCompletedQty());
+        fqcTask.setUomId(order.getUomId());
+        return qcTaskDomainService.createQcTask(fqcTask).isPresent();
     }
 
     /**

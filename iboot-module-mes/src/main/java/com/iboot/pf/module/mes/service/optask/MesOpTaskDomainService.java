@@ -77,4 +77,12 @@ public interface MesOpTaskDomainService {
      */
     void skipOpTask(MesOpSkipBO bo);
 
+    /**
+     * 工序跳序审批通过后的收尾。
+     *
+     * <p>跳序记录监听器只负责把审批通过的工序置为 {@code SKIPPED} 并写流水；后序推进与工单进度上卷
+     * 必须复用本领域服务的既有逻辑，避免绕过并行组语义。
+     */
+    void completeApprovedSkip(Long opTaskId, String idempotencyKey);
+
 }

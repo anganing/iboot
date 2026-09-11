@@ -14,13 +14,18 @@ import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.dispatchtask.DispatchTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
+import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
 import com.iboot.pf.module.mes.enums.MesCodeRuleConstants;
 import com.iboot.pf.module.mes.enums.MesConstants;
 import com.iboot.pf.module.mes.enums.MesOpExecModeEnum;
+import com.iboot.pf.module.mes.enums.MesOpTaskStateMachine;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
+import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.snapshot.MesRelationFiller;
 import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
+import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
+import com.iboot.pf.module.mes.service.wiptxn.bo.MesWipTxnBO;
 import com.iboot.pf.module.mes.service.workorder.WorkOrderService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -37,6 +42,7 @@ import java.util.stream.Collectors;
 
 import static com.iboot.pf.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertList;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMap;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_HAS_DISPATCH;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_NO_DUPLICATE;
@@ -67,6 +73,8 @@ public class OpTaskServiceImpl implements OpTaskService {
     private MesSnapshotService snapshotService;
     @Resource
     private MesRelationFiller relationFiller;
+    @Resource
+    private MesWipTxnRecorder wipTxnRecorder;
 
     @Override
     public Long createOpTask(OpTaskSaveReqVO createReqVO) {
@@ -247,8 +255,14 @@ public class OpTaskServiceImpl implements OpTaskService {
     /**
      * 回写排程结果。
      *
-     * <p>只更新资源与计划起止时间三个字段，用 {@code updateBatch} 一次落库；数量、状态、实际时间、
+     * <p>更新资源与计划起止时间三个字段，用 {@code updateBatch} 一次落库；数量、实际时间、
      * 乐观锁版本都不动，它们由 MES 自己的派工与报工动作推进。
+     *
+     * <p>状态推进是下达的另一半语义：待排产（PENDING）的任务随计划下达转入待开工（READY），
+     * 车间靠这个状态区分"等计划"和"可以干"；已是 READY 的只刷新计划，状态不动。
+     * 每条 PENDING -&gt; READY 的推进写一条在制流水（txn_type 为 START，来源业务是排程下达，
+     * bizNo 记排程版本号），幂等键 {@code APS:{versionNo}:APPLY_SCHEDULE:{opTaskId}}，
+     * 同一版本重复下达不会留第二条流水。
      *
      * <p>跳过而不是报错的两类工序：已开工之后的（车间在做，挪走等于让现场按两份计划干活）、
      * 已完工/已跳过/已取消的（终态，改计划没有意义）。跳过属于正常业务结果，不是异常，
@@ -262,23 +276,59 @@ public class OpTaskServiceImpl implements OpTaskService {
                         (left, right) -> right));
         List<OpTaskDO> existedTasks = opTaskMapper.selectByIds(itemMap.keySet());
         List<OpTaskDO> updates = new ArrayList<>();
+        List<OpTaskDO> promotedTasks = new ArrayList<>();
         for (OpTaskDO existed : existedTasks) {
             if (!MesOpTaskStatusEnum.isNotStarted(existed.getStatus())) {
                 continue;
             }
             ApplyScheduleReqDTO.Item item = itemMap.get(existed.getId());
-            updates.add(OpTaskDO.builder()
+            OpTaskDO.OpTaskDOBuilder update = OpTaskDO.builder()
                     .id(existed.getId())
                     .resId(item.getResId())
                     .plannedStartTime(item.getPlannedStartTime())
-                    .plannedEndTime(item.getPlannedEndTime())
-                    .build());
+                    .plannedEndTime(item.getPlannedEndTime());
+            // 待排产的任务随计划下达转入待开工，走状态机裁决；已是 READY 的不带 status，更新时不动状态列
+            if (MesOpTaskStatusEnum.PENDING.name().equals(existed.getStatus())) {
+                update.status(MesOpTaskStateMachine.next(existed.getStatus(),
+                        MesOpTaskStateMachine.ACTION_APPLY_SCHEDULE));
+                promotedTasks.add(existed);
+            }
+            updates.add(update.build());
         }
         if (CollUtil.isEmpty(updates)) {
             return 0;
         }
         opTaskMapper.updateBatch(updates);
+        recordScheduleTxns(promotedTasks, reqDTO);
         return updates.size();
+    }
+
+    /**
+     * 为状态推进的工序任务写下达流水。
+     *
+     * <p>生产工单编号按作业工单批量反查（一个版本的工序集中在少数工单上，一次查询取全），
+     * 不逐条查库。幂等键由版本号派生，同一版本重复下达时 Recorder 按键判重，不产生第二条流水。
+     */
+    private void recordScheduleTxns(List<OpTaskDO> promotedTasks, ApplyScheduleReqDTO reqDTO) {
+        if (CollUtil.isEmpty(promotedTasks)) {
+            return;
+        }
+        Map<Long, Long> prodOrderIds = convertMap(
+                workOrderMapper.selectByIds(convertList(promotedTasks, OpTaskDO::getWorkOrderId)),
+                WorkOrderDO::getId, WorkOrderDO::getProdOrderId);
+        for (OpTaskDO opTask : promotedTasks) {
+            wipTxnRecorder.record(new MesWipTxnBO()
+                    .setProdOrderId(prodOrderIds.get(opTask.getWorkOrderId()))
+                    .setWorkOrderId(opTask.getWorkOrderId())
+                    .setOpTaskId(opTask.getId())
+                    .setTxnType(MesWipTxnTypeEnum.START)
+                    .setFromStatus(MesOpTaskStatusEnum.PENDING.name())
+                    .setToStatus(MesOpTaskStatusEnum.READY.name())
+                    .setBizType(MesBizTypeEnum.SCHEDULE_RELEASE)
+                    .setBizNo(reqDTO.getVersionNo())
+                    .setIdempotencyKey(reqDTO.getSourceModule() + ":" + reqDTO.getVersionNo()
+                            + ":APPLY_SCHEDULE:" + opTask.getId()));
+        }
     }
 
 }

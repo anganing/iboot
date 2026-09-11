@@ -7,6 +7,7 @@ import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.module.aps.controller.admin.shortage.vo.ShortagePageReqVO;
 import com.iboot.pf.module.aps.controller.admin.shortage.vo.ShortageRespVO;
 import com.iboot.pf.module.aps.dal.dataobject.shortage.ApsShortageDO;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -30,5 +31,9 @@ public interface ApsShortageMapper extends BaseMapperX<ApsShortageDO> {
     default List<ApsShortageDO> selectListByVersionId(Long versionId) {
         return selectList(ApsShortageDO::getVersionId, versionId);
     }
+
+    /** 缺料清单是版本投影的派生结果，刷新时物理重建，避免遗留已经消失的缺口。 */
+    @Delete("DELETE FROM aps_shortage WHERE version_id = #{versionId}")
+    int deletePhysicalByVersionId(Long versionId);
 
 }

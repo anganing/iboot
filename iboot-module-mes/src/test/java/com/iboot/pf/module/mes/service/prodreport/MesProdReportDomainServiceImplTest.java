@@ -4,6 +4,7 @@ import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodreport.ProdReportDO;
+import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.command.MesCommandRecordMapper;
@@ -18,6 +19,8 @@ import com.iboot.pf.module.mes.enums.MesKitStatusEnum;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdReportStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
@@ -31,10 +34,14 @@ import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesCancelReportBO;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesSubmitReportBO;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
+import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
+import com.iboot.pf.module.mes.service.qctask.hook.MesIpqcResultHandler;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -43,6 +50,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
@@ -61,6 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,7 +83,7 @@ import static org.mockito.Mockito.when;
  * <p>作业工单与生产工单的收尾判定要靠完工动作触发（"本段全部工序 DONE"只可能在完工那一刻成立），
  * 所以这里把 T1-13 的工序动作一并装进上下文，开工门禁 mock 掉。
  */
-@Import({MesProdReportDomainServiceImpl.class, MesProgressPropagator.class,
+@Import({MesProdReportDomainServiceImpl.class, MesProgressPropagator.class, MesIpqcResultHandler.class,
         MesOpTaskDomainServiceImpl.class, MesCommandServiceImpl.class, MesWipTxnRecorder.class})
 class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
 
@@ -95,6 +104,8 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
     private MesOpTaskDomainService opTaskDomainService;
     @Resource
     private MesProgressPropagator progressPropagator;
+    @Resource
+    private MesIpqcResultHandler ipqcResultHandler;
     @Resource
     private ProdReportMapper prodReportMapper;
     @Resource
@@ -118,6 +129,8 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
     private MesOpSkipDomainService opSkipDomainService;
     @MockitoBean
     private MesCodeService codeService;
+    @MockitoBean
+    private MesQcTaskDomainService qcTaskDomainService;
 
     @BeforeEach
     void mockExternalDependencies() {
@@ -128,6 +141,97 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
                     : ruleCode + "-" + counters.computeIfAbsent(ruleCode, key -> new AtomicInteger())
                     .incrementAndGet();
         });
+        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.empty());
+    }
+
+    @Test
+    void testSubmitReport_processModeCreatesIpqcAndWaitsForConclusion() {
+        OpTaskDO task = runningTask();
+        task.setQcMode(MesQcModeEnum.PROCESS.name());
+        opTaskMapper.updateById(task);
+        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+
+        Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
+
+        ArgumentCaptor<MesCreateQcTaskBO> captor = ArgumentCaptor.forClass(MesCreateQcTaskBO.class);
+        verify(qcTaskDomainService).createQcTask(captor.capture());
+        MesCreateQcTaskBO qcTask = captor.getValue();
+        assertEquals(MesQcTriggerPointEnum.IPQC.name(), qcTask.getTriggerPoint());
+        assertEquals(MesBizTypeEnum.PROD_REPORT.name(), qcTask.getBizType());
+        assertEquals(prodReportMapper.selectById(reportId).getReportNo(), qcTask.getBizNo());
+        assertEquals(0, new BigDecimal("30").compareTo(qcTask.getQty()));
+        assertEquals(MesOpTaskStatusEnum.QC_WAITING.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(MesProdReportStatusEnum.QC_PENDING.name(), prodReportMapper.selectById(reportId).getStatus());
+    }
+
+    @Test
+    void testSubmitReport_processModeWithoutRulePassesThrough() {
+        OpTaskDO task = runningTask();
+        task.setQcMode(MesQcModeEnum.PROCESS.name());
+        opTaskMapper.updateById(task);
+
+        Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
+
+        assertEquals(MesOpTaskStatusEnum.RUNNING.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), prodReportMapper.selectById(reportId).getStatus());
+    }
+
+    @Test
+    void testSubmitReport_nonProcessModeDoesNotCreateQcTask() {
+        OpTaskDO task = runningTask();
+
+        Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
+
+        verify(qcTaskDomainService, never()).createQcTask(any());
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), prodReportMapper.selectById(reportId).getStatus());
+    }
+
+    @Test
+    void testIpqcConclusion_qualifiedReturnsRunningAndConfirmsReport() {
+        OpTaskDO task = runningTask();
+        task.setQcMode(MesQcModeEnum.PROCESS.name());
+        opTaskMapper.updateById(task);
+        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
+
+        ipqcResultHandler.onConclusion(QcTaskDO.builder()
+                .bizNo(prodReportMapper.selectById(reportId).getReportNo())
+                .conclusion("QUALIFIED").build());
+
+        assertEquals(MesOpTaskStatusEnum.RUNNING.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), prodReportMapper.selectById(reportId).getStatus());
+    }
+
+    @Test
+    void testIpqcConclusion_qualifiedAndQtyReachedFinishesOpTask() {
+        OpTaskDO task = runningTask();
+        task.setQcMode(MesQcModeEnum.PROCESS.name());
+        opTaskMapper.updateById(task);
+        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        Long reportId = domainService.submitReport(submitBO(task, "100", "0", "0", 1));
+
+        ipqcResultHandler.onConclusion(QcTaskDO.builder()
+                .bizNo(prodReportMapper.selectById(reportId).getReportNo())
+                .conclusion("QUALIFIED").build());
+
+        assertEquals(MesOpTaskStatusEnum.DONE.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), prodReportMapper.selectById(reportId).getStatus());
+    }
+
+    @Test
+    void testIpqcConclusion_rejectedKeepsWaiting() {
+        OpTaskDO task = runningTask();
+        task.setQcMode(MesQcModeEnum.PROCESS.name());
+        opTaskMapper.updateById(task);
+        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
+
+        ipqcResultHandler.onConclusion(QcTaskDO.builder()
+                .bizNo(prodReportMapper.selectById(reportId).getReportNo())
+                .conclusion("REJECTED").build());
+
+        assertEquals(MesOpTaskStatusEnum.QC_WAITING.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(MesProdReportStatusEnum.QC_PENDING.name(), prodReportMapper.selectById(reportId).getStatus());
     }
 
     @Test

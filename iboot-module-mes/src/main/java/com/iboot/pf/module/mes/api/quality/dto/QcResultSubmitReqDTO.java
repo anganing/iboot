@@ -29,6 +29,15 @@ public class QcResultSubmitReqDTO extends MesCommandReqDTO {
     @Schema(description = "检验员编号，0 表示取当前登录用户", example = "1")
     private Long inspectorId;
 
+    @Schema(description = "最终检验结论", example = "QUALIFIED")
+    private String conclusion;
+
+    @Schema(description = "合格数量")
+    private BigDecimal qtyQualified;
+
+    @Schema(description = "不合格数量")
+    private BigDecimal qtyRejected;
+
     @Schema(description = "检验项结果", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "检验项结果不能为空")
     @Valid

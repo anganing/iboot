@@ -21,6 +21,7 @@ import com.iboot.pf.module.aps.solver.model.ApsTimeWindow;
 import com.iboot.pf.module.mdm.api.resource.ResourceApi;
 import com.iboot.pf.module.mdm.api.resource.dto.ResChangeoverRespDTO;
 import com.iboot.pf.module.mdm.api.resource.dto.ResourceRespDTO;
+import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
@@ -286,7 +287,9 @@ public class ApsSolverProblemBuilder {
         }
         List<ApsSolverTask> tasks = new ArrayList<>(rows.size());
         for (ApsOrderProjectionDO row : rows) {
-            if (ApsConstants.NONE_ID.equals(row.getOpTaskId())) {
+            // 已完工、已跳过、已取消的工序仅保留在投影中供追溯，不再占用本轮求解的资源队列。
+            if (ApsConstants.NONE_ID.equals(row.getOpTaskId())
+                    || MesOpTaskStatusEnum.isFinal(row.getCurrentStatus())) {
                 continue;
             }
             tasks.add(toTask(row, opToResources));

@@ -68,12 +68,27 @@ public class MesOrderExpandHelper {
      */
     @Transactional(rollbackFor = Exception.class)
     public void expand(ProdOrderDO order) {
-        List<RouteOpRespDTO> routeOps = requireRouteOps(order.getRouteId());
+        expand(order, order.getRouteId(), order.getQty(), null);
+    }
+
+    /**
+     * 返工专用展开入口。
+     *
+     * <p>与正常下达复用同一套路线排序、工序快照和串联规则，但必定新建作业工单，并用 remark
+     * 标记归属返工任务，避免与原生产链上的唯一约束冲突。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void expandRework(ProdOrderDO order, Long routeId, java.math.BigDecimal qty, String remark) {
+        expand(order, routeId, qty, remark);
+    }
+
+    private void expand(ProdOrderDO order, Long routeId, java.math.BigDecimal qty, String remark) {
+        List<RouteOpRespDTO> routeOps = requireRouteOps(routeId);
         // 标准工序编码与名称一次 IN 查回，不在循环里逐道查（红线 5：禁止 N+1）
         Map<Long, OpRespDTO> opMap = opApi.getOpMap(
                 routeOps.stream().map(RouteOpRespDTO::getOpId).distinct().toList());
-        Map<Long, WorkOrderDO> workOrderByWc = createWorkOrders(order, routeOps);
-        List<OpTaskDO> tasks = createOpTasks(order, routeOps, opMap, workOrderByWc);
+        Map<Long, WorkOrderDO> workOrderByWc = createWorkOrders(order, routeOps, qty, remark);
+        List<OpTaskDO> tasks = createOpTasks(order, routeOps, opMap, workOrderByWc, qty, remark);
         chainTasks(tasks);
     }
 
@@ -102,7 +117,8 @@ public class MesOrderExpandHelper {
      *
      * @return 工作中心编号 -&gt; 作业工单，按工序顺序首次出现的次序排列
      */
-    private Map<Long, WorkOrderDO> createWorkOrders(ProdOrderDO order, List<RouteOpRespDTO> routeOps) {
+    private Map<Long, WorkOrderDO> createWorkOrders(ProdOrderDO order, List<RouteOpRespDTO> routeOps,
+                                                     java.math.BigDecimal qty, String remark) {
         Map<Long, WorkOrderDO> workOrderByWc = new LinkedHashMap<>();
         for (RouteOpRespDTO routeOp : routeOps) {
             if (workOrderByWc.containsKey(routeOp.getWcId())) {
@@ -118,12 +134,13 @@ public class MesOrderExpandHelper {
                     .projectId(order.getProjectId())
                     .projectTaskId(order.getProjectTaskId())
                     // 计划数量等于工单数量：整单投产，分批投产是需求转单时拆的，不在这里拆
-                    .plannedQty(order.getQty())
+                    .plannedQty(qty)
                     .completedQty(MesConstants.ZERO_QTY)
                     .kitStatus(MesKitStatusEnum.UNCHECKED.name())
                     // 下达只把作业工单摊出来，推进到 READY 由齐套或发料触发
                     .status(MesWorkOrderStatusEnum.PENDING.name())
                     .version(MesConstants.INIT_VERSION)
+                    .remark(remark)
                     .build();
             workOrderMapper.insert(workOrder);
             workOrderByWc.put(routeOp.getWcId(), workOrder);
@@ -138,7 +155,8 @@ public class MesOrderExpandHelper {
      * 在制工单看到的仍是下达时的名字。
      */
     private List<OpTaskDO> createOpTasks(ProdOrderDO order, List<RouteOpRespDTO> routeOps,
-                                         Map<Long, OpRespDTO> opMap, Map<Long, WorkOrderDO> workOrderByWc) {
+                                         Map<Long, OpRespDTO> opMap, Map<Long, WorkOrderDO> workOrderByWc,
+                                         java.math.BigDecimal qty, String remark) {
         List<OpTaskDO> tasks = new ArrayList<>(routeOps.size());
         for (RouteOpRespDTO routeOp : routeOps) {
             OpRespDTO op = opMap.get(routeOp.getOpId());
@@ -164,13 +182,14 @@ public class MesOrderExpandHelper {
                     .skipPolicy(StrUtil.blankToDefault(
                             routeOp.getSkipPolicy(), MesSkipPolicyEnum.NOT_ALLOWED.name()))
                     .keyFlag(Boolean.TRUE.equals(routeOp.getKeyFlag()))
-                    .plannedQty(order.getQty())
+                    .plannedQty(qty)
                     .completedQty(MesConstants.ZERO_QTY)
                     .scrapQty(MesConstants.ZERO_QTY)
                     // 资源与计划时间由 APS 下达计划时写入，下达阶段留空
                     .resId(MesConstants.NONE_ID)
                     .status(MesOpTaskStatusEnum.PENDING.name())
                     .version(MesConstants.INIT_VERSION)
+                    .remark(remark)
                     .build();
             opTaskMapper.insert(task);
             tasks.add(task);

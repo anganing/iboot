@@ -33,6 +33,8 @@ import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateContext;
 import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.MesProgressPropagator;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
+import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,6 +116,8 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
     private MesFinishInboundService finishInboundService;
     @MockitoBean
     private MesCodeService codeService;
+    @MockitoBean
+    private MesQcTaskDomainService qcTaskDomainService;
 
     @BeforeEach
     void mockExternalDependencies() {
@@ -252,6 +256,32 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
         ArgumentCaptor<MesStartGateContext> captor = ArgumentCaptor.forClass(MesStartGateContext.class);
         verify(startGateChecker).check(any(), captor.capture());
         assertEquals(operatorId, captor.getValue().getOperatorId());
+    }
+
+    @Test
+    void testStartOpTask_faiRequiredCreatesQcTaskAfterStart() {
+        OpTaskDO task = readyTask();
+        doAnswer(invocation -> {
+            MesStartGateContext context = invocation.getArgument(1);
+            com.iboot.pf.module.mdm.api.route.dto.RouteOpRespDTO routeOp =
+                    new com.iboot.pf.module.mdm.api.route.dto.RouteOpRespDTO();
+            routeOp.setFaiFlag(true);
+            context.setRouteOp(routeOp);
+            return null;
+        }).when(startGateChecker).check(any(), any());
+
+        domainService.startOpTask(startBO(task, null));
+
+        ArgumentCaptor<MesCreateQcTaskBO> captor = ArgumentCaptor.forClass(MesCreateQcTaskBO.class);
+        verify(qcTaskDomainService).createQcTask(captor.capture());
+        MesCreateQcTaskBO faiTask = captor.getValue();
+        assertEquals("FAI", faiTask.getTriggerPoint());
+        assertEquals(MesBizTypeEnum.OP_TASK.name(), faiTask.getObjectType());
+        assertEquals(MesBizTypeEnum.OP_TASK.name(), faiTask.getBizType());
+        assertEquals(task.getTaskNo(), faiTask.getBizNo());
+        assertEquals(task.getOpId(), faiTask.getOpId());
+        assertEquals(WC_MACHINE, faiTask.getWcId());
+        assertEquals(0, BigDecimal.ONE.compareTo(faiTask.getQty()));
     }
 
     @Test
