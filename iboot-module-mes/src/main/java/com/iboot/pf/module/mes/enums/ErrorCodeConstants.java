@@ -236,4 +236,10 @@ public interface ErrorCodeConstants {
     ErrorCode DISPOSITION_CONCESSION_WITHOUT_REASON =
             new ErrorCode(1_064_105_003, "让步接收必须填写依据说明");
 
+    // ========== 批次追溯（1_064_027 段） ==========
+    ErrorCode TRACE_START_TYPE_INVALID =
+            new ErrorCode(1_064_027_001, "追溯起点类型({})不合法，必须是 LOT、PROD_ORDER 或 SALES_OUT");
+    ErrorCode TRACE_START_NOT_FOUND =
+            new ErrorCode(1_064_027_002, "追溯起点({}:{})不存在或没有可追溯的链路");
+
 }
