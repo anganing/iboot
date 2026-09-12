@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mes.service.optask;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
@@ -23,6 +24,7 @@ import com.iboot.pf.module.mes.enums.MesSkipReasonTypeEnum;
 import com.iboot.pf.module.mes.enums.MesSkipRecordStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
+import com.iboot.pf.module.mes.service.bpm.MesBpmApprovalActionExecutor;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
 import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainServiceImpl;
@@ -80,7 +82,8 @@ import static org.mockito.Mockito.when;
  * {@code PENDING -> RUNNING} 这条边，一步到位就说明有人绕开状态机硬写了状态。
  */
 @Import({MesOpTaskDomainServiceImpl.class, MesProgressPropagator.class,
-        MesCommandServiceImpl.class, MesWipTxnRecorder.class, MesOpSkipDomainServiceImpl.class})
+        MesCommandServiceImpl.class, MesWipTxnRecorder.class, MesOpSkipDomainServiceImpl.class,
+        MesBpmApprovalActionExecutor.class})
 class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final String SOURCE_MODULE = "UI";
@@ -118,6 +121,15 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
     private MesCodeService codeService;
     @MockitoBean
     private MesQcTaskDomainService qcTaskDomainService;
+    /**
+     * 上下文里装了跳序域（{@code MesOpSkipDomainServiceImpl}），它依赖流程发起门面。
+     *
+     * <p>缺这一个 mock 就是 ApplicationContext 启动失败、本类全部用例报
+     * NoSuchBeanDefinitionException（包括与跳序无关的开工、完工用例）。
+     * 流程定义已发布但单测不启动 Flowable 引擎，打桩即可。
+     */
+    @MockitoBean
+    private BpmProcessInstanceApi processInstanceApi;
 
     @BeforeEach
     void mockExternalDependencies() {
@@ -128,6 +140,8 @@ class MesOpTaskDomainServiceImplTest extends BaseDbUnitTest {
                     : ruleCode + "-" + counters.computeIfAbsent(ruleCode, key -> new AtomicInteger())
                     .incrementAndGet();
         });
+        // 需审批的跳序会发起流程；实例编号回写不影响本类的状态断言，但打桩更贴近真实链路
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("op-skip-process-1");
     }
 
     @Test

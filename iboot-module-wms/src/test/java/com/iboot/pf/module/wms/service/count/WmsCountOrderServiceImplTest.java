@@ -9,15 +9,18 @@ import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderDO;
 import com.iboot.pf.module.wms.dal.dataobject.count.WmsCountOrderLineDO;
 import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvBalanceDO;
+import com.iboot.pf.module.wms.dal.dataobject.inventory.WmsInvTxnDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsLocDO;
 import com.iboot.pf.module.wms.dal.dataobject.warehouse.WmsWhDO;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderLineMapper;
 import com.iboot.pf.module.wms.dal.mysql.count.WmsCountOrderMapper;
 import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvBalanceMapper;
+import com.iboot.pf.module.wms.dal.mysql.inventory.WmsInvTxnMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsLocMapper;
 import com.iboot.pf.module.wms.dal.mysql.warehouse.WmsWhMapper;
 import com.iboot.pf.module.wms.enums.WmsCountLineStatusEnum;
 import com.iboot.pf.module.wms.enums.WmsOrderStatusEnum;
+import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
 import com.iboot.pf.module.wms.service.batch.WmsBatchServiceImpl;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.count.bo.WmsConfirmCountDiffBO;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
+import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_DIFF_NOT_APPROVED;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_FREEZE;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_CANNOT_MODIFY;
 import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.COUNT_ORDER_STATUS_INVALID;
@@ -52,7 +56,8 @@ import static org.mockito.Mockito.when;
 @Import({WmsCountOrderServiceImpl.class, WmsWarehouseServiceImpl.class, WmsInventoryServiceImpl.class,
         WmsInOrderServiceImpl.class, WmsOutOrderServiceImpl.class, WmsBatchServiceImpl.class, WmsCodeService.class,
         WmsInventoryReservationServiceImpl.class,
-        com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class})
+        com.iboot.pf.module.wms.service.command.WmsCommandServiceImpl.class,
+        com.iboot.pf.module.wms.service.bpm.WmsBpmApprovalActionExecutor.class})
 class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
 
     private static final Long WH = 1L;
@@ -68,6 +73,9 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
     private WmsCountOrderLineMapper wmsCountOrderLineMapper;
     @Resource
     private WmsInvBalanceMapper wmsInvBalanceMapper;
+    /** 库存流水：断言"过账真的产生了流水而不是直接改余额"，以及重复回调不产生第二笔。 */
+    @Resource
+    private WmsInvTxnMapper wmsInvTxnMapper;
     @Resource
     private WmsWhMapper wmsWhMapper;
     @Resource
@@ -470,6 +478,184 @@ class WmsCountOrderServiceImplTest extends BaseDbUnitTest {
         assertEquals(0, line.getDiffQty().compareTo(new BigDecimal("30")));
         assertEquals(WmsCountLineStatusEnum.DIFF.name(), line.getStatus());
         assertEquals(WmsOrderStatusEnum.COUNTING.name(), wmsCountOrderMapper.selectById(id).getStatus());
+    }
+
+    // ==================== T3-05 盘点差异审批 ====================
+
+    /**
+     * 验收①：未审批通过时 confirmCountDiff 被拦。
+     *
+     * <p>差异审批是阶段 3 的立项目标点之一——盘点不能变成调账工具。单据一旦起过流程
+     * （{@code process_instance_id} 有值），没过审批就确认差异属于绕过审批直接改库存，
+     * 必须挡住且一行库存都不动。
+     */
+    @Test
+    void testConfirmDiff_notApprovedRejected() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(),
+                wmsCountOrderMapper.selectById(id).getApprovalStatus());
+
+        assertServiceException(() -> countOrderService.confirmCountDiff(confirmDiffBO(id)),
+                COUNT_DIFF_NOT_APPROVED);
+        // 审批期间库存分文未动：盘亏 30 没被过账，冻结量仍占着
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("100")));
+        assertEquals(0, requireBalance().getQtyFrozen().compareTo(new BigDecimal("100")));
+        assertEquals(WmsCountLineStatusEnum.DIFF.name(), firstLine(id).getStatus());
+        assertEquals(WmsOrderStatusEnum.COUNTING.name(), wmsCountOrderMapper.selectById(id).getStatus());
+    }
+
+    /**
+     * 验收②：审批通过后逐行过账。
+     *
+     * <p>回调里执行的是同一个 confirmCountDiff，只是幂等键换成按行派生的
+     * {@code WMS:{countNo}:COUNT_DIFF_POST:{lineNo}}；过账产生的流水与调整单据都要落在差异行上。
+     */
+    @Test
+    void testApprovalCallback_approved_postsDiffLine() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+
+        countOrderService.updateCountDiffApprovalStatus(id, "count-diff-process-1",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "差异属实，同意调整");
+
+        WmsCountOrderDO approved = wmsCountOrderMapper.selectById(id);
+        assertEquals(BpmProcessInstanceStatusEnum.APPROVE.getStatus(), approved.getApprovalStatus());
+        assertEquals("差异属实，同意调整", approved.getApprovalReason());
+        assertNotNull(approved.getApprovalTime());
+        // 逐行过账真的发生了：行已调整、留下调整单据号，单据收口 DONE
+        WmsCountOrderLineDO line = firstLine(id);
+        assertEquals(WmsCountLineStatusEnum.ADJUSTED.name(), line.getStatus());
+        assertNotNull(line.getAdjustBizNo());
+        assertEquals(WmsOrderStatusEnum.DONE.name(), approved.getStatus());
+        // 盘亏 30 走出库过账：现存 100 → 70，冻结随收单释放
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("70")));
+        assertEquals(0, requireBalance().getQtyFrozen().compareTo(BigDecimal.ZERO));
+        // 过账确实留下了库存流水（不是直接改余额）
+        assertEquals(1L, wmsInvTxnMapper.selectCount(WmsInvTxnDO::getTxnType, WmsTxnTypeEnum.ISSUE.name()),
+                "盘亏必须走 ISSUE 过账产生流水");
+    }
+
+    /**
+     * 验收③（本阶段立项红线）：重复回调不二次过账。
+     *
+     * <p>第二次的第三层条件 UPDATE 拿不到行，过账动作不会重跑；现存不能变成 40。
+     */
+    @Test
+    void testApprovalCallback_duplicated_postsOnce() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+
+        countOrderService.updateCountDiffApprovalStatus(id, "count-diff-process-1",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意调整");
+        countOrderService.updateCountDiffApprovalStatus(id, "count-diff-process-1",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意调整");
+
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("70")),
+                "重复回调不得二次盘亏出库（现存会变成 40）");
+        assertEquals(1L, wmsInvTxnMapper.selectCount(WmsInvTxnDO::getTxnType, WmsTxnTypeEnum.ISSUE.name()));
+    }
+
+    /** 驳回：单据退回盘点中要求重盘，库存未动。 */
+    @Test
+    void testApprovalCallback_rejected_backToCounting() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+
+        countOrderService.updateCountDiffApprovalStatus(id, "count-diff-process-1",
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "实盘漏盘，重新盘");
+
+        WmsCountOrderDO rejected = wmsCountOrderMapper.selectById(id);
+        assertEquals(BpmProcessInstanceStatusEnum.REJECT.getStatus(), rejected.getApprovalStatus());
+        assertEquals("实盘漏盘，重新盘", rejected.getApprovalReason());
+        // 退回盘点中，差异行还是 DIFF：重盘后改实盘再走一次审批
+        assertEquals(WmsOrderStatusEnum.COUNTING.name(), rejected.getStatus());
+        assertEquals(WmsCountLineStatusEnum.DIFF.name(), firstLine(id).getStatus());
+        // 审批期间与驳回都不产生过账：现存仍是 100，没有 ISSUE 流水
+        assertEquals(0L, wmsInvTxnMapper.selectCount(WmsInvTxnDO::getTxnType, WmsTxnTypeEnum.ISSUE.name()));
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("100")));
+    }
+
+    /** 迟到的旧事件与非终态事件都不许改业务事实。 */
+    @Test
+    void testApprovalCallback_staleEventIgnored() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+
+        // 审批中事件（第一层拦）
+        countOrderService.updateCountDiffApprovalStatus(id, "count-diff-process-1",
+                BpmProcessInstanceStatusEnum.RUNNING.getStatus(), null);
+        // 别的流程实例的终态（第二层拦）
+        countOrderService.updateCountDiffApprovalStatus(id, "stale-process-9",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "迟到事件");
+
+        WmsCountOrderDO stillRunning = wmsCountOrderMapper.selectById(id);
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), stillRunning.getApprovalStatus());
+        assertEquals(WmsOrderStatusEnum.COUNTING.name(), stillRunning.getStatus());
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("100")));
+    }
+
+    /**
+     * 审批通过但当时代号失败时，人工重试入口仍可补齐（幂等键挡住重复过账）。
+     *
+     * <p>回写方法把过账延迟到审批终态提交之后，失败时单据停在"已通过但未执行完"。这一例走的是
+     * 人工重试那条路：直接调 confirmCountDiff（门禁此时已放开），过账补齐且只补一次。
+     */
+    @Test
+    void testApprovalCallback_approvedButPostFailed_manualRetry() {
+        seedBalance(new BigDecimal("100"));
+        Long id = countOrderService.createCountOrder(createCountBO());
+        Long lineId = firstLine(id).getId();
+        countOrderService.freezeCountOrder(freezeBO(id, "UI:CNT-0001:FREEZE:0"));
+        countOrderService.submitCountResult(submitBO(id, lineId, new BigDecimal("70")));
+        countOrderService.submitCountDiffApproval(id);
+        // 只回写审批终态，不跑回调里的过账（模拟过账那一步当时失败的半成品状态）
+        wmsCountOrderMapper.updateById(new WmsCountOrderDO().setId(id)
+                .setApprovalStatus(BpmProcessInstanceStatusEnum.APPROVE.getStatus()));
+
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+
+        assertEquals(WmsOrderStatusEnum.DONE.name(), wmsCountOrderMapper.selectById(id).getStatus());
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("70")));
+        // 再点一次（界面重复提交同一个派生键）：命令层挡住，不会二次过账
+        countOrderService.confirmCountDiff(confirmDiffBO(id));
+        assertEquals(0, requireBalance().getQtyOnhand().compareTo(new BigDecimal("70")),
+                "重试不得把已调整的行再过账一次");
+        assertEquals(1L, wmsInvTxnMapper.selectCount(WmsInvTxnDO::getTxnType, WmsTxnTypeEnum.ISSUE.name()));
+    }
+
+    /**
+     * 单据不存在时回写必须静默返回，不许抛异常。
+     *
+     * <p>回写方法跑在 Flowable 事务里：抛出去（哪怕被监听器的 try-catch 吞掉）事务已被标记 rollback-only，
+     * 最外层提交仍抛 {@code UnexpectedRollbackException} 把审批终态回滚。契约要在 Service 层成立。
+     */
+    @Test
+    void testApprovalCallback_missingOrderIgnoredSilently() {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> countOrderService.updateCountDiffApprovalStatus(999999L, "count-diff-process-1",
+                        BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "单据已删"));
+        assertEquals(0L, wmsInvTxnMapper.selectCount(), "单据不存在时不该产生任何过账流水");
     }
 
 }

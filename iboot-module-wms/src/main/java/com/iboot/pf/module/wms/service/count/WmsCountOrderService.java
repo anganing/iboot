@@ -51,6 +51,20 @@ public interface WmsCountOrderService {
     /** 提交盘点差异审批：发起 BPM 流程，审批通过后由回调逐行确认差异。 */
     void submitCountDiffApproval(Long countOrderId);
 
+    /**
+     * 回写盘点差异审批终态（三层幂等）。
+     *
+     * <p>通过：在审批终态事务提交后逐行确认差异（盘盈入库 / 盘亏出库过账）；驳回与撤销：单据退回
+     * {@code COUNTING} 要求重盘，审批期间未过账，无需冲销。
+     *
+     * @param countOrderId      盘点单编号
+     * @param processInstanceId 流程实例编号
+     * @param status            流程终态，取值见 {@code BpmProcessInstanceStatusEnum}
+     * @param reason            审批意见或驳回原因
+     */
+    void updateCountDiffApprovalStatus(Long countOrderId, String processInstanceId,
+                                       Integer status, String reason);
+
     WmsCountOrderDO getCountOrder(Long id);
 
     List<WmsCountOrderLineDO> getCountOrderLineList(Long orderId);

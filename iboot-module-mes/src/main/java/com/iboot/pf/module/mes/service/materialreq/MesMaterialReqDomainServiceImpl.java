@@ -30,6 +30,7 @@ import com.iboot.pf.module.mes.enums.MesMaterialReqTypeEnum;
 import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
 import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
+import com.iboot.pf.module.mes.service.bpm.MesBpmApprovalActionExecutor;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
 import com.iboot.pf.module.mes.service.kitsnapshot.MesKitRequirementExpander;
@@ -54,6 +55,7 @@ import com.iboot.pf.module.wms.enums.WmsInBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsSourceBizTypeEnum;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +106,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EX
  * {@code Long}（单据编号），两个门面都没有"按编号查单号"的只读方法，MES 侧拿不到单号本身。
  * 编号同样能唯一定位到那张 WMS 单据，追溯可用；等门面补上查询方法或让创建返回单号后改成真单号。
  */
+@Slf4j
 @Service
 public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainService {
 
@@ -163,6 +166,9 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
     private InOrderApi inOrderApi;
     @Resource
     private BpmProcessInstanceApi processInstanceApi;
+    /** 审批终态回写后的收尾动作执行器：把领域动作挪出 Flowable 事务，避免动作失败连审批终态一起回滚。 */
+    @Resource
+    private MesBpmApprovalActionExecutor approvalActionExecutor;
 
     /** 超发领料流程定义 key。 */
     public static final String PROCESS_KEY_SUPPLEMENT = "mes-supplement";
@@ -544,8 +550,15 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
         if (!BpmProcessInstanceStatusEnum.isProcessEndStatus(status)) {
             return;
         }
-        MaterialReqDO req = requireMaterialReq(materialReqId);
-        // 第二层：只接受当前申请正在等待的那一个流程实例
+        // 第二层（其一）：取申请。取不到按"与本次回调无关"处理而不是抛异常——回调跑在 Flowable 事务里，
+        // 抛出去就把 rollback-only 留给了流程，审批终态照样回滚，与驳回回调那个 BUG 是同一个失效机制。
+        MaterialReqDO req = materialReqMapper.selectById(materialReqId);
+        if (req == null) {
+            log.warn("[updateSupplementApprovalStatus] 领退补料申请不存在，忽略本次审批回调。materialReqId={}, instanceId={}",
+                    materialReqId, processInstanceId);
+            return;
+        }
+        // 第二层（其二）：只接受当前申请正在等待的那一个流程实例
         if (!processInstanceId.equals(req.getProcessInstanceId())
                 || !BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(req.getApprovalStatus())) {
             return;
@@ -560,11 +573,56 @@ public class MesMaterialReqDomainServiceImpl implements MesMaterialReqDomainServ
                         .eq(MaterialReqDO::getId, materialReqId)
                         .eq(MaterialReqDO::getApprovalStatus,
                                 BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
-        if (updated != 1 || BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(status)) {
+        if (updated != 1) {
             return;
         }
-        // 驳回或撤销均不再允许确认，释放提交阶段的预留并收尾申请。
-        doCancel(req, reason);
+        log.info("[updateSupplementApprovalStatus] 超发领料审批终态回写。reqNo={}, status={}",
+                req.getReqNo(), status);
+        // 通过：只放开确认门禁（四段流程的第四段"确认出库"仍由仓管在界面上点），没有自动执行的领域动作。
+        if (BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(status)) {
+            return;
+        }
+        // 驳回或撤销：释放提交阶段占住的预留并把申请收尾。
+        //
+        // 两件事都在这里刻意与"用户主动取消"分开，各有其所以不能合并的理由：
+        // 1. 不复用 doCancel —— 它的 approvalStatus = RUNNING 门禁是给"单据还在等审批、人不能单方面
+        //    取消"设的。回调走到这里时，本方法开头查出的 req 是回写之前的内存对象，approvalStatus
+        //    仍是 RUNNING（库里已被上面的条件 UPDATE 改成 REJECT），拿它进 doCancel 必然抛
+        //    MATERIAL_REQ_STATUS_INVALID，把 Flowable 事务标成 rollback-only，审批人每次点驳回都失败。
+        //    收尾路径不查这个门禁：终态处理权已经被第三层的条件 UPDATE 抢到，没有并发的第二次回调。
+        // 2. 不查库再传进去 —— afterCommit 里重查（见 cancelAfterApprovalRejected），拿到的
+        //    approvalStatus 是已提交的终态，判断口径与库一致。
+        approvalActionExecutor.executeAfterCommit("超发领料驳回收尾（释放预留）：" + req.getReqNo(),
+                () -> cancelAfterApprovalRejected(materialReqId, reason));
+    }
+
+    /**
+     * 审批驳回/撤销后的收尾：释放提交阶段占住的预留并把申请置取消。
+     *
+     * <p>由 {@link MesBpmApprovalActionExecutor} 在审批终态事务提交之后、独立事务里调用，
+     * 因此进来第一件事是重查——库里已经是终态审批结果，单据本身还停在 {@code SUBMITTED} 等着收尾。
+     *
+     * <p>已经是 {@code CANCELLED} 的直接返回：收尾可能因重试跑第二遍（预留释放的幂等键在 WMS 侧
+     * 判重，不会二次回升可用量，但没必要再改一遍明细状态）。
+     */
+    private void cancelAfterApprovalRejected(Long materialReqId, String reason) {
+        MaterialReqDO req = requireMaterialReq(materialReqId);
+        if (!ObjUtil.equal(MesMaterialReqStatusEnum.SUBMITTED.name(), req.getStatus())) {
+            return;
+        }
+        for (MaterialReqLineDO line : linesOf(materialReqId)) {
+            // 只有真正占住过预留的行才需要还；退料不预留，行上的预留编号是 0
+            if (!isNone(line.getReservationId())) {
+                releaseReservation(req, line);
+            }
+            materialReqLineMapper.updateById(new MaterialReqLineDO()
+                    .setId(line.getId())
+                    .setStatus(MesMaterialReqLineStatusEnum.CANCELLED.name()));
+        }
+        materialReqMapper.updateById(new MaterialReqDO()
+                .setId(materialReqId)
+                .setStatus(MesMaterialReqStatusEnum.CANCELLED.name())
+                .setRemark(reason));
     }
 
     /**

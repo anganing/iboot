@@ -24,12 +24,16 @@ import com.iboot.pf.module.mes.enums.MesSkipApproveStatusEnum;
 import com.iboot.pf.module.mes.enums.MesSkipPolicyEnum;
 import com.iboot.pf.module.mes.enums.MesSkipRecordStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
+import com.iboot.pf.module.mes.service.bpm.MesBpmApprovalActionExecutor;
 import com.iboot.pf.module.mes.service.command.MesCommandService;
+import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainService;
 import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
 import com.iboot.pf.module.mes.service.opskiprecord.bo.MesRevokeSkipBO;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import com.iboot.pf.module.mes.service.wiptxn.bo.MesWipTxnBO;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +64,7 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.WORK_ORDER_NOT_EX
  * 与 T1-13 的 {@code advanceOpTask} 同形：裁决管"这个迁移合不合法"，条件更新管"并发下有没有人先改了"。
  */
 @Service
+@Slf4j
 public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
 
     /** 工序跳序审批流程定义 key，与状态监听器共用。 */
@@ -69,6 +74,10 @@ public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
     private static final String KEY_SEPARATOR = ":";
     /** 工序任务级动作没有行号，第四段固定 0。 */
     private static final String WHOLE_TASK_LINE_NO = "0";
+    /** 审批回调驱动的生效动作，来源固定 BPM，与人工跳序在流水与命令记录里区分开。 */
+    private static final String SOURCE_MODULE_BPM = "BPM";
+    /** 审批通过生效动作的键段。 */
+    private static final String ACTION_OP_SKIP_APPROVE = "OP_SKIP_APPROVE";
 
     @Resource
     private OpSkipRecordMapper opSkipRecordMapper;
@@ -82,6 +91,18 @@ public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
     private MesWipTxnRecorder wipTxnRecorder;
     @Resource
     private BpmProcessInstanceApi processInstanceApi;
+    /** 审批终态回写后的生效动作执行器：把生效挪出 Flowable 事务，避免动作失败连审批终态一起回滚。 */
+    @Resource
+    private MesBpmApprovalActionExecutor approvalActionExecutor;
+    /**
+     * 后序推进与工单上卷留在工序域，生效时要调回去（并行组语义只有一份）。
+     *
+     * <p>本类被工序域的 {@code skipOpTask} 调、生效时又要调回工序域，两个 Service 互相引用构成创建期的环，
+     * 因此打 {@code @Lazy} 注入代理（与本仓 bpm 模块解开同类环的写法一致）。
+     */
+    @Resource
+    @Lazy
+    private MesOpTaskDomainService opTaskDomainService;
 
     @Override
     public boolean skip(OpTaskDO task, Long prodOrderId, MesOpSkipBO bo, String idempotencyKey) {
@@ -148,6 +169,123 @@ public class MesOpSkipDomainServiceImpl implements MesOpSkipDomainService {
         MesCommandReqDTO command = buildCommand(bo, MesCommandTypeEnum.REVOKE_OP_SKIP, task.getTaskNo());
         commandService.executeVoid(MesCommandTypeEnum.REVOKE_OP_SKIP, command,
                 () -> doRevoke(record, task, bo, command.getIdempotencyKey()));
+    }
+
+    /**
+     * 回写跳序审批终态，三层幂等。
+     *
+     * <p>第三层的条件 UPDATE 同时挡住两件事：重复投递不会二次生效，且"抢到 1 行"是执行领域动作的
+     * 许可证。驳回与撤销只改记录，工序任务一行不动——审批期间工序还没跳，没有什么可回滚的。
+     *
+     * <p>通过后的生效动作（推 SKIPPED、写流水、推后序）交给 {@link MesBpmApprovalActionExecutor}
+     * 延迟到本事务提交之后执行。就地执行的话，动作一旦失败会把 Flowable 的事务标成 rollback-only，
+     * 审批人每次点通过都失败（详见执行器类注释）。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSkipApprovalStatus(Long skipRecordId, String processInstanceId,
+                                         Integer status, String reason) {
+        // 第一层：非终态不改业务事实
+        if (!BpmProcessInstanceStatusEnum.isProcessEndStatus(status)) {
+            return;
+        }
+        // 记录不存在按"与本次回调无关"处理、不抛异常：回调跑在 Flowable 事务里，抛出去就把
+        // rollback-only 留给了流程，审批终态照样回滚——与驳回回调那个 BUG 是同一个失效机制。
+        // （takeEffectApprovedSkip 相反：它在事务提交后的独立事务里跑，查不到就该抛，让重试看得见原因。）
+        OpSkipRecordDO record = opSkipRecordMapper.selectById(skipRecordId);
+        if (record == null) {
+            log.warn("[updateSkipApprovalStatus] 跳序记录不存在，忽略本次审批回调。skipRecordId={}, instanceId={}",
+                    skipRecordId, processInstanceId);
+            return;
+        }
+        // 第二层：只接受这条记录正在等待的流程实例，且当前确实处于审批中
+        if (!processInstanceId.equals(record.getProcessInstanceId())
+                || !BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(record.getApprovalStatus())) {
+            return;
+        }
+        boolean approved = BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(status);
+        // 第三层：条件更新抢占终态处理权。status = PENDING 是这里的乐观锁
+        //（mes_op_skip_record 没有 version 列，与 doRevoke 同一口径）
+        int updated = opSkipRecordMapper.update(new OpSkipRecordDO()
+                        .setId(skipRecordId)
+                        .setStatus(approved ? MesSkipRecordStatusEnum.EFFECTIVE.name()
+                                : MesSkipRecordStatusEnum.REVOKED.name())
+                        .setApproveStatus(approved ? MesSkipApproveStatusEnum.APPROVED.name()
+                                : MesSkipApproveStatusEnum.REJECTED.name())
+                        .setApprovalStatus(status)
+                        .setApprovalTime(LocalDateTime.now())
+                        .setApprovalReason(reason),
+                new LambdaUpdateWrapper<OpSkipRecordDO>()
+                        .eq(OpSkipRecordDO::getId, skipRecordId)
+                        .eq(OpSkipRecordDO::getStatus, MesSkipRecordStatusEnum.PENDING.name())
+                        .eq(OpSkipRecordDO::getApprovalStatus,
+                                BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
+        if (updated != 1) {
+            return;
+        }
+        log.info("[updateSkipApprovalStatus] 跳序审批终态回写。recordId={}, status={}, approved={}",
+                skipRecordId, status, approved);
+        if (!approved) {
+            return;
+        }
+        approvalActionExecutor.executeAfterCommit("工序跳序生效：记录 " + skipRecordId,
+                // 执行器已在独立新事务里跑这段，直接调本类方法即可；跨到工序域的那一跳是另一个 bean，
+                // 它的 @Transactional(REQUIRED) 会加入这个事务，动作失败整段回滚
+                () -> takeEffectApprovedSkip(skipRecordId));
+    }
+
+    /**
+     * 让一条已批准的跳序记录生效：工序任务推 {@code SKIPPED}、写 {@code SKIP} 流水、推后序。
+     *
+     * <p>推工序与写流水与 {@code ALLOW_WITH_REASON} 那一支完全同构；后序推进留在
+     * {@code MesOpTaskDomainService}，经代理调 {@code completeApprovedSkip} 复用它的并行组语义
+     * （后序在组里要整组一起推、组的范围按生产工单取），在跳序域另写一份必然漏项。
+     *
+     * <p>这一跳要经 Spring 代理调用才会带上工序域那一份事务；跳序域与工序域本来就互为上下游
+     * （本类被 {@code skipOpTask} 调、生效又要调回去），所以注入打 {@code @Lazy} 解开创建期的环。
+     *
+     * <p><b>也是人工重试入口</b>：动作失败时记录已是 {@code EFFECTIVE} 而工序还停在原状态，
+     * 这个不一致既能查（两张表的状态对不上）也能补——重跑本方法即可。幂等由三道约束共同保证：
+     * <ul>
+     *   <li>工序已是 {@code SKIPPED} 时不再推工序，只补后序</li>
+     *   <li>推工序走带 {@code version} 条件的更新，并发下只有一个能改到</li>
+     *   <li>流水幂等键 {@code BPM:{记录编号}:OP_SKIP_APPROVE:0} 由 businessKey 派生，
+     *       {@code mes_wip_txn} 的唯一索引兜住重复留痕</li>
+     * </ul>
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void takeEffectApprovedSkip(Long skipRecordId) {
+        OpSkipRecordDO record = requireRecord(skipRecordId);
+        // 只让"审批已通过且记录已置生效"的跳序生效：待审批、已撤销都动不了工序
+        if (!MesSkipRecordStatusEnum.isEffective(record.getStatus())
+                || !MesSkipApproveStatusEnum.isApproved(record.getApproveStatus())) {
+            return;
+        }
+        OpTaskDO task = requireOpTask(record.getOpTaskId());
+        WorkOrderDO workOrder = requireWorkOrder(task.getWorkOrderId());
+        String idempotencyKey = approveIdempotencyKey(skipRecordId);
+        if (!MesOpTaskStatusEnum.SKIPPED.name().equals(task.getStatus())) {
+            // 状态机裁决：只有未开工态（PENDING / READY）有 skip 出边。审批拖着的这段时间里这道工序
+            // 可能已经开工，此时抛 OP_TASK_STATUS_INVALID、一行不改——宁可让人来看，
+            // 也不跳过一道正在加工的工序
+            String fromStatus = task.getStatus();
+            String toStatus = MesOpTaskStateMachine.next(fromStatus, MesOpTaskStateMachine.ACTION_SKIP);
+            advanceToSkipped(task, toStatus);
+            // 实际跳过时间在真正跳过这一刻落，不在审批回写时落：回写时工序还没跳，提前落就是假数据
+            opSkipRecordMapper.updateById(new OpSkipRecordDO()
+                    .setId(skipRecordId)
+                    .setSkipTime(LocalDateTime.now()));
+            recordSkipTxn(task, workOrder.getProdOrderId(), fromStatus, toStatus, idempotencyKey,
+                    "审批通过跳序");
+        }
+        opTaskDomainService.completeApprovedSkip(task.getId(), idempotencyKey);
+    }
+
+    /** 跳序审批生效动作的幂等键：{@code BPM:{跳序记录编号}:OP_SKIP_APPROVE:0}，由 businessKey 派生。 */
+    private String approveIdempotencyKey(Long skipRecordId) {
+        return String.join(KEY_SEPARATOR, SOURCE_MODULE_BPM, String.valueOf(skipRecordId),
+                ACTION_OP_SKIP_APPROVE, WHOLE_TASK_LINE_NO);
     }
 
     /**

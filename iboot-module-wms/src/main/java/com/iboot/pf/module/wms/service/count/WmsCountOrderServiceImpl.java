@@ -1,6 +1,7 @@
 package com.iboot.pf.module.wms.service.count;
 
 import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
 import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
@@ -19,6 +20,7 @@ import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsSourceBizTypeEnum;
 import com.iboot.pf.module.wms.enums.WmsSourceModuleEnum;
 import com.iboot.pf.module.wms.enums.WmsTxnTypeEnum;
+import com.iboot.pf.module.wms.service.bpm.WmsBpmApprovalActionExecutor;
 import com.iboot.pf.module.wms.service.coderule.WmsCodeService;
 import com.iboot.pf.module.wms.service.command.WmsCommandService;
 import com.iboot.pf.module.wms.service.command.bo.WmsCommandBO;
@@ -36,6 +38,7 @@ import com.iboot.pf.module.wms.service.outorder.WmsOutOrderService;
 import com.iboot.pf.module.wms.service.outorder.bo.WmsCreateOutOrderBO;
 import com.iboot.pf.module.wms.service.warehouse.WmsWarehouseService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,7 @@ import static com.iboot.pf.module.wms.enums.ErrorCodeConstants.*;
 import static com.iboot.pf.module.wms.enums.WmsCodeRuleConstants.COUNT_ORDER;
 
 /** 盘点单 Service 实现。 */
+@Slf4j
 @Service
 public class WmsCountOrderServiceImpl implements WmsCountOrderService {
 
@@ -74,6 +78,9 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
     private WmsCodeService codeService;
     @Resource
     private WmsCommandService commandService;
+    /** 审批终态回写后的过账动作执行器：把过账挪出 Flowable 事务，避免过账失败连审批终态一起回滚。 */
+    @Resource
+    private WmsBpmApprovalActionExecutor approvalActionExecutor;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -318,6 +325,62 @@ public class WmsCountOrderServiceImpl implements WmsCountOrderService {
         order.setProcessInstanceId(instanceId);
         order.setApprovalStatus(BpmProcessInstanceStatusEnum.RUNNING.getStatus());
         wmsCountOrderMapper.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateCountDiffApprovalStatus(Long countOrderId, String processInstanceId,
+                                              Integer status, String reason) {
+        // 第一层：只处理终态
+        if (!BpmProcessInstanceStatusEnum.isProcessEndStatus(status)) {
+            return;
+        }
+        // 单据不存在按"与本次回调无关"处理、不抛异常：回调跑在 Flowable 事务里，抛出去就把
+        // rollback-only 留给了流程，审批终态照样回滚——与 T3-06 驳回回调那个 BUG 是同一个失效机制。
+        WmsCountOrderDO order = wmsCountOrderMapper.selectById(countOrderId);
+        if (order == null) {
+            log.warn("[updateCountDiffApprovalStatus] 盘点单不存在，忽略本次审批回调。countOrderId={}, instanceId={}",
+                    countOrderId, processInstanceId);
+            return;
+        }
+        // 第二层：实例编号一致且当前处于审批中
+        if (!processInstanceId.equals(order.getProcessInstanceId())
+                || !BpmProcessInstanceStatusEnum.RUNNING.getStatus().equals(order.getApprovalStatus())) {
+            return;
+        }
+        // 第三层：条件更新抢占终态处理权，重复投递与并发只有一个能改到 1 行
+        int updated = wmsCountOrderMapper.update(new WmsCountOrderDO()
+                        .setId(countOrderId)
+                        .setApprovalStatus(status)
+                        .setApprovalTime(LocalDateTime.now())
+                        .setApprovalReason(reason),
+                new LambdaUpdateWrapper<WmsCountOrderDO>()
+                        .eq(WmsCountOrderDO::getId, countOrderId)
+                        .eq(WmsCountOrderDO::getApprovalStatus,
+                                BpmProcessInstanceStatusEnum.RUNNING.getStatus()));
+        if (updated != 1) {
+            return;
+        }
+        log.info("[updateCountDiffApprovalStatus] 盘点差异审批终态回写。countNo={}, status={}",
+                order.getCountNo(), status);
+        if (!BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(status)) {
+            // 驳回与撤销：单据退回盘点中要求重盘，审批期间没过账，无需任何冲销
+            wmsCountOrderMapper.updateById(new WmsCountOrderDO()
+                    .setId(countOrderId)
+                    .setStatus(WmsOrderStatusEnum.COUNTING.name()));
+            return;
+        }
+        // 通过后才逐行过账，且必须等审批终态提交之后再执行（见执行器类注释）：
+        // 就地过账一旦失败会把 Flowable 事务标成 rollback-only，审批终态随流程一起回滚。
+        // 人工重试入口是既有的 confirm-diff 端点，它的 approval_status = APPROVE 前置校验此时已放开。
+        String countNo = order.getCountNo();
+        approvalActionExecutor.executeAfterCommit("盘点差异过账：" + countNo, () -> confirmCountDiff(
+                new WmsConfirmCountDiffBO()
+                        .setOrderId(countOrderId)
+                        .setSourceModule(WmsSourceModuleEnum.WMS.name())
+                        .setSourceBizNo(countNo)
+                        // Service 再按行号派生为 WMS:{countNo}:COUNT_DIFF_POST:{lineNo}
+                        .setIdempotencyKey(WmsSourceModuleEnum.WMS.name() + ":" + countNo + ":COUNT_DIFF_POST")));
     }
 
     private void doConfirmCountDiff(WmsConfirmCountDiffBO bo) {

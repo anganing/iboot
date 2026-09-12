@@ -1,6 +1,9 @@
 package com.iboot.pf.module.mes.service.opskiprecord;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
+import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
+import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 import com.iboot.pf.module.mes.dal.dataobject.opskiprecord.OpSkipRecordDO;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
@@ -23,6 +26,7 @@ import com.iboot.pf.module.mes.enums.MesSkipReasonTypeEnum;
 import com.iboot.pf.module.mes.enums.MesSkipRecordStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
+import com.iboot.pf.module.mes.service.bpm.MesBpmApprovalActionExecutor;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
 import com.iboot.pf.module.mes.service.opskiprecord.bo.MesOpSkipBO;
@@ -32,14 +36,17 @@ import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainServiceImpl;
 import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.MesProgressPropagator;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,12 +60,15 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_REASON_RE
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_RECORD_NOT_EXISTS;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_SKIP_RECORD_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.OP_TASK_STATUS_INVALID;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -72,7 +82,7 @@ import static org.mockito.Mockito.when;
  * （{@code MesOrderExpandHelper} 写死的），不改它的话所有跳序都会被拒。
  */
 @Import({MesOpSkipDomainServiceImpl.class, MesOpTaskDomainServiceImpl.class, MesProgressPropagator.class,
-        MesCommandServiceImpl.class, MesWipTxnRecorder.class})
+        MesCommandServiceImpl.class, MesWipTxnRecorder.class, MesBpmApprovalActionExecutor.class})
 class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final String SOURCE_MODULE = "UI";
@@ -85,6 +95,8 @@ class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
     private static final Long OPERATOR_ID = 77L;
     private static final String SKIP_REASON = "该型号不需要这道工序";
     private static final String EFFECT_REMARK = "后序尺寸不受影响，免首检";
+    /** 打桩的流程实例编号，审批回写的第二层校验按它比对。 */
+    private static final String SKIP_INSTANCE_ID = "op-skip-process-1";
 
     /** 工序任务号计数器，保证同一个用例里落的任务号互不相同。 */
     private final AtomicInteger taskSeq = new AtomicInteger();
@@ -112,6 +124,23 @@ class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
     private MesFinishInboundService finishInboundService;
     @MockitoBean
     private MesCodeService codeService;
+    /**
+     * 上下文里装了 T1-13 的工序动作实现，它依赖质检领域服务（首检/末检挂载）。
+     *
+     * <p>与下面 {@code BpmProcessInstanceApi} 同因：{@code BaseDbUnitTest} 不扫描业务 bean，
+     * 少一个依赖就是整个测试类全灭。这一处与流程无关，是既有的装配缺口，本次一并补齐。
+     */
+    @MockitoBean
+    private MesQcTaskDomainService qcTaskDomainService;
+    /**
+     * 流程定义已发布但单测不启动 Flowable 引擎，发起动作打桩返回固定实例编号。
+     *
+     * <p>必须是 {@code @MockitoBean} 而不是省掉：{@code MesOpSkipDomainServiceImpl} 依赖它，
+     * 而 {@code BaseDbUnitTest} 不扫描业务 bean，缺一个依赖就是 ApplicationContext 启动失败、
+     * 本类全部用例报 NoSuchBeanDefinitionException。
+     */
+    @MockitoBean
+    private BpmProcessInstanceApi processInstanceApi;
 
     @BeforeEach
     void mockExternalDependencies() {
@@ -122,6 +151,8 @@ class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
                     : ruleCode + "-" + counters.computeIfAbsent(ruleCode, key -> new AtomicInteger())
                     .incrementAndGet();
         });
+        // 流程定义已发布但单测不启动引擎，实例编号打桩固定值，回写按它做第二层幂等校验
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn(SKIP_INSTANCE_ID);
     }
 
     @Test
@@ -205,8 +236,196 @@ class MesOpSkipDomainServiceImplTest extends BaseDbUnitTest {
         assertEquals(MesSkipRecordStatusEnum.PENDING.name(), record.getStatus());
         assertEquals(MesSkipApproveStatusEnum.PENDING.name(), record.getApproveStatus());
         assertNull(record.getSkipTime());
-        assertEquals(EFFECT_REMARK, record.getEffectRemark());
-        // 还没生效，不写在制流水
+        assertEquals(EFFECT_REMARK, record.getEffectRemark());        // 还没生效，不写在制流水
+        assertEquals(0L, wipTxnMapper.selectCount());
+        // 流程实例编号必须回写：它是回调第二层幂等校验的身份，不写的话任何终态回调都被当成无关事件忽略
+        assertEquals(SKIP_INSTANCE_ID, record.getProcessInstanceId());
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), record.getApprovalStatus());
+        ArgumentCaptor<BpmProcessInstanceCreateReqDTO> captor =
+                ArgumentCaptor.forClass(BpmProcessInstanceCreateReqDTO.class);
+        verify(processInstanceApi).createProcessInstance(any(), captor.capture());
+        assertEquals(MesOpSkipDomainServiceImpl.PROCESS_KEY_OP_SKIP,
+                captor.getValue().getProcessDefinitionKey());
+        // businessKey 传跳序记录 id，回调靠它找回记录
+        assertEquals(String.valueOf(record.getId()), captor.getValue().getBusinessKey());
+    }
+
+    // ==================== T3-07 跳序审批回调 ====================
+
+    /**
+     * 验收：审批通过后工序置 {@code SKIPPED} 且后序推进到 {@code READY}。
+     *
+     * <p>生效那一跳复用的是 {@code ALLOW_WITH_REASON} 的同一套动作（状态机裁决 + 乐观锁 + SKIP 流水）
+     * 与同一套后序推进逻辑，因此后序在并行组里时整组一起推的语义不会丢。
+     */
+    @Test
+    void testSkipApprovalApproved_skipsTaskAndAdvancesNext() {
+        // 准备：下料（需审批）-> 折弯（待排产）
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null,
+                MesOpTaskStatusEnum.READY, MesSkipPolicyEnum.APPROVAL_REQUIRED);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null,
+                MesOpTaskStatusEnum.PENDING, MesSkipPolicyEnum.NOT_ALLOWED);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        opTaskDomainService.skipOpTask(skipBO(cut, SKIP_REASON, EFFECT_REMARK));
+        OpSkipRecordDO record = onlyRecord();
+
+        // 调用：审批通过回调
+        skipDomainService.updateSkipApprovalStatus(record.getId(), SKIP_INSTANCE_ID,
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "工艺确认可以跳");
+
+        // 断言：记录已生效 + 已批准，实际跳过时间落下来
+        OpSkipRecordDO effective = opSkipRecordMapper.selectById(record.getId());
+        assertEquals(MesSkipRecordStatusEnum.EFFECTIVE.name(), effective.getStatus());
+        assertEquals(MesSkipApproveStatusEnum.APPROVED.name(), effective.getApproveStatus());
+        assertEquals(BpmProcessInstanceStatusEnum.APPROVE.getStatus(), effective.getApprovalStatus());
+        assertEquals("工艺确认可以跳", effective.getApprovalReason());
+        assertNotNull(effective.getApprovalTime());
+        assertNotNull(effective.getSkipTime(), "生效时间记的是工序真的被跳过那一刻，不能留空");
+        // 工序推已跳过，版本自增（走的是带 version 条件的更新）
+        OpTaskDO skipped = opTaskMapper.selectById(cut.getId());
+        assertEquals(MesOpTaskStatusEnum.SKIPPED.name(), skipped.getStatus());
+        assertEquals(MesConstants.INIT_VERSION + 1, skipped.getVersion());
+        // 验收点名：后序从待排产推到待开工
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+        // SKIP 流水按 BPM:{记录编号}:OP_SKIP_APPROVE:0 留痕
+        List<WipTxnDO> skipTxns = txnsOfType(MesWipTxnTypeEnum.SKIP);
+        assertEquals(1, skipTxns.size());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), skipTxns.get(0).getFromStatus());
+        assertEquals(MesOpTaskStatusEnum.SKIPPED.name(), skipTxns.get(0).getToStatus());
+        assertEquals("BPM:" + record.getId() + ":OP_SKIP_APPROVE:0", skipTxns.get(0).getIdempotencyKey());
+    }
+
+    /** 验收：驳回后工序保持原状，记录置已撤销 + 已驳回。 */
+    @Test
+    void testSkipApprovalRejected_keepsOpTaskUnchanged() {
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null,
+                MesOpTaskStatusEnum.READY, MesSkipPolicyEnum.APPROVAL_REQUIRED);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null,
+                MesOpTaskStatusEnum.PENDING, MesSkipPolicyEnum.NOT_ALLOWED);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        opTaskDomainService.skipOpTask(skipBO(cut, SKIP_REASON, EFFECT_REMARK));
+        OpSkipRecordDO record = onlyRecord();
+
+        skipDomainService.updateSkipApprovalStatus(record.getId(), SKIP_INSTANCE_ID,
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "关键工序不允许跳");
+
+        OpSkipRecordDO revoked = opSkipRecordMapper.selectById(record.getId());
+        assertEquals(MesSkipRecordStatusEnum.REVOKED.name(), revoked.getStatus());
+        assertEquals(MesSkipApproveStatusEnum.REJECTED.name(), revoked.getApproveStatus());
+        assertEquals(BpmProcessInstanceStatusEnum.REJECT.getStatus(), revoked.getApprovalStatus());
+        assertEquals("关键工序不允许跳", revoked.getApprovalReason());
+        assertNull(revoked.getSkipTime(), "没生效就没有跳过时间，落上去就是假数据");
+        // 工序与后序都保持原状，这道工序还在线上
+        OpTaskDO unchanged = opTaskMapper.selectById(cut.getId());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), unchanged.getStatus());
+        assertEquals(MesConstants.INIT_VERSION, unchanged.getVersion());
+        assertEquals(MesOpTaskStatusEnum.PENDING.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+        assertEquals(0L, wipTxnMapper.selectCount(), "驳回不写在制流水");
+    }
+
+    /**
+     * 验收（本阶段立项红线）：重复回调不二次推进。
+     *
+     * <p>第二次投递的第三层条件更新（{@code status = PENDING AND approval_status = RUNNING}）拿不到行，
+     * 生效动作不会重跑；工序版本、SKIP 流水、后序 MOVE 流水都只有一份。
+     */
+    @Test
+    void testSkipApprovalCallbackDuplicated_advancesOnce() {
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null,
+                MesOpTaskStatusEnum.READY, MesSkipPolicyEnum.APPROVAL_REQUIRED);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null,
+                MesOpTaskStatusEnum.PENDING, MesSkipPolicyEnum.NOT_ALLOWED);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        opTaskDomainService.skipOpTask(skipBO(cut, SKIP_REASON, EFFECT_REMARK));
+        OpSkipRecordDO record = onlyRecord();
+
+        skipDomainService.updateSkipApprovalStatus(record.getId(), SKIP_INSTANCE_ID,
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "可以跳");
+        skipDomainService.updateSkipApprovalStatus(record.getId(), SKIP_INSTANCE_ID,
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "可以跳");
+
+        assertEquals(MesConstants.INIT_VERSION + 1, opTaskMapper.selectById(cut.getId()).getVersion(),
+                "重复回调不得把工序再推一次版本");
+        assertEquals(1, txnsOfType(MesWipTxnTypeEnum.SKIP).size(), "重复回调不得写第二条 SKIP 流水");
+        assertEquals(1, txnsOfType(MesWipTxnTypeEnum.MOVE).size(), "重复回调不得二次推进后序");
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+    }
+
+    /**
+     * 生效动作失败留下的半成品能被人工重试补齐，且重试不会二次留痕。
+     *
+     * <p>这就是"审批通过但执行失败由人工重试"那条口径的落点：记录已是 EFFECTIVE 而工序还停在 READY
+     * 时，两张表的状态对得上不上是可查的；重跑生效动作即补到终态。
+     */
+    @Test
+    void testTakeEffectApprovedSkip_retriesHalfDoneRecord() {
+        WorkOrderDO workOrder = runningWorkOrder();
+        OpTaskDO cut = insertTask(workOrder, 10, "下料", null,
+                MesOpTaskStatusEnum.READY, MesSkipPolicyEnum.APPROVAL_REQUIRED);
+        OpTaskDO bend = insertTask(workOrder, 20, "折弯", null,
+                MesOpTaskStatusEnum.PENDING, MesSkipPolicyEnum.NOT_ALLOWED);
+        chain(cut, MesConstants.NONE_ID, bend.getId());
+        chain(bend, cut.getId(), MesConstants.NONE_ID);
+        opTaskDomainService.skipOpTask(skipBO(cut, SKIP_REASON, EFFECT_REMARK));
+        OpSkipRecordDO record = onlyRecord();
+        // 造半成品：审批终态已回写（记录 EFFECTIVE + APPROVED），但工序当时没推动
+        opSkipRecordMapper.updateById(new OpSkipRecordDO()
+                .setId(record.getId())
+                .setStatus(MesSkipRecordStatusEnum.EFFECTIVE.name())
+                .setApproveStatus(MesSkipApproveStatusEnum.APPROVED.name())
+                .setApprovalStatus(BpmProcessInstanceStatusEnum.APPROVE.getStatus())
+                .setSkipTime(LocalDateTime.now()));
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(cut.getId()).getStatus());
+
+        skipDomainService.takeEffectApprovedSkip(record.getId());
+
+        assertEquals(MesOpTaskStatusEnum.SKIPPED.name(), opTaskMapper.selectById(cut.getId()).getStatus());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(bend.getId()).getStatus());
+        // 再补跑一次（人工重试点两下）：工序不再推版本，流水不追加
+        int versionAfterFirst = opTaskMapper.selectById(cut.getId()).getVersion();
+        skipDomainService.takeEffectApprovedSkip(record.getId());
+        assertEquals(versionAfterFirst, opTaskMapper.selectById(cut.getId()).getVersion());
+        assertEquals(1, txnsOfType(MesWipTxnTypeEnum.SKIP).size());
+        assertEquals(1, txnsOfType(MesWipTxnTypeEnum.MOVE).size());
+    }
+
+    /** 迟到的旧事件与非终态事件都不许改业务事实。 */
+    @Test
+    void testSkipApproval_staleAndRunningEventIgnored() {
+        OpTaskDO task = readyTask(MesSkipPolicyEnum.APPROVAL_REQUIRED);
+        opTaskDomainService.skipOpTask(skipBO(task, SKIP_REASON, EFFECT_REMARK));
+        OpSkipRecordDO record = onlyRecord();
+
+        // 迟到的旧事件：实例编号不是这条记录正在等的
+        skipDomainService.updateSkipApprovalStatus(record.getId(), "stale-process-9",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "迟到事件");
+        // 审批中事件（非终态）
+        skipDomainService.updateSkipApprovalStatus(record.getId(), SKIP_INSTANCE_ID,
+                BpmProcessInstanceStatusEnum.RUNNING.getStatus(), null);
+
+        assertEquals(MesSkipRecordStatusEnum.PENDING.name(),
+                opSkipRecordMapper.selectById(record.getId()).getStatus());
+        assertEquals(MesOpTaskStatusEnum.READY.name(), opTaskMapper.selectById(task.getId()).getStatus());
+        assertEquals(0L, wipTxnMapper.selectCount());
+    }
+
+    /**
+     * 记录不存在时回写必须静默返回，不许抛异常。
+     *
+     * <p>回写方法跑在 Flowable 事务里：抛出去（哪怕被监听器的 try-catch 吞掉）事务已被标记 rollback-only，
+     * 最外层提交仍抛 {@code UnexpectedRollbackException} 把审批终态回滚。契约要在 Service 层成立。
+     */
+    @Test
+    void testSkipApproval_missingRecordIgnoredSilently() {
+        assertDoesNotThrow(() -> skipDomainService.updateSkipApprovalStatus(randomLongId(),
+                SKIP_INSTANCE_ID, BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "记录已删"));
+        assertEquals(0L, opSkipRecordMapper.selectCount());
         assertEquals(0L, wipTxnMapper.selectCount());
     }
 

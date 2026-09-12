@@ -50,4 +50,33 @@ public interface MesOpSkipDomainService {
      */
     void revokeSkip(MesRevokeSkipBO bo);
 
+    /**
+     * 回写工序跳序的审批终态（三层幂等）。
+     *
+     * <p>通过：记录置 {@code EFFECTIVE} / {@code APPROVED}，并在审批终态事务提交后执行生效
+     * （工序推 {@code SKIPPED}、写 {@code SKIP} 流水、推后序）；驳回与撤销：记录置 {@code REVOKED} /
+     * {@code REJECTED}，工序任务一行不动。
+     *
+     * <p>审批期间工序任务状态不变是这一档存在的全部意义：没批就把工序置成已跳过，等于审批人还没看
+     * 车间就已经跳过去了，驳回也追不回来。
+     *
+     * @param skipRecordId      跳序记录编号（即 businessKey）
+     * @param processInstanceId 流程实例编号
+     * @param status            流程终态，取值见 {@code BpmProcessInstanceStatusEnum}
+     * @param reason            审批意见或驳回原因
+     */
+    void updateSkipApprovalStatus(Long skipRecordId, String processInstanceId, Integer status, String reason);
+
+    /**
+     * 让一条已批准的跳序记录生效：工序任务推 {@code SKIPPED}、写 {@code SKIP} 流水、推后序。
+     *
+     * <p>这是审批通过后被延迟到事务提交后执行的那一步，也是<b>人工重试入口</b>：动作失败时记录已经
+     * 是 {@code EFFECTIVE} 而工序还停在原状态，这个不一致可查（{@code mes_op_skip_record.status} 与
+     * {@code mes_op_task.status} 对不上）且可补，重跑本方法即可，幂等由工序任务的乐观锁与
+     * {@code mes_wip_txn} 的幂等键唯一索引共同保证。
+     *
+     * @param skipRecordId 跳序记录编号
+     */
+    void takeEffectApprovedSkip(Long skipRecordId);
+
 }

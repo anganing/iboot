@@ -2,6 +2,7 @@ package com.iboot.pf.module.mes.service.materialreq;
 
 import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.bpm.api.task.BpmProcessInstanceApi;
+import com.iboot.pf.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import com.iboot.pf.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 import com.iboot.pf.module.mdm.api.bom.BomApi;
 import com.iboot.pf.module.mdm.api.bom.dto.BomLineRespDTO;
@@ -32,6 +33,7 @@ import com.iboot.pf.module.mes.enums.MesMaterialReqTypeEnum;
 import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
+import com.iboot.pf.module.mes.service.bpm.MesBpmApprovalActionExecutor;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
 import com.iboot.pf.module.mes.service.kitsnapshot.MesKitRequirementExpander;
@@ -56,6 +58,7 @@ import com.iboot.pf.module.wms.enums.WmsOutBizTypeEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -76,11 +79,13 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_AVAI
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_CONFIRM_QTY_EMPTY;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_CONFIRM_QTY_EXCEEDED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LINE_EMPTY;
+import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_NOT_APPROVED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_LOC_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_RETURN_BATCH_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_STATUS_INVALID;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.MATERIAL_REQ_WAREHOUSE_REQUIRED;
 import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.PROD_ORDER_NOT_EXISTS;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -107,7 +112,7 @@ import static org.mockito.Mockito.when;
  * <p>真实的库存过账账实一致由阶段 6 的跨模块集成测试覆盖，MES 单测里没有 wms 表可用。
  */
 @Import({MesMaterialReqDomainServiceImpl.class, MesKitRequirementExpander.class,
-        MesCommandServiceImpl.class})
+        MesCommandServiceImpl.class, MesBpmApprovalActionExecutor.class})
 class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final String SOURCE_MODULE = "UI";
@@ -836,6 +841,11 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
         OpTaskDO opTask = insertOpTask(order);
         when(routeApi.getRouteOpMatList(any())).thenReturn(List.of(
                 routeOpMat(ROUTE_OP_MAT_A, MAT_A, "1", MesIssueMethodEnum.PICK, true)));
+        // BOM 计划量与本单申请量都是 100（单位用量 1 × 工单 100），不构成超发，因此这张单不需要审批。
+        // T3-06 之后 ISSUE 要按"历史实发 + 本次申请"与 BOM 计划量比较来判超发，不铺这条计划量的话
+        // 计划量按 0 算，任何领料都会被判成超发并要求审批，确认出库被门禁拦下。
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
         givenInventory(MAT_A, "500");
         MesCreateMaterialReqBO createBO = createBO(order, MesMaterialReqTypeEnum.ISSUE);
         createBO.setWorkOrderId(opTask.getWorkOrderId());
@@ -843,6 +853,7 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
         Long reqId = domainService.createMaterialReq(createBO);
         domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
         MaterialReqDO req = reqOf(reqId);
+        assertNull(req.getProcessInstanceId(), "不超发的常规领料不该发起审批");
 
         // 调用
         domainService.confirmMaterialReq(confirmBO(req));
@@ -1188,6 +1199,212 @@ class MesMaterialReqDomainServiceImplTest extends BaseDbUnitTest {
                 MATERIAL_REQ_STATUS_INVALID);
         assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), reqOf(req.getId()).getStatus());
         assertEquals(0, new BigDecimal("400").compareTo(stock.get(MAT_A)));
+    }
+
+    // ==================== T3-06 超发领料审批接入 ====================
+
+    /**
+     * 验收：ISSUE 累计领用量超出 BOM 计划量才触发审批，阈值是"超出即触发"，不设百分比缓冲。
+     *
+     * <p>第一段 100（等于计划量 100，不超）不触发；第二段再来 100，累计 200 超了才触发。
+     * 只判本单申请量不判累计的话，超发会被拆成多张单规避掉，这是超发审批唯一需要防的绕过方式。
+     */
+    @Test
+    void testSubmit_issueOverBomPlanRequiresApproval() {
+        ProdOrderDO order = insertOrder();
+        // BOM 计划量：100 件工单 × 单位用量 1 = 100
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        stock.put(MAT_A, new BigDecimal("500"));
+        onhand.put(MAT_A, new BigDecimal("500"));
+        reservedQty.put(MAT_A, BigDecimal.ZERO);
+        // 第一段领 100：累计等于计划量，不超发，走原流程不发起审批
+        MaterialReqDO first = submittedIssueReq(order);
+        assertEquals(BpmProcessInstanceStatusEnum.NOT_START.getStatus(), first.getApprovalStatus());
+        assertNull(first.getProcessInstanceId());
+        domainService.confirmMaterialReq(confirmBO(first));
+        assertAccounts(MAT_A, "400", "0", "400");
+        assertEquals(1, outOrders.size());
+
+        // 第二段领 100：历史实发 100 + 本次 100 = 200 > 计划 100，必须审批
+        MesCreateMaterialReqBO secondCreate = createBO(order, MesMaterialReqTypeEnum.ISSUE);
+        // 创建的幂等键按工单号派生，同一工单的第二张单要显式换键
+        secondCreate.setIdempotencyKey("UI:" + ORDER_NO + ":CREATE_REQ:2");
+        Long secondId = domainService.createMaterialReq(secondCreate);
+        domainService.submitMaterialReq(actionBO(reqOf(secondId), null));
+
+        MaterialReqDO second = reqOf(secondId);
+        assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), second.getStatus());
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), second.getApprovalStatus());
+        assertEquals("supplement-process-1", second.getProcessInstanceId());
+        // businessKey 传申请单 id，回调靠它找回单据
+        ArgumentCaptor<BpmProcessInstanceCreateReqDTO> captor =
+                ArgumentCaptor.forClass(BpmProcessInstanceCreateReqDTO.class);
+        org.mockito.Mockito.verify(processInstanceApi)
+                .createProcessInstance(any(), captor.capture());
+        assertEquals(MesMaterialReqDomainServiceImpl.PROCESS_KEY_SUPPLEMENT,
+                captor.getValue().getProcessDefinitionKey());
+        assertEquals(String.valueOf(secondId), captor.getValue().getBusinessKey());
+        // 超发审批只占预留不动在库：现存仍是确认过第一段之后的 400，出库单也没有多出一张
+        assertAccounts(MAT_A, "400", "100", "300");
+        assertEquals(1, outOrders.size(), "审批期间不得建第二张出库单");
+    }
+
+    /** 验收：未审批通过的超发申请，确认出库被拦。 */
+    @Test
+    void testConfirm_supplementRunningRejected() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+
+        assertServiceException(() -> domainService.confirmMaterialReq(confirmBO(reqOf(reqId))),
+                MATERIAL_REQ_NOT_APPROVED);
+        // 拦下来没有任何库存后果：预留照旧占着，现存未动，也没建出库单
+        assertAccounts(MAT_A, "500", "100", "400");
+        assertTrue(outOrders.isEmpty());
+        assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), reqOf(reqId).getStatus());
+    }
+
+    /**
+     * 验收（此前是必现 BUG 的路径）：驳回回调释放提交阶段占住的预留，可用量回升。
+     *
+     * <p>驳回必须真的把预留还回来：不释放就是把这批料永久占住，别的工单再也领不到，
+     * 而且没人知道是谁占的。这条用例同时把 BUG 的成因钉住——回写方法里传给收尾动作的
+     * 必须是回写之后的库内状态，而不是方法开头查出的内存旧值。
+     */
+    @Test
+    void testSupplementRejected_releasesReservationAndCancelsReq() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+        Long reservationId = linesOf(reqId).get(0).getReservationId();
+        assertAccounts(MAT_A, "500", "100", "400");
+
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "超发无依据");
+
+        MaterialReqDO rejected = reqOf(reqId);
+        assertEquals(BpmProcessInstanceStatusEnum.REJECT.getStatus(), rejected.getApprovalStatus());
+        assertEquals("超发无依据", rejected.getApprovalReason());
+        assertNotNull(rejected.getApprovalTime());
+        // 预留已释放，可用量回升到 500，现存没动（本来也没出库）
+        assertTrue(reservations.get(reservationId).released, "驳回必须释放提交阶段的预留");
+        assertAccounts(MAT_A, "500", "0", "500");
+        assertEquals(MesMaterialReqStatusEnum.CANCELLED.name(), rejected.getStatus());
+        assertEquals(MesMaterialReqLineStatusEnum.CANCELLED.name(), linesOf(reqId).get(0).getStatus());
+        // 释放的幂等键按行派生，与用户主动取消同一条路径
+        assertTrue(wmsKeys.contains(WMS_SOURCE_MODULE + ":" + rejected.getReqNo() + ":RELEASE:1"));
+    }
+
+    /** 撤销（发起人撤回流程）与驳回同口径：释放预留并取消申请。 */
+    @Test
+    void testSupplementCancelled_releasesReservation() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.CANCEL.getStatus(), "计划变更，撤回申请");
+
+        assertAccounts(MAT_A, "500", "0", "500");
+        assertEquals(MesMaterialReqStatusEnum.CANCELLED.name(), reqOf(reqId).getStatus());
+    }
+
+    /** 验收（本阶段立项红线）：重复回调不二次释放预留——二次释放会把可用量凭空多补一份。 */
+    @Test
+    void testSupplementRejectedCallbackDuplicated_releasesOnce() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+        Long reservationId = linesOf(reqId).get(0).getReservationId();
+
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "超发无依据");
+        // 同一终态再投一次：第三层条件 UPDATE 拿不到行，收尾动作不会重跑
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "超发无依据");
+
+        assertAccounts(MAT_A, "500", "0", "500");
+        assertEquals(0, new BigDecimal("100").compareTo(reservations.get(reservationId).releasedQty),
+                "预留只能被处理一次，二次释放会把可用量补成 600");
+        // 释放动作只发生一次
+        assertEquals(1L, wmsKeys.stream()
+                .filter(key -> key.endsWith(":RELEASE:1")).count());
+    }
+
+    /** 迟到的旧事件（别的流程实例、或已收尾的单据）不许再改业务事实。 */
+    @Test
+    void testSupplementCallback_staleInstanceIgnored() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+
+        staleCallbacksAreIgnored(reqId);
+
+        assertAccounts(MAT_A, "500", "100", "400");
+        MaterialReqDO stillRunning = reqOf(reqId);
+        assertEquals(BpmProcessInstanceStatusEnum.RUNNING.getStatus(), stillRunning.getApprovalStatus());
+        assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), stillRunning.getStatus());
+    }
+
+    /** 两个终态事件实例编号都不是本单的：审批中事件与迟到事件，都被挡。 */
+    private void staleCallbacksAreIgnored(Long reqId) {
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.RUNNING.getStatus(), null);
+        domainService.updateSupplementApprovalStatus(reqId, "stale-process-9",
+                BpmProcessInstanceStatusEnum.REJECT.getStatus(), "迟到事件");
+    }
+
+    /**
+     * 申请不存在时回写必须静默返回，不许抛异常。
+     *
+     * <p>回写方法跑在 Flowable 事务里：抛出去（哪怕被监听器的 try-catch 吞掉）事务已被标记 rollback-only，
+     * 最外层提交仍会抛 {@code UnexpectedRollbackException} 把审批终态回滚——正是 T3-06 那个 BUG 的机制。
+     * 契约要在 Service 层成立，不能只在监听器外面糊一层 catch。
+     */
+    @Test
+    void testSupplementCallback_missingReqIgnoredSilently() {
+        assertDoesNotThrow(() -> domainService.updateSupplementApprovalStatus(randomLongId(),
+                "supplement-process-1", BpmProcessInstanceStatusEnum.REJECT.getStatus(), "单据已删"));
+        assertTrue(wmsKeys.isEmpty(), "单据不存在时不该有释放动作");
+    }
+
+    /** 审批通过后放开确认门禁：四段流程的第四段仍由仓管在界面上点，不自动出库。 */
+    @Test
+    void testSupplementApproved_unlocksConfirmOnly() {
+        ProdOrderDO order = insertOrder();
+        when(bomApi.getBomLineList(BOM_ID)).thenReturn(List.of(
+                bomLine(1, MAT_A, "1", "0", MesIssueMethodEnum.PICK)));
+        givenInventory(MAT_A, "500");
+        Long reqId = domainService.createMaterialReq(createBO(order, MesMaterialReqTypeEnum.SUPPLEMENT));
+        domainService.submitMaterialReq(actionBO(reqOf(reqId), null));
+
+        domainService.updateSupplementApprovalStatus(reqId, "supplement-process-1",
+                BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意补料");
+
+        // 回写本身不出库：确认是仓管的动作，审批只放开门禁
+        assertTrue(outOrders.isEmpty(), "审批通过不自动出库");
+        assertAccounts(MAT_A, "500", "100", "400");
+        assertEquals(MesMaterialReqStatusEnum.SUBMITTED.name(), reqOf(reqId).getStatus());
+
+        domainService.confirmMaterialReq(confirmBO(reqOf(reqId)));
+        assertAccounts(MAT_A, "400", "0", "400");
+        assertEquals(MesMaterialReqStatusEnum.DONE.name(), reqOf(reqId).getStatus());
     }
 
     private MaterialRespDTO material(Long matId) {
