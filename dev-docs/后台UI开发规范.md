@@ -19,7 +19,8 @@
 3. **子表功能必须和主表页面同构。** 子表也要有工具栏“新增/批量删除”与行操作“修改/删除”，不能因为“它只是个附属面板”就降级。
 4. **后端接口不齐就补后端，不要在前端凑合交互。** 子表只有 create/delete/page 时，正确做法是补 get/update/delete-list，而不是把 UI 退化成“选一个加一个、只能删不能改”。
 5. **表单里的外键一律用选择器**，列表里的关联字段一律显示可读字段，枚举一律映射中文。详见第 5、6 节。
-6. **页面布局一律“列表页 + 抽屉”，禁止页面级“左列表 + 右详情”分栏。** 两级结构（列表 + 选中后的详情/作业）必须点击行打开抽屉承载右侧内容，详见第 6.0 节。
+6. **页面布局一律“列表页 + 抽屉”，禁止页面级“左列表 + 右详情”分栏；抽屉只能由显式动作打开，禁止整行点击。** 两级结构（列表 + 单条记录的详情/作业）用抽屉承载，入口是操作列按钮或宽表编码列双击，详见第 6.0 节。
+7. **操作列宽度只取 100/160/220/280 四档，禁止随手写像素。** 见第 3.4 节。
 
 > 反面案例：工艺路线的“工装”Tab 曾用 `el-form inline` 加 `el-table` 手写，只能一次选一个工装点“添加工装”，加完不能改，也没有批量删除，因为后端当时只有 create/delete/page。这是规范缺失导致的，不是需求特殊。
 
@@ -89,7 +90,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 2. `{ type: 'seq', title: '序号', width: 60 }`
 3. 业务列
 4. `{ field: 'createTime', title: '创建时间', minWidth: 160, formatter: 'formatDateTime' }`
-5. `{ title: '操作', width: 150~280, fixed: 'right', slots: { default: 'actions' } }`
+5. `{ title: '操作', width: <按 3.4 档位表取值>, fixed: 'right', slots: { default: 'actions' } }`
 
 列内容渲染硬约束：
 
@@ -113,6 +114,56 @@ const [Grid, gridApi] = useVbenVxeGrid({
 - 批量删除用 `confirm(...)`，级联影响要在确认文案里说明，例如“并级联删除 N 条用料”。
 - 每个 action 都要有 `auth`。
 - 只读状态（如已发布的工艺路线）通过 `disabled: !isEditable` 统一压制写操作，不要靠隐藏按钮。
+
+### 3.4 操作列宽度：按按钮位数取档位，禁止自定义
+
+操作列宽度以前是各页随手写（实测存量有 420、440、400 这种），现在统一按“可见按钮位数”取档，**位数 = 固定展示的按钮数 + 「更多」下拉按钮自身算 1 位**：
+
+| 可见按钮位数 | `width` |
+| --- | --- |
+| 1 | 100 |
+| 2 | 160 |
+| 3 | 220 |
+| 4 | 280 |
+| 5 | 340（超过 4 个固定动作需评审） |
+
+- 固定动作多于 4 个时，把低频动作（取消、关闭、恢复、导出、打印这类）挪进 `dropDownActions`，由 `TableAction` 渲染成文字“更多”下拉，**上限 5 位**。
+- 档位是写死的枚举，不允许出现 180、240、260 这类中间值。`width` 与 `fixed: 'right'` 和 `slots: { default: 'actions' }` 一起写全。
+- 因权限或数据状态而暂时不可点的按钮保持展示并置 `disabled`（配合 `tooltip` 说明原因），只有“这个页面根本没这个业务动作”才允许不渲染。
+
+### 3.5 宽表编码列：链接样式 + 双击开只读详情
+
+列数 >= 15 的列表，若存在业务编码列（`code` / `xxxCode`，不含 `xxxId`），该列必须做成“可双击看详情”的链接列：
+
+```ts
+import { codeLinkColumn } from '#/utils';
+
+// data.ts：helper 展开出 className + params 两项，禁止手写字面量
+{ field: 'txnNo', title: '事务编号', minWidth: 160, ...codeLinkColumn() }
+```
+
+```ts
+// index.vue：只认编码列的双击，不做整行热区
+import { isCodeLinkColumn } from '#/utils';
+
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: XxxApi.Xxx;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+```
+
+- `codeLinkColumn()` / `isCodeLinkColumn()` 在 `src/utils/codeLinkColumn.ts`，链接样式 `.cell-code-link` 在全局 `src/styles/index.scss`（vxe 把列 `className` 渲染到 `<td>` 上，scoped 样式命不中，别在页面里重复写）。
+- 详情是**只读抽屉**（`modules/<feature>-detail.vue`，`useVbenDrawer` + `ElDescriptions`），参照 `views/wms/invtxn/modules/inv-txn-detail.vue`；已有实例：`mes/{optask,prodorder,materialreq,disposition,prodreport,opskiprecord,workorder,wiptxn,rgvtask,qctask}`、`wms/{invlock,invreservation,devicetask}` 的 `modules/*-detail.vue`。子表抽屉（`*-line-drawer.vue`）与嵌在审批流里的 `*-process-detail.vue` 都不算主表详情组件，不能拿它们充当。
+- **详情抽屉里的时间精度与该页列表保持一致**：列表列用 `formatDateTime` 的，详情也用 `formatDateTime`。否则会出现"详情比列表信息更少"的倒退（工序任务这类排产/工时字段只到日，两道工序看着像同一天开工）。
+- 双击是唯一的手势入口，**单击行、单击单元格一律不触发**（见 6.0）。
+- 没有业务编码列的宽表（如 `mes/wiptxn`）本轮不做，不为了凑规范去双击序号列或名称列。
+- 账表只读页（库存余额、库存流水）本身没有“修改”入口，双击详情是它唯一的看全字段途径，必须做。
 
 ## 4. 表单弹窗规范
 
@@ -163,14 +214,24 @@ const [Form, formApi] = useVbenForm({
 
 ### 6.0 页面布局：列表页 + 抽屉，禁止页面级左右分栏
 
-页面级“左列表 + 右详情”的 `ColPage` 分栏形态已废弃，**存量 7 个作业页是反面教材**（`mes/workbench/inspect`、`mes/workbench/disposition`、`mes/workbench/report`、`mes/workbench/issue`、`wms/workbench/receive`、`wms/workbench/pick`、`wms/workbench/count`）。改造方式：列表占满整页，点击行打开 `useVbenDrawer`（`class="w-full lg:w-4/5"`），把原右侧的 `ElDescriptions` 摘要 + 作业表格 + 动作按钮整体搬进抽屉，`selectedXxx` 选中逻辑与接口调用不变，只挪承载容器。
+页面级“左列表 + 右详情”的 `ColPage` 分栏形态已废弃，存量 7 个作业页（`mes/workbench/inspect`、`mes/workbench/disposition`、`mes/workbench/report`、`mes/workbench/issue`、`wms/workbench/receive`、`wms/workbench/pick`、`wms/workbench/count`）已改为列表占满整页。抽屉内容就是原右侧的 `ElDescriptions` 摘要 + 作业表格 + 动作按钮，`selectedXxx` 选中逻辑与接口调用不变，只挪承载容器。
+
+**打开抽屉只能靠显式动作，禁止整行点击（`cell-click`）。** 整行是热区最大的误触点，且行里任何单元格都能触发跳转，用户无法预期。入口只有两个：
+
+- 操作列的「明细」/「作业」按钮（作业页统一用「明细」）——这是常规入口。
+- 宽表编码链接列的**双击**（见 3.5）——这是看全字段的快捷入口。
 
 规则与理由：
 
 - **判定标准：只有两级（列表 → 单条记录的详情/作业）的页面，一律列表 + 抽屉。** 抽屉是本规范已验证的形态（工艺路线、BOM 配置都在用），列表全宽可展示更多列，抽屉内空间与分栏右侧相当。
 - **例外一：左侧是过滤树而非记录列表的不算两级。** 如派工页左侧的“车间/工作中心”树是筛选维度，右侧才是列表，这类“树 + 工作区”形态保留。
 - **例外二：抽屉内部的 `ColPage` 左右分栏照常使用。** `route-config.vue`、`bom-line-drawer.vue` 是参照实现，规范约束的是页面级布局，不是抽屉内布局。
-- 选中态不再依赖左侧列表常驻，抽屉打开即“已选中”，关闭即回到纯列表，`cell-click` 联动逻辑随之取消。
+- 抽屉打开即“已选中”，关闭即回到纯列表并清空选中态、刷新主列表；原先为“点行不误触”写的 checkbox/seq/actions 列判断属于死代码，一并删除。
+- **允许的例外：抽屉内子表的“行选中供参”。** 如 `route-config.vue` 点工序行联动下方用料/ESOP Tab、`mes/workbench/disposition` 抽屉内选中处置单让底部动作生效——这类 `cellClick` 只是设置 `selectedXxx`，不开抽屉、不跳转，配合 `isCurrent` 高亮，是父子联动的常规形态，保留。红线约束的是“点击行打开抽屉”，不是“点击行选中”。
+
+### 6.0.1 禁用按钮的 tooltip 依赖共享组件
+
+高频动作不可点时要 `disabled` + `tooltip` 说明原因，这需要 `#/components/table-action/table-action.vue` 支持：固定按钮分支用 `span.tooltip-anchor-disabled`（`pointer-events: none` 穿透 `<button>`）承接悬停；`dropDownActions` 分支的下拉项已包 `ElTooltip`（`placement="left"`）。页面里**直接写 `tooltip` 就行，不要自造 span wrapper 绕组件**——原生 `<button disabled>` 不派发鼠标事件（浏览器行为，非 CSS），组件不修时整站的禁用提示都静默失效，各页自造 wrapper 等于把坑复制 N 遍。
 
 ### 6.1 两种形态
 
@@ -235,8 +296,14 @@ DO 带审计字段和数据库结构，直接暴露等于让前端能写 `creato
 
 - [ ] 列表用 `useVbenVxeGrid`，没有手写 `el-table`
 - [ ] 页面布局是“列表页 + 抽屉”，没有页面级“左列表 + 右详情”分栏（抽屉内分栏不受限）
+- [ ] 抽屉由操作列按钮或编码列双击打开，没有 `cell-click` 整行点击入口
+- [ ] 操作列 `width` 落在 100/160/220/280 档位，固定动作不超过 4 个
+- [ ] 不可点的高频动作是 `disabled` + `tooltip`，没有被隐藏
+- [ ] “更多”里的按钮不与固定区重复，且是文字按钮不是省略号图标
+- [ ] ≥15 列的宽表，本行唯一业务编码列挂了 `codeLinkColumn()` 并配了双击只读详情抽屉
+- [ ] 详情抽屉回查 `get(id)`，取不到走空态，不显示裸 ID 与原始枚举
 - [ ] 新增/编辑是独立弹窗，没有行内即时追加
-- [ ] 有 checkbox 列、序号列、固定右侧操作列
+- [ ] 支持批量删除的列表有 checkbox 列、序号列、固定右侧操作列（账表只读页除外）
 - [ ] 字典/布尔/枚举都映射成中文，没有原始值
 - [ ] 关联字段显示 code/name，没有裸 ID
 - [ ] 外键字段用 `RelationSelect` / `ApiTreeSelect`

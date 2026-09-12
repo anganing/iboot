@@ -1,0 +1,55 @@
+ M CLAUDE.md
+ M dev-docs/后台UI开发规范.md
+ M dev-docs/开发任务安排/前端测试-20260911/基础数据功能测试记录-20260911.md
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/controller/admin/trace/TraceController.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/enums/MesDispositionStateMachine.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/enums/MesTraceNodeTypeEnum.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/disposition/MesDispositionDomainService.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/disposition/MesDispositionDomainServiceImpl.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/disposition/listener/MesConcessionStatusListener.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/disposition/listener/MesScrapStatusListener.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/materialreq/MesMaterialReqDomainServiceImpl.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/opskiprecord/MesOpSkipDomainService.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/opskiprecord/MesOpSkipDomainServiceImpl.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/opskiprecord/listener/MesOpSkipStatusListener.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/trace/MesTraceService.java
+ M iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/trace/MesTraceServiceImpl.java
+ M iboot-module-mes/src/test/java/com/iboot/pf/module/mes/service/materialreq/MesMaterialReqDomainServiceImplTest.java
+ M iboot-module-mes/src/test/java/com/iboot/pf/module/mes/service/opskiprecord/MesOpSkipDomainServiceImplTest.java
+ M iboot-module-mes/src/test/java/com/iboot/pf/module/mes/service/optask/MesOpTaskDomainServiceImplTest.java
+ M iboot-module-mes/src/test/java/com/iboot/pf/module/mes/service/trace/MesTraceServiceImplTest.java
+ M iboot-module-mes/src/test/resources/sql/create_tables.sql
+ M iboot-module-wms/src/main/java/com/iboot/pf/module/wms/service/count/WmsCountOrderService.java
+ M iboot-module-wms/src/main/java/com/iboot/pf/module/wms/service/count/WmsCountOrderServiceImpl.java
+ M iboot-module-wms/src/main/java/com/iboot/pf/module/wms/service/count/listener/WmsCountDiffStatusListener.java
+ M iboot-module-wms/src/test/java/com/iboot/pf/module/wms/service/count/WmsCountOrderServiceImplTest.java
+ M iboot-module-wms/src/test/resources/sql/create_tables.sql
+ M iboot-server/pom.xml
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/public/flyfish-viewer-assets.json
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/bootstrap.ts
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/utils/index.ts
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/constants.ts
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/mat/index.vue
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/matcat/data.ts
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/matcat/index.vue
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/plant/index.vue
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/rescalendar/modules/schedule-matrix.vue
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/mdm/workshop/index.vue
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/wms/invtxn/data.ts
+ M iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/wms/invtxn/index.vue
+?? dev-docs/UI规范改造-20260912/
+?? dev-docs/开发任务安排/前端测试-20260911/仓储管理快速功能测试记录-20260912.md
+?? dev-docs/开发任务安排/前端测试-20260911/生产制造快速功能测试记录-20260912.md
+?? iboot-module-mes/src/main/java/com/iboot/pf/module/mes/controller/admin/trace/vo/TraceBackwardReqVO.java
+?? iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/bpm/
+?? iboot-module-mes/src/main/java/com/iboot/pf/module/mes/service/trace/MesTraceBackwardResolver.java
+?? iboot-module-mes/src/test/java/com/iboot/pf/module/mes/service/disposition/MesDispositionApprovalServiceImplTest.java
+?? iboot-module-wms/src/main/java/com/iboot/pf/module/wms/service/bpm/
+?? iboot-server/src/test/java/com/iboot/pf/server/
+?? iboot-server/src/test/resources/
+?? iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/styles/
+?? iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/utils/codeLinkColumn.ts
+?? iboot-ui/iboot-ui-admin-vben/apps/web-ele/src/views/wms/invtxn/modules/
+?? script/__pycache__/
+?? script/h2-schema-convert-raw/
+?? script/h2-schema-convert.py
