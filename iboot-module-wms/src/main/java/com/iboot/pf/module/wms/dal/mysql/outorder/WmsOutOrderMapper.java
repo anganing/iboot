@@ -9,6 +9,9 @@ import com.iboot.pf.framework.mybatis.core.util.MyBatisUtils;
 import com.iboot.pf.framework.common.pojo.PageResult;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import java.util.Collection;
+import java.util.List;
+
 /** 出库单 Mapper。 */
 @Mapper
 public interface WmsOutOrderMapper extends BaseMapperX<WmsOutOrderDO> {
@@ -20,6 +23,16 @@ public interface WmsOutOrderMapper extends BaseMapperX<WmsOutOrderDO> {
 
     default WmsOutOrderDO selectByOutNo(String outNo) {
         return selectOne(WmsOutOrderDO::getOutNo, outNo);
+    }
+
+    /**
+     * 按出库单号集合批量查出库单，跨模块门面按单号反查用。
+     *
+     * <p>{@code out_no} 上有唯一索引 {@code uk_wms_out_order_no_deleted}，走索引一次 IN 查询；
+     * 空集合由 {@code BaseMapperX#selectList(SFunction, Collection)} 直接返回空列表，不会拼出非法 SQL。
+     */
+    default List<WmsOutOrderDO> selectListByOutNos(Collection<String> outNos) {
+        return selectList(WmsOutOrderDO::getOutNo, outNos);
     }
 
     default PageResult<OutOrderRespVO> selectPage(OutOrderPageReqVO reqVO) {

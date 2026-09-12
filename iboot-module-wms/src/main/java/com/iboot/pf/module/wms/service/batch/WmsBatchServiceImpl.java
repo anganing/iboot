@@ -49,6 +49,14 @@ public class WmsBatchServiceImpl implements WmsBatchService {
     }
 
     @Override
+    public List<WmsBatchDO> getBatchListByLotNos(Collection<String> lotNos) {
+        if (CollUtil.isEmpty(lotNos)) {
+            return Collections.emptyList();
+        }
+        return wmsBatchMapper.selectList(WmsBatchDO::getLotNo, lotNos);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public WmsBatchDO registerBatch(RegisterBatchBO bo) {
         MaterialRespDTO material = materialApi.getMaterial(bo.getMatId());

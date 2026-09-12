@@ -50,6 +50,10 @@ public interface InventoryApi {
     /**
      * 查询库存流水列表。
      *
+     * <p>过滤条件全部下推 SQL：只给 {@code matId} 时按物料取，已知具体批次时改用
+     * {@code batchIds}（或只持有批次号时改用 {@code lotNos}），不必按物料拉回全量流水再内存筛。
+     * 追溯这类调用方一次要覆盖一批批次，按物料分片会把同物料上百笔流水全拉回来。
+     *
      * @param query 查询条件
      * @return 库存流水列表
      */

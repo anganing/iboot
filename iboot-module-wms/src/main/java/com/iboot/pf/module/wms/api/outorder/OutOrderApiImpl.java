@@ -82,6 +82,15 @@ public class OutOrderApiImpl implements OutOrderApi {
     }
 
     @Override
+    public Map<String, OutOrderRespDTO> getOutOrderMapByNos(Collection<String> orderNos) {
+        if (CollUtil.isEmpty(orderNos)) {
+            return Map.of();
+        }
+        List<WmsOutOrderDO> orders = outOrderMapper.selectListByOutNos(orderNos);
+        return CollectionUtils.convertMap(BeanUtils.toBean(orders, OutOrderRespDTO.class), OutOrderRespDTO::getOutNo);
+    }
+
+    @Override
     public void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO) {
         outOrderService.resolveOqcTask(reqDTO);
     }

@@ -1,5 +1,6 @@
 package com.iboot.pf.module.wms.api.batch;
 
+import cn.hutool.core.collection.CollUtil;
 import com.iboot.pf.framework.common.util.object.BeanUtils;
 import com.iboot.pf.framework.datapermission.core.annotation.DataPermission;
 import com.iboot.pf.module.wms.api.batch.dto.BatchRespDTO;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMap;
+import static com.iboot.pf.framework.common.util.collection.CollectionUtils.convertMultiMap;
 
 /**
  * 批次 API 实现类。
@@ -45,6 +47,16 @@ public class BatchApiImpl implements BatchApi {
     @Override
     public Map<Long, BatchRespDTO> getBatchMap(Collection<Long> ids) {
         return convertMap(BeanUtils.toBean(batchService.getBatchList(ids), BatchRespDTO.class), BatchRespDTO::getId);
+    }
+
+    @Override
+    public Map<String, List<BatchRespDTO>> getBatchMapByLotNos(Collection<String> lotNos) {
+        if (CollUtil.isEmpty(lotNos)) {
+            return Map.of();
+        }
+        List<BatchRespDTO> batches = BeanUtils.toBean(batchService.getBatchListByLotNos(lotNos), BatchRespDTO.class);
+        // 批次号只在物料内唯一，同一批次号可命中多条，值用列表，不能收敛成单条
+        return convertMultiMap(batches, BatchRespDTO::getLotNo);
     }
 
     @Override

@@ -28,6 +28,9 @@ public interface WmsInvTxnMapper extends BaseMapperX<WmsInvTxnDO> {
                 .eqIfPresent(WmsInvTxnDO::getWhId, query.getWhId())
                 .eqIfPresent(WmsInvTxnDO::getMatId, query.getMatId())
                 .eqIfPresent(WmsInvTxnDO::getBatchId, query.getBatchId())
+                // 集合条件走 idx_wms_inv_txn_batch_id；lot_no 无索引，只作为调用方拿不到批次编号时的兜底
+                .inIfPresent(WmsInvTxnDO::getBatchId, query.getBatchIds())
+                .inIfPresent(WmsInvTxnDO::getLotNo, query.getLotNos())
                 .eqIfPresent(WmsInvTxnDO::getTxnType, query.getTxnType())
                 .eqIfPresent(WmsInvTxnDO::getBizType, query.getBizType())
                 .eqIfPresent(WmsInvTxnDO::getBizNo, query.getBizNo())

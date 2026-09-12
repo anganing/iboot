@@ -62,6 +62,8 @@ public class InventoryApiImpl implements InventoryApi {
         bo.setWhId(query.getWhId());
         bo.setMatId(query.getMatId());
         bo.setBatchId(query.getBatchId());
+        bo.setBatchIds(query.getBatchIds());
+        bo.setLotNos(query.getLotNos());
         bo.setTxnType(query.getTxnType());
         bo.setBizType(query.getBizType());
         bo.setBizNo(query.getBizNo());

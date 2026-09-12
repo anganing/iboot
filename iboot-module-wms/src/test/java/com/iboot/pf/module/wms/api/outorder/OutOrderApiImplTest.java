@@ -54,6 +54,22 @@ class OutOrderApiImplTest extends BaseDbUnitTest {
         outOrderMapper.insert(order);
     }
 
+    /** 播种销售发货出库单：带上追溯客户节点要用的客户编号与工单号快照。 */
+    private void seedSalesOrder(Long id, String outNo, Long customerId, String prodOrderNo) {
+        WmsOutOrderDO order = new WmsOutOrderDO();
+        order.setId(id);
+        order.setOutNo(outNo);
+        order.setBizType("SALES_DELIVERY_OUT");
+        order.setSourceType("UI");
+        order.setSourceBizNo("SO-" + id);
+        order.setCustomerId(customerId);
+        order.setProdOrderNo(prodOrderNo);
+        order.setInvOrgId(1L);
+        order.setWhId(1L);
+        order.setStatus(WmsOrderStatusEnum.DONE.name());
+        outOrderMapper.insert(order);
+    }
+
     @Test
     void testGetOutOrderMap_returnsOnlyRequested() {
         seedOrder(101L, "OUT-0101", WmsOrderStatusEnum.DRAFT);
@@ -76,6 +92,42 @@ class OutOrderApiImplTest extends BaseDbUnitTest {
     @Test
     void testGetOutOrderMap_emptyIds_returnsEmptyMap() {
         assertTrue(outOrderApi.getOutOrderMap(List.of()).isEmpty(), "空集合返回空 Map，不抛异常");
+    }
+
+    @Test
+    void testGetOutOrderMap_carriesCustomerIdAndProdOrderNo() {
+        seedSalesOrder(111L, "OUT-0111", 3001L, "MO-20260912-001");
+
+        OutOrderRespDTO dto = outOrderApi.getOutOrderMap(List.of(111L)).get(111L);
+
+        // 追溯客户节点靠这两个字段：按 id 反查同样要能拿到（BeanUtils 逐字段拷贝，不能只在新方法里补）
+        assertEquals(3001L, dto.getCustomerId());
+        assertEquals("MO-20260912-001", dto.getProdOrderNo());
+    }
+
+    @Test
+    void testGetOutOrderMapByNos_returnsOnlyRequested() {
+        seedOrder(121L, "OUT-0121", WmsOrderStatusEnum.DONE);
+        seedSalesOrder(122L, "OUT-0122", 3002L, "MO-20260912-002");
+        seedSalesOrder(123L, "OUT-0123", null, null);
+
+        Map<String, OutOrderRespDTO> map = outOrderApi.getOutOrderMapByNos(List.of("OUT-0121", "OUT-0122"));
+
+        assertEquals(2, map.size(), "只取回请求的两条");
+        assertEquals(121L, map.get("OUT-0121").getId());
+        assertEquals("PROD_ISSUE_OUT", map.get("OUT-0121").getBizType());
+        assertEquals(3002L, map.get("OUT-0122").getCustomerId(), "销售出库单的客户编号");
+        assertEquals("MO-20260912-002", map.get("OUT-0122").getProdOrderNo(), "生产工单号快照");
+        assertNull(map.get("OUT-0123"), "未请求的单号不应出现在结果里");
+    }
+
+    @Test
+    void testGetOutOrderMapByNos_missingAndEmpty() {
+        seedOrder(131L, "OUT-0131", WmsOrderStatusEnum.DRAFT);
+
+        // 查不到的单号不产生键，也不抛异常
+        assertTrue(outOrderApi.getOutOrderMapByNos(List.of("OUT-NOT-EXIST")).isEmpty());
+        assertTrue(outOrderApi.getOutOrderMapByNos(List.of()).isEmpty(), "空集合返回空 Map");
     }
 
     @Test

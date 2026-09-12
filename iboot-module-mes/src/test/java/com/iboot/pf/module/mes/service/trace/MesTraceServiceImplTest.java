@@ -196,14 +196,22 @@ class MesTraceServiceImplTest extends BaseDbUnitTest {
         MesTraceNodeBO salesNode = finishBatchNode.getChildren().get(0);
         assertEquals(MesTraceNodeTypeEnum.OUT_ORDER.name(), salesNode.getNodeType());
         assertEquals(OUT_NO_SALES, salesNode.getBizNo());
-        // 客户节点：OutOrderRespDTO 缺 customer_id 字段（门面缺口，见自查遗留），客户节点暂不挂载
-        assertEquals(0, salesNode.getChildren().size());
+        // 客户节点：靠 OutOrderApi.getOutOrderMapByNos 换回 customer_id 后挂载（门面缺口已补齐）
+        assertEquals(CUSTOMER_ID, salesNode.getSnapshot().get("customerId"));
+        assertEquals(1, salesNode.getChildren().size(), "销售出库单下挂客户");
+        MesTraceNodeBO customerNode = salesNode.getChildren().get(0);
+        assertEquals(MesTraceNodeTypeEnum.CUSTOMER.name(), customerNode.getNodeType());
+        assertEquals("CUST-001", customerNode.getBizNo());
+        assertEquals("客户一", customerNode.getNodeName());
 
-        // 断言无 N+1：出库单、入库单各一次批量调用；流水按物料分片恰好 3 次（原料 ISSUE + 完工 RECEIPT + 销售 ISSUE）
+        // 断言无 N+1：出库单、入库单、客户各一次批量调用；流水按物料分片恰好 3 次（原料 ISSUE + 完工 RECEIPT + 销售 ISSUE）
         verify(outOrderApi, atMostOnce()).getOutOrderMap(anyCollection());
+        verify(outOrderApi, atMostOnce()).getOutOrderMapByNos(anyCollection());
         verify(inOrderApi, atMostOnce()).getInOrderMap(anyCollection());
+        verify(partnerApi, atMostOnce()).getCustomerMap(anyCollection());
         verify(inventoryApi, atMost(3)).getInventoryTxnList(any(InventoryTxnQueryReqDTO.class));
         assertEquals(3, facadeCalls.get("txn").get());
+        assertEquals(1, facadeCalls.get("out.mapByNos").get(), "客户编号按单号一次批量反查");
     }
 
     @Test
@@ -450,6 +458,17 @@ class MesTraceServiceImplTest extends BaseDbUnitTest {
             }
             return result;
         });
+        when(outOrderApi.getOutOrderMapByNos(anyCollection())).thenAnswer(invocation -> {
+            count("out.mapByNos");
+            Collection<String> orderNos = invocation.getArgument(0);
+            Map<String, OutOrderRespDTO> result = new HashMap<>();
+            if (orderNos.contains(OUT_NO_SALES)) {
+                // 销售出库单的客户编号来自 wms_out_order.customer_id（门面已暴露该字段）
+                result.put(OUT_NO_SALES, outOrder(0L, OUT_NO_SALES,
+                        WmsOutBizTypeEnum.SALES_DELIVERY_OUT.name(), "DONE", CUSTOMER_ID));
+            }
+            return result;
+        });
         when(inOrderApi.getInOrderMap(anyCollection())).thenAnswer(invocation -> {
             count("in.map");
             Collection<Long> ids = invocation.getArgument(0);
@@ -554,11 +573,16 @@ class MesTraceServiceImplTest extends BaseDbUnitTest {
     }
 
     private OutOrderRespDTO outOrder(Long id, String outNo, String bizType, String status) {
+        return outOrder(id, outNo, bizType, status, null);
+    }
+
+    private OutOrderRespDTO outOrder(Long id, String outNo, String bizType, String status, Long customerId) {
         OutOrderRespDTO dto = new OutOrderRespDTO();
         dto.setId(id);
         dto.setOutNo(outNo);
         dto.setBizType(bizType);
         dto.setStatus(status);
+        dto.setCustomerId(customerId);
         return dto;
     }
 

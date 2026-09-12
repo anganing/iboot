@@ -18,6 +18,17 @@ public interface WmsBatchService {
     Map<Long, WmsBatchDO> getBatchMap(Collection<Long> ids);
 
     /**
+     * 按批次号批量查批次主档，一次 {@code IN} 查询。
+     *
+     * <p>批次号只在物料内唯一（唯一索引 {@code uk_wms_batch_mat_lot_deleted}），
+     * 同一批次号可能命中多条不同物料的记录，故返回列表而非单条。
+     *
+     * @param lotNos 批次号集合
+     * @return 批次列表；入参为空返回空列表
+     */
+    List<WmsBatchDO> getBatchListByLotNos(Collection<String> lotNos);
+
+    /**
      * 注册批次：同一物料 + 批次号 + 序列号已存在时直接返回原批次，不存在则新建。
      *
      * @param bo 注册参数

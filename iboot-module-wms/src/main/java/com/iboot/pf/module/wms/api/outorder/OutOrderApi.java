@@ -52,6 +52,18 @@ public interface OutOrderApi {
      */
     Map<Long, OutOrderRespDTO> getOutOrderMap(Collection<Long> ids);
 
+    /**
+     * 按出库单号批量反查出库单的可读字段。
+     *
+     * <p>{@link #getOutOrderMap} 只认单据主键，而调用方手上的常常是单号——库存流水
+     * {@code wms_inv_txn.biz_no} 存的就是出库单号，批次追溯从流水出发时拿不到单据主键
+     * （见 T5-01 正向追溯"销售出库单 → 客户"这一环）。一次 {@code IN} 查询取回，禁止逐条查。
+     *
+     * @param orderNos 出库单号集合
+     * @return 出库单号到出库单只读事实的映射；空集合返回空 Map，不抛异常
+     */
+    Map<String, OutOrderRespDTO> getOutOrderMapByNos(Collection<String> orderNos);
+
     /** 回写 OQC 规则解析结果；由 MES 监听拣选事件后调用。 */
     void resolveOqcTask(ResolveOqcTaskReqDTO reqDTO);
 

@@ -77,12 +77,14 @@ import static com.iboot.pf.module.mes.enums.ErrorCodeConstants.TRACE_START_TYPE_
  *   <li>入库单 → 成品批次 / 成品批次 → 销售出库单：查 {@code wms_inv_txn}（完工收货
  *       {@code biz_type = PROD_FINISH_IN} + {@code txn_type = RECEIPT}；销售发货
  *       {@code biz_type = SALES_DELIVERY_OUT} + {@code txn_type = ISSUE}），行上带批次与批次号快照。
- *       流水查询条件没有批次号维度，按物料分片查询后内存过滤——分片数等于链路上的物料数，不是行数。</li>
+ *       流水查询条件已支持 {@code batchIds} / {@code lotNos} 集合下推，本解析器仍按物料分片查询后
+ *       内存过滤——种子与成品批次的批次编号要等流水回来才定得出来，属链路上的先后次序而非门面缺口；
+ *       分片数等于链路上的物料数，不是行数。</li>
  * </ul>
  *
  * <p><b>无 N+1</b>：MES 侧全部按 {@code IN} 批量查回后内存组装；门面侧每类数据至多一次批量调用
- * （出库单、入库单、批次主档、客户），流水按物料分片（每物料两到三次）。全部调用次数在
- * {@code MesTraceServiceImplTest} 里逐方法断言。
+ * （出库单按编号、出库单按单号、入库单、批次主档、客户各一次），流水按物料分片（每物料两到三次）。
+ * 全部调用次数在 {@code MesTraceServiceImplTest} 里逐方法断言。
  */
 @Component
 public class MesTraceForwardResolver {
@@ -161,9 +163,12 @@ public class MesTraceForwardResolver {
     }
 
     /**
-     * 按批次号解析种子：WMS 批次门面没有按批次号查询的方法（门面缺口，见自查遗留），
-     * 用 {@code mes_material_req_line.lot_no} 快照反查。正向追溯的对象本来就是被领用过的批次；
-     * 还没被领用的批次正向链路为空，与"起点不存在"同口径报错。
+     * 按批次号解析种子：用 {@code mes_material_req_line.lot_no} 快照反查，不走批次主档。
+     *
+     * <p>原因不是门面缺方法（{@code BatchApi.getBatchMapByLotNos} 已补齐），而是<b>正向种子必须是
+     * "被哪个工单领用过的哪个批次"这一事实</b>，批次主档只给得出批次自身的属性，给不出下游链路。
+     * 因此还没被领用过的批次在这里解析不出种子、报起点不存在——正向语义成立（没有领用就没有下游）；
+     * 真要按批次号取批次属性（供应商、炉批号），那是反向追溯 T5-02 的取数，用新补的门面方法。
      */
     private List<BatchSeed> seedsByLotNo(String lotNo) {
         return toSeeds(materialReqLineMapper.selectList(MaterialReqLineDO::getLotNo, lotNo));
@@ -531,7 +536,7 @@ public class MesTraceForwardResolver {
         return node;
     }
 
-    /** 销售出库单节点：挂客户子节点（客户编号可解析时，当前门面缺口见 {@link #salesCustomerIds}）。 */
+    /** 销售出库单节点：客户编号可解析时挂客户子节点（取数见 {@link #salesCustomerIds}）。 */
     private MesTraceNodeBO buildSalesOutNode(String outNo, List<InventoryTxnRespDTO> txns,
                                              TraceData data, int depth) {
         MesTraceNodeBO node = new MesTraceNodeBO()
@@ -656,7 +661,7 @@ public class MesTraceForwardResolver {
         Set<Long> allBatchIds = new LinkedHashSet<>(batchIds);
         finishTxns.stream().map(InventoryTxnRespDTO::getBatchId).filter(Objects::nonNull).forEach(allBatchIds::add);
         Map<Long, BatchRespDTO> batchById = getBatchMap(allBatchIds);
-        // 客户：出库单号 → 客户编号（当前门面缺口，恒空）
+        // 客户：出库单号 → 客户编号（按单号批量反查出库单），再批量补客户名称
         Map<String, Long> salesCustomerIds = salesCustomerIds(salesTxns);
         Map<Long, CustomerRespDTO> customerById = customerMap(salesCustomerIds);
         return new TraceData(orderByNo, reqById, reqIdsBySeedKey, outOrderById, inOrderById, batchById,
@@ -739,12 +744,25 @@ public class MesTraceForwardResolver {
     /**
      * 销售出库单号 → 客户编号，客户节点的唯一权威来源是 {@code wms_out_order.customer_id}。
      *
-     * <p>当前为恒空实现：{@code OutOrderRespDTO} 没有暴露 {@code prodOrderNo} 与 {@code customerId}，
-     * {@code OutOrderApi} 也没有按单号查询的方法（门面缺口，见 T5-01 自查遗留），流水行上只有单号
-     * 拿不到单据主档。门面补上字段后这里改为一次批量反查即可，树组装与客户节点挂载已经就绪。
+     * <p>流水行上只有单号，用 {@code OutOrderApi.getOutOrderMapByNos} 一次批量反查换回客户编号
+     * （T5-01 收尾时该字段与该方法都是门面缺口，现已补齐）。没有销售流水时不发调用，
+     * 避免空跑一次 SQL。
      */
     private Map<String, Long> salesCustomerIds(List<InventoryTxnRespDTO> salesTxns) {
-        return Map.of();
+        List<String> outNos = salesTxns.stream().map(InventoryTxnRespDTO::getBizNo)
+                .filter(StrUtil::isNotBlank).distinct().toList();
+        if (CollUtil.isEmpty(outNos)) {
+            return Map.of();
+        }
+        Map<String, OutOrderRespDTO> outOrderById = ObjUtil.defaultIfNull(
+                outOrderApi.getOutOrderMapByNos(outNos), Map.of());
+        Map<String, Long> result = new LinkedHashMap<>();
+        outOrderById.forEach((outNo, order) -> {
+            if (order != null && order.getCustomerId() != null) {
+                result.put(outNo, order.getCustomerId());
+            }
+        });
+        return result;
     }
 
     // ========== 流水查询（按物料分片） ==========

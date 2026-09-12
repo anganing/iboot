@@ -29,6 +29,24 @@ public class OutOrderRespDTO {
     @Schema(description = "来源业务单号")
     private String sourceBizNo;
 
+    /**
+     * 客户编号，销售发货出库（{@code SALES_DELIVERY_OUT}）才有值。
+     *
+     * <p>追溯链路"成品批次 → 销售出库单 → 客户"的唯一权威来源就是这一列，跨模块取客户名称
+     * 走 {@code PartnerApi.getCustomerMap} 批量补全，不在门面里跨库 JOIN mdm。
+     */
+    @Schema(description = "客户编号", example = "1")
+    private Long customerId;
+
+    /**
+     * 生产工单号快照，领料出库（{@code PROD_ISSUE_OUT}）才有值。
+     *
+     * <p>调用方只持有出库单号（例如库存流水的 {@code biz_no}）时，靠这一列直接桥到 MES 工单，
+     * 不必再绕领料申请。
+     */
+    @Schema(description = "生产工单号快照", example = "MO20260909001")
+    private String prodOrderNo;
+
     @Schema(description = "仓库编号", example = "1")
     private Long whId;
 
