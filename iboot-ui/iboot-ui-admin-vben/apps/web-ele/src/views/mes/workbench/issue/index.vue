@@ -4,7 +4,7 @@ import type { MesMaterialReqApi } from '#/api/mes/materialreq';
 
 import { computed, ref } from 'vue';
 
-import { ColPage } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
@@ -42,9 +42,12 @@ const remainingLineCount = computed(
       (line) => Number(line.qty ?? 0) > Number(line.processedQty ?? 0),
     ).length,
 );
+const drawerTitle = computed(() =>
+  request.value?.reqNo ? `领料确认 - ${request.value.reqNo}` : '领料确认',
+);
 
 const [ReqGrid, reqGridApi] = useVbenVxeGrid({
-  formOptions: { schema: useReqGridFormSchema(), wrapperClass: 'grid-cols-2' },
+  formOptions: { schema: useReqGridFormSchema() },
   gridOptions: {
     columns: useReqGridColumns(),
     height: 'auto',
@@ -63,8 +66,25 @@ const [ReqGrid, reqGridApi] = useVbenVxeGrid({
     toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   } as VxeTableGridOptions<MesMaterialReqApi.MaterialReq>,
   gridEvents: {
-    cellClick: ({ row }: { row: MesMaterialReqApi.MaterialReq }) =>
-      handleSelect(row),
+    cellClick: ({
+      row,
+      column,
+    }: {
+      column: {
+        slots?: { default?: unknown };
+        type?: null | string;
+      };
+      row: MesMaterialReqApi.MaterialReq;
+    }) => {
+      // 勾选列、序号列与操作列的点击不打开抽屉
+      if (column.type === 'checkbox' || column.type === 'seq') {
+        return;
+      }
+      if (column.slots?.default === 'actions') {
+        return;
+      }
+      void handleSelect(row);
+    },
   },
 });
 const [LineGrid, lineGridApi] = useVbenVxeGrid({
@@ -79,11 +99,30 @@ const [LineGrid, lineGridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<MesMaterialReqApi.MaterialReqLine>,
 });
 
+const [Drawer, drawerApi] = useVbenDrawer({
+  destroyOnClose: true,
+  footer: false,
+  onOpenChange(isOpen: boolean) {
+    if (isOpen) {
+      return;
+    }
+    // 关闭抽屉即退出选中态，回到纯列表
+    request.value = undefined;
+    lines.value = [];
+    truncated.value = false;
+    lineGridApi.setGridOptions({ data: [] });
+    reqGridApi.grid.clearCurrentRow();
+    void reqGridApi.query();
+  },
+});
+
 function applyLines() {
   lineGridApi.setGridOptions({ data: lines.value });
 }
 async function handleSelect(row: MesMaterialReqApi.MaterialReq) {
   request.value = await getMaterialReq(row.id!);
+  // 主记录到位即开抽屉，明细在抽屉内加载，加载态对用户可见
+  drawerApi.open();
   lineLoading.value = true;
   try {
     const loaded = await loadAllLines((params) =>
@@ -95,6 +134,7 @@ async function handleSelect(row: MesMaterialReqApi.MaterialReq) {
   } finally {
     lineLoading.value = false;
   }
+  drawerApi.open();
 }
 async function handleConfirm() {
   if (!request.value?.id || truncated.value) return;
@@ -120,77 +160,52 @@ async function handleConfirm() {
 </script>
 
 <template>
-  <ColPage
-    auto-content-height
-    content-class="overflow-hidden p-0"
-    :left-width="42"
-    :right-width="58"
-    :left-min-width="30"
-    :right-min-width="44"
-    resizable
-    split-line
-    split-handle
-  >
-    <template #left>
-<section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <ReqGrid
-          class="w-full min-w-0 overflow-hidden"
-          table-title="待确认领料申请"
-        />
-</section>
-</template>
-    <section class="flex h-full min-h-0 w-full flex-col overflow-hidden p-4">
-      <ElAlert
-        v-if="!request"
-        :closable="false"
-        show-icon
-        title="请在左侧选择一张领料申请"
-        type="info"
-      />
-      <template v-else>
-        <ElDescriptions :column="3" border size="small" class="mb-3 shrink-0">
-<ElDescriptionsItem label="申请单号">
-{{
-            request.reqNo
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="申请类型">
-{{
-            getDictLabel(DICT_TYPE.MES_MATERIAL_REQ_TYPE, request.reqType) ||
-            '-'
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="仓库">
-{{
-            request.whName || '-'
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="生产工单">
-{{
-            request.prodOrderNo || '-'
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="工序任务">
-{{
-            request.opTaskNo || '-'
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="WMS 单号">
-{{
-            request.wmsBizNo || '-'
-          }}
-</ElDescriptionsItem>
-</ElDescriptions>
-        <ElAlert
-          v-if="truncated"
-          class="mb-3 shrink-0"
-          :closable="false"
-          show-icon
-          :title="`明细超过 ${LINE_MAX_COUNT} 行，现场页不允许只处理部分明细，请转单据页处理`"
-          type="warning"
-        />
-        <LineGrid
-          v-loading="lineLoading"
-          class="w-full min-w-0 flex-1 overflow-hidden"
-          :table-title="`领料明细 - ${request.reqNo}`"
-          >
-<template #toolbar-tools>
-<TableAction
+  <Page auto-content-height>
+    <Drawer
+      :title="drawerTitle"
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
+    >
+      <div class="flex h-full min-h-0 flex-col p-4">
+        <template v-if="request">
+          <ElDescriptions :column="3" border size="small" class="mb-3 shrink-0">
+            <ElDescriptionsItem label="申请单号">
+              {{ request.reqNo }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="申请类型">
+              {{
+                getDictLabel(DICT_TYPE.MES_MATERIAL_REQ_TYPE, request.reqType) ||
+                '-'
+              }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="仓库">
+              {{ request.whName || '-' }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="生产工单">
+              {{ request.prodOrderNo || '-' }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="工序任务">
+              {{ request.opTaskNo || '-' }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="WMS 单号">
+              {{ request.wmsBizNo || '-' }}
+            </ElDescriptionsItem>
+          </ElDescriptions>
+          <ElAlert
+            v-if="truncated"
+            class="mb-3 shrink-0"
+            :closable="false"
+            show-icon
+            :title="`明细超过 ${LINE_MAX_COUNT} 行，现场页不允许只处理部分明细，请转单据页处理`"
+            type="warning"
+          />
+          <LineGrid
+            v-loading="lineLoading"
+            class="min-h-0 w-full min-w-0 flex-1 overflow-hidden"
+            :table-title="`领料明细 - ${request.reqNo}`"
+          />
+          <div class="mt-3 flex shrink-0 justify-end">
+            <TableAction
               :actions="[
                 {
                   label: '确认出库',
@@ -201,10 +216,11 @@ async function handleConfirm() {
                   onClick: handleConfirm,
                 },
               ]"
-/>
-</template>
-</LineGrid>
-      </template>
-    </section>
-  </ColPage>
+            />
+          </div>
+        </template>
+      </div>
+    </Drawer>
+    <ReqGrid table-title="待确认领料申请" />
+  </Page>
 </template>

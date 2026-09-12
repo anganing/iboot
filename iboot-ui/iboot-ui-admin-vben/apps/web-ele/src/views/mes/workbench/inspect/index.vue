@@ -3,12 +3,11 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcResultApi } from '#/api/mes/qcresult';
 import type { MesQcTaskApi } from '#/api/mes/qctask';
 
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
-import { ColPage, Page } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 
 import {
-  ElAlert,
   ElDescriptions,
   ElDescriptionsItem,
   ElLoading,
@@ -16,15 +15,24 @@ import {
 } from 'element-plus';
 
 import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { batchSaveQcResult, getQcResultPage } from '#/api/mes/qcresult';
 import {
   assignQcTask,
   getQcTaskPage,
   startInspectQcTask,
   submitQcTaskConclusion,
 } from '#/api/mes/qctask';
-import { batchSaveQcResult, getQcResultPage } from '#/api/mes/qcresult';
 
 import { useInspectFormColumns } from '../../qctask/data';
+
+/** cell-click 事件参数：本页只关心行数据与列元信息 */
+interface TaskCellClickEvent {
+  column: {
+    slots?: null | { default?: string };
+    type?: null | string;
+  };
+  row: MesQcTaskApi.QcTask;
+}
 
 const selectedTask = ref<MesQcTaskApi.QcTask>();
 const editingRows = ref<MesQcResultApi.QcResult[]>([]);
@@ -35,8 +43,14 @@ const canSubmit = computed(
     selectedTask.value?.status === 'RESULT_POSTING',
 );
 
+const drawerTitle = computed(() =>
+  selectedTask.value
+    ? `检验录入 - ${selectedTask.value.taskNo ?? ''}`
+    : '检验录入',
+);
+
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
-  formOptions: { wrapperClass: 'grid-cols-2' },
+  formOptions: {},
   gridOptions: {
     columns: useInspectFormColumns(),
     height: 'auto',
@@ -81,7 +95,9 @@ const [ResultGrid, resultGridApi] = useVbenVxeGrid({
     keepSource: true,
     editConfig: { mode: 'cell', trigger: 'click' },
     pagerConfig: { enabled: false },
+    // 抽屉打开后由 handleTaskClick 显式 query，禁用挂载时自动加载避免双发请求
     proxyConfig: {
+      autoLoad: false,
       ajax: {
         query: async () => {
           if (!selectedTask.value?.id) return { list: [], total: 0 };
@@ -98,10 +114,34 @@ const [ResultGrid, resultGridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<MesQcResultApi.QcResult>,
 });
 
-function handleTaskClick({ row }: { row: MesQcTaskApi.QcTask }) {
+const [Drawer, drawerApi] = useVbenDrawer({
+  destroyOnClose: true,
+  footer: false,
+  onOpenChange(isOpen: boolean) {
+    if (!isOpen) {
+      selectedTask.value = undefined;
+      editingRows.value = [];
+      taskGridApi.query();
+    }
+  },
+});
+
+function handleTaskClick({ column, row }: TaskCellClickEvent) {
+  // 命中 checkbox 列、序号列或 #actions 操作列时不承载“选中任务”语义，不打开抽屉
+  if (
+    column.type === 'checkbox' ||
+    column.type === 'seq' ||
+    column.slots?.default === 'actions'
+  ) {
+    return;
+  }
   selectedTask.value = row;
   editingRows.value = [];
-  resultGridApi.query();
+  drawerApi.open();
+  // destroyOnClose 抽屉每次打开重新挂载结果 Grid，等挂载完成后再查询
+  nextTick(() => {
+    resultGridApi.query();
+  });
 }
 
 async function handleAssign() {
@@ -178,20 +218,20 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
 
 <template>
   <Page auto-content-height>
-    <ColPage
-      auto-content-height
-      content-class="overflow-hidden p-0"
-      :left-width="42"
-      :right-width="58"
-      resizable
-      split-line
-      split-handle
+    <TaskGrid table-title="待检任务" @cell-click="handleTaskClick" />
+    <Drawer
+      :title="drawerTitle"
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
     >
-      <template #left>
-        <TaskGrid table-title="待检任务" @cell-click="handleTaskClick" />
-      </template>
       <section class="flex h-full min-h-0 w-full flex-col gap-2 p-2">
-        <ElDescriptions v-if="selectedTask" border size="small" :column="3">
+        <ElDescriptions
+          v-if="selectedTask"
+          border
+          class="shrink-0"
+          size="small"
+          :column="3"
+        >
           <ElDescriptionsItem label="质检任务号">
             {{ selectedTask.taskNo }}
           </ElDescriptionsItem>
@@ -202,13 +242,6 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
             {{ selectedTask.sampleQty }}
           </ElDescriptionsItem>
         </ElDescriptions>
-        <ElAlert
-          v-else
-          :closable="false"
-          show-icon
-          title="请选择左侧待检任务"
-          type="info"
-        />
         <ResultGrid class="min-h-0 flex-1" table-title="检验结果">
           <template #actual-value="{ row }">
             <input
@@ -240,14 +273,14 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
                 disabled: selectedTask?.status !== 'ASSIGNED',
                 onClick: handleStartInspect,
               },
-            {
-              label: '保存结果',
-              type: 'primary',
-              auth: ['mes:qc-result:batch-save'],
-              disabled: selectedTask?.status !== 'INSPECTING',
-              onClick: handleSaveResult,
-            },
-            {
+              {
+                label: '保存结果',
+                type: 'primary',
+                auth: ['mes:qc-result:batch-save'],
+                disabled: selectedTask?.status !== 'INSPECTING',
+                onClick: handleSaveResult,
+              },
+              {
                 label: '提交结论',
                 type: 'primary',
                 auth: ['mes:qc-task:submit-conclusion'],
@@ -258,7 +291,6 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
           />
         </div>
       </section>
-    </ColPage>
+    </Drawer>
   </Page>
 </template>
-

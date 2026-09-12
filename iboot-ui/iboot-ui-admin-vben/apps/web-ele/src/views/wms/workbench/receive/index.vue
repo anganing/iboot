@@ -4,7 +4,7 @@ import type { WmsArrivalApi } from '#/api/wms/arrival';
 
 import { computed, ref } from 'vue';
 
-import { ColPage } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
@@ -128,6 +128,11 @@ const lineTableTitle = computed(() => {
   return `到货明细 - ${arrival.value.arrivalNo ?? ''}（共 ${lines.value.length} 行，待入库 ${readyLines.value.length} 行）`;
 });
 
+/** 抽屉标题跟随当前到货单，数据未就位时先给业务名兜底 */
+const drawerTitle = computed(() =>
+  arrival.value?.arrivalNo ? `收货上架 - ${arrival.value.arrivalNo}` : '收货上架',
+);
+
 /** 上架库位限定在到货单的目标仓库下：选到别的仓库的库位，余额会落到对不上的仓库维度上 */
 const targetLocProps = computed(() => ({
   ...LOC_RELATION_PROPS,
@@ -152,10 +157,20 @@ const resultTitle = computed(() => {
     : `入库单 ${inNo} 已生成但未过账（当前状态 ${label}），目标库位 ${result.locCode ?? '-'}。请点"重试过账"，不要重复点收货上架，否则会多生成一张入库单。`;
 });
 
+/**
+ * 收货作业抽屉：选中到货单后承载"摘要 + 业务提示 + 选库位 + 明细作业"的整个右半场。
+ *
+ * destroyOnClose 保证每次打开都是干净的挂载；关闭时的清场与刷新见 {@link handleDrawerClosed}。
+ */
+const [Drawer, drawerApi] = useVbenDrawer({
+  destroyOnClose: true,
+  footer: false,
+  onClosed: handleDrawerClosed,
+});
+
 const [ArrivalGrid, arrivalGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useArrivalGridFormSchema(),
-    wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
     columns: useArrivalGridColumns(),
@@ -181,7 +196,23 @@ const [ArrivalGrid, arrivalGridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsArrivalApi.Arrival>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsArrivalApi.Arrival }) => {
+    cellClick: ({
+      column,
+      row,
+    }: {
+      column: {
+        slots?: { default?: unknown };
+        type?: null | string;
+      };
+      row: WmsArrivalApi.Arrival;
+    }) => {
+      // checkbox 列、序号列与操作列的点击不算选中，避免误开抽屉
+      if (column.type === 'checkbox' || column.type === 'seq') {
+        return;
+      }
+      if (column.slots?.default === 'actions') {
+        return;
+      }
       handleSelectArrival(row);
     },
   },
@@ -198,7 +229,7 @@ const [LineGrid, lineGridApi] = useVbenVxeGrid({
     rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: {
       custom: true,
-      // 本地数组驱动，没有 proxyConfig，自带刷新点了不取数，换成工具栏的"重新载入"
+      // 本地数组驱动，没有 proxyConfig，自带刷新点了不取数，换成抽屉底部的"重新载入"
       refresh: false,
       search: false,
       zoom: true,
@@ -300,13 +331,34 @@ async function loadLines() {
   }
 }
 
-/** 左侧选中一张到货单：换单据要清掉上一单的库位与上架结果，库位跨仓库无效 */
+/** 选中一张到货单并打开作业抽屉：换单据要清掉上一单的库位与上架结果，库位跨仓库无效 */
 async function handleSelectArrival(row: WmsArrivalApi.Arrival) {
   targetLocId.value = undefined;
   targetLocCode.value = undefined;
   lastResult.value = undefined;
   arrival.value = await getArrival(row.id);
+  drawerApi.open();
   await loadLines();
+}
+
+/**
+ * 关闭作业抽屉：清空选中状态回到纯列表，并刷新主列表。
+ *
+ * 动作成功路径里已有 `arrivalGridApi.query()`，这里的刷新兜住"只看未动"与
+ * 关闭前结果尚未回显完的场景；本地明细数组与表格数据源要一起清掉，
+ * 否则 destroyOnClose 重建 LineGrid 时会闪现上一单的行。
+ */
+function handleDrawerClosed() {
+  arrival.value = undefined;
+  lines.value = [];
+  truncated.value = false;
+  availableQtyMap.value = new Map();
+  targetLocId.value = undefined;
+  targetLocCode.value = undefined;
+  lastResult.value = undefined;
+  applyLines();
+  arrivalGridApi.grid.clearCurrentRow();
+  arrivalGridApi.query();
 }
 
 /** 重读当前到货单的单头与明细：状态与行状态都由服务端算，界面不自己推 */
@@ -518,108 +570,125 @@ async function handleRetryPost() {
 </script>
 
 <template>
-  <ColPage
-    auto-content-height
-    content-class="overflow-hidden p-0"
-    :left-width="32"
-    :left-min-width="24"
-    :left-max-width="50"
-    :right-width="68"
-    :right-min-width="50"
-    :right-max-width="76"
-    resizable
-    split-line
-    split-handle
-  >
-    <template #left>
-      <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <ArrivalGrid
-          class="w-full min-w-0 overflow-hidden"
-          table-title="到货单列表"
+  <Page auto-content-height>
+    <Drawer
+      :title="drawerTitle"
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
+    >
+      <div class="flex h-full min-h-0 flex-col overflow-hidden px-4 pb-4">
+        <ElDescriptions
+          v-if="arrival"
+          :column="3"
+          border
+          class="mb-2 shrink-0"
+          size="small"
+        >
+          <ElDescriptionsItem label="到货单号">
+            {{ arrival.arrivalNo || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="供应商">
+            {{ arrival.supplierName || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="到货状态">
+            {{
+              getDictLabel(DICT_TYPE.WMS_ARRIVAL_STATUS, arrival.status) || '-'
+            }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="目标仓库">
+            {{ arrival.whName || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="来源单号">
+            {{ arrival.sourceNo || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="预计到货">
+            {{ arrival.expectDate || '-' }}
+          </ElDescriptionsItem>
+        </ElDescriptions>
+        <ElAlert
+          v-if="truncated"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="`到货明细超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能在作业页处理，请改用入库单页面分批处理`"
+          type="error"
         />
-      </section>
-    </template>
-
-    <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <ElDescriptions
-        v-if="arrival"
-        :column="3"
-        border
-        class="mb-2 shrink-0"
-        size="small"
-      >
-        <ElDescriptionsItem label="到货单号">
-          {{ arrival.arrivalNo || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="供应商">
-          {{ arrival.supplierName || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="到货状态">
-          {{
-            getDictLabel(DICT_TYPE.WMS_ARRIVAL_STATUS, arrival.status) || '-'
-          }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="目标仓库">
-          {{ arrival.whName || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="来源单号">
-          {{ arrival.sourceNo || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="预计到货">
-          {{ arrival.expectDate || '-' }}
-        </ElDescriptionsItem>
-      </ElDescriptions>
-      <ElAlert
-        v-else
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        title="请在左侧选择一张到货单开始收货"
-        type="info"
-      />
-      <ElAlert
-        v-if="truncated"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="`到货明细超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能在作业页处理，请改用入库单页面分批处理`"
-        type="error"
-      />
-      <ElAlert
-        v-if="qcPendingLines.length > 0"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="`有 ${qcPendingLines.length} 行明细是先检后入，本次不会生成入库单，等 IQC 出结论后再回来上架`"
-        type="info"
-      />
-      <ElAlert
-        v-if="lastResult"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="resultTitle"
-        :type="lastResult.posted ? 'success' : 'warning'"
-      />
-      <!-- 上架库位单独一行：塞进表格工具栏会被表格标题与五个按钮挤成一个只剩放大镜的方框 -->
-      <div class="mb-2 flex shrink-0 items-center gap-2">
-        <span class="whitespace-nowrap text-sm">上架库位</span>
-        <RelationSelect
-          v-model="targetLocId"
-          v-bind="targetLocProps"
-          class="w-72"
-          @change="handleLocChange"
+        <ElAlert
+          v-if="qcPendingLines.length > 0"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="`有 ${qcPendingLines.length} 行明细是先检后入，本次不会生成入库单，等 IQC 出结论后再回来上架`"
+          type="info"
         />
-        <span class="text-xs text-gray-500">
-          本次上架的全部行进同一个库位；需要分行上架请在入库单页面按行改库位后过账
-        </span>
-      </div>
-      <LineGrid
-        v-loading="lineLoading"
-        class="w-full min-w-0 overflow-hidden"
-        :table-title="lineTableTitle"
-      >
-        <template #toolbar-tools>
+        <ElAlert
+          v-if="lastResult"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="resultTitle"
+          :type="lastResult.posted ? 'success' : 'warning'"
+        />
+        <!-- 上架库位单独一行：库位是本次上架的关键决策，保持独立行展示，不与表格工具栏混排 -->
+        <div class="mb-2 flex shrink-0 items-center gap-2">
+          <span class="whitespace-nowrap text-sm">上架库位</span>
+          <RelationSelect
+            v-model="targetLocId"
+            v-bind="targetLocProps"
+            class="w-72"
+            @change="handleLocChange"
+          />
+          <span class="text-xs text-gray-500">
+            本次上架的全部行进同一个库位；需要分行上架请在入库单页面按行改库位后过账
+          </span>
+        </div>
+        <div class="min-h-0 flex-1">
+          <LineGrid
+            v-loading="lineLoading"
+            class="h-full w-full min-w-0 overflow-hidden"
+            :table-title="lineTableTitle"
+          >
+            <template #arrivalQty="{ row }">
+              <ElInputNumber
+                v-if="lineEditable"
+                class="!w-full"
+                controls-position="right"
+                :min="0"
+                :model-value="lineOf(row)?.arrivalQty"
+                placeholder="按实收改"
+                :precision="6"
+                @update:model-value="(value) => setArrivalQty(row, value)"
+              />
+              <span v-else>{{ row.arrivalQty ?? '-' }}</span>
+            </template>
+            <template #availableQty="{ row }">
+              {{ availableQtyText(row.matId) }}
+            </template>
+            <template #lotNo="{ row }">
+              <ElInput
+                v-if="lineEditable"
+                clearable
+                :maxlength="64"
+                :model-value="lineOf(row)?.lotNo"
+                placeholder="留空按默认批次"
+                @update:model-value="(value) => setLotNo(row, value)"
+              />
+              <span v-else>{{ row.lotNo || '-' }}</span>
+            </template>
+            <template #supplierLotNo="{ row }">
+              <ElInput
+                v-if="lineEditable"
+                clearable
+                :maxlength="64"
+                :model-value="lineOf(row)?.supplierLotNo"
+                placeholder="供应商批次"
+                @update:model-value="(value) => setSupplierLotNo(row, value)"
+              />
+              <span v-else>{{ row.supplierLotNo || '-' }}</span>
+            </template>
+          </LineGrid>
+        </div>
+        <div class="flex shrink-0 justify-end pt-2">
           <TableAction
             :actions="[
               {
@@ -672,46 +741,9 @@ async function handleRetryPost() {
               },
             ]"
           />
-        </template>
-        <template #arrivalQty="{ row }">
-          <ElInputNumber
-            v-if="lineEditable"
-            class="!w-full"
-            controls-position="right"
-            :min="0"
-            :model-value="lineOf(row)?.arrivalQty"
-            placeholder="按实收改"
-            :precision="6"
-            @update:model-value="(value) => setArrivalQty(row, value)"
-          />
-          <span v-else>{{ row.arrivalQty ?? '-' }}</span>
-        </template>
-        <template #availableQty="{ row }">
-          {{ availableQtyText(row.matId) }}
-        </template>
-        <template #lotNo="{ row }">
-          <ElInput
-            v-if="lineEditable"
-            clearable
-            :maxlength="64"
-            :model-value="lineOf(row)?.lotNo"
-            placeholder="留空按默认批次"
-            @update:model-value="(value) => setLotNo(row, value)"
-          />
-          <span v-else>{{ row.lotNo || '-' }}</span>
-        </template>
-        <template #supplierLotNo="{ row }">
-          <ElInput
-            v-if="lineEditable"
-            clearable
-            :maxlength="64"
-            :model-value="lineOf(row)?.supplierLotNo"
-            placeholder="供应商批次"
-            @update:model-value="(value) => setSupplierLotNo(row, value)"
-          />
-          <span v-else>{{ row.supplierLotNo || '-' }}</span>
-        </template>
-      </LineGrid>
-    </section>
-  </ColPage>
+        </div>
+      </div>
+    </Drawer>
+    <ArrivalGrid table-title="到货单列表" />
+  </Page>
 </template>

@@ -3,9 +3,9 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesDispositionApi } from '#/api/mes/disposition';
 import type { MesQcTaskApi } from '#/api/mes/qctask';
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-import { ColPage, Page } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 
 import {
   ElAlert,
@@ -26,8 +26,16 @@ import { getQcTaskPage } from '#/api/mes/qctask';
 
 const selectedTask = ref<MesQcTaskApi.QcTask>();
 
-const [TaskGrid] = useVbenVxeGrid({
-  formOptions: { wrapperClass: 'grid-cols-2' },
+const selectedDisposition = ref<MesDispositionApi.Disposition>();
+
+const drawerTitle = computed(() =>
+  selectedTask.value?.taskNo
+    ? `不合格处置 - ${selectedTask.value.taskNo}`
+    : '不合格处置',
+);
+
+const [TaskGrid, taskGridApi] = useVbenVxeGrid({
+  formOptions: {},
   gridOptions: {
     columns: [
       { type: 'seq', title: '序号', width: 60 },
@@ -81,10 +89,35 @@ const [DispositionGrid, dispositionGridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<MesDispositionApi.Disposition>,
 });
 
-const selectedDisposition = ref<MesDispositionApi.Disposition>();
+const [Drawer, drawerApi] = useVbenDrawer({
+  destroyOnClose: true,
+  footer: false,
+  // 关闭动画结束后清空选中态并刷新主列表，避免关闭过程中抽屉内容闪变
+  onClosed() {
+    selectedTask.value = undefined;
+    selectedDisposition.value = undefined;
+    taskGridApi.query();
+  },
+});
 
-function handleTaskClick({ row }: { row: MesQcTaskApi.QcTask }) {
+function handleTaskClick({
+  row,
+  column,
+}: {
+  column: { slots?: { default?: unknown }; type?: null | string };
+  row: MesQcTaskApi.QcTask;
+}) {
+  // 勾选列、序号列与操作列的点击不承载“选中并打开抽屉”语义
+  if (
+    column.type === 'checkbox' ||
+    column.type === 'seq' ||
+    column.slots?.default === 'actions'
+  ) {
+    return;
+  }
   selectedTask.value = row;
+  selectedDisposition.value = undefined;
+  drawerApi.open();
 }
 
 function handleDispositionClick({ row }: { row: MesDispositionApi.Disposition }) {
@@ -125,20 +158,22 @@ async function handleCreateDisposition(dispositionType: string) {
 
 <template>
   <Page auto-content-height>
-    <ColPage
-      auto-content-height
-      content-class="overflow-hidden p-0"
-      :left-width="45"
-      :right-width="55"
-      resizable
-      split-line
-      split-handle
+    <TaskGrid table-title="不合格任务" @cell-click="handleTaskClick" />
+    <Drawer
+      :title="drawerTitle"
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
     >
-      <template #left>
-        <TaskGrid table-title="不合格任务" @cell-click="handleTaskClick" />
-      </template>
-      <section class="flex h-full min-h-0 w-full flex-col gap-2 p-2">
-        <ElDescriptions v-if="selectedTask" border size="small" :column="3">
+      <section
+        class="flex h-full min-h-0 w-full flex-col gap-2 overflow-hidden p-2"
+      >
+        <ElDescriptions
+          v-if="selectedTask"
+          border
+          size="small"
+          :column="3"
+          class="shrink-0"
+        >
           <ElDescriptionsItem label="质检任务号">
             {{ selectedTask.taskNo }}
           </ElDescriptionsItem>
@@ -154,6 +189,7 @@ async function handleCreateDisposition(dispositionType: string) {
           border
           size="small"
           :column="3"
+          class="shrink-0"
         >
           <ElDescriptionsItem label="处置单号">
             {{ selectedDisposition.dispositionNo }}
@@ -169,8 +205,9 @@ async function handleCreateDisposition(dispositionType: string) {
           v-else
           :closable="false"
           show-icon
-          title="请选择左侧不合格质检任务"
+          title="请选择处置单记录"
           type="info"
+          class="shrink-0"
         />
         <div class="flex shrink-0 justify-end">
           <TableAction
@@ -207,7 +244,7 @@ async function handleCreateDisposition(dispositionType: string) {
           />
         </div>
         <DispositionGrid
-          class="min-h-0 flex-1"
+          class="min-h-0 min-w-0 flex-1"
           table-title="处置单"
           @cell-click="handleDispositionClick"
         />
@@ -232,6 +269,6 @@ async function handleCreateDisposition(dispositionType: string) {
           />
         </div>
       </section>
-    </ColPage>
+    </Drawer>
   </Page>
 </template>

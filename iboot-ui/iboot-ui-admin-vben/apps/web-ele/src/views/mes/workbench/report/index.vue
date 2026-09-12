@@ -4,7 +4,7 @@ import type { MesOpTaskApi } from '#/api/mes/optask';
 
 import { computed, ref } from 'vue';
 
-import { ColPage } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
@@ -30,6 +30,9 @@ import {
 } from './data';
 
 const selectedTask = ref<MesOpTaskApi.OpTask>();
+const drawerTitle = computed(() =>
+  selectedTask.value ? `报工作业 - ${selectedTask.value.taskNo}` : '报工作业',
+);
 const remainingQty = computed(
   () =>
     Number(selectedTask.value?.plannedQty ?? 0) -
@@ -60,7 +63,7 @@ const [ReportForm, reportFormApi] = useVbenForm({
 });
 
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
-  formOptions: { schema: useTaskGridFormSchema(), wrapperClass: 'grid-cols-3' },
+  formOptions: { schema: useTaskGridFormSchema() },
   gridOptions: {
     columns: useTaskGridColumns(),
     height: 'auto',
@@ -79,12 +82,43 @@ const [TaskGrid, taskGridApi] = useVbenVxeGrid({
     toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   } as VxeTableGridOptions<MesOpTaskApi.OpTask>,
   gridEvents: {
-    cellClick: async ({ row }: { row: MesOpTaskApi.OpTask }) => {
-      selectedTask.value = row;
-      await reportFormApi.resetForm();
+    cellClick: async ({
+      row,
+      column,
+    }: {
+      column: { slots?: { default?: string }; type?: string };
+      row: MesOpTaskApi.OpTask;
+    }) => {
+      // 命中复选框、序号、操作列的单元格点击不打开抽屉
+      if (
+        column.type === 'checkbox' ||
+        column.type === 'seq' ||
+        column.slots?.default === 'actions'
+      ) {
+        return;
+      }
+      await handleSelectTask(row);
     },
   },
 });
+
+const [Drawer, drawerApi] = useVbenDrawer({
+  class: 'w-full lg:w-3/5',
+  contentClass: 'flex h-full min-h-0 flex-col overflow-hidden p-0',
+  footer: false,
+  async onClosed() {
+    selectedTask.value = undefined;
+    await reportFormApi.resetForm();
+    await taskGridApi.query();
+  },
+});
+
+/** 选中工序任务：回填摘要与表单并打开作业抽屉 */
+async function handleSelectTask(row: MesOpTaskApi.OpTask) {
+  selectedTask.value = row;
+  await reportFormApi.resetForm();
+  drawerApi.open();
+}
 
 async function reloadTask() {
   if (selectedTask.value?.id)
@@ -151,62 +185,34 @@ async function handleFinish() {
 </script>
 
 <template>
-  <ColPage
-    auto-content-height
-    content-class="overflow-hidden p-0"
-    :left-width="68"
-    :right-width="32"
-    :left-min-width="54"
-    :right-min-width="28"
-    resizable
-    split-line
-    split-handle
-  >
-    <template #left>
-<section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <TaskGrid
-          class="w-full min-w-0 overflow-hidden"
-          table-title="我的工序任务"
-        />
-</section>
-</template>
-    <section class="flex h-full min-h-0 w-full flex-col overflow-hidden p-4">
-      <ElAlert
-        v-if="!selectedTask"
-        :closable="false"
-        show-icon
-        title="请在左侧选择一个工序任务开始作业"
-        type="info"
-      />
-      <template v-else>
+  <Page auto-content-height>
+    <Drawer :title="drawerTitle">
+      <div
+        v-if="selectedTask"
+        class="flex h-full min-h-0 flex-col overflow-hidden p-4"
+      >
         <ElDescriptions :column="2" border size="small" class="mb-3 shrink-0">
           <ElDescriptionsItem label="工序任务">
-{{
-            selectedTask.taskNo
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="工序">
-{{ selectedTask.opCode }}
-            {{ selectedTask.opName }}
-</ElDescriptionsItem>
+            {{ selectedTask.taskNo }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="工序">
+            {{ selectedTask.opCode }} {{ selectedTask.opName }}
+          </ElDescriptionsItem>
           <ElDescriptionsItem label="计划数量">
-{{
-            selectedTask.plannedQty
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="已完成">
-{{
-            selectedTask.completedQty
-          }}
-</ElDescriptionsItem>
+            {{ selectedTask.plannedQty }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="已完成">
+            {{ selectedTask.completedQty }}
+          </ElDescriptionsItem>
           <ElDescriptionsItem label="剩余数量">
-{{
-            remainingQty
-          }}
-</ElDescriptionsItem><ElDescriptionsItem label="当前状态">
-{{
-            getDictLabel(DICT_TYPE.MES_OP_TASK_STATUS, selectedTask.status) ||
-            '-'
-          }}
-</ElDescriptionsItem>
+            {{ remainingQty }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="当前状态">
+            {{
+              getDictLabel(DICT_TYPE.MES_OP_TASK_STATUS, selectedTask.status) ||
+              '-'
+            }}
+          </ElDescriptionsItem>
         </ElDescriptions>
         <ElAlert
           v-if="selectedTask.status !== 'RUNNING'"
@@ -220,8 +226,8 @@ async function handleFinish() {
           "
           type="warning"
         />
-        <ReportForm class="min-h-0 overflow-auto" />
-        <div class="mt-4 shrink-0">
+        <ReportForm class="min-h-0 flex-1 overflow-auto" />
+        <div class="mt-4 flex shrink-0 justify-end">
           <TableAction
             :actions="[
               {
@@ -251,7 +257,8 @@ async function handleFinish() {
             ]"
           />
         </div>
-      </template>
-    </section>
-  </ColPage>
+      </div>
+    </Drawer>
+    <TaskGrid table-title="我的工序任务" />
+  </Page>
 </template>

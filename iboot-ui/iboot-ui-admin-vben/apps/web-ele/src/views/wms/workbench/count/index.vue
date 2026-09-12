@@ -4,7 +4,7 @@ import type { WmsCountOrderApi } from '#/api/wms/countorder';
 
 import { computed, ref } from 'vue';
 
-import { ColPage } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
@@ -26,8 +26,8 @@ import {
   getCountOrder,
   getCountOrderLinePage,
   getCountOrderPage,
-  submitDiffApproval,
   submitCountResult,
+  submitDiffApproval,
 } from '#/api/wms/countorder';
 import { LINE_MAX_COUNT, loadAllLines } from '#/api/wms/workbench';
 
@@ -43,7 +43,8 @@ import {
 } from './data';
 
 /**
- * 盘点作业页：一屏走完"选盘点单 → 冻结范围 → 逐行录实盘 → 提交 → 就地看差异 → 确认差异"。
+ * 盘点作业页：全宽列表点行打开抽屉，一条流走完"选盘点单 → 冻结范围 → 逐行录实盘 →
+ * 提交 → 就地看差异 → 确认差异"。
  *
  * 与单据式的 `views/wms/countorder` 的分工：单据页管盘点单的建、改、删与只读明细复核，
  * 作业页只管把一张已经建好的单做完，不提供任何单据的增删改。两者共用同一套领域动作端点。
@@ -114,11 +115,27 @@ const lineTableTitle = computed(() => {
   }
   return `盘点行 - ${order.value.countNo ?? ''}（已录 ${recordedCount.value} / 共 ${lines.value.length} 行，差异 ${diffLines.value.length} 行）`;
 });
+const drawerTitle = computed(() =>
+  order.value ? `盘点作业 - ${order.value.countNo ?? ''}` : '盘点作业',
+);
+
+/**
+ * 盘点单作业抽屉：选中盘点单后原右侧作业区整体搬进这里。
+ *
+ * 动作按钮不放抽屉自带 footer（footer: false），与作业表格同处内容区、
+ * 固定在底部，表格行多时按钮也不会被推出可视区。
+ */
+const [CountDrawer, countDrawerApi] = useVbenDrawer({
+  destroyOnClose: true,
+  footer: false,
+  onClosed() {
+    handleDrawerClosed();
+  },
+});
 
 const [OrderGrid, orderGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useCountOrderGridFormSchema(),
-    wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
     columns: useCountOrderGridColumns(),
@@ -148,7 +165,22 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsCountOrderApi.CountOrder>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsCountOrderApi.CountOrder }) => {
+    cellClick: ({
+      row,
+      column,
+    }: {
+      // vxe 的 ColumnInfo.slots 混着函数签名，事件参数里只取用得到的两段，不做完整标注
+      column: any;
+      row: WmsCountOrderApi.CountOrder;
+    }) => {
+      // 命中序号列、勾选列或操作列（slots.default === 'actions'）不算"选这张单"，不开抽屉
+      if (
+        column?.type === 'checkbox' ||
+        column?.type === 'seq' ||
+        column?.slots?.default === 'actions'
+      ) {
+        return;
+      }
       handleSelectOrder(row);
     },
   },
@@ -169,7 +201,7 @@ const [LineGrid, lineGridApi] = useVbenVxeGrid({
     toolbarConfig: {
       custom: true,
       // 明细区是本地数组驱动的，没有 proxyConfig，自带刷新按钮点了不会重新取数，
-      // 换成工具栏里的"重新载入"动作，语义也更准（丢弃未提交的录入重新读）
+      // 换成底部动作行里的"重新载入"动作，语义也更准（丢弃未提交的录入重新读）
       refresh: false,
       search: false,
       zoom: true,
@@ -247,11 +279,31 @@ async function loadLines() {
   }
 }
 
-/** 左侧选中一张盘点单：清掉上一张单的过滤态，重新读明细 */
+/**
+ * 行点击选中一张盘点单：清掉上一张单的数据与过滤态、按新单据的盲盘标识重排列可见性，
+ * 先开抽屉再异步读明细，明细多时用户先进抽屉看 loading 而不是干等。
+ */
 async function handleSelectOrder(row: WmsCountOrderApi.CountOrder) {
   order.value = row;
   diffOnly.value = false;
+  lines.value = [];
+  truncated.value = false;
+  applyLines();
+  countDrawerApi.open();
   await loadLines();
+}
+
+/**
+ * 抽屉关闭（动画结束后）：清空选中态与未提交录入并刷新主列表。
+ * 动作成功路径的刷新由 reload 负责，这里兜底的是"中途没做动作直接关掉"的情况。
+ */
+async function handleDrawerClosed() {
+  order.value = undefined;
+  lines.value = [];
+  truncated.value = false;
+  diffOnly.value = false;
+  orderGridApi.grid.clearCurrentRow();
+  await orderGridApi.query();
 }
 
 /**
@@ -383,110 +435,124 @@ async function handleSubmitDiffApproval() {
 </script>
 
 <template>
-  <ColPage
-    auto-content-height
-    content-class="overflow-hidden p-0"
-    :left-width="34"
-    :left-min-width="26"
-    :left-max-width="52"
-    :right-width="66"
-    :right-min-width="48"
-    :right-max-width="74"
-    resizable
-    split-line
-    split-handle
-  >
-    <template #left>
-      <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <OrderGrid
-          class="w-full min-w-0 overflow-hidden"
-          table-title="盘点单列表"
+  <Page auto-content-height>
+    <CountDrawer
+      :title="drawerTitle"
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
+    >
+      <div class="flex h-full min-h-0 flex-col overflow-hidden p-4">
+        <ElDescriptions
+          v-if="order"
+          :column="3"
+          border
+          class="mb-2 shrink-0"
+          size="small"
+        >
+          <ElDescriptionsItem label="盘点单号">
+            {{ order.countNo || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="盘点类型">
+            {{ getDictLabel(DICT_TYPE.WMS_COUNT_TYPE, order.countType) || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="单据状态">
+            {{ getDictLabel(DICT_TYPE.WMS_ORDER_STATUS, order.status) || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="盘点仓库">
+            {{ order.whName || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="盘点库区">
+            {{ order.zoneName || '全部库区' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="是否盲盘">
+            {{
+              getDictLabel(
+                DICT_TYPE.INFRA_BOOLEAN_STRING,
+                String(order.blindCountFlag ?? false),
+              ) || '-'
+            }}
+          </ElDescriptionsItem>
+        </ElDescriptions>
+        <ElAlert
+          v-if="blindCount"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          title="盲盘单据：录入阶段不显示账面数量，差异在提交实盘后才可见"
+          type="info"
         />
-      </section>
-    </template>
-
-    <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <ElDescriptions
-        v-if="order"
-        :column="3"
-        border
-        class="mb-2 shrink-0"
-        size="small"
-      >
-        <ElDescriptionsItem label="盘点单号">
-          {{ order.countNo || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="盘点类型">
-          {{ getDictLabel(DICT_TYPE.WMS_COUNT_TYPE, order.countType) || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="单据状态">
-          {{ getDictLabel(DICT_TYPE.WMS_ORDER_STATUS, order.status) || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="盘点仓库">
-          {{ order.whName || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="盘点库区">
-          {{ order.zoneName || '全部库区' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="是否盲盘">
-          {{
-            getDictLabel(
-              DICT_TYPE.INFRA_BOOLEAN_STRING,
-              String(order.blindCountFlag ?? false),
-            ) || '-'
-          }}
-        </ElDescriptionsItem>
-      </ElDescriptions>
-      <ElAlert
-        v-else
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        title="请在左侧选择一张盘点单开始作业"
-        type="info"
-      />
-      <ElAlert
-        v-if="blindCount"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        title="盲盘单据：录入阶段不显示账面数量，差异在提交实盘后才可见"
-        type="info"
-      />
-      <ElAlert
-        v-if="truncated"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="`盘点行超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能提交，请改用抽盘拆分单据`"
-        type="error"
-      />
-      <ElAlert
-        v-if="diffLines.length > 0"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="`差异 ${diffLines.length} 行：盘盈合计 ${gainQty}，盘亏合计 ${lossQty}。确认差异会逐行生成盘盈入库单或盘亏出库单并立即过账。`"
-        type="warning"
-      />
-      <!-- 过滤开关单独一行：塞进表格工具栏会被表格标题与四个按钮挤没 -->
-      <div class="mb-2 flex shrink-0 items-center gap-2">
-        <ElSwitch
-          v-model="diffOnly"
-          active-text="只看差异行"
-          :disabled="diffLines.length === 0"
-          @change="applyLines"
+        <ElAlert
+          v-if="truncated"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="`盘点行超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能提交，请改用抽盘拆分单据`"
+          type="error"
         />
-        <span class="text-xs text-gray-500">
-          提交实盘后差异往往只有几行，打开它可以直接把差异行筛出来复核
-        </span>
-      </div>
-      <LineGrid
-        v-loading="lineLoading"
-        class="w-full min-w-0 overflow-hidden"
-        :table-title="lineTableTitle"
-      >
-        <template #toolbar-tools>
+        <ElAlert
+          v-if="diffLines.length > 0"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="`差异 ${diffLines.length} 行：盘盈合计 ${gainQty}，盘亏合计 ${lossQty}。确认差异会逐行生成盘盈入库单或盘亏出库单并立即过账。`"
+          type="warning"
+        />
+        <!-- 过滤开关单独一行：塞进表格工具栏会被表格标题与四个按钮挤没 -->
+        <div class="mb-2 flex shrink-0 items-center gap-2">
+          <ElSwitch
+            v-model="diffOnly"
+            active-text="只看差异行"
+            :disabled="diffLines.length === 0"
+            @change="applyLines"
+          />
+          <span class="text-xs text-gray-500">
+            提交实盘后差异往往只有几行，打开它可以直接把差异行筛出来复核
+          </span>
+        </div>
+        <!-- flex-1 min-h-0 放行收缩：行多时表格自身滚动，底部动作行保持可见 -->
+        <div class="min-h-0 flex-1">
+          <LineGrid
+            v-loading="lineLoading"
+            class="w-full min-w-0 overflow-hidden"
+            :table-title="lineTableTitle"
+          >
+            <template #actualQty="{ row }">
+              <ElInputNumber
+                class="!w-full"
+                controls-position="right"
+                :disabled="!canSubmitResult(order)"
+                :min="0"
+                :model-value="lineOf(row)?.actualQty"
+                placeholder="请输入实盘数量"
+                :precision="6"
+                @update:model-value="(value) => setActualQty(row, value)"
+              />
+            </template>
+            <template #diffQty="{ row }">
+              <span v-if="row.diffQty === undefined || row.diffQty === null">
+                -
+              </span>
+              <span v-else-if="Number(row.diffQty) > 0" class="text-green-600">
+                +{{ row.diffQty }}
+              </span>
+              <span v-else-if="Number(row.diffQty) < 0" class="text-red-600">
+                {{ row.diffQty }}
+              </span>
+              <span v-else>0</span>
+            </template>
+            <template #lineRemark="{ row }">
+              <ElInput
+                clearable
+                :disabled="!order || !canSubmitResult(order)"
+                :maxlength="500"
+                :model-value="lineOf(row)?.remark"
+                placeholder="盘点备注"
+                @update:model-value="(value) => setLineRemark(row, value)"
+              />
+            </template>
+          </LineGrid>
+        </div>
+        <div class="flex shrink-0 justify-end border-t pt-3">
           <TableAction
             :actions="[
               {
@@ -530,44 +596,11 @@ async function handleSubmitDiffApproval() {
               },
             ]"
           />
-        </template>
-        <template #actualQty="{ row }">
-          <ElInputNumber
-            class="!w-full"
-            controls-position="right"
-            :disabled="!canSubmitResult(order)"
-            :min="0"
-            :model-value="lineOf(row)?.actualQty"
-            placeholder="请输入实盘数量"
-            :precision="6"
-            @update:model-value="(value) => setActualQty(row, value)"
-          />
-        </template>
-        <template #diffQty="{ row }">
-          <span v-if="row.diffQty === undefined || row.diffQty === null">
-            -
-          </span>
-          <span v-else-if="Number(row.diffQty) > 0" class="text-green-600">
-            +{{ row.diffQty }}
-          </span>
-          <span v-else-if="Number(row.diffQty) < 0" class="text-red-600">
-            {{ row.diffQty }}
-          </span>
-          <span v-else>0</span>
-        </template>
-        <template #lineRemark="{ row }">
-          <ElInput
-            clearable
-            :disabled="!order || !canSubmitResult(order)"
-            :maxlength="500"
-            :model-value="lineOf(row)?.remark"
-            placeholder="盘点备注"
-            @update:model-value="(value) => setLineRemark(row, value)"
-          />
-        </template>
-      </LineGrid>
-    </section>
-  </ColPage>
+        </div>
+      </div>
+    </CountDrawer>
+    <OrderGrid table-title="盘点单列表" />
+  </Page>
 </template>
 
 <style scoped>

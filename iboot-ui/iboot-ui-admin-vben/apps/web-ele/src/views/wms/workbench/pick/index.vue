@@ -4,7 +4,7 @@ import type { WmsOutOrderApi } from '#/api/wms/outordermgr';
 
 import { computed, ref } from 'vue';
 
-import { ColPage } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 
@@ -40,7 +40,8 @@ import {
 } from './data';
 
 /**
- * 拣选发货作业页：一屏走完"选出库单 → 核对批次与库位 → 逐行确认拣选数量 → 确认发货"。
+ * 拣选发货作业页：全宽出库单列表点行打开抽屉，抽屉内一屏走完
+ * "核对批次与库位 → 逐行确认拣选数量 → 确认发货"。
  *
  * 与任务书措辞的两处差别，都是后端事实决定的，不是把交互降级：
  *
@@ -185,7 +186,6 @@ const resultTitle = computed(() => {
 const [OrderGrid, orderGridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useOutOrderGridFormSchema(),
-    wrapperClass: 'grid-cols-1',
   },
   gridOptions: {
     columns: useOutOrderGridColumns(),
@@ -211,7 +211,17 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsOutOrderApi.OutOrder>,
   gridEvents: {
-    cellClick: ({ row }: { row: WmsOutOrderApi.OutOrder }) => {
+    cellClick: ({
+      column,
+      row,
+    }: {
+      column: any;
+      row: WmsOutOrderApi.OutOrder;
+    }) => {
+      // 勾选、序号这类系统列与操作列的点击不打开拣选抽屉
+      if (column.type || column.slots?.default === 'actions') {
+        return;
+      }
       handleSelectOrder(row);
     },
   },
@@ -239,6 +249,33 @@ const [LineGrid, lineGridApi] = useVbenVxeGrid({
     },
   } as VxeTableGridOptions<WmsOutOrderApi.OutOrderLine>,
 });
+
+const drawerTitle = computed(() =>
+  order.value?.outNo
+    ? `出库单拣选作业 - ${order.value.outNo}`
+    : '出库单拣选作业',
+);
+
+const [Drawer, drawerApi] = useVbenDrawer({
+  footer: false,
+  onOpenChange(isOpen: boolean) {
+    if (!isOpen) {
+      handleDrawerClosed();
+    }
+  },
+});
+
+/** 关闭抽屉回到纯列表：清掉选中出库单与派生状态，并刷新主列表 */
+function handleDrawerClosed() {
+  order.value = undefined;
+  lines.value = [];
+  truncated.value = false;
+  availableQtyMap.value = new Map();
+  lastResult.value = undefined;
+  applyLines();
+  orderGridApi.grid.clearCurrentRow();
+  orderGridApi.query();
+}
 
 /** 本地数组是数据源，vxe 不会自己感知数组变化，必须显式灌数据 */
 function applyLines() {
@@ -332,10 +369,11 @@ async function loadLines() {
   }
 }
 
-/** 左侧选中一张出库单：换单据要清掉上一单的发货结果 */
+/** 点行选中出库单并打开拣选抽屉：换单据要清掉上一单的发货结果 */
 async function handleSelectOrder(row: WmsOutOrderApi.OutOrder) {
   lastResult.value = undefined;
   order.value = await getOutOrder(row.id);
+  drawerApi.open();
   await loadLines();
 }
 
@@ -438,87 +476,96 @@ async function handleConfirmDeliver() {
 </script>
 
 <template>
-  <ColPage
-    auto-content-height
-    content-class="overflow-hidden p-0"
-    :left-width="32"
-    :left-min-width="24"
-    :left-max-width="50"
-    :right-width="68"
-    :right-min-width="50"
-    :right-max-width="76"
-    resizable
-    split-line
-    split-handle
-  >
-    <template #left>
-      <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <OrderGrid
-          class="w-full min-w-0 overflow-hidden"
-          table-title="出库单列表"
-        />
-      </section>
-    </template>
-
-    <section class="flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <ElDescriptions
+  <Page auto-content-height>
+    <Drawer
+      class="w-full lg:w-4/5"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-0"
+      :title="drawerTitle"
+    >
+      <div
         v-if="order"
-        :column="3"
-        border
-        class="mb-2 shrink-0"
-        size="small"
+        class="flex h-full min-h-0 flex-col overflow-hidden p-4"
       >
-        <ElDescriptionsItem label="出库单号">
-          {{ order.outNo || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="出库类型">
-          {{ getDictLabel(DICT_TYPE.WMS_OUT_BIZ_TYPE, order.bizType) || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="单据状态">
-          {{ getDictLabel(DICT_TYPE.WMS_ORDER_STATUS, order.status) || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="来源仓库">
-          {{ order.whName || '-' }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="来源单号">
-          {{
-            order.materialReqNo || order.sourceBizNo || order.originNo || '-'
-          }}
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="生产工单">
-          {{ order.prodOrderNo || '-' }}
-        </ElDescriptionsItem>
-      </ElDescriptions>
-      <ElAlert
-        v-else
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        title="请在左侧选择一张出库单开始拣选"
-        type="info"
-      />
-      <ElAlert
-        v-if="order && blockReason"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="blockReason"
-        type="warning"
-      />
-      <ElAlert
-        v-if="lastResult"
-        class="mb-2 shrink-0"
-        :closable="false"
-        show-icon
-        :title="resultTitle"
-        type="success"
-      />
-      <LineGrid
-        v-loading="lineLoading"
-        class="w-full min-w-0 overflow-hidden"
-        :table-title="lineTableTitle"
-      >
-        <template #toolbar-tools>
+        <ElDescriptions
+          :column="3"
+          border
+          class="mb-2 shrink-0"
+          size="small"
+        >
+          <ElDescriptionsItem label="出库单号">
+            {{ order.outNo || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="出库类型">
+            {{ getDictLabel(DICT_TYPE.WMS_OUT_BIZ_TYPE, order.bizType) || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="单据状态">
+            {{ getDictLabel(DICT_TYPE.WMS_ORDER_STATUS, order.status) || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="来源仓库">
+            {{ order.whName || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="来源单号">
+            {{
+              order.materialReqNo || order.sourceBizNo || order.originNo || '-'
+            }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="生产工单">
+            {{ order.prodOrderNo || '-' }}
+          </ElDescriptionsItem>
+        </ElDescriptions>
+        <ElAlert
+          v-if="blockReason"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="blockReason"
+          type="warning"
+        />
+        <ElAlert
+          v-if="lastResult"
+          class="mb-2 shrink-0"
+          :closable="false"
+          show-icon
+          :title="resultTitle"
+          type="success"
+        />
+        <div class="min-h-0 flex-1">
+          <LineGrid
+            v-loading="lineLoading"
+            class="h-full w-full min-w-0 overflow-hidden"
+            :table-title="lineTableTitle"
+          >
+            <template #lotNo="{ row }">
+              <span v-if="row.lotNo">{{ row.lotNo }}</span>
+              <span v-else class="text-red-600">未指定</span>
+            </template>
+            <template #fromLocCode="{ row }">
+              <span v-if="row.fromLocCode">{{ row.fromLocCode }}</span>
+              <span v-else class="text-red-600">未指定</span>
+            </template>
+            <template #planQty="{ row }">
+              <ElInputNumber
+                v-if="lineEditable"
+                class="!w-full"
+                controls-position="right"
+                :min="0"
+                :model-value="lineOf(row)?.planQty"
+                placeholder="按实拣改"
+                :precision="6"
+                @update:model-value="(value) => setPlanQty(row, value)"
+              />
+              <span v-else>{{ row.planQty ?? '-' }}</span>
+            </template>
+            <template #availableQty="{ row }">
+              <span
+                :class="isShortage(row) ? 'text-red-600 font-semibold' : ''"
+              >
+                {{ availableQtyText(row) }}
+              </span>
+            </template>
+          </LineGrid>
+        </div>
+        <div class="flex shrink-0 justify-end pt-3">
           <TableAction
             :actions="[
               {
@@ -547,36 +594,11 @@ async function handleConfirmDeliver() {
               },
             ]"
           />
-        </template>
-        <template #lotNo="{ row }">
-          <span v-if="row.lotNo">{{ row.lotNo }}</span>
-          <span v-else class="text-red-600">未指定</span>
-        </template>
-        <template #fromLocCode="{ row }">
-          <span v-if="row.fromLocCode">{{ row.fromLocCode }}</span>
-          <span v-else class="text-red-600">未指定</span>
-        </template>
-        <template #planQty="{ row }">
-          <ElInputNumber
-            v-if="lineEditable"
-            class="!w-full"
-            controls-position="right"
-            :min="0"
-            :model-value="lineOf(row)?.planQty"
-            placeholder="按实拣改"
-            :precision="6"
-            @update:model-value="(value) => setPlanQty(row, value)"
-          />
-          <span v-else>{{ row.planQty ?? '-' }}</span>
-        </template>
-        <template #availableQty="{ row }">
-          <span :class="isShortage(row) ? 'text-red-600 font-semibold' : ''">
-            {{ availableQtyText(row) }}
-          </span>
-        </template>
-      </LineGrid>
-    </section>
-  </ColPage>
+        </div>
+      </div>
+    </Drawer>
+    <OrderGrid table-title="出库单列表" />
+  </Page>
 </template>
 
 <style scoped>
