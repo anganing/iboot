@@ -6,6 +6,7 @@ import type { MesQcTaskApi } from '#/api/mes/qctask';
 import { computed, ref } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
+import { DICT_TYPE } from '@vben/constants';
 
 import {
   ElAlert,
@@ -24,6 +25,8 @@ import {
 } from '#/api/mes/disposition';
 import { getQcTaskPage } from '#/api/mes/qctask';
 
+import { useWorkbenchGridFormSchema } from '../../qctask/data';
+
 const selectedTask = ref<MesQcTaskApi.QcTask>();
 
 const selectedDisposition = ref<MesDispositionApi.Disposition>();
@@ -35,7 +38,7 @@ const drawerTitle = computed(() =>
 );
 
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
-  formOptions: {},
+  formOptions: { schema: useWorkbenchGridFormSchema() },
   gridOptions: {
     columns: [
       { type: 'seq', title: '序号', width: 60 },
@@ -43,16 +46,26 @@ const [TaskGrid, taskGridApi] = useVbenVxeGrid({
       { field: 'matCode', title: '物料编码', minWidth: 130 },
       { field: 'matName', title: '物料名称', minWidth: 150 },
       { field: 'qtyRejected', title: '不合格数量', width: 110 },
-      { field: 'triggerPoint', title: '触发点', minWidth: 110 },
+      {
+        field: 'triggerPoint',
+        title: '触发点',
+        minWidth: 110,
+        cellRender: {
+          name: 'CellDict',
+          props: { type: DICT_TYPE.MES_QC_TRIGGER_POINT },
+        },
+      },
     ],
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }) =>
+        query: async ({ page }, formValues) =>
           getQcTaskPage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,
+            ...formValues,
+            // 作业范围固定为检验不合格，放在 formValues 之后防止被筛选表单覆盖
             conclusion: 'REJECTED',
           }),
       },

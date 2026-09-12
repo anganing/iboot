@@ -138,6 +138,66 @@ export function useGridColumns(): VxeTableGridOptions<MesQcTaskApi.QcTask>['colu
   ];
 }
 
+/**
+ * 作业页（检验录入 / 不合格处置）待办列表筛选条件。
+ *
+ * 不含 status 与 conclusion：作业范围由页面在 proxyConfig 里固定（待检只看 CREATED，
+ * 处置只看 REJECTED），放进表单会让用户一改就把作业页退化成全量查询。
+ */
+export function useWorkbenchGridFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'taskNo',
+      label: '质检任务号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入质检任务号',
+      },
+    },
+    {
+      fieldName: 'bizNo',
+      label: '来源业务单号',
+      component: 'Input',
+      componentProps: {
+        clearable: true,
+        placeholder: '请输入来源业务单号',
+      },
+    },
+    {
+      fieldName: 'matId',
+      label: '检验物料',
+      component: markRaw(RelationSelect),
+      componentProps: MAT_RELATION_PROPS,
+    },
+    {
+      fieldName: 'triggerPoint',
+      label: '触发点',
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        options: getDictOptions(DICT_TYPE.MES_QC_TRIGGER_POINT, 'string'),
+        placeholder: '请选择触发点',
+      },
+    },
+    {
+      fieldName: 'assignedInspectorId',
+      label: '检验员',
+      component: markRaw(RelationSelect),
+      componentProps: USER_RELATION_PROPS,
+    },
+    {
+      fieldName: 'createTime',
+      label: '创建时间',
+      component: 'RangePicker',
+      componentProps: {
+        ...getRangePickerDefaultProps(),
+        clearable: true,
+      },
+    },
+  ];
+}
+
 /** 检验录入作业页左侧待检任务列，与单据列表共用同一后端模型。 */
 export function useInspectFormColumns(): VxeTableGridOptions<MesQcTaskApi.QcTask>['columns'] {
   return [

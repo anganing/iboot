@@ -23,7 +23,10 @@ import {
   submitQcTaskConclusion,
 } from '#/api/mes/qctask';
 
-import { useInspectFormColumns } from '../../qctask/data';
+import {
+  useInspectFormColumns,
+  useWorkbenchGridFormSchema,
+} from '../../qctask/data';
 
 /** cell-click 事件参数：本页只关心行数据与列元信息 */
 interface TaskCellClickEvent {
@@ -50,17 +53,19 @@ const drawerTitle = computed(() =>
 );
 
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
-  formOptions: {},
+  formOptions: { schema: useWorkbenchGridFormSchema() },
   gridOptions: {
     columns: useInspectFormColumns(),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }) =>
+        query: async ({ page }, formValues) =>
           getQcTaskPage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,
+            ...formValues,
+            // 作业范围固定为待检，放在 formValues 之后防止被筛选表单覆盖
             status: 'CREATED',
           }),
       },
