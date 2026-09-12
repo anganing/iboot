@@ -141,6 +141,7 @@ const [Form, formApi] = useVbenForm({
 4. 提交期间 `modalApi.lock()` / `unlock()` 防重复提交；提交成功 `emit('success')`，由父级刷新表格。
 5. 标题用 `$t('ui.actionTitle.create'|'edit', ['业务名'])`，或直接“新增X”/“编辑X”，同一模块内保持一致。
 6. 子表表单的父键（`routeOpId`、`bomId` 等）由父组件 `setData({ 父键 })` 传入，提交时从 `formData` 回填，**不作为表单可见字段**。
+7. **嵌套在弹窗内的子弹窗（明细行表单等）禁止手写 `z-index`，一律走 `z-popup` 基准。** `useVbenModal` 的内容与遮罩默认层级都是 `z-popup = var(--popup-z-index) = 2000`（`packages/@core/base/design/src/design-tokens/default.css`）；同为 2000 时子弹窗由 `DialogPortal` 后挂载到 `body` 末尾，DOM 靠后自然叠在父弹窗之上，不需要额外提层。手写一个低于 2000 的值（历史上是 `:z-index="1200"`）会把子弹窗压进父遮罩之下：点“添加明细”界面纹丝不动，而鼠标命中的是父遮罩，`closeOnClickModal` 默认 true，随手一点连整张单据都被关掉——现象是“按钮没反应”，根因在层级，不在事件。要写也只能写高于 2000 的值，但那是在给下次改基准埋雷，正确做法是不写。
 
 ## 5. 表单控件选型
 
