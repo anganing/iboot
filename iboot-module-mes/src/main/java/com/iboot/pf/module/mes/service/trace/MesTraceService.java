@@ -1,7 +1,11 @@
 package com.iboot.pf.module.mes.service.trace;
 
+import com.iboot.pf.module.mes.controller.admin.trace.vo.TraceExcelRowRespVO;
+import com.iboot.pf.module.mes.controller.admin.trace.vo.TraceExportReqVO;
 import com.iboot.pf.module.mes.service.trace.bo.MesTraceNodeBO;
 import com.iboot.pf.module.mes.service.trace.bo.MesTraceQueryBO;
+
+import java.util.List;
 
 /**
  * 批次追溯查询接口。
@@ -33,5 +37,16 @@ public interface MesTraceService {
      * @return 链路树，根节点为成品批次，叶子为原料批次下的供应商
      */
     MesTraceNodeBO traceBackward(MesTraceQueryBO query);
+
+    /**
+     * 追溯链路导出：按方向取回完整链路树，再前序拍平成 Excel 行（带层级与路径列）。
+     *
+     * <p>拍平与枚举中文化都在本方法内完成（08 文档：补全逻辑写在 Service 而非 Controller），
+     * Controller 只管把行写进响应流，否则导出会丢字段。
+     *
+     * @param reqVO 导出参数（方向 + 起点类型 + 起点值）
+     * @return 拍平后的行，顺序即树的前序遍历顺序
+     */
+    List<TraceExcelRowRespVO> exportTraceExcel(TraceExportReqVO reqVO);
 
 }
