@@ -22,6 +22,10 @@
         <!-- 业务组件 -->
         <dependency>
             <groupId>com.iboot</groupId>
+            <artifactId>iboot-spring-boot-starter-biz-data-permission</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.iboot</groupId>
             <artifactId>iboot-spring-boot-starter-biz-tenant</artifactId>
         </dependency>
 

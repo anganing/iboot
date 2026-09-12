@@ -34,15 +34,20 @@ public class AdminUserApiImpl implements AdminUserApi {
     @Resource
     private DeptService deptService;
 
+    /**
+     * 按编号获取用户。忽略数据权限，避免因为过滤导致查不到用户，
+     * 参见 https://github.com/YunaiV/ruoyi-vue-pro/issues/1051
+     */
     @Override
-    @DataPermission(enable = false) // 忽略数据权限，避免因为过滤，导致无法查询用户。类似：https://github.com/YunaiV/ruoyi-vue-pro/issues/1051
     public AdminUserRespDTO getUser(Long id) {
         AdminUserDO user = userService.getUser(id);
         return signAvatar(BeanUtils.toBean(user, AdminUserRespDTO.class));
     }
 
+    /**
+     * 按手机号获取用户。忽略数据权限，该查询用于跨模块数据拼接。
+     */
     @Override
-    @DataPermission(enable = false) // 忽略数据权限，指定手机号的 API 查询用于跨模块数据拼接
     public AdminUserRespDTO getUserByMobile(String mobile) {
         AdminUserDO user = userService.getUserByMobile(mobile);
         return signAvatar(BeanUtils.toBean(user, AdminUserRespDTO.class));
