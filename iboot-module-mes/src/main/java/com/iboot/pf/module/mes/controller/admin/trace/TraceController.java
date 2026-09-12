@@ -1,6 +1,7 @@
 package com.iboot.pf.module.mes.controller.admin.trace;
 
 import com.iboot.pf.framework.common.pojo.CommonResult;
+import com.iboot.pf.module.mes.controller.admin.trace.vo.TraceBackwardReqVO;
 import com.iboot.pf.module.mes.controller.admin.trace.vo.TraceForwardReqVO;
 import com.iboot.pf.module.mes.controller.admin.trace.vo.TraceNodeRespVO;
 import com.iboot.pf.module.mes.service.trace.MesTraceService;
@@ -19,8 +20,8 @@ import static com.iboot.pf.framework.common.pojo.CommonResult.success;
 /**
  * 批次追溯管理端接口。
  *
- * <p>只读查询域：追溯只做查询（08 文档），无新增修改删除。
- * 反向追溯由 T5-02 在这里追加 {@code GET /trace/backward}。
+ * <p>只读查询域：追溯只做查询（08 文档），无新增修改删除。正向拉出到出货客户，
+ * 反向拉到原料供应商，两个端点复用同一权限码 {@code mes:trace:query}。
  */
 @Tag(name = "管理后台 - MES-批次追溯")
 @RestController
@@ -37,6 +38,14 @@ public class TraceController {
     public CommonResult<TraceNodeRespVO> traceForward(@Valid TraceForwardReqVO reqVO) {
         return success(TraceNodeRespVO.of(
                 traceService.traceForward(reqVO.toQueryBO())));
+    }
+
+    @GetMapping("/backward")
+    @Operation(summary = "批次反向追溯", description = "从成品批次 / 生产工单 / 销售出库单出发，一次反查到原料批次与供应商的完整链路树")
+    @PreAuthorize("@ss.hasPermission('mes:trace:query')")
+    public CommonResult<TraceNodeRespVO> traceBackward(@Valid TraceBackwardReqVO reqVO) {
+        return success(TraceNodeRespVO.of(
+                traceService.traceBackward(reqVO.toQueryBO())));
     }
 
 }

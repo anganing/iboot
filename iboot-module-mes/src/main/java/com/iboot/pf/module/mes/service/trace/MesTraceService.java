@@ -7,7 +7,6 @@ import com.iboot.pf.module.mes.service.trace.bo.MesTraceQueryBO;
  * 批次追溯查询接口。
  *
  * <p>一次调用返回完整链路树，前端不许逐层调接口（08 文档"追溯查询的实现要求"）。
- * 反向追溯由 T5-02 在这里追加 {@code traceBackward}。
  */
 public interface MesTraceService {
 
@@ -22,5 +21,17 @@ public interface MesTraceService {
      * @return 链路树，根节点为起点批次或起点上游补全后的原料批次
      */
     MesTraceNodeBO traceForward(MesTraceQueryBO query);
+
+    /**
+     * 反向追溯：从成品批次反查到原料供应商的完整链路。
+     *
+     * <p>输出"这批产品用了哪些原料批次、来自哪些供应商"，并挂上该工单各检验点的质检结论
+     * （含锁定的检验方案版本）与在制流水；起点是工单号或销售出库单号时先定位成品批次，
+     * 之后与批次起点同路。
+     *
+     * @param query 查询参数（起点类型 + 起点值）
+     * @return 链路树，根节点为成品批次，叶子为原料批次下的供应商
+     */
+    MesTraceNodeBO traceBackward(MesTraceQueryBO query);
 
 }
