@@ -10,7 +10,10 @@ import type {
 
 import { markRaw, reactive, readonly, watch } from 'vue';
 
-import { StorageManager } from '@vben-core/shared/cache';
+import {
+  MemoryStorageDriver,
+  StorageManager,
+} from '@vben-core/shared/cache';
 import { isMacOs, merge } from '@vben-core/shared/utils';
 
 import {
@@ -40,7 +43,12 @@ class PreferenceManager {
   private state: Preferences;
 
   constructor() {
-    this.cache = new StorageManager();
+    // 构造期还没有 namespace（要等 initPreferences 传入），此时若用默认的 LocalStorageDriver，
+    // StorageManager 会以空前缀直接操作整个 localStorage，clear()/keys() 波及站里所有条目，
+    // 并打出 "[StorageManager] empty prefix combined with LocalStorageDriver" 告警。
+    // 偏好设置在拿到 namespace 之前不需要持久化（initPreferences 会重建带前缀的实例并从缓存回填），
+    // 所以这里用内存驱动兜住这段窗口，不碰 localStorage。
+    this.cache = new StorageManager({ driver: new MemoryStorageDriver() });
     // 构造函数不再同步读取缓存，使用默认值初始化
     // 真正的缓存加载在 initPreferences 中完成（已经是 async）
     this.state = reactive<Preferences>({ ...defaultPreferences });

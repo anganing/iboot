@@ -155,8 +155,14 @@ export function submitDiffApproval(data: WmsCountOrderApi.CountActionReq) {
  *
  * 明细的增删改端点已随写入路径收口撤销：账面数量是账实对比的基准，人工改它等于给账实一致留后门。
  * 实盘数量只能经 submitCountResult 批量录入。
+ *
+ * 参数类型与其他明细分页端点保持一致（PageParam，父键由调用方必传），
+ * 但父键 orderId 是雪花 ID，超出 JS 安全整数时后端下发字符串，只能原样透传，
+ * 转成 Number 会丢精度。
  */
-export function getCountOrderLinePage(params: PageParam) {
+export function getCountOrderLinePage(
+  params: PageParam & { orderId?: number | string },
+) {
   return requestClient.get<PageResult<WmsCountOrderApi.CountOrderLine>>(
     `/wms/count-order/count-order-line/page`,
     { params },

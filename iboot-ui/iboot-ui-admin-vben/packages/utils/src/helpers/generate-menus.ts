@@ -97,6 +97,22 @@ function generateMenus(
 }
 
 /**
+ * 由菜单路径生成唯一的路由 name
+ *
+ * 后端菜单的 component_name 允许为空（目录型菜单基本都没填），此时若退回用中文标题当路由名，
+ * 不同模块下的同名目录（“基础数据”、“现场作业”）就会撞出重复 name。路径在菜单表里是唯一的，
+ * 所以缺 component_name 时用路径推导，天然不重复。
+ * @param path - 已补全的绝对路径，如 /wms/basic
+ */
+function pathToRouteName(path: string): string {
+  const segments = path
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1));
+  return segments.join('') || path;
+}
+
+/**
  * 转换后端菜单数据为路由数据
  * @param menuList 后端菜单数据
  * @param parent 父级菜单
@@ -160,10 +176,22 @@ function convertServerMenuToRouteRecordStringComponent(
     }
 
     // add by 芋艿：防止 name 重复，只有在 name 重复时，才自动添加 id
+    // 目录型菜单不填 component_name，退回中文标题当路由名会让不同路径的同名目录撞车
+    // （“基础数据”在 /mdm 与 /wms/basic 各一个、“现场作业”在 /wms 与 /mes 各一个）。
+    // 撞车时改用唯一的路径推导消歧，而不是原来的“标题+id”，后者拼出的名字仍可能与他人重复；
+    // 路径在菜单表里唯一，推导结果必然唯一，所以消歧后不再算错误，只留 debug 级别痕迹。
     let finalName = menu.componentName || menu.name;
     if (nameSet.has(finalName)) {
-      finalName = menu.name + menu.id;
-      console.error(`menu name duplicate: ${menu.name}, id: ${menu.id}`, menu);
+      const resolved = pathToRouteName(menu.path);
+      if (!nameSet.has(resolved)) {
+        finalName = resolved;
+        console.debug(
+          `menu name duplicate: ${menu.name}, id: ${menu.id}, resolved to ${finalName}`,
+        );
+      } else {
+        finalName = menu.name + menu.id;
+        console.error(`menu name duplicate: ${menu.name}, id: ${menu.id}`, menu);
+      }
     }
     nameSet.add(finalName);
 
@@ -203,6 +231,15 @@ function convertServerMenuToRouteRecordStringComponent(
         menu.path,
         nameSet,
       );
+      // 目录型菜单本身没有组件（上一段已把 component 置空），访问其路径时 RouterView 取不到组件，
+      // 布局层会报 "Component view not found，please check the route configuration" 并渲染空白页。
+      // 这里补重定向到第一个子菜单的完整路径，让目录路径落到它下面的第一个真实页面。
+      // 必须在这里补：accessible.ts 里的 redirect 推导要求子路径是相对路径，而后端菜单转换出来的
+      // 子路径一律已拼成绝对路径，那条逻辑对后端菜单恒定不生效。
+      const firstChildPath = buildMenu.children[0]?.path;
+      if (firstChildPath) {
+        buildMenu.redirect = firstChildPath;
+      }
     }
 
     menus.push(buildMenu);
