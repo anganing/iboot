@@ -176,7 +176,12 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
     /**
      * 取消的三件事：把报工记录置 {@code CANCELLED}、写反向流水、把三级数量反向扣减。
      *
-     * <p>更新带 {@code WHERE status = SUBMITTED} 条件。{@code mes_prod_report} 没有 version 列，
+     * <p>可取消的是"数量已经推进、账还认这笔报工"的两个状态：{@code SUBMITTED} 与 {@code CONFIRMED}。
+     * {@code SUBMITTED} 只存在于事务中间态，落库对外可见的一律是 {@code CONFIRMED}（无需过程检验）
+     * 或 {@code QC_PENDING}（过程检验拦着）；{@code QC_PENDING} 的数量同样已推进，撤回要走检验结论那条路，
+     * 不能在报工这里绕过去；{@code CANCELLED} 是终态。
+     *
+     * <p>更新带 {@code WHERE status IN (SUBMITTED, CONFIRMED)} 条件。{@code mes_prod_report} 没有 version 列，
      * 这个条件就是它的乐观锁：并发下只有一个请求能把它取消掉，另一个更新 0 行直接报状态非法。
      */
     private void doCancel(ProdReportDO report, MesCancelReportBO bo, String idempotencyKey) {
@@ -188,18 +193,21 @@ public class MesProdReportDomainServiceImpl implements MesProdReportDomainServic
         }
         LambdaUpdateWrapper<ProdReportDO> wrapper = new LambdaUpdateWrapper<ProdReportDO>()
                 .eq(ProdReportDO::getId, report.getId())
-                .eq(ProdReportDO::getStatus, MesProdReportStatusEnum.SUBMITTED.name());
+                .in(ProdReportDO::getStatus, MesProdReportStatusEnum.SUBMITTED.name(),
+                        MesProdReportStatusEnum.CONFIRMED.name());
         if (prodReportMapper.update(new ProdReportDO()
                 .setStatus(MesProdReportStatusEnum.CANCELLED.name()), wrapper) == 0) {
             throw exception(PROD_REPORT_STATUS_INVALID);
         }
+        String fromStatus = report.getStatus();
         report.setStatus(MesProdReportStatusEnum.CANCELLED.name());
 
         BigDecimal qtyGood = nvl(report.getQtyGood());
         BigDecimal qtyScrap = nvl(report.getQtyScrap());
         // 反向流水：事务类型里没有"取消报工"，取语义最近的 REPORT 并用负数量表达冲销，
-        // 与 WMS 侧红字冲销同形。键用取消动作自己的键，与提交那条流水互不判重
-        recordReportTxn(report, task, qtyGood.negate(), MesProdReportStatusEnum.SUBMITTED.name(),
+        // 与 WMS 侧红字冲销同形。键用取消动作自己的键，与提交那条流水互不判重。
+        // from 记报工单取消前的真实状态，不写死 SUBMITTED——写死会让流水与单据状态对不上
+        recordReportTxn(report, task, qtyGood.negate(), fromStatus,
                 MesProdReportStatusEnum.CANCELLED.name(), idempotencyKey, bo.getReason());
         // 反向推进：负增量走的是与提交完全相同的那条推进路径，两级工单靠重算自然回到正确值
         progressPropagator.propagate(task, qtyGood.negate(), qtyScrap.negate(), idempotencyKey);

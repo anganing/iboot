@@ -33,7 +33,7 @@ public interface MesProdReportDomainService {
     Long submitReport(MesSubmitReportBO bo);
 
     /**
-     * 取消报工：{@code SUBMITTED} -&gt; {@code CANCELLED}，同时把三级数量反向扣减并写反向流水。
+     * 取消报工：{@code SUBMITTED}/{@code CONFIRMED} -&gt; {@code CANCELLED}，同时把三级数量反向扣减并写反向流水。
      *
      * <p>已完工的工序不允许取消它的报工：完工时按"合格 + 报废 = 计划数"校验过，抽掉一笔报工会让工序
      * 停在"数量不够却已完工"的状态，而 {@code DONE} 是终态没有回退边，自己圆不回来。

@@ -4,13 +4,21 @@ import com.iboot.pf.framework.test.core.ut.BaseDbUnitTest;
 import com.iboot.pf.module.mes.dal.dataobject.optask.OpTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodorder.ProdOrderDO;
 import com.iboot.pf.module.mes.dal.dataobject.prodreport.ProdReportDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcitem.QcItemDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcplan.QcPlanDO;
+import com.iboot.pf.module.mes.dal.dataobject.qcrule.QcRuleDO;
 import com.iboot.pf.module.mes.dal.dataobject.qctask.QcTaskDO;
 import com.iboot.pf.module.mes.dal.dataobject.wiptxn.WipTxnDO;
 import com.iboot.pf.module.mes.dal.dataobject.workorder.WorkOrderDO;
 import com.iboot.pf.module.mes.dal.mysql.command.MesCommandRecordMapper;
+import com.iboot.pf.module.mes.dal.mysql.defect.DefectMapper;
 import com.iboot.pf.module.mes.dal.mysql.optask.OpTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.prodorder.ProdOrderMapper;
 import com.iboot.pf.module.mes.dal.mysql.prodreport.ProdReportMapper;
+import com.iboot.pf.module.mes.dal.mysql.qcitem.QcItemMapper;
+import com.iboot.pf.module.mes.dal.mysql.qcplan.QcPlanMapper;
+import com.iboot.pf.module.mes.dal.mysql.qcrule.QcRuleMapper;
+import com.iboot.pf.module.mes.dal.mysql.qctask.QcTaskMapper;
 import com.iboot.pf.module.mes.dal.mysql.wiptxn.WipTxnMapper;
 import com.iboot.pf.module.mes.dal.mysql.workorder.WorkOrderMapper;
 import com.iboot.pf.module.mes.enums.MesBizTypeEnum;
@@ -20,11 +28,30 @@ import com.iboot.pf.module.mes.enums.MesOpTaskStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdOrderStatusEnum;
 import com.iboot.pf.module.mes.enums.MesProdReportStatusEnum;
 import com.iboot.pf.module.mes.enums.MesQcModeEnum;
+import com.iboot.pf.module.mes.enums.MesQcObjectTypeEnum;
+import com.iboot.pf.module.mes.enums.MesQcPlanStatusEnum;
+import com.iboot.pf.module.mes.enums.MesQcSampleTypeEnum;
 import com.iboot.pf.module.mes.enums.MesQcTriggerPointEnum;
 import com.iboot.pf.module.mes.enums.MesWipTxnTypeEnum;
 import com.iboot.pf.module.mes.enums.MesWorkOrderStatusEnum;
 import com.iboot.pf.module.mes.service.coderule.MesCodeService;
 import com.iboot.pf.module.mes.service.command.MesCommandServiceImpl;
+import com.iboot.pf.module.mdm.api.bom.BomApi;
+import com.iboot.pf.module.mdm.api.defectcode.DefectCodeApi;
+import com.iboot.pf.module.mdm.api.material.MaterialApi;
+import com.iboot.pf.module.mdm.api.material.dto.MaterialRespDTO;
+import com.iboot.pf.module.mdm.api.op.OpApi;
+import com.iboot.pf.module.mdm.api.org.OrgApi;
+import com.iboot.pf.module.mdm.api.project.ProjectApi;
+import com.iboot.pf.module.mdm.api.resource.ResourceApi;
+import com.iboot.pf.module.mdm.api.route.RouteApi;
+import com.iboot.pf.module.mdm.api.shift.ShiftApi;
+import com.iboot.pf.module.mdm.api.team.TeamApi;
+import com.iboot.pf.module.mdm.api.uom.UomApi;
+import com.iboot.pf.module.mdm.api.uom.dto.UomRespDTO;
+import com.iboot.pf.module.mes.service.snapshot.MesSnapshotService;
+import com.iboot.pf.module.system.api.user.AdminUserApi;
+import com.iboot.pf.module.wms.api.batch.BatchApi;
 import com.iboot.pf.module.mes.service.opskiprecord.MesOpSkipDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainService;
 import com.iboot.pf.module.mes.service.optask.MesOpTaskDomainServiceImpl;
@@ -34,14 +61,13 @@ import com.iboot.pf.module.mes.service.optask.gate.MesStartGateChecker;
 import com.iboot.pf.module.mes.service.prodorder.MesFinishInboundService;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesCancelReportBO;
 import com.iboot.pf.module.mes.service.prodreport.bo.MesSubmitReportBO;
-import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainService;
-import com.iboot.pf.module.mes.service.qctask.bo.MesCreateQcTaskBO;
+import com.iboot.pf.module.mes.service.qcrule.QcTriggerServiceImpl;
+import com.iboot.pf.module.mes.service.qctask.MesQcTaskDomainServiceImpl;
 import com.iboot.pf.module.mes.service.qctask.hook.MesIpqcResultHandler;
 import com.iboot.pf.module.mes.service.wiptxn.MesWipTxnRecorder;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -50,8 +76,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.iboot.pf.framework.common.enums.CommonStatusEnum;
 
 import static com.iboot.pf.framework.test.core.util.AssertUtils.assertServiceException;
 import static com.iboot.pf.framework.test.core.util.RandomUtils.randomLongId;
@@ -69,7 +96,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,9 +108,15 @@ import static org.mockito.Mockito.when;
  *
  * <p>作业工单与生产工单的收尾判定要靠完工动作触发（"本段全部工序 DONE"只可能在完工那一刻成立），
  * 所以这里把 T1-13 的工序动作一并装进上下文，开工门禁 mock 掉。
+ *
+ * <p>质检域装的是真实实现而不是 mock：T2-09 把"报工后落什么状态"的判定交给了规则解析——
+ * {@code qc_mode != PROCESS} 直接 {@code CONFIRMED}，{@code PROCESS} 命中规则转 {@code QC_PENDING}、
+ * 未命中规则也 {@code CONFIRMED}。mock 掉它就等于把这一段口径从测试里抹掉，
+ * 因此这里只把规则命中与否交给桩（H2 无规则种子即"未命中"），落状态的代码走真的。
  */
 @Import({MesProdReportDomainServiceImpl.class, MesProgressPropagator.class, MesIpqcResultHandler.class,
-        MesOpTaskDomainServiceImpl.class, MesCommandServiceImpl.class, MesWipTxnRecorder.class})
+        MesOpTaskDomainServiceImpl.class, MesCommandServiceImpl.class, MesWipTxnRecorder.class,
+        MesQcTaskDomainServiceImpl.class, QcTriggerServiceImpl.class, MesSnapshotService.class})
 class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
 
     private static final String SOURCE_MODULE = "UI";
@@ -118,6 +150,14 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
     private WipTxnMapper wipTxnMapper;
     @Resource
     private MesCommandRecordMapper commandRecordMapper;
+    @Resource
+    private QcTaskMapper qcTaskMapper;
+    @Resource
+    private QcRuleMapper qcRuleMapper;
+    @Resource
+    private QcPlanMapper qcPlanMapper;
+    @Resource
+    private QcItemMapper qcItemMapper;
 
     @MockitoBean
     private MesStartGateChecker startGateChecker;
@@ -129,8 +169,39 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
     private MesOpSkipDomainService opSkipDomainService;
     @MockitoBean
     private MesCodeService codeService;
+    /**
+     * 跨模块门面一律 mock：质检任务要落物料/单位快照，那些主数据在 mdm 与 system 侧。
+     * {@link MesSnapshotService} 本身是纯门面聚合，装它才能让"命中规则就建任务"这段真跑起来。
+     */
     @MockitoBean
-    private MesQcTaskDomainService qcTaskDomainService;
+    private UomApi uomApi;
+    @MockitoBean
+    private BomApi bomApi;
+    @MockitoBean
+    private RouteApi routeApi;
+    @MockitoBean
+    private OpApi opApi;
+    @MockitoBean
+    private OrgApi orgApi;
+    @MockitoBean
+    private ProjectApi projectApi;
+    @MockitoBean
+    private ResourceApi resourceApi;
+    @MockitoBean
+    private ShiftApi shiftApi;
+    @MockitoBean
+    private TeamApi teamApi;
+    @MockitoBean
+    private DefectCodeApi defectCodeApi;
+    @MockitoBean
+    private BatchApi batchApi;
+    @MockitoBean
+    private AdminUserApi adminUserApi;
+    @MockitoBean
+    private MaterialApi materialApi;
+    /** 缺陷码查询属 T2-06 的范围，本类不触发缺陷落库。 */
+    @MockitoBean
+    private DefectMapper defectMapper;
 
     @BeforeEach
     void mockExternalDependencies() {
@@ -141,7 +212,11 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
                     : ruleCode + "-" + counters.computeIfAbsent(ruleCode, key -> new AtomicInteger())
                     .incrementAndGet();
         });
-        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.empty());
+        when(materialApi.getMaterial(any())).thenReturn(
+                new MaterialRespDTO().setId(1L).setCode("MAT-001").setName("测试物料")
+                        .setSpec("规格").setBaseUomId(1L).setCatId(9L));
+        when(uomApi.getUomMap(any())).thenReturn(java.util.Map.of(1L,
+                new UomRespDTO().setId(1L).setCode("PCS").setName("件")));
     }
 
     @Test
@@ -149,13 +224,12 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         OpTaskDO task = runningTask();
         task.setQcMode(MesQcModeEnum.PROCESS.name());
         opTaskMapper.updateById(task);
-        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        insertEnabledIpqcRule();
 
         Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
 
-        ArgumentCaptor<MesCreateQcTaskBO> captor = ArgumentCaptor.forClass(MesCreateQcTaskBO.class);
-        verify(qcTaskDomainService).createQcTask(captor.capture());
-        MesCreateQcTaskBO qcTask = captor.getValue();
+        QcTaskDO qcTask = qcTaskMapper.selectOne(QcTaskDO::getBizNo,
+                prodReportMapper.selectById(reportId).getReportNo());
         assertEquals(MesQcTriggerPointEnum.IPQC.name(), qcTask.getTriggerPoint());
         assertEquals(MesBizTypeEnum.PROD_REPORT.name(), qcTask.getBizType());
         assertEquals(prodReportMapper.selectById(reportId).getReportNo(), qcTask.getBizNo());
@@ -182,7 +256,7 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
 
         Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
 
-        verify(qcTaskDomainService, never()).createQcTask(any());
+        assertEquals(0L, qcTaskMapper.selectCount());
         assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), prodReportMapper.selectById(reportId).getStatus());
     }
 
@@ -191,7 +265,7 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         OpTaskDO task = runningTask();
         task.setQcMode(MesQcModeEnum.PROCESS.name());
         opTaskMapper.updateById(task);
-        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        insertEnabledIpqcRule();
         Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
 
         ipqcResultHandler.onConclusion(QcTaskDO.builder()
@@ -207,7 +281,7 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         OpTaskDO task = runningTask();
         task.setQcMode(MesQcModeEnum.PROCESS.name());
         opTaskMapper.updateById(task);
-        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        insertEnabledIpqcRule();
         Long reportId = domainService.submitReport(submitBO(task, "100", "0", "0", 1));
 
         ipqcResultHandler.onConclusion(QcTaskDO.builder()
@@ -223,7 +297,7 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         OpTaskDO task = runningTask();
         task.setQcMode(MesQcModeEnum.PROCESS.name());
         opTaskMapper.updateById(task);
-        when(qcTaskDomainService.createQcTask(any())).thenReturn(Optional.of(1L));
+        insertEnabledIpqcRule();
         Long reportId = domainService.submitReport(submitBO(task, "30", "0", "0", 1));
 
         ipqcResultHandler.onConclusion(QcTaskDO.builder()
@@ -323,9 +397,9 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         // 调用
         Long reportId = domainService.submitReport(submitBO(task, "60", "0", "0", 1));
 
-        // 断言：报工记录落 SUBMITTED，单据链从工序任务反查而不是让前端传
+        // 断言：报工记录落 CONFIRMED（无需过程检验的工序，落库即确认），单据链从工序任务反查而不是让前端传
         ProdReportDO report = prodReportMapper.selectById(reportId);
-        assertEquals(MesProdReportStatusEnum.SUBMITTED.name(), report.getStatus());
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), report.getStatus());
         assertEquals(task.getId(), report.getOpTaskId());
         assertEquals(task.getWorkOrderId(), report.getWorkOrderId());
         assertNotNull(report.getProdOrderId());
@@ -589,7 +663,8 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         WipTxnDO reverseTxn = reportTxns().stream()
                 .filter(txn -> txn.getQty().signum() < 0).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("-90").compareTo(reverseTxn.getQty()));
-        assertEquals(MesProdReportStatusEnum.SUBMITTED.name(), reverseTxn.getFromStatus());
+        // 冲销的起点是报工单取消前的状态：无需过程检验的工序报工即 CONFIRMED
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(), reverseTxn.getFromStatus());
         assertEquals(MesProdReportStatusEnum.CANCELLED.name(), reverseTxn.getToStatus());
         assertEquals(CANCEL_REASON, reverseTxn.getRemark());
     }
@@ -620,7 +695,7 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
         // 抽掉一笔会让工序停在"数量不够却已完工"，而 DONE 是终态没有回退边
         assertServiceException(() -> domainService.cancelReport(cancelBO(reportId)),
                 PROD_REPORT_CANCEL_OP_TASK_DONE, "下料");
-        assertEquals(MesProdReportStatusEnum.SUBMITTED.name(),
+        assertEquals(MesProdReportStatusEnum.CONFIRMED.name(),
                 prodReportMapper.selectById(reportId).getStatus());
         assertEquals(0, PLAN_QTY.compareTo(opTaskMapper.selectById(task.getId()).getCompletedQty()));
     }
@@ -637,6 +712,39 @@ class MesProdReportDomainServiceImplTest extends BaseDbUnitTest {
      *
      * <p>本任务的用例一律从"在产"起步：报工的前提是工序已开工，那意味着三级都已经在 RUNNING。
      */
+    /**
+     * 播一条启用中的 IPQC 规则与它的已发布方案、检验项。
+     *
+     * <p>{@code qc_mode = PROCESS} 的工序报工后要不要转 {@code QC_WAITING}，由规则解析决定：
+     * 命中才建任务、才禁住工序继续报工。这里给的是"命中规则"那一档；
+     * 未命中那一档由不播规则的用例覆盖（H2 无种子即未命中，业务直接放行）。
+     */
+    private void insertEnabledIpqcRule() {
+        QcPlanDO plan = QcPlanDO.builder()
+                .code("QP-IPQC").name("过程检验方案").versionNo("V1.0")
+                .sampleType(MesQcSampleTypeEnum.FULL.name())
+                .status(MesQcPlanStatusEnum.PUBLISHED.name())
+                .build();
+        qcPlanMapper.insert(plan);
+
+        qcItemMapper.insert(QcItemDO.builder()
+                .planId(plan.getId()).itemCode("ITEM-01").itemName("外观")
+                .itemType("VISUAL").requiredFlag(Boolean.TRUE).sortNo(1)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .build());
+
+        qcRuleMapper.insert(QcRuleDO.builder()
+                .code("QR-IPQC").name("过程检验规则")
+                .triggerPoint(MesQcTriggerPointEnum.IPQC.name())
+                .objectType(MesQcObjectTypeEnum.OP_TASK.name())
+                .matId(MesConstants.NONE_ID).matCatId(MesConstants.NONE_ID)
+                .opId(MesConstants.NONE_ID).wcId(MesConstants.NONE_ID)
+                .supplierId(MesConstants.NONE_ID)
+                .qcPlanId(plan.getId()).priority(1)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .build());
+    }
+
     private ProdOrderDO insertOrder() {
         ProdOrderDO order = ProdOrderDO.builder()
                 .orderNo(ORDER_NO)
