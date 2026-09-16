@@ -32,6 +32,17 @@ public interface UomApi {
     Map<Long, UomRespDTO> getUomMap(Collection<Long> ids);
 
     /**
+     * 按编码批量查询计量单位 Map
+     *
+     * <p>供库存这类只留了编码快照、没留编号的场景反查：{@code wms_inv_balance} 只有
+     * {@code uom_code}，而 {@code wms_inv_txn.uom_id} 是 NOT NULL，必须由编码反查回编号。
+     *
+     * @param codes 计量单位编码集合
+     * @return 计量单位编码 -> 计量单位；缺失编码不产生键
+     */
+    Map<String, UomRespDTO> getUomMapByCodes(Collection<String> codes);
+
+    /**
      * 按物料编号批量查询单位换算
      *
      * @param matIds 物料编号集合

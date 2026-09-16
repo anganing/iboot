@@ -33,4 +33,12 @@ public interface UomService {
      * @return 计量单位列表；空集合返回空列表
      */
     List<UomDO> getUomList(Collection<Long> ids);
+
+    /**
+     * 按编码批量查询计量单位，供只有编码快照的场景反查编号
+     *
+     * @param codes 计量单位编码集合
+     * @return 计量单位列表；空集合返回空列表
+     */
+    List<UomDO> getUomListByCodes(Collection<String> codes);
 }

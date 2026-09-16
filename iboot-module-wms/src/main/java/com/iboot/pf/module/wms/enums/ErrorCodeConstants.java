@@ -56,6 +56,7 @@ public interface ErrorCodeConstants {
     ErrorCode RESERVATION_NOT_EXISTS = new ErrorCode(1_063_005_000, "库存预留不存在");
     ErrorCode RESERVATION_NOT_ACTIVE = new ErrorCode(1_063_005_001, "库存预留已释放或已核销，不能重复处理");
     ErrorCode RESERVATION_REMAIN_NOT_ENOUGH = new ErrorCode(1_063_005_002, "释放或核销数量超过预留剩余数量");
+    ErrorCode RESERVATION_LOC_NOT_FOUND = new ErrorCode(1_063_005_005, "未找到有可用库存的库位，无法预留");
 
     // ========== 冻结 ==========
     ErrorCode LOCK_NOT_EXISTS = new ErrorCode(1_063_006_000, "库存冻结记录不存在");

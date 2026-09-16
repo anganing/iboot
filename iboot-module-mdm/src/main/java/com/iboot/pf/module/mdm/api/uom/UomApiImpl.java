@@ -44,6 +44,13 @@ public class UomApiImpl implements UomApi {
     }
 
     @Override
+    public Map<String, UomRespDTO> getUomMapByCodes(Collection<String> codes) {
+        List<UomDO> uoms = uomService.getUomListByCodes(codes);
+        List<UomRespDTO> list = BeanUtils.toBean(uoms, UomRespDTO.class);
+        return CollectionUtils.convertMap(list, UomRespDTO::getCode);
+    }
+
+    @Override
     public List<UomConvRespDTO> getUomConvList(Collection<Long> matIds) {
         List<UomConvDO> convs = uomConvService.getUomConvList(matIds);
         return BeanUtils.toBean(convs, UomConvRespDTO.class);

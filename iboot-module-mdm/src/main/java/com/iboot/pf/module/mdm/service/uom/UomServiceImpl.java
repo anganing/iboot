@@ -71,6 +71,11 @@ public class UomServiceImpl implements UomService {
         return uomMapper.selectByIds(ids);
     }
 
+    @Override
+    public List<UomDO> getUomListByCodes(Collection<String> codes) {
+        return uomMapper.selectListByCodes(codes);
+    }
+
     private void validateExists(Long id) {
         if (uomMapper.selectById(id) == null) throw exception(UOM_NOT_EXISTS);
     }
