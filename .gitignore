@@ -75,3 +75,8 @@ application-my.yaml
 .codeartsdoer/
 .claude/
 .codex/
+# H2 建表脚本转换器的中间产物（script/h2-schema-convert.py 从开发库导出的原始 DDL 缓存，
+# 可从数据库重新生成，不入库；见 T6-01）
+script/h2-schema-convert-raw/
+script/__pycache__/
+iboot-server/LOG_FILE_IS_UNDEFINED
