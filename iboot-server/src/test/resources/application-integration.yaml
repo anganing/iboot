@@ -1,0 +1,148 @@
+# ============================================================================
+# application-integration.yaml —— 跨模块集成测试专用配置（T6-01）
+#
+# 与 application-unit-test.yaml（各模块 BaseDbUnitTest 用）的差异：
+#   - 本文件服务 @SpringBootTest 全上下文（IbootServerApplication），不是 @Import 精选装配
+#   - H2 数据源走 dynamic-datasource 的 master（与生产同构，IdTypeEnvironmentPostProcessor
+#     识别 H2 URL 后自动把 mybatis-plus id-type 置为 INPUT，@KeySequence 的 DO 走
+#     H2KeyGenerator，依赖 schema.sql 里预建的 xxx_seq 序列）
+#   - Redis 用 jedis-mock 内嵌（项目既有先例：RedisTestConfiguration）
+#   - Quartz 走 memory job-store（SchedulerManager 优雅降级，不需要 QRTZ_* 表）
+#   - Flowable 引擎 database-schema-update=true 在 H2 上自建 ACT_* 表（CLAUDE.md 红线
+#     允许的唯一方式），排掉 flowable 的 starter 自动装配里的邮件等无关组件不需要
+# ============================================================================
+
+spring:
+  autoconfigure:
+    exclude:
+      # RocketMQ producer 启动需要真实 name-server，集成测试排除（MQ 消费主力是
+      # Redis Stream + Spring 事件，业务模块无 @RocketMQMessageListener）
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
+      # Kafka/Rabbit 客户端自动配置：无监听器与地址时不会真连接，但显式排除更稳
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      # AI 向量库（local profile 同款排除，避免连接 127.0.0.1:6334/19530）
+      - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration
+      - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration
+      # 远程调用类健康监控
+      - org.springframework.boot.actuate.autoconfigure.management.ThreadDumpEndpointAutoConfiguration
+
+  main:
+    allow-circular-references: true
+    lazy-initialization: false # 集成测试要真装配，不开懒加载，保证上下文完整性
+
+  datasource:
+    name: ruoyi-vue-pro
+    druid:
+      async-init: true
+      initial-size: 1
+      min-idle: 1
+      max-active: 10
+      validation-query: SELECT 1 # H2 没有 DUAL（MySQL 模式下 H2 兼容 SELECT 1 FROM DUAL，用最朴素的写法）
+      test-while-idle: false
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          # NON_KEYWORDS：H2 在 MODE=MYSQL 下仍把部分标识符当保留字，工程里真实存在这些列名，
+          #   value（system_dict_data.value 等）、day（bpm_oa_leave.day）必须显式放行，否则建表直接语法报错
+          url: jdbc:h2:mem:iboot-integration;MODE=MYSQL;DATABASE_TO_UPPER=false;NON_KEYWORDS=value,day;DB_CLOSE_DELAY=-1
+          driver-class-name: org.h2.Driver
+          username: sa
+          password:
+      druid:
+        initial-size: 1
+        min-idle: 1
+        max-active: 10
+
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:integration/schema.sql
+      data-locations:
+        - classpath:integration/base-data.sql
+      continue-on-error: false
+      separator: ;
+
+  # 集成测试 Redis：jedis-mock 内嵌实例（RedisTestConfiguration 起在 16379，
+  # 与各模块 application-unit-test.yaml 的端口约定一致）
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 16379
+      database: 0
+
+  # Quartz：memory job-store，不需要 QRTZ_* 表；不自动启动触发器
+  quartz:
+    auto-startup: false
+    job-store-type: memory
+    jdbc:
+      initialize-schema: NEVER
+
+  # Flowable 引擎在 H2 上自建 ACT_* 表（红线：任何情况下不许手工 DDL ACT_*）
+  flowable:
+    async-executor-activate: false # 关异步执行器，避免测试期间后台线程捞任务
+    check-process-definitions: false
+    database-schema-update: true
+
+  kafka:
+    bootstrap-servers: 127.0.0.1:19092 # 已排除自动配置，占位不生效
+
+mybatis-plus:
+  lazy-initialization: false
+  type-aliases-package: ${iboot.info.base-package}.module.*.dal.dataobject
+
+# 关闭 WebSocket（sender-type=local 也不装配，减少上下文体积）
+iboot:
+  info:
+    base-package: com.iboot.pf
+  websocket:
+    enable: false
+  security:
+    mock-enable: true # TokenAuthenticationFilter 免登录：token 以 "test" 开头即构造 LoginUser
+  captcha:
+    enable: false
+  access-log:
+    enable: false
+  tracer:
+    enable: false
+  metrics:
+    enable: false
+  xss:
+    enable: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+knife4j:
+  enable: false
+
+# 微信公众号 / 小程序配置：wx-java 的 mp auto-config 强依赖 appid，缺失直接抛
+# WxRuntimeException: appid 不能为 null，导致上下文起不来。集成测试不碰微信登录，
+# 这里给占位值让 Bean 能建出来即可，不会有任何真实调用发出。
+wx:
+  mp:
+    app-id: integration-test-appid
+    secret: integration-test-secret
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wx
+      http-client-type: HttpComponents
+  miniapp:
+    appid: integration-test-appid
+    secret: integration-test-secret
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wa
+      http-client-type: HttpComponents
+
+logging:
+  level:
+    com.iboot.pf.module.mes.dal.mysql: warn
+    com.iboot.pf.module.wms.dal.mysql: warn
+    com.iboot.pf.module.mdm.dal.mysql: warn

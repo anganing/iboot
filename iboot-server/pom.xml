@@ -109,6 +109,43 @@
             <artifactId>iboot-spring-boot-starter-protection</artifactId>
         </dependency>
 
+        <!-- Test 测试相关（跨模块集成测试：H2 内存库 + jedis-mock 内嵌 Redis，T6-01） -->
+        <dependency>
+            <groupId>com.iboot</groupId>
+            <artifactId>iboot-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          微信生态（wx-java）的 mp / open starter 在 iboot-module-system 里是 compile 依赖，
+          它们的 auto-config 需要 Apache HttpClient，但该依赖没有随 starter 传递进来。
+          生产打包时类路径上恰好有（别的 starter 带进来的），跑 mvn test 时 iboot-server
+          的测试类路径上没有，一装配上下文就
+          ClassNotFoundException: org.apache.http.conn.HttpClientConnectionManager。
+          SocialClientServiceImpl 又是 @Resource 强注入 WxMpService，不能靠排除 auto-config 绕开，
+          只能把 HttpClient 补进测试类路径。
+        -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          H2 降到 2.2.224（工程默认 2.3.232）只为集成测试：Flowable 8.0.0 的 H2 方言
+          建 ACT_* 表时写的是 `ID_ identity`，而 H2 2.3.x 移除了 IDENTITY 这个遗留数据类型，
+          database-schema-update=true 一执行就抛
+          Unknown data type: "IDENTITY"，流程引擎 Bean 建不出来、整个上下文起不来。
+          H2 2.2.224 仍认 identity，是 Flowable 8 实际支持的版本区间。
+          作用域限 test，不影响生产运行。
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
