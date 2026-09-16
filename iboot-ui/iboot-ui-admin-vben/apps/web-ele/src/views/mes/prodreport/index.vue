@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesProdReportApi } from '#/api/mes/prodreport';
 
-import { Page, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
@@ -14,13 +14,20 @@ import {
   getProdReportPage,
 } from '#/api/mes/prodreport';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { MES_PROD_REPORT_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import ProdReportDetail from './modules/prod-report-detail.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+/** 报工记录没有修改入口，双击报工单号是看全字段（幂等键、起止时间）的唯一途径 */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: ProdReportDetail,
   destroyOnClose: true,
 });
 
@@ -36,6 +43,23 @@ function handleCreate() {
 
 function canCancelReport(row: MesProdReportApi.ProdReport) {
   return row.status === MES_PROD_REPORT_STATUS.SUBMITTED;
+}
+
+/** 打开只读详情 */
+function handleDetail(row: MesProdReportApi.ProdReport) {
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+
+/** 双击报工单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesProdReportApi.ProdReport;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  handleDetail(row);
 }
 
 /** 取消报工：反向扣减三级数量并写反向流水 */
@@ -108,7 +132,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <Grid table-title="生产报工记录列表">
+    <DetailDrawer />
+    <Grid
+      table-title="生产报工记录列表"
+      @cell-dblclick="handleCellDblclick"
+    >
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -139,6 +167,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:ban',
               auth: ['mes:prod-report:cancel'],
               disabled: !canCancelReport(row),
+              tooltip: canCancelReport(row)
+                ? undefined
+                : '报工已取消，不能重复取消；取消会反向扣减三级数量并写反向流水',
               onClick: handleCancel.bind(null, row),
             },
           ]"

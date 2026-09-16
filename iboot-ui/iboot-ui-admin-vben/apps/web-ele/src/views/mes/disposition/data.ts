@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import { USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 import { DATETIME_PROPS, QTY_PROPS } from '../form-props';
@@ -201,7 +201,9 @@ export function useGridColumns(): VxeTableGridOptions<MesDispositionApi.Disposit
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'dispositionNo', title: '处置单号', minWidth: 160 },
+    // dispositionNo 唯一标识本张处置单；taskNo（质检任务）、matCode（物料）都是上游/关联对象编码，
+    // 挂链接会变成“点质检任务开处置单详情”，只有本行编码才配当详情入口
+    { field: 'dispositionNo', title: '处置单号', minWidth: 160, ...codeLinkColumn() },
     { field: 'taskNo', title: '质检任务号', minWidth: 160 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },
     { field: 'matName', title: '物料名称', minWidth: 160 },
@@ -257,7 +259,8 @@ export function useGridColumns(): VxeTableGridOptions<MesDispositionApi.Disposit
     },
     {
       title: '操作',
-      width: 260,
+      // 2 个固定业务动作（提交、执行）+ 文字“更多”= 3 位
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

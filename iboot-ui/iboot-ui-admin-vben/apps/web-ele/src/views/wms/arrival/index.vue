@@ -19,9 +19,11 @@ import {
   getArrivalPage,
 } from '#/api/wms/arrival';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { canCreateInOrderFromArrival, isArrivalDraft } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
+import ArrivalDetailDrawer from './modules/arrival-detail.vue';
 import ArrivalLineDrawer from './modules/arrival-line-drawer.vue';
 import Form from './modules/form.vue';
 
@@ -29,6 +31,23 @@ const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: ArrivalLineDrawer,
   destroyOnClose: true,
 });
+
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: ArrivalDetailDrawer,
+  destroyOnClose: true,
+});
+
+/** 双击「到货单号」链接列打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsArrivalApi.Arrival;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -201,8 +220,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <DetailDrawer
+      @success="handleRefresh"
+    />
     <LineDrawer @success="handleRefresh" />
-    <Grid table-title="到货登记列表">
+    <Grid table-title="到货登记列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -249,6 +271,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:package-check',
               auth: ['wms:arrival:confirm'],
               disabled: !isArrivalDraft(row.status),
+              tooltip: isArrivalDraft(row.status) ? undefined : '仅草稿态的到货通知可确认',
               onClick: handleConfirm.bind(null, row),
             },
             {
@@ -258,24 +281,27 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:file-input',
               auth: ['wms:arrival:create-in-order'],
               disabled: !canCreateInOrderFromArrival(row.status),
+              tooltip: canCreateInOrderFromArrival(row.status) ? undefined : '仅已确认的到货通知可生成入库单',
               onClick: handleCreateInOrder.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: $t('common.edit'),
               type: 'primary',
-              link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['wms:arrival:update'],
               disabled: !isArrivalDraft(row.status),
+              tooltip: isArrivalDraft(row.status) ? undefined : '仅草稿态的到货通知可修改',
               onClick: handleEdit.bind(null, row),
             },
             {
               label: $t('common.delete'),
               type: 'danger',
-              link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['wms:arrival:delete'],
               disabled: !isArrivalDraft(row.status),
+              tooltip: isArrivalDraft(row.status) ? undefined : '仅草稿态的到货通知可删除',
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.arrivalNo]),
                 confirm: handleDelete.bind(null, row),

@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   MAT_RELATION_PROPS,
 } from '#/views/mdm/relation-config';
@@ -95,7 +95,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<WmsInvTxnApi.InvTxn>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'txnNo', title: '事务编号', minWidth: 160 },
+    { field: 'txnNo', title: '事务编号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'txnType',
       title: '事务类型',

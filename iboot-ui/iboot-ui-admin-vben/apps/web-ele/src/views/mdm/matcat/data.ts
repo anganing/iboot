@@ -43,7 +43,14 @@ export function useFormSchema(): VbenFormSchema[] {
         valueField: 'id',
         childrenField: 'children',
         placeholder: '请选择上级物料分类',
-        treeDefaultExpandAll: true,
+        // Element Plus 的 ElTreeSelect 只认 defaultExpandAll，treeDefaultExpandAll 是 antd 的 prop 名，
+        // 透传下去不会被识别，原先写在配置里等于没写
+        defaultExpandAll: true,
+        // 必须开 checkStrictly：ElTreeSelect 未开启 showCheckbox 时，onNodeClick 只在
+        // `checkStrictly || node.isLeaf` 时才提交选中，非叶子节点被点击只展开不选中。
+        // “顶级物料分类”和任何已有下级分类都是非叶子节点，缺了这个配置就永远选不中。
+        // 上级分类本来就允许挂在任意层级（含 parentId=0 的顶级），所以不能反过来禁用非叶子节点。
+        checkStrictly: true,
       },
       rules: 'selectRequired',
     },
@@ -184,7 +191,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmMatCatApi.MatCat>['colu
     },
     {
       title: '操作',
-      width: 200,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

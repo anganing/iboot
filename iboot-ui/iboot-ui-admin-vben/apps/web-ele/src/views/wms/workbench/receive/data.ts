@@ -19,7 +19,7 @@ import { WH_RELATION_PROPS } from '../../relation-config';
  * data.ts 会把两个页面焊死，改一个必然波及另一个。
  */
 
-/** 左侧到货单列表的搜索表单。左栏窄，固定单列排布，否则响应式三列会把控件挤成一条缝 */
+/** 到货单列表的搜索表单：列表已占满整页，沿用默认响应式栅格，不再固定单列 */
 export function useArrivalGridFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -51,10 +51,11 @@ export function useArrivalGridFormSchema(): VbenFormSchema[] {
 }
 
 /**
- * 左侧到货单列表的列。
+ * 到货单列表的列。
  *
- * 没有勾选列与操作列：作业页是"左边选一张单、右边把这张单收完"的形态，动作按钮统一挂在
- * 右侧明细区的工具栏上。勾选列在这里没有用处（不做批量删除），操作列会把窄栏挤没。
+ * 没有勾选列：作业页不做批量删除，勾选列在这里没有用处。
+ * 操作列承载「明细」按钮——整行点击开抽屉的交互已按规范 6.0 废弃，操作员点行往往只是想看清
+ * 某格内容，热区铺满整行会误触。只有 1 个固定动作，按规范 3.4 取 1 位档 100。
  */
 export function useArrivalGridColumns(): VxeTableGridOptions<WmsArrivalApi.Arrival>['columns'] {
   return [
@@ -72,11 +73,12 @@ export function useArrivalGridColumns(): VxeTableGridOptions<WmsArrivalApi.Arriv
         props: { type: DICT_TYPE.WMS_ARRIVAL_STATUS },
       },
     },
+    { title: '操作', width: 100, fixed: 'right', slots: { default: 'actions' } },
   ];
 }
 
 /**
- * 右侧到货明细的列。
+ * 到货明细（抽屉内作业表格）的列。
  *
  * 数量、到货批次、供应商批次三列走插槽：草稿态时渲染输入控件让操作员按实收改，
  * 确认到货之后渲染纯文本——`confirmArrival` 会逐行注册批次并回写 `lotNo`，

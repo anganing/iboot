@@ -253,7 +253,10 @@ export function useGridColumns(): VxeTableGridOptions<MesOpSkipRecordApi.OpSkipR
     },
     {
       title: '操作',
-      width: 240,
+      // 固定“详情 + 撤销”2 位，低频的审批进度进文字“更多”，共 3 位。
+      // 本页不挂编码链接列：没有能唯一标识本行的业务编码（opTaskNo 是被跳过工序的编号，
+      // 同一工序撤销后可再次跳序，不唯一），详情只走操作列按钮，见 待决问题.md。
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

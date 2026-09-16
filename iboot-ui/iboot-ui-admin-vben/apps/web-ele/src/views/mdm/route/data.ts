@@ -147,7 +147,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmRouteApi.Route>['column
     { field: 'remark', title: '备注', minWidth: 160 },
     {
       title: '操作',
-      width: 340,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

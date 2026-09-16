@@ -20,7 +20,7 @@ import { WH_RELATION_PROPS } from '../../relation-config';
  * 让作业页反向依赖单据页的 data.ts 会把两个页面焊死，改一个必然波及另一个。
  */
 
-/** 左侧盘点单列表的搜索表单。作业页左栏窄，固定单列排布，否则响应式三列会把控件挤成一条缝 */
+/** 盘点单列表的搜索表单：列表已占满整页，沿用默认响应式栅格，不再固定单列 */
 export function useCountOrderGridFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -52,10 +52,10 @@ export function useCountOrderGridFormSchema(): VbenFormSchema[] {
 }
 
 /**
- * 左侧盘点单列表的列。
+ * 盘点单列表的列。
  *
- * 没有勾选列与操作列：作业页是"左边选一张单、右边把这张单做完"的形态，动作按钮统一挂在右侧
- * 明细区的工具栏上。勾选列在这里没有用处（不做批量删除），操作列会把窄栏挤没。
+ * 没有勾选列：作业页不做批量删除。操作列承载「明细」按钮——整行点击开抽屉已按规范 6.0 废弃，
+ * 点行往往只是想看清某格内容，热区铺满整行会误触。只有 1 个固定动作，取规范 3.4 的 1 位档 100。
  */
 export function useCountOrderGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrder>['columns'] {
   return [
@@ -83,11 +83,12 @@ export function useCountOrderGridColumns(): VxeTableGridOptions<WmsCountOrderApi
       width: 100,
       cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
+    { title: '操作', width: 100, fixed: 'right', slots: { default: 'actions' } },
   ];
 }
 
 /**
- * 右侧盘点行的列。
+ * 盘点行（抽屉内作业表格）的列。
  *
  * @param blindCount 是否盲盘。盲盘时**账面数量列不渲染**——盘点员看得见账面就会照抄，
  *   盘点结果失去意义（`03-WMS仓储库存流程.md` 流程四）。

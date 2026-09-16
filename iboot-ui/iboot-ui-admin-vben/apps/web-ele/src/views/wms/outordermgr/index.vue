@@ -16,21 +16,40 @@ import {
   deleteOutOrder,
   deleteOutOrderList,
   exportOutOrder,
-  pickOutOrder,
   getOutOrderPage,
+  pickOutOrder,
   submitOutOrder,
 } from '#/api/wms/outordermgr';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { canPostOrder, isOrderDraft } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import OutOrderDetailDrawer from './modules/out-order-detail.vue';
 import OutOrderLineDrawer from './modules/out-order-line-drawer.vue';
 
 const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: OutOrderLineDrawer,
   destroyOnClose: true,
 });
+
+const [Detail, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: OutOrderDetailDrawer,
+  destroyOnClose: true,
+});
+
+/** 双击出库单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsOutOrderApi.OutOrder;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -254,8 +273,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <Detail />
     <LineDrawer />
-    <Grid table-title="出库单列表">
+    <Grid table-title="出库单列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -302,6 +322,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:send',
               auth: ['wms:out-order:submit'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可提交',
               onClick: handleSubmit.bind(null, row),
             },
             {
@@ -311,6 +332,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:check-check',
               auth: ['wms:out-order:confirm'],
               disabled: !canPostOrder(row.status),
+              tooltip: canPostOrder(row.status) ? undefined : '仅已提交的单据可过账',
               onClick: handleConfirm.bind(null, row),
             },
             {
@@ -322,33 +344,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
               disabled:
                 row.bizType !== 'SALES_DELIVERY_OUT' ||
                 !canPostOrder(row.status),
+              tooltip:
+                row.bizType === 'SALES_DELIVERY_OUT' && canPostOrder(row.status)
+                  ? undefined
+                  : '仅已提交的销售出库单可拣选',
               onClick: handlePick.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: '取消',
               type: 'warning',
-              link: true,
               icon: 'lucide:ban',
               auth: ['wms:out-order:cancel'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可取消',
               onClick: handleCancel.bind(null, row),
             },
             {
               label: $t('common.edit'),
               type: 'primary',
-              link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['wms:out-order:update'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可修改',
               onClick: handleEdit.bind(null, row),
             },
             {
               label: $t('common.delete'),
               type: 'danger',
-              link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['wms:out-order:delete'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可删除',
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.outNo]),
                 confirm: handleDelete.bind(null, row),

@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import { MAT_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 import { LOC_RELATION_PROPS, WH_RELATION_PROPS } from '../relation-config';
@@ -78,7 +78,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<WmsInvLockApi.InvLock>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'lockNo', title: '冻结编号', minWidth: 160 },
+    {
+      field: 'lockNo',
+      title: '冻结编号',
+      minWidth: 160,
+      // 冻结编号有唯一索引 uk_wms_inv_lock_no_deleted，是本行记录的唯一业务编码，
+      // 拿它做链接列双击才能稳定定位到这一条冻结；物料/库位/批次是维度，会命中多行。
+      ...codeLinkColumn(),
+    },
     { field: 'bizNo', title: '来源单号', minWidth: 150 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },
     { field: 'matName', title: '物料名称', minWidth: 160 },
@@ -116,7 +123,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsInvLockApi.InvLock>['co
     },
     {
       title: '操作',
-      width: 160,
+      // 本列只有「解冻」1 个固定动作，按规范 3.4 档位表取 100；原先的 160 是留白不是位数
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   INV_ORG_RELATION_PROPS,
   MAT_RELATION_PROPS,
@@ -189,7 +189,9 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'reqNo', title: '申请单号', minWidth: 160 },
+    // reqNo 由编码规则分配，唯一标识本张申请单；prodOrderNo/workOrderNo/opTaskNo 都是上游单据号，
+    // 双击它们开的是本行详情，语义错位，所以只挂 reqNo 这一列
+    { field: 'reqNo', title: '申请单号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'reqType',
       title: '申请类型',
@@ -233,7 +235,8 @@ export function useGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Material
     },
     {
       title: '操作',
-      width: 260,
+      // 3 个固定业务动作（明细、提交、确认）+ 文字“更多”= 4 位
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -77,5 +77,12 @@ export function useGridColumns(): VxeTableGridOptions<ApsLoadApi.Load>['columns'
       minWidth: 160,
       formatter: 'formatDateTime',
     },
+    {
+      title: '操作',
+      // 仅“重算负荷”1 个动作（负荷是按版本重算的派生结果，不是增删改），1 位取 100 档
+      width: 100,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
   ];
 }

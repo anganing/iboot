@@ -147,7 +147,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsShortageApi.Shortage>['
     { field: 'remark', title: '备注', minWidth: 160 },
     {
       title: '操作',
-      width: 180,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

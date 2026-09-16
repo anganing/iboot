@@ -9,7 +9,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import { MAT_RELATION_PROPS, USER_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 /** 质检任务只能由业务规则生成，本页没有手工 CRUD 表单。 */
@@ -80,7 +80,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MesQcTaskApi.QcTask>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'taskNo', title: '质检任务号', minWidth: 160 },
+    // 20 列宽表放不下规则快照、幂等键等字段，任务号是本行唯一的业务编号，用它做双击详情入口
+    { field: 'taskNo', title: '质检任务号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'triggerPoint',
       title: '触发点',
@@ -131,6 +132,7 @@ export function useGridColumns(): VxeTableGridOptions<MesQcTaskApi.QcTask>['colu
     },
     {
       title: '操作',
+      // 固定「指派 / 开始检验 / 提交结论」3 位 + 文字「更多」1 位 = 4 位，取 280 档
       width: 280,
       fixed: 'right',
       slots: { default: 'actions' },

@@ -75,7 +75,7 @@ export function useOpSkillReqGridColumns(): VxeTableGridOptions<MdmSkillApi.OpSk
     },
     {
       title: '操作',
-      width: 150,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

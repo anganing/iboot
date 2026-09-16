@@ -58,6 +58,9 @@ export function useReqGridColumns(): VxeTableGridOptions<MesMaterialReqApi.Mater
         props: { type: DICT_TYPE.MES_MATERIAL_REQ_STATUS },
       },
     },
+    // 作业入口从"整行点击"改为显式按钮，避免整行误触。
+    // 本页只有「明细」1 个固定动作（确认出库在抽屉内），按规范 3.4 取 1 位档 100。
+    { title: '操作', width: 100, fixed: 'right', slots: { default: 'actions' } },
   ];
 }
 

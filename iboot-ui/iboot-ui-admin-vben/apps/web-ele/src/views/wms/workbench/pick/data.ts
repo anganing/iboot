@@ -18,7 +18,7 @@ import { WH_RELATION_PROPS } from '../../relation-config';
  * 数量、还要显示当前库存可用量。让作业页反向依赖单据页的 data.ts 会把两个页面焊死。
  */
 
-/** 左侧出库单列表的搜索表单。左栏窄，固定单列排布 */
+/** 出库单列表的搜索表单：列表已占满整页，沿用默认响应式栅格，不再固定单列 */
 export function useOutOrderGridFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -60,9 +60,10 @@ export function useOutOrderGridFormSchema(): VbenFormSchema[] {
 }
 
 /**
- * 左侧出库单列表的列。
+ * 出库单列表的列。
  *
- * 没有勾选列与操作列：动作按钮统一挂在右侧明细区的工具栏上，窄栏放不下操作列。
+ * 没有勾选列：作业页不做批量删除。操作列承载「明细」按钮——整行点击开抽屉已按规范 6.0 废弃，
+ * 点行往往只是想看清某格内容，热区铺满整行会误触。只有 1 个固定动作，取规范 3.4 的 1 位档 100。
  */
 export function useOutOrderGridColumns(): VxeTableGridOptions<WmsOutOrderApi.OutOrder>['columns'] {
   return [
@@ -84,11 +85,12 @@ export function useOutOrderGridColumns(): VxeTableGridOptions<WmsOutOrderApi.Out
       width: 100,
       cellRender: { name: 'CellDict', props: { type: DICT_TYPE.WMS_ORDER_STATUS } },
     },
+    { title: '操作', width: 100, fixed: 'right', slots: { default: 'actions' } },
   ];
 }
 
 /**
- * 右侧出库明细的列。
+ * 出库明细（抽屉内作业表格）的列。
  *
  * 批次与库位是**只读**的：后端没有拣选分配动作，`submitOutOrder` 只推状态、不按 PICK 策略选批次
  * 与库位，所以行上的批次与库位就是建单时指定的值。缺任意一个，过账都会失败

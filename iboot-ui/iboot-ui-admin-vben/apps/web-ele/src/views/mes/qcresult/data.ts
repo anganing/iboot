@@ -191,7 +191,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MesQcResultApi.QcResult>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
     { field: 'taskNo', title: '质检任务号', minWidth: 160 },
     { field: 'itemCode', title: '检验项编码', minWidth: 140 },
@@ -232,11 +231,7 @@ export function useGridColumns(): VxeTableGridOptions<MesQcResultApi.QcResult>['
       minWidth: 160,
       formatter: 'formatDateTime',
     },
-    {
-      title: '操作',
-      width: 160,
-      fixed: 'right',
-      slots: { default: 'actions' },
-    },
+    // 不设操作列：检验结果由作业页 batch-save 过账，后端只有 get/page/export-excel/batch-save
+    // 四个端点，没有单条增删改，留一列空操作列只会吃掉横向宽度。
   ];
 }

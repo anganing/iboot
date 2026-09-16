@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 
 import {
   CONTAINER_RELATION_PROPS,
@@ -295,7 +295,14 @@ export function useGridColumns(): VxeTableGridOptions<WmsDeviceTaskApi.DeviceTas
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'taskNo', title: '任务号', minWidth: 160 },
+    {
+      field: 'taskNo',
+      title: '任务号',
+      minWidth: 160,
+      // 任务号有唯一索引 uk_wms_device_task_no_deleted，是本行唯一业务编码；
+      // 外部任务号由设备系统回传、可空且与外部系统编码联合唯一，单独双击会定位到别的任务。
+      ...codeLinkColumn(),
+    },
     { field: 'externalTaskNo', title: '外部任务号', minWidth: 150 },
     {
       field: 'taskType',

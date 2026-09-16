@@ -287,7 +287,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmOpApi.Op>['columns'] {
     },
     {
       title: '操作',
-      width: 280,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -4,16 +4,16 @@ import type { MesQcPlanApi } from '#/api/mes/qcplan';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  disableQcPlan,
   deleteQcPlan,
   deleteQcPlanList,
+  disableQcPlan,
   exportQcPlan,
   getQcPlanPage,
   publishQcPlan,
@@ -22,15 +22,33 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import QcPlanItemsDrawer from './modules/qc-plan-items-drawer.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
+const [ItemsDrawer, itemsDrawerApi] = useVbenDrawer({
+  connectedComponent: QcPlanItemsDrawer,
+  destroyOnClose: true,
+});
+
 /** 刷新表格 */
 function handleRefresh() {
   gridApi.query();
+}
+
+/** 维护当前方案的检验项目（原独立菜单「检验项目」并入本抽屉） */
+function handleOpenItems(row: MesQcPlanApi.QcPlan) {
+  itemsDrawerApi
+    .setData({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+    })
+    .open();
 }
 
 /** 创建检验方案 */
@@ -59,7 +77,10 @@ async function handleDelete(row: MesQcPlanApi.QcPlan) {
 
 /** 批量删除检验方案 */
 async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
+  // 后端在同一事务里级联删除方案下的检验项，确认文案必须说清楚，否则用户不知道掉了什么
+  await confirm(
+    `确认删除选中的 ${checkedIds.value.length} 个检验方案？方案下的检验项目将一并删除。`,
+  );
   const loadingInstance = ElLoading.service({
     text: $t('ui.actionMessage.deletingBatch'),
   });
@@ -154,6 +175,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <ItemsDrawer />
     <Grid table-title="检验方案列表">
       <template #toolbar-tools>
         <TableAction
@@ -187,13 +209,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
+              label: '检验项目',
               type: 'primary',
               link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:qc-plan:update'],
-              disabled: row.status !== 'DRAFT',
-              onClick: handleEdit.bind(null, row),
+              icon: ACTION_ICON.BOOK,
+              auth: ['mes:qc-item:query'],
+              onClick: handleOpenItems.bind(null, row),
             },
             {
               label: '发布',
@@ -201,6 +222,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:qc-plan:publish'],
               disabled: row.status !== 'DRAFT',
+              tooltip:
+                row.status === 'DRAFT'
+                  ? undefined
+                  : '仅草稿方案可发布；已发布方案由质检任务锁定引用',
               popConfirm: {
                 title: `确认发布检验方案 ${row.code}？发布后不可编辑。`,
                 confirm: handlePublish.bind(null, row),
@@ -212,10 +237,25 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:qc-plan:disable'],
               disabled: row.status !== 'PUBLISHED',
+              tooltip:
+                row.status === 'PUBLISHED'
+                  ? undefined
+                  : '仅已发布方案可停用',
               popConfirm: {
                 title: `确认停用检验方案 ${row.code}？`,
                 confirm: handleDisable.bind(null, row),
               },
+            },
+          ]"
+          :drop-down-actions="[
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mes:qc-plan:update'],
+              disabled: row.status !== 'DRAFT',
+              onClick: handleEdit.bind(null, row),
             },
             {
               label: $t('common.delete'),
@@ -224,7 +264,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mes:qc-plan:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.code]),
+                title: `确认删除检验方案 ${row.code}？该方案下的检验项目将一并删除。`,
                 confirm: handleDelete.bind(null, row),
               },
             },

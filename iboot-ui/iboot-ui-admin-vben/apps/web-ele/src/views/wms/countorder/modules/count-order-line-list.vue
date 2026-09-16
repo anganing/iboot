@@ -20,7 +20,10 @@ import {
  * "录实盘"按钮走 `/submit-result` 批量提交。
  */
 const props = defineProps<{
-  orderId?: number; // 盘点单编号（主表的关联字段）
+  // 主键是雪花 ID，超出 JS 安全整数（2^53）时后端序列化成字符串，因此父键两种形态都要接受。
+  // 不能在这里 Number()/parseInt 转换：2098432401759043585 会被截成 2098432401759043600，
+  // 拿一个不存在的编号去查明细，是查不出数据的静默故障。
+  orderId?: number | string; // 盘点单编号（主表的关联字段）
   orderNo?: string; // 盘点单单号，用于表格标题
 }>();
 

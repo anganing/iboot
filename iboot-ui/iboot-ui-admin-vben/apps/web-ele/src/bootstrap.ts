@@ -11,6 +11,8 @@ import '@vben/styles/ele';
 import { useTitle } from '@vueuse/core';
 import { ElLoading } from 'element-plus';
 
+import '#/styles/index.scss';
+
 import { $t, setupI18n } from '#/locales';
 import { setupFormCreate } from '#/plugins/form-create';
 

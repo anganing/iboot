@@ -69,6 +69,9 @@ export function useTaskGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['
         props: { type: DICT_TYPE.MES_OP_TASK_STATUS },
       },
     },
+    // 作业入口从"整行点击"改为显式按钮，避免整行误触；7 个作业页统一叫「明细」。
+    // 本页只有 1 个固定动作（开工/报工/完工都在抽屉内），按规范 3.4 取 1 位档 100。
+    { title: '操作', width: 100, fixed: 'right', slots: { default: 'actions' } },
   ];
 }
 

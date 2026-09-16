@@ -2,16 +2,10 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesOpTaskApi } from '#/api/mes/optask';
 
-import { Page, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
-import {
-  ElButton,
-  ElDropdown,
-  ElLoading,
-  ElMessage,
-  ElMessageBox,
-} from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -22,9 +16,11 @@ import {
   startOpTask,
 } from '#/api/mes/optask';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { OP_TASK_STATUS, useGridColumns, useGridFormSchema } from './data';
 import FinishForm from './modules/finish-form.vue';
+import OptaskDetail from './modules/optask-detail.vue';
 import SkipForm from './modules/skip-form.vue';
 
 const [FinishModal, finishModalApi] = useVbenModal({
@@ -35,7 +31,16 @@ const [SkipModal, skipModalApi] = useVbenModal({
   connectedComponent: SkipForm,
   destroyOnClose: true,
 });
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: OptaskDetail,
+  destroyOnClose: true,
+});
 
+/**
+ * 以下门控逐条对齐后端 MesOpTaskStateMachine 的迁移表，不写成前端自由判断：
+ * 判断宽了会出现“按钮可点但后端抛状态非法”，判断窄了会把合法动作藏起来。
+ * 完工只放开 RUNNING 是因为 QC_WAITING 由检验合格联动到 DONE，不由人工完工。
+ */
 function canStart(row: MesOpTaskApi.OpTask) {
   return row.status === OP_TASK_STATUS.READY;
 }
@@ -151,6 +156,23 @@ async function handleExport() {
   downloadFileFromBlobPart({ fileName: '工序任务.xls', source: data });
 }
 
+/**
+ * 双击工序任务号（链接列）打开只读详情。
+ *
+ * 只认链接列，整行与其余单元格一律不响应：工序任务列表 19 列、行高密集，
+ * 做成整行热区会频繁误开抽屉；工序编码列也不能当入口（同工单多行重复）。
+ */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesOpTaskApi.OpTask;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
@@ -186,7 +208,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FinishModal @success="handleRefresh" />
     <SkipModal @success="handleRefresh" />
-    <Grid table-title="工序任务列表">
+    <DetailDrawer />
+    <Grid table-title="工序任务列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -201,54 +224,67 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <div class="flex items-center justify-center gap-1">
-          <ElButton
-            v-access:code="['mes:op-task:start']"
-            :disabled="!canStart(row)"
-            link
-            type="primary"
-            @click="handleStart(row)"
-            >
-开工
-</ElButton>
-          <ElButton
-            v-access:code="['mes:op-task:finish']"
-            :disabled="!canFinish(row)"
-            link
-            type="primary"
-            @click="handleFinish(row)"
-            >
-完工
-</ElButton>
-          <ElDropdown placement="bottom-end" trigger="click">
-            <ElButton link type="primary">更多</ElButton>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                  v-access:code="['mes:op-task:pause']"
-                  :disabled="!canPause(row)"
-                  @click="handlePause(row)"
-                  >
-暂停
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:op-task:resume']"
-                  :disabled="!canResume(row)"
-                  @click="handleResume(row)"
-                  >
-恢复
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:op-task:skip']"
-                  :disabled="!canSkip(row)"
-                  @click="handleSkip(row)"
-                  >
-跳序
-</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </ElDropdown>
-        </div>
+        <TableAction
+          :actions="[
+            {
+              label: '开工',
+              type: 'primary',
+              link: true,
+              auth: ['mes:op-task:start'],
+              disabled: !canStart(row),
+              tooltip: canStart(row)
+                ? undefined
+                : '仅「待开工」的工序可开工；待排产需先下达计划，已开工或已完工不可重复开工',
+              onClick: handleStart.bind(null, row),
+            },
+            {
+              label: '完工',
+              type: 'primary',
+              link: true,
+              auth: ['mes:op-task:finish'],
+              disabled: !canFinish(row),
+              tooltip: canFinish(row)
+                ? undefined
+                : '仅「加工中」的工序可完工；需检验的工序由报工与检验联动推进',
+              onClick: handleFinish.bind(null, row),
+            },
+            {
+              label: '跳序',
+              type: 'primary',
+              link: true,
+              auth: ['mes:op-task:skip'],
+              disabled: !canSkip(row),
+              tooltip: canSkip(row)
+                ? undefined
+                : '跳序只允许发生在未开工（待排产/待开工）的工序上，已开工后只能走返工或报废',
+              onClick: handleSkip.bind(null, row),
+            },
+          ]"
+          :drop-down-actions="[
+            {
+              // type 一律 primary：TableAction 的「更多」触发按钮取的是
+              // getDropdownList[0].type，这里写 warning 会把「更多」一起染色
+              label: '暂停',
+              type: 'primary',
+              link: true,
+              auth: ['mes:op-task:pause'],
+              disabled: !canPause(row),
+              tooltip: canPause(row) ? undefined : '仅「加工中」的工序可暂停',
+              onClick: handlePause.bind(null, row),
+            },
+            {
+              label: '恢复',
+              type: 'primary',
+              link: true,
+              auth: ['mes:op-task:resume'],
+              disabled: !canResume(row),
+              tooltip: canResume(row)
+                ? undefined
+                : '只有已暂停或质量挂起的工序可以恢复加工',
+              onClick: handleResume.bind(null, row),
+            },
+          ]"
+        />
       </template>
     </Grid>
   </Page>

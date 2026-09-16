@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   PLANT_RELATION_PROPS,
   WC_RELATION_PROPS,
@@ -173,7 +173,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MesWorkOrderApi.WorkOrder>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
+    // workOrderNo 由编码规则 MES_WORK_ORDER_NO 分配，唯一标识本行；prodOrderNo 是上游生产工单号
+    { field: 'workOrderNo', title: '作业工单号', minWidth: 160, ...codeLinkColumn() },
     { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
     { field: 'matCode', title: '物料编码', minWidth: 140 },
     { field: 'matName', title: '物料名称', minWidth: 160 },

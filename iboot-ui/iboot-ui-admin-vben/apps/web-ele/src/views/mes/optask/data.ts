@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   OP_RELATION_PROPS,
   RES_RELATION_PROPS,
@@ -182,7 +182,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'taskNo', title: '工序任务号', minWidth: 160 },
+    {
+      field: 'taskNo',
+      title: '工序任务号',
+      minWidth: 160,
+      // 任务号在 mes_op_task 上有唯一索引（uk_mes_op_task_no_deleted），是本行记录的唯一业务编号；
+      // opCode 是关联工序的父维度编码，同一工单下多行重复，不能当详情入口。
+      ...codeLinkColumn(),
+    },
     { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
     { field: 'prodOrderNo', title: '生产工单号', minWidth: 160 },
     { field: 'seq', title: '工序顺序', minWidth: 100 },
@@ -250,7 +257,9 @@ export function useGridColumns(): VxeTableGridOptions<MesOpTaskApi.OpTask>['colu
     },
     {
       title: '操作',
-      width: 180,
+      // 位数 = 固定 3 个（开工、完工、跳序）+「更多」1 位 = 4 位，按规范 3.4 取档位 280；
+      // 原 180 是中间值，且旧写法把高频的跳序塞进下拉，宽度还装不下固定按钮
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

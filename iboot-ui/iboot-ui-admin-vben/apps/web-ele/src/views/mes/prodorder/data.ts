@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   MAT_RELATION_PROPS,
   PLANT_RELATION_PROPS,
@@ -270,7 +270,9 @@ export function useGridColumns(): VxeTableGridOptions<MesProdOrderApi.ProdOrder>
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'orderNo', title: '生产工单号', minWidth: 160 },
+    // orderNo 是本行唯一编码（编码规则 MES_PROD_ORDER_NO 分配），双击它开本工单详情；
+    // matCode/uomCode 是关联对象编码，挂链接会变成"点物料开工单"的语义错位
+    { field: 'orderNo', title: '生产工单号', minWidth: 160, ...codeLinkColumn() },
     { field: 'demandNo', title: '生产需求单号', minWidth: 160 },
     { field: 'plantName', title: '工厂', minWidth: 130 },
     { field: 'workshopName', title: '车间', minWidth: 130 },
@@ -323,7 +325,8 @@ export function useGridColumns(): VxeTableGridOptions<MesProdOrderApi.ProdOrder>
     },
     {
       title: '操作',
-      width: 220,
+      // 3 个固定业务动作（下达、齐套检查、挂起）+ 文字“更多”= 4 位
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },

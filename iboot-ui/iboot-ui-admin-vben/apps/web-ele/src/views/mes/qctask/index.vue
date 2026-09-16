@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesQcTaskApi } from '#/api/mes/qctask';
 
-import { Page } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -17,8 +17,27 @@ import {
   submitQcTaskConclusion,
 } from '#/api/mes/qctask';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import Detail from './modules/qc-task-detail.vue';
+
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: Detail,
+  destroyOnClose: true,
+});
+
+/** 双击质检任务号（链接列）打开只读详情；本页无写型"明细"按钮，按规范 3.5 双击是唯一入口 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesQcTaskApi.QcTask;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 
 /** 刷新表格 */
 function handleRefresh() {
@@ -119,7 +138,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <Grid table-title="质检任务列表">
+    <DetailDrawer />
+    <Grid table-title="质检任务列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -142,6 +162,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:qc-task:assign'],
               disabled: row.status !== 'CREATED',
+              tooltip:
+                row.status === 'CREATED'
+                  ? undefined
+                  : '仅已创建的任务可指派检验员',
               onClick: handleAssign.bind(null, row),
             },
             {
@@ -150,6 +174,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:qc-task:start-inspect'],
               disabled: row.status !== 'ASSIGNED',
+              tooltip:
+                row.status === 'ASSIGNED'
+                  ? undefined
+                  : '任务已指派后才能开始检验',
               onClick: handleStart.bind(null, row),
             },
             {
@@ -158,8 +186,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:qc-task:submit-conclusion'],
               disabled: row.status !== 'RESULT_POSTING',
+              tooltip:
+                row.status === 'RESULT_POSTING'
+                  ? undefined
+                  : '检验结果录入完成后才能提交结论',
               onClick: handleSubmit.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: '取消',
               type: 'danger',

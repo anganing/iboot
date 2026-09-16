@@ -87,6 +87,14 @@ function handleViewConstraintMatch(row: ApsVersionApi.Version) {
     .open();
 }
 
+/** 可确认的求解状态：求解中出可行解即可先确认，避免必须等停机 */
+const CONFIRMABLE_STATUS = ['PENDING_CONFIRM', 'SOLVED', 'SOLVING'];
+
+/** 是否处于可确认状态：不满足时“确认”按钮置灰并给出原因，而不是隐藏 */
+function canConfirm(row: ApsVersionApi.Version) {
+  return CONFIRMABLE_STATUS.includes(row.status ?? '');
+}
+
 /** 确认排程版本 */
 async function handleConfirm(row: ApsVersionApi.Version) {
   const loadingInstance = ElLoading.service({ text: '正在确认版本...' });
@@ -187,6 +195,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleViewProgress.bind(null, row),
             },
             {
+              label: '确认',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.AUDIT,
+              auth: ['aps:version:update'],
+              disabled: !canConfirm(row),
+              tooltip: canConfirm(row)
+                ? undefined
+                : '仅求解中、已求解或待确认状态可以确认',
+              popConfirm: {
+                title: `确认排程版本【${row.scenarioCode} V${row.versionNo}】的求解结果吗？`,
+                confirm: handleConfirm.bind(null, row),
+              },
+            },
+            {
+              label: '发布',
+              type: 'success',
+              link: true,
+              icon: ACTION_ICON.UPLOAD,
+              auth: ['aps:version:update'],
+              disabled: row.status !== 'CONFIRMED',
+              tooltip:
+                row.status === 'CONFIRMED'
+                  ? undefined
+                  : '仅已确认的版本可以发布',
+              popConfirm: {
+                title: `发布后同场景原已发布版本将被置为已被替换，确认发布【${row.scenarioCode} V${row.versionNo}】吗？`,
+                confirm: handlePublish.bind(null, row),
+              },
+            },
+          ]"
+          :drop-down-actions="[
+            {
               label: '甘特图',
               type: 'primary',
               link: true,
@@ -201,32 +242,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:scale',
               auth: ['aps:solver-snapshot:query'],
               onClick: handleViewConstraintMatch.bind(null, row),
-            },
-            {
-              label: '确认',
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.AUDIT,
-              auth: ['aps:version:update'],
-              disabled: !['PENDING_CONFIRM', 'SOLVED', 'SOLVING'].includes(
-                row.status ?? '',
-              ),
-              popConfirm: {
-                title: `确认排程版本【${row.scenarioCode} V${row.versionNo}】的求解结果吗？`,
-                confirm: handleConfirm.bind(null, row),
-              },
-            },
-            {
-              label: '发布',
-              type: 'success',
-              link: true,
-              icon: ACTION_ICON.UPLOAD,
-              auth: ['aps:version:update'],
-              disabled: row.status !== 'CONFIRMED',
-              popConfirm: {
-                title: `发布后同场景原已发布版本将被置为已被替换，确认发布【${row.scenarioCode} V${row.versionNo}】吗？`,
-                confirm: handlePublish.bind(null, row),
-              },
             },
           ]"
         />

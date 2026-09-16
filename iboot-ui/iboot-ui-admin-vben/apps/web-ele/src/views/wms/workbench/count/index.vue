@@ -20,7 +20,7 @@ import {
   ElSwitch,
 } from 'element-plus';
 
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   freezeCountOrder,
   getCountOrder,
@@ -43,7 +43,7 @@ import {
 } from './data';
 
 /**
- * 盘点作业页：全宽列表点行打开抽屉，一条流走完"选盘点单 → 冻结范围 → 逐行录实盘 →
+ * 盘点作业页：全宽列表点「明细」打开抽屉，一条流走完"选盘点单 → 冻结范围 → 逐行录实盘 →
  * 提交 → 就地看差异 → 确认差异"。
  *
  * 与单据式的 `views/wms/countorder` 的分工：单据页管盘点单的建、改、删与只读明细复核，
@@ -152,11 +152,9 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
         },
       },
     },
-    rowConfig: {
-      keyField: 'id',
-      isCurrent: true,
-      isHover: true,
-    },
+    // 不再用 isCurrent：vxe 的当前行高亮由点击行触发，入口改成「明细」按钮后
+    // "被高亮的行"和"真正打开抽屉的行"会分叉，反而误导操作员
+    rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: {
       custom: true,
       refresh: true,
@@ -164,26 +162,6 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
       zoom: false,
     },
   } as VxeTableGridOptions<WmsCountOrderApi.CountOrder>,
-  gridEvents: {
-    cellClick: ({
-      row,
-      column,
-    }: {
-      // vxe 的 ColumnInfo.slots 混着函数签名，事件参数里只取用得到的两段，不做完整标注
-      column: any;
-      row: WmsCountOrderApi.CountOrder;
-    }) => {
-      // 命中序号列、勾选列或操作列（slots.default === 'actions'）不算"选这张单"，不开抽屉
-      if (
-        column?.type === 'checkbox' ||
-        column?.type === 'seq' ||
-        column?.slots?.default === 'actions'
-      ) {
-        return;
-      }
-      handleSelectOrder(row);
-    },
-  },
 });
 
 const [LineGrid, lineGridApi] = useVbenVxeGrid({
@@ -280,10 +258,59 @@ async function loadLines() {
 }
 
 /**
- * 行点击选中一张盘点单：清掉上一张单的数据与过滤态、按新单据的盲盘标识重排列可见性，
+ * 三个动作各自不能执行的原因，空串表示可以执行。
+ *
+ * 禁用的按钮保留展示并在 tooltip 里给原因（规范 3.4）：盘点这条流是"冻结 → 录实盘 → 提交
+ * → 差异审批"，卡住的环节不同、下一步动作也不同，只把按钮变灰操作员不知道下一步该点什么。
+ * 收敛成计算属性后 disabled 与 tooltip 同源，不会出现"按钮灰着却提示可以点"。
+ */
+const freezeBlockReason = computed(() => {
+  if (!order.value) {
+    return '请先选择一张盘点单';
+  }
+  return canFreeze(order.value.status)
+    ? ''
+    : '仅新建态的盘点单能冻结范围，已冻结的盘点范围不能再改';
+});
+
+const submitBlockReason = computed(() => {
+  const current = order.value;
+  if (!current) {
+    return '请先选择一张盘点单';
+  }
+  if (current.approvalStatus === 1) {
+    return '差异审批进行中，不能重复提交实盘';
+  }
+  if (!canSubmitResult(current)) {
+    return '请先冻结盘点范围，冻结后才能录入并提交实盘';
+  }
+  if (truncated.value) {
+    return `盘点行超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能只提交前一部分`;
+  }
+  return recordedCount.value === 0 ? '还没有一行录入实盘数量' : '';
+});
+
+const diffApprovalBlockReason = computed(() => {
+  const current = order.value;
+  if (!current) {
+    return '请先选择一张盘点单';
+  }
+  if (!canSubmitDiffApproval(current)) {
+    return current.approvalStatus === 1
+      ? '差异审批已在进行中'
+      : '需先提交实盘结果、单据进入盘点中后才能提交差异审批';
+  }
+  return diffLines.value.length === 0
+    ? '本次盘点没有差异，无需提交审批调账'
+    : '';
+});
+
+/**
+ * 打开盘点作业抽屉：入口是操作列「明细」按钮而不是整行点击（整行热区会误触）。
+ * 进来先清掉上一张单的数据与过滤态、按新单据的盲盘标识重排列可见性，
  * 先开抽屉再异步读明细，明细多时用户先进抽屉看 loading 而不是干等。
  */
-async function handleSelectOrder(row: WmsCountOrderApi.CountOrder) {
+async function handleOpenDetail(row: WmsCountOrderApi.CountOrder) {
   order.value = row;
   diffOnly.value = false;
   lines.value = [];
@@ -302,7 +329,6 @@ async function handleDrawerClosed() {
   lines.value = [];
   truncated.value = false;
   diffOnly.value = false;
-  orderGridApi.grid.clearCurrentRow();
   await orderGridApi.query();
 }
 
@@ -560,7 +586,9 @@ async function handleSubmitDiffApproval() {
                 type: 'primary',
                 icon: 'lucide:snowflake',
                 auth: ['wms:count-order:freeze'],
-                disabled: !order || !canFreeze(order.status),
+                disabled: freezeBlockReason !== '',
+                // 禁用不隐藏，原因进 tooltip；空串时 TableAction 不渲染提示
+                tooltip: freezeBlockReason,
                 onClick: handleFreeze,
               },
               {
@@ -568,11 +596,8 @@ async function handleSubmitDiffApproval() {
                 type: 'primary',
                 icon: 'lucide:clipboard-pen-line',
                 auth: ['wms:count-order:submit-result'],
-                disabled:
-                  !order ||
-                  !canSubmitResult(order) ||
-                  truncated ||
-                  recordedCount === 0,
+                disabled: submitBlockReason !== '',
+                tooltip: submitBlockReason,
                 onClick: handleSubmitResult,
               },
               {
@@ -580,10 +605,8 @@ async function handleSubmitDiffApproval() {
                 type: 'warning',
                 icon: 'lucide:check-check',
                 auth: ['wms:count-order:submit-diff-approval'],
-                disabled:
-                  !order ||
-                  !canSubmitDiffApproval(order) ||
-                  diffLines.length === 0,
+                disabled: diffApprovalBlockReason !== '',
+                tooltip: diffApprovalBlockReason,
                 onClick: handleSubmitDiffApproval,
               },
               {
@@ -592,6 +615,7 @@ async function handleSubmitDiffApproval() {
                 icon: 'lucide:rotate-ccw',
                 auth: ['wms:count-order:query'],
                 disabled: !order,
+                tooltip: order ? '' : '请先选择一张盘点单',
                 onClick: loadLines,
               },
             ]"
@@ -599,7 +623,22 @@ async function handleSubmitDiffApproval() {
         </div>
       </div>
     </CountDrawer>
-    <OrderGrid table-title="盘点单列表" />
+    <OrderGrid table-title="盘点单列表">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:count-order:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </OrderGrid>
   </Page>
 </template>
 

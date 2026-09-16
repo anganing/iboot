@@ -18,7 +18,7 @@ import {
 } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { finishOpTask, getOpTaskPage, startOpTask } from '#/api/mes/optask';
 import { submitProdReport } from '#/api/mes/prodreport';
 
@@ -78,28 +78,11 @@ const [TaskGrid, taskGridApi] = useVbenVxeGrid({
           }),
       },
     },
-    rowConfig: { keyField: 'id', isCurrent: true, isHover: true },
+    // 不再用 isCurrent：vxe 的当前行高亮由点击行触发，入口改成「明细」按钮后
+    // "被高亮的行"和"真正打开抽屉的行"会分叉，反而误导操作员
+    rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   } as VxeTableGridOptions<MesOpTaskApi.OpTask>,
-  gridEvents: {
-    cellClick: async ({
-      row,
-      column,
-    }: {
-      column: { slots?: { default?: string }; type?: string };
-      row: MesOpTaskApi.OpTask;
-    }) => {
-      // 命中复选框、序号、操作列的单元格点击不打开抽屉
-      if (
-        column.type === 'checkbox' ||
-        column.type === 'seq' ||
-        column.slots?.default === 'actions'
-      ) {
-        return;
-      }
-      await handleSelectTask(row);
-    },
-  },
 });
 
 const [Drawer, drawerApi] = useVbenDrawer({
@@ -113,8 +96,13 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
 });
 
-/** 选中工序任务：回填摘要与表单并打开作业抽屉 */
-async function handleSelectTask(row: MesOpTaskApi.OpTask) {
+/**
+ * 选中工序任务并打开作业抽屉。
+ *
+ * 入口是操作列「明细」按钮而不是整行点击：整行热区会让人只想看某格内容时误开抽屉。
+ * 原来为"点行不误触"写的列类型判断随入口一起删掉。
+ */
+async function handleOpenDetail(row: MesOpTaskApi.OpTask) {
   selectedTask.value = row;
   await reportFormApi.resetForm();
   drawerApi.open();
@@ -228,6 +216,8 @@ async function handleFinish() {
         />
         <ReportForm class="min-h-0 flex-1 overflow-auto" />
         <div class="mt-4 flex shrink-0 justify-end">
+          <!-- 禁用按钮保留展示并在 tooltip 里说明卡在哪一步；可点时给空串，
+               TableAction 不渲染空提示，避免"仅某状态可开工"挂在能正常点的按钮上 -->
           <TableAction
             :actions="[
               {
@@ -236,6 +226,7 @@ async function handleFinish() {
                 icon: 'lucide:play',
                 auth: ['mes:op-task:start'],
                 disabled: !canStart,
+                tooltip: canStart ? '' : '仅待执行状态的任务可以开工',
                 onClick: handleStart,
               },
               {
@@ -244,6 +235,7 @@ async function handleFinish() {
                 icon: 'lucide:clipboard-check',
                 auth: ['mes:prod-report:create'],
                 disabled: !canReport,
+                tooltip: canReport ? '' : '仅生产中的任务可以提交报工',
                 onClick: handleReport,
               },
               {
@@ -252,6 +244,9 @@ async function handleFinish() {
                 icon: 'lucide:check-check',
                 auth: ['mes:op-task:finish'],
                 disabled: !canFinish,
+                tooltip: canFinish
+                  ? ''
+                  : '仅剩余数量为 0 的生产中任务可以完工，请先报满或走报废',
                 onClick: handleFinish,
               },
             ]"
@@ -259,6 +254,21 @@ async function handleFinish() {
         </div>
       </div>
     </Drawer>
-    <TaskGrid table-title="我的工序任务" />
+    <TaskGrid table-title="我的工序任务">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:op-task:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </TaskGrid>
   </Page>
 </template>

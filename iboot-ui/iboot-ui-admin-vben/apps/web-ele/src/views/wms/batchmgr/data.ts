@@ -177,7 +177,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsBatchApi.Batch>['column
     },
     {
       title: '操作',
-      width: 160,
+      // 本列只有「维护批属性」1 个固定动作（批次身份由入库注册，不开放改删），按 3.4 档位取 100
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

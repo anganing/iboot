@@ -219,6 +219,19 @@ function handleRowCheckboxChange({ records }: { records: MatrixRow[] }) {
   checkedResIds.value = records.map((item) => item.resId);
 }
 
+/**
+ * 单元格悬停提示内容：一个格子里可能堆多个班次，逐行列出后给出操作提示。
+ *
+ * 不要用逐条 ElTooltip：30 天 × 37 资源就是上千个组件实例，又因为左侧固定列 vxe 会把整行
+ * DOM 复制一份用于裁切，实例数直接翻倍。实测本月视图造出 1642 个 ElTooltip、1.6MB 的 DOM，
+ * 首屏主线程连续阻塞 9.8s，是页面卡在加载态的根因。
+ * 不用 vxe 自带 tooltip：它要么 showAll=true 时给所有列都强开提示，要么 showAll=false 时
+ * 忽略自定义内容，两种都会改变既有列的悬停行为，而浏览器原生 title 零实例且支持换行。
+ */
+function buildCellTitle(workDate: string, cell: MatrixCell) {
+  return `${workDate} ${cell.shiftName} · ${cell.availableMinutes} 分钟（单击编辑）`;
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
   gridOptions: {
     columns: buildColumns(),
@@ -235,6 +248,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
     rowConfig: { keyField: 'resId', isHover: true },
     // 单元格内可能纵向堆叠多个班次条，关闭溢出隐藏让内容完整显示
     showOverflow: false,
+    // 本月视图是 30 个日期列 × 全部资源，整表 2500+ 单元格一次性渲染要 5s 以上主线程；
+    // vxe 默认列数大于 60 才自动开启横向虚拟滚动，这里强制开启，只渲染可视区的日期列
+    virtualXConfig: { enabled: true, gt: 0 },
     toolbarConfig: { custom: false, refresh: true, search: false, zoom: true },
   } as VxeTableGridOptions<MatrixRow>,
   gridEvents: {
@@ -376,22 +392,19 @@ defineExpose({ refresh: reload });
           v-if="row[column.field]?.length"
           class="flex flex-col items-stretch gap-[2px]"
         >
-          <ElTooltip
+          <div
             v-for="cell in row[column.field]"
             :key="cell.id"
-            :content="`${cell.shiftName} · ${cell.availableMinutes} 分钟（单击编辑）`"
+            class="res-matrix-cell"
+            :title="buildCellTitle(column.params?.date, cell)"
+            :style="{ backgroundColor: cell.color }"
+            @click.stop="emit('edit', cell.id)"
           >
-            <div
-              class="res-matrix-cell"
-              :style="{ backgroundColor: cell.color }"
-              @click.stop="emit('edit', cell.id)"
-            >
-              <span class="truncate">{{ cell.shiftName }}</span>
-              <span class="shrink-0 opacity-80">
-                {{ cell.availableMinutes }}′
-              </span>
-            </div>
-          </ElTooltip>
+            <span class="truncate">{{ cell.shiftName }}</span>
+            <span class="shrink-0 opacity-80">
+              {{ cell.availableMinutes }}′
+            </span>
+          </div>
         </div>
         <span v-else class="text-foreground/25">+</span>
       </template>

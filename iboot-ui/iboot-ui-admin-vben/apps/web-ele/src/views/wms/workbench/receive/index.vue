@@ -19,7 +19,7 @@ import {
   ElMessageBox,
 } from 'element-plus';
 
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   confirmArrival,
   createInOrderFromArrival,
@@ -158,7 +158,52 @@ const resultTitle = computed(() => {
 });
 
 /**
- * 收货作业抽屉：选中到货单后承载"摘要 + 业务提示 + 选库位 + 明细作业"的整个右半场。
+ * 各动作不能执行的原因，空串表示可以执行。
+ *
+ * 禁用的按钮保留展示并在 tooltip 里给原因（规范 3.4）：收货上架是四步链，卡住的原因
+ * 有"状态不对""明细没读完""没选库位"三类，只把按钮变灰操作员只会反复点。
+ * 原来这些条件以复合布尔表达式散在模板里，收敛成计算属性后按钮的 disabled 与 tooltip 同源，
+ * 不会出现"按钮灰着但提示说可以点"的对不上。
+ */
+const saveBlockReason = computed(() => {
+  if (!lineEditable.value) {
+    return '已确认到货的单据，数量与批次都是既成事实，不能再改';
+  }
+  return lines.value.length === 0 ? '到货明细为空，没有可保存的行' : '';
+});
+
+const confirmBlockReason = computed(() => {
+  if (saveBlockReason.value) {
+    return saveBlockReason.value;
+  }
+  if (truncated.value) {
+    return `到货明细超过 ${LINE_MAX_COUNT} 行，界面只读到一部分，不能整单确认`;
+  }
+  return targetLocId.value ? '' : '请先选择上架库位';
+});
+
+const putawayBlockReason = computed(() => {
+  if (!arrival.value || !canCreateInOrderFromArrival(arrival.value.status)) {
+    return '仅已确认到货且还有待入库明细的单据能生成入库单';
+  }
+  if (readyLines.value.length === 0) {
+    return '没有待入库的明细行，全部行都要先检后入';
+  }
+  return targetLocId.value ? '' : '请先选择上架库位';
+});
+
+const retryPostBlockReason = computed(() => {
+  if (!lastResult.value) {
+    return '本次还没有生成未过账的入库单，无需重试';
+  }
+  if (lastResult.value.posted) {
+    return '入库单已过账，无需重试';
+  }
+  return targetLocId.value ? '' : '请先选择上架库位';
+});
+
+/**
+ * 收货作业抽屉：点「明细」打开后承载"摘要 + 业务提示 + 选库位 + 明细作业"的整个作业区。
  *
  * destroyOnClose 保证每次打开都是干净的挂载；关闭时的清场与刷新见 {@link handleDrawerClosed}。
  */
@@ -187,7 +232,9 @@ const [ArrivalGrid, arrivalGridApi] = useVbenVxeGrid({
         },
       },
     },
-    rowConfig: { keyField: 'id', isCurrent: true, isHover: true },
+    // 不再用 isCurrent：vxe 的当前行高亮由点击行触发，入口改成「明细」按钮后
+    // "被高亮的行"和"真正打开抽屉的行"会分叉，反而误导操作员
+    rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: {
       custom: true,
       refresh: true,
@@ -195,27 +242,6 @@ const [ArrivalGrid, arrivalGridApi] = useVbenVxeGrid({
       zoom: false,
     },
   } as VxeTableGridOptions<WmsArrivalApi.Arrival>,
-  gridEvents: {
-    cellClick: ({
-      column,
-      row,
-    }: {
-      column: {
-        slots?: { default?: unknown };
-        type?: null | string;
-      };
-      row: WmsArrivalApi.Arrival;
-    }) => {
-      // checkbox 列、序号列与操作列的点击不算选中，避免误开抽屉
-      if (column.type === 'checkbox' || column.type === 'seq') {
-        return;
-      }
-      if (column.slots?.default === 'actions') {
-        return;
-      }
-      handleSelectArrival(row);
-    },
-  },
 });
 
 const [LineGrid, lineGridApi] = useVbenVxeGrid({
@@ -331,8 +357,11 @@ async function loadLines() {
   }
 }
 
-/** 选中一张到货单并打开作业抽屉：换单据要清掉上一单的库位与上架结果，库位跨仓库无效 */
-async function handleSelectArrival(row: WmsArrivalApi.Arrival) {
+/**
+ * 选中一张到货单并打开作业抽屉：入口是操作列「明细」按钮而不是整行点击（整行热区会误触）。
+ * 换单据要清掉上一单的库位与上架结果，库位跨仓库无效。
+ */
+async function handleOpenDetail(row: WmsArrivalApi.Arrival) {
   targetLocId.value = undefined;
   targetLocCode.value = undefined;
   lastResult.value = undefined;
@@ -357,7 +386,6 @@ function handleDrawerClosed() {
   targetLocCode.value = undefined;
   lastResult.value = undefined;
   applyLines();
-  arrivalGridApi.grid.clearCurrentRow();
   arrivalGridApi.query();
 }
 
@@ -696,7 +724,8 @@ async function handleRetryPost() {
                 type: 'default',
                 icon: 'lucide:save',
                 auth: ['wms:arrival:update'],
-                disabled: !lineEditable || lines.length === 0,
+                disabled: saveBlockReason !== '',
+                tooltip: saveBlockReason,
                 onClick: handleSaveLines,
               },
               {
@@ -704,11 +733,8 @@ async function handleRetryPost() {
                 type: 'primary',
                 icon: 'lucide:package-check',
                 auth: ['wms:arrival:confirm'],
-                disabled:
-                  !lineEditable ||
-                  lines.length === 0 ||
-                  truncated ||
-                  !targetLocId,
+                disabled: confirmBlockReason !== '',
+                tooltip: confirmBlockReason,
                 onClick: handleConfirmAndPutaway,
               },
               {
@@ -716,11 +742,8 @@ async function handleRetryPost() {
                 type: 'primary',
                 icon: 'lucide:file-input',
                 auth: ['wms:arrival:create-in-order'],
-                disabled:
-                  !arrival ||
-                  !canCreateInOrderFromArrival(arrival.status) ||
-                  readyLines.length === 0 ||
-                  !targetLocId,
+                disabled: putawayBlockReason !== '',
+                tooltip: putawayBlockReason,
                 onClick: handleCreateInOrderAndPutaway,
               },
               {
@@ -728,7 +751,8 @@ async function handleRetryPost() {
                 type: 'warning',
                 icon: 'lucide:refresh-cw',
                 auth: ['wms:in-order:confirm'],
-                disabled: !lastResult || lastResult.posted || !targetLocId,
+                disabled: retryPostBlockReason !== '',
+                tooltip: retryPostBlockReason,
                 onClick: handleRetryPost,
               },
               {
@@ -737,6 +761,7 @@ async function handleRetryPost() {
                 icon: 'lucide:rotate-ccw',
                 auth: ['wms:arrival:query'],
                 disabled: !arrival,
+                tooltip: arrival ? '' : '请先选择一张到货单',
                 onClick: reloadArrival,
               },
             ]"
@@ -744,6 +769,21 @@ async function handleRetryPost() {
         </div>
       </div>
     </Drawer>
-    <ArrivalGrid table-title="到货单列表" />
+    <ArrivalGrid table-title="到货单列表">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:arrival:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </ArrivalGrid>
   </Page>
 </template>

@@ -134,7 +134,8 @@ const operationColumns: VxeTableGridOptions<MdmRouteApi.RouteOp>['columns'] = [
   { field: 'materialCount', title: '用料数', width: 80 },
   {
     title: '操作',
-    width: 180,
+    // 上移/下移/修改/删除 4 个固定动作，4 位取 280 档（原 180 会挤成省略号）
+    width: 280,
     fixed: 'right',
     slots: { default: 'actions' },
   },

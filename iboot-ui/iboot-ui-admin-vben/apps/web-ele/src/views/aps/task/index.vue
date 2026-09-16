@@ -117,6 +117,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['aps:task:update'],
               disabled: row.lockedFlag || row.status === 'STARTED',
+              tooltip:
+                row.lockedFlag || row.status === 'STARTED'
+                  ? row.status === 'STARTED'
+                    ? '任务已开工，不能再手工调整'
+                    : '任务已锁定，需先解锁才能调整'
+                  : undefined,
               onClick: handleAdjust.bind(null, row),
             },
             {
@@ -125,6 +131,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['aps:task:update'],
               disabled: row.lockedFlag,
+              tooltip: row.lockedFlag ? '任务已锁定' : undefined,
               popConfirm: {
                 title: `锁定后重排不再移动任务【${row.taskNo}】，确认锁定吗？`,
                 confirm: handleLock.bind(null, row),
@@ -136,6 +143,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['aps:task:update'],
               disabled: !row.lockedFlag || row.status === 'STARTED',
+              tooltip:
+                !row.lockedFlag || row.status === 'STARTED'
+                  ? row.status === 'STARTED'
+                    ? '任务已开工，不能解锁'
+                    : '任务未锁定，无需解锁'
+                  : undefined,
               popConfirm: {
                 title: `解锁后重排可能移动任务【${row.taskNo}】，确认解锁吗？`,
                 confirm: handleUnlock.bind(null, row),

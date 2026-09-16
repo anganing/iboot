@@ -1,0 +1,20 @@
+/**
+ * web-ele 全局样式补充。
+ *
+ * 这里只放必须全局生效的类：vxe-table 的单元格 class 由 vxe 渲染在 <td> 上，
+ * 组件的 scoped 样式命不中，所以链接列样式只能走全局。
+ */
+
+/* 宽表编码列：下划线 + 手型，提示可双击打开只读详情（见 dev-docs/后台UI开发规范.md 3.5） */
+.vxe-body--column.cell-code-link {
+  .vxe-cell {
+    color: var(--el-color-primary);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:hover .vxe-cell {
+    color: var(--el-color-primary-light-3);
+  }
+}

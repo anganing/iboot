@@ -93,7 +93,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsVersionApi.Version>['co
     { field: 'publishedByName', title: '发布人', minWidth: 120 },
     {
       title: '操作',
-      width: 110,
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

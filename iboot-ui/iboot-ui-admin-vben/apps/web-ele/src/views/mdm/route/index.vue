@@ -202,6 +202,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['mdm:route:update'],
               disabled: row.status === 0,
+              tooltip: row.status === 0 ? '该路线已启用锁定，如需调整请复制新版本' : undefined,
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -218,6 +219,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:route:delete'],
               disabled: row.status === 0,
+              tooltip: row.status === 0 ? '已启用锁定的路线不可删除' : undefined,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.id]),
                 confirm: handleDelete.bind(null, row),

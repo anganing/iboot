@@ -24,6 +24,11 @@ function handleRefresh() {
   gridApi.query();
 }
 
+/** 终态：已完工与已取消都没有出边，取消动作在这两个状态下只能置灰说明原因 */
+function isReworkFinal(row: MesReworkApi.Rework) {
+  return row.status === 'DONE' || row.status === 'CANCELLED';
+}
+
 /** 下达返工任务 */
 async function handleRelease(row: MesReworkApi.Rework) {
   const loadingInstance = ElLoading.service({
@@ -121,6 +126,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:rework:release'],
               disabled: row.status !== 'DRAFT',
+              tooltip:
+                row.status === 'DRAFT' ? undefined : '仅草稿状态可下达返工任务',
               onClick: handleRelease.bind(null, row),
             },
             {
@@ -129,14 +136,20 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:rework:finish'],
               disabled: row.status !== 'RUNNING',
+              tooltip:
+                row.status === 'RUNNING'
+                  ? undefined
+                  : '下达后才进入返工中，返工中才能报完工',
               onClick: handleFinish.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: '取消',
               type: 'danger',
               link: true,
               auth: ['mes:rework:cancel'],
-              disabled: row.status === 'DONE' || row.status === 'CANCELLED',
+              disabled: isReworkFinal(row),
               popConfirm: {
                 title: `确认取消返工任务 ${row.reworkNo}？`,
                 confirm: handleCancel.bind(null, row),

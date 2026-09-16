@@ -193,7 +193,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmBomApi.Bom>['columns'] 
     },
     {
       title: '操作',
-      width: 260,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -497,7 +497,7 @@ export function useBomLineGridColumns(): VxeTableGridOptions<MdmBomApi.BomLine>[
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

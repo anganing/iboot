@@ -13,6 +13,7 @@ import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteMat, deleteMatList, exportMat, getMatPage } from '#/api/mdm/mat';
 import { $t } from '#/locales';
 
+import { getMdmRowLabel } from '../constants';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 
@@ -39,11 +40,11 @@ function handleEdit(row: MdmMatApi.Mat) {
 /** 删除物料主档 */
 async function handleDelete(row: MdmMatApi.Mat) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [getMdmRowLabel(row)]),
   });
   try {
     await deleteMat(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [getMdmRowLabel(row)]));
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -165,7 +166,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:mat:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [getMdmRowLabel(row)]),
                 confirm: handleDelete.bind(null, row),
               },
             },

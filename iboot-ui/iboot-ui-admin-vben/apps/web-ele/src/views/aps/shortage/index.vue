@@ -108,6 +108,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           {
             label: '忽略', type: 'warning', link: true,
             auth: ['aps:shortage:update'], disabled: row.status === 'IGNORED',
+            tooltip: row.status === 'IGNORED' ? '该短缺已忽略' : undefined,
             popConfirm: {
               title: `忽略物料【${row.matCode}】的短缺提示吗？`,
               confirm: handleIgnore.bind(null, row),

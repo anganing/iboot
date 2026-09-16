@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvReservationApi } from '#/api/wms/invreservation';
 
-import { Page } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
@@ -14,9 +14,28 @@ import {
   releaseReservation,
 } from '#/api/wms/invreservation';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { canReleaseInvHold } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
+import Detail from './modules/inv-reservation-detail.vue';
+
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: Detail,
+  destroyOnClose: true,
+});
+
+/** 双击预留编号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsInvReservationApi.InvReservation;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 
 /**
  * 判断预留是否还能释放
@@ -99,7 +118,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <Grid table-title="库存预留列表">
+    <DetailDrawer />
+    <Grid table-title="库存预留列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -123,6 +143,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:unlock',
               auth: ['wms:inv-reservation:release'],
               disabled: !canRelease(row.status),
+              tooltip: canRelease(row.status)
+                ? undefined
+                : '仅「生效中」或「部分处理」的预留有剩余占用可释放；已释放、已核销、已取消无占用量可还',
               onClick: handleRelease.bind(null, row),
             },
           ]"

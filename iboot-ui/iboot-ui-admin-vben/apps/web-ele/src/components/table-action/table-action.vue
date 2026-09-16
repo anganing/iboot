@@ -193,12 +193,16 @@ function handleMenuClick(command: any) {
               : { ...action.tooltip }
           "
         >
-          <ElButton v-bind="getButtonProps(action)" @click="action.onClick">
-            <template v-if="action.icon">
-              <IconifyIcon :icon="action.icon" class="mr-1" />
-            </template>
-            {{ action.label }}
-          </ElButton>
+          <!-- 禁用按钮不派发鼠标事件，tooltip 会永远不触发，所以套一层 span 承接悬停；
+               disabled 仍留在 button 上，保留原生禁用样式与不可点击语义 -->
+          <span :class="{ 'tooltip-anchor-disabled': action.disabled }">
+            <ElButton v-bind="getButtonProps(action)" @click="action.onClick">
+              <template v-if="action.icon">
+                <IconifyIcon :icon="action.icon" class="mr-1" />
+              </template>
+              {{ action.label }}
+            </ElButton>
+          </span>
         </ElTooltip>
         <ElButton
           v-else
@@ -215,7 +219,8 @@ function handleMenuClick(command: any) {
 
     <ElDropdown v-if="getDropdownList.length > 0" @command="handleMenuClick">
       <slot name="more">
-        <ElButton :type="getDropdownList[0].type" link>
+        <!-- 固定 primary：原先取下拉第一项的 type，导致"更多"在不同页面颜色不同 -->
+        <ElButton type="primary" link>
           {{ $t('page.action.more') }}
           <IconifyIcon icon="lucide:ellipsis-vertical" class="ml-1" />
         </ElButton>
@@ -244,7 +249,30 @@ function handleMenuClick(command: any) {
               </ElPopconfirm>
             </template>
             <template v-else>
-              <div>
+              <!-- 下拉项是 li，禁用态只有 cursor:not-allowed、没有 pointer-events:none，
+                   所以悬停能命中，直接套 ElTooltip 即可，不需要 span 承接 -->
+              <ElTooltip
+                v-if="
+                  action.tooltip &&
+                  ((typeof action.tooltip === 'string' && action.tooltip) ||
+                    (typeof action.tooltip === 'object' &&
+                      action.tooltip.content))
+                "
+                placement="left"
+                v-bind="
+                  typeof action.tooltip === 'string'
+                    ? { content: action.tooltip }
+                    : { ...action.tooltip, placement: 'left' }
+                "
+              >
+                <div>
+                  <IconifyIcon v-if="action.icon" :icon="action.icon" />
+                  <span :class="action.icon ? 'ml-1' : ''">
+                    {{ action.label }}
+                  </span>
+                </div>
+              </ElTooltip>
+              <div v-else>
                 <IconifyIcon v-if="action.icon" :icon="action.icon" />
                 {{ action.label }}
               </div>
@@ -260,6 +288,22 @@ function handleMenuClick(command: any) {
   .el-button--text {
     padding: 4px;
     margin-left: 0;
+  }
+
+  /**
+   * 禁用按钮的 tooltip 承载层。
+   *
+   * 原生 <button disabled> 不派发鼠标事件（浏览器行为，与 CSS 无关），
+   * 外层 ElTooltip 因此永远不触发。让按钮穿透指针事件，悬停落到 span 上，
+   * 禁用态的按钮也能给出“为何暂不可做”的提示。
+   */
+  .tooltip-anchor-disabled {
+    display: inline-flex;
+    cursor: not-allowed;
+
+    .el-button {
+      pointer-events: none;
+    }
   }
 
   .el-button .iconify + span,

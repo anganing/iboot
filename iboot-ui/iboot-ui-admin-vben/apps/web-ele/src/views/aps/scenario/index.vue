@@ -189,6 +189,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.REFRESH,
               auth: ['aps:scenario:update'],
               disabled: row.status === 'CLOSED',
+              tooltip:
+                row.status === 'CLOSED' ? '场景已关闭，不可刷新输入' : undefined,
               popConfirm: {
                 title: `确认刷新场景【${row.code}】的物料、库存、资源与工单投影吗？`,
                 confirm: handleRefreshProjection.bind(null, row),
@@ -201,6 +203,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.CLOSE,
               auth: ['aps:scenario:update'],
               disabled: row.status === 'CLOSED',
+              tooltip: row.status === 'CLOSED' ? '场景已关闭' : undefined,
               popConfirm: {
                 title: `关闭后场景【${row.code}】不再允许刷新输入与生成版本，确认关闭吗？`,
                 confirm: handleClose.bind(null, row),
@@ -213,6 +216,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['aps:scenario:update'],
               disabled: row.status === 'CLOSED',
+              tooltip: row.status === 'CLOSED' ? '场景已关闭，不可修改' : undefined,
               onClick: handleEdit.bind(null, row),
             },
             {

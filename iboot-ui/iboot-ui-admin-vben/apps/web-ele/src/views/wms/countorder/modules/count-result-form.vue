@@ -70,8 +70,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<WmsCountOrderApi.CountOrderLine>,
 });
 
-/** 读全部盘点行：`/count-order-line/page` 每页最多 200 行，全盘单据要翻页读完 */
-async function loadLines(orderId: number) {
+/**
+ * 读全部盘点行：`/count-order-line/page` 每页最多 200 行，全盘单据要翻页读完。
+ *
+ * orderId 保持 number | string 原样透传：主键是雪花 ID，超出 JS 安全整数时后端下发字符串，
+ * 转成 Number 会丢精度、查不到行。
+ */
+async function loadLines(orderId: number | string) {
   const loaded: WmsCountOrderApi.CountOrderLine[] = [];
   let pageNo = 1;
   // do-while 保证循环体先执行一次，total 必然在第一轮被赋值，故不给多余初始值

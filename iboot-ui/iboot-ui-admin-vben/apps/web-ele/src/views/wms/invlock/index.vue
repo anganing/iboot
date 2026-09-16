@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { WmsInvLockApi } from '#/api/wms/invlock';
 
-import { Page } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
@@ -10,9 +10,28 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { exportInvLock, getInvLockPage, unlockInvLock } from '#/api/wms/invlock';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { canReleaseInvHold } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
+import Detail from './modules/inv-lock-detail.vue';
+
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: Detail,
+  destroyOnClose: true,
+});
+
+/** 双击冻结编号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsInvLockApi.InvLock;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 
 /**
  * 判断冻结记录是否还能解冻
@@ -95,7 +114,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <Grid table-title="库存冻结列表">
+    <DetailDrawer />
+    <Grid table-title="库存冻结列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -119,6 +139,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:unlock',
               auth: ['wms:inv-lock:unlock'],
               disabled: !canUnlock(row.status),
+              tooltip: canUnlock(row.status)
+                ? undefined
+                : '仅「生效中」或「部分解冻」的冻结有剩余冻结量可解冻；已解冻、已取消无冻结量可还',
               onClick: handleUnlock.bind(null, row),
             },
           ]"

@@ -2,9 +2,10 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MesOpSkipRecordApi } from '#/api/mes/opskiprecord';
 
-import { Page } from '@vben/common-ui';
-import { downloadFileFromBlobPart } from '@vben/utils';
 import { useRouter } from 'vue-router';
+
+import { Page, useVbenDrawer } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
@@ -18,7 +19,13 @@ import { $t } from '#/locales';
 
 import { MES_OP_SKIP_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
+import OpSkipRecordDetail from './modules/op-skip-record-detail.vue';
 
+/** 跳序记录没有本行唯一编码，详情只能由操作列按钮打开（不做双击链接列） */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: OpSkipRecordDetail,
+  destroyOnClose: true,
+});
 const router = useRouter();
 
 function canRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
@@ -26,6 +33,11 @@ function canRevoke(row: MesOpSkipRecordApi.OpSkipRecord) {
     row.status === MES_OP_SKIP_STATUS.PENDING ||
     row.status === MES_OP_SKIP_STATUS.EFFECTIVE
   ) && row.approvalStatus !== 1;
+}
+
+/** 打开只读详情 */
+function handleDetail(row: MesOpSkipRecordApi.OpSkipRecord) {
+  detailDrawerApi.setData({ id: row.id }).open();
 }
 
 function handleProcessDetail(processInstanceId?: string) {
@@ -108,6 +120,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
+    <DetailDrawer />
     <Grid table-title="工序跳过记录列表">
       <template #toolbar-tools>
         <TableAction
@@ -126,14 +139,27 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
+              label: '详情',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:op-skip-record:query'],
+              onClick: handleDetail.bind(null, row),
+            },
+            {
               label: '撤销',
               type: 'danger',
               link: true,
               icon: 'lucide:undo-2',
               auth: ['mes:op-task:revoke-skip'],
               disabled: !canRevoke(row),
+              tooltip: canRevoke(row)
+                ? undefined
+                : '已撤销的跳序记录不能重复撤销；审批中的跳序须先在流程里驳回',
               onClick: handleRevoke.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: '审批进度',
               type: 'primary',

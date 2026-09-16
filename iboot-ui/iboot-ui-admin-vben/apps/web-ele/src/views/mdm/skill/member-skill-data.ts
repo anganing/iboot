@@ -98,7 +98,7 @@ export function useMemberSkillGridColumns(): VxeTableGridOptions<MdmSkillApi.Mem
     },
     {
       title: '操作',
-      width: 150,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

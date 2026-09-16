@@ -10,7 +10,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps, } from '#/utils';
 import {
   INV_ORG_RELATION_PROPS,
   MAT_RELATION_PROPS,
@@ -219,7 +219,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsTransferOrderApi.Transf
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'transferNo', title: '调拨单号', minWidth: 160 },
+    { field: 'transferNo', title: '调拨单号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'transferType',
       title: '转移类型',
@@ -251,7 +251,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsTransferOrderApi.Transf
     {
       // 行操作从 3 个增加到 6 个（明细、提交、过账、取消、修改、删除），列宽随之放宽
       title: '操作',
-      width: 360,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -474,7 +474,7 @@ export function useTransferOrderLineEditorColumns(): VxeTableGridOptions<WmsTran
     { field: 'remark', title: '备注', minWidth: 120 },
     {
       title: '操作',
-      width: 130,
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

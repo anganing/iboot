@@ -236,7 +236,7 @@ export function useGridColumns(): VxeTableGridOptions<ApsTaskApi.Task>['columns'
     { field: 'remark', title: '备注', minWidth: 140 },
     {
       title: '操作',
-      width: 200,
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -8,13 +8,7 @@ import { useRouter } from 'vue-router';
 import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import {
-  ElButton,
-  ElDropdown,
-  ElLoading,
-  ElMessage,
-  ElMessageBox,
-} from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -27,10 +21,12 @@ import {
   submitMaterialReq,
 } from '#/api/mes/materialreq';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { MES_MATERIAL_REQ_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import MaterialReqDetail from './modules/material-req-detail.vue';
 import MaterialReqLineDrawer from './modules/material-req-line-drawer.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
@@ -40,6 +36,11 @@ const [FormModal, formModalApi] = useVbenModal({
 /** 明细走独立抽屉，列表页不内嵌平铺子表 */
 const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: MaterialReqLineDrawer,
+  destroyOnClose: true,
+});
+/** 主表只读详情：子表抽屉顶部的摘要只有 6 个字段，不能充当主表详情 */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: MaterialReqDetail,
   destroyOnClose: true,
 });
 const router = useRouter();
@@ -81,6 +82,23 @@ function handleProcessDetail(processInstanceId?: string) {
   if (processInstanceId) {
     router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
   }
+}
+
+/** 打开主表只读详情 */
+function handleDetail(row: MesMaterialReqApi.MaterialReq) {
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+
+/** 双击申请单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesMaterialReqApi.MaterialReq;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  handleDetail(row);
 }
 
 /** 提交申请：领料与补料逐行占库存预留 */
@@ -260,7 +278,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <LineDrawer />
-    <Grid table-title="领退补料申请列表">
+    <DetailDrawer />
+    <Grid
+      table-title="领退补料申请列表"
+      @cell-dblclick="handleCellDblclick"
+    >
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -290,74 +312,86 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <div class="flex items-center justify-center gap-1">
-          <TableAction
-            :actions="[
-              {
-                label: '明细',
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.VIEW,
-                auth: ['mes:material-req:query'],
-                onClick: handleLines.bind(null, row),
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:material-req:query'],
+              onClick: handleLines.bind(null, row),
+            },
+            {
+              label: '提交',
+              type: 'primary',
+              link: true,
+              auth: ['mes:material-req:submit'],
+              disabled: !canSubmit(row),
+              tooltip: canSubmit(row)
+                ? undefined
+                : '仅草稿状态可申请提交占预留',
+              onClick: handleSubmit.bind(null, row),
+            },
+            {
+              label: '确认',
+              type: 'primary',
+              link: true,
+              auth: ['mes:material-req:confirm'],
+              disabled: !canConfirm(row),
+              tooltip: canConfirm(row)
+                ? undefined
+                : '需已提交且流程审批通过后才能确认过账',
+              onClick: handleConfirm.bind(null, row),
+            },
+          ]"
+          :drop-down-actions="[
+            {
+              label: '详情',
+              type: 'primary',
+              link: true,
+              auth: ['mes:material-req:query'],
+              onClick: handleDetail.bind(null, row),
+            },
+            {
+              label: '审批进度',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              ifShow: !!row.processInstanceId,
+              onClick: handleProcessDetail.bind(null, row.processInstanceId),
+            },
+            {
+              label: '取消',
+              type: 'danger',
+              link: true,
+              auth: ['mes:material-req:cancel'],
+              disabled: !canCancel(row),
+              onClick: handleCancel.bind(null, row),
+            },
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mes:material-req:update'],
+              disabled: !isDraft(row) || isApprovalRunning(row),
+              onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['mes:material-req:delete'],
+              disabled: !isDraft(row) || isApprovalRunning(row),
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.reqNo]),
+                confirm: handleDelete.bind(null, row),
               },
-              {
-                label: '审批进度',
-                type: 'primary',
-                link: true,
-                icon: ACTION_ICON.VIEW,
-                ifShow: !!row.processInstanceId,
-                onClick: handleProcessDetail.bind(null, row.processInstanceId),
-              },
-            ]"
-          />
-          <ElButton
-            v-access:code="['mes:material-req:submit']"
-            :disabled="!canSubmit(row)"
-            link
-            type="primary"
-            @click="handleSubmit(row)"
-            >
-提交
-</ElButton>
-          <ElButton
-            v-access:code="['mes:material-req:confirm']"
-            :disabled="!canConfirm(row)"
-            link
-            type="primary"
-            @click="handleConfirm(row)"
-            >
-确认
-</ElButton>
-          <ElDropdown placement="bottom-end" trigger="click">
-            <ElButton link type="primary">更多</ElButton>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                  v-access:code="['mes:material-req:cancel']"
-                  :disabled="!canCancel(row)"
-                  @click="handleCancel(row)"
-                  >
-取消
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:material-req:update']"
-                  :disabled="!isDraft(row) || isApprovalRunning(row)"
-                  @click="handleEdit(row)"
-                  >
-修改
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:material-req:delete']"
-                  :disabled="!isDraft(row) || isApprovalRunning(row)"
-                  @click="handleDelete(row)"
-                  >
-删除
-</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </ElDropdown>
-        </div>
+            },
+          ]"
+        />
       </template>
     </Grid>
   </Page>

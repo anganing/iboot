@@ -17,7 +17,7 @@ import {
   ElMessageBox,
 } from 'element-plus';
 
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   confirmMaterialReq,
   getMaterialReq,
@@ -46,6 +46,21 @@ const drawerTitle = computed(() =>
   request.value?.reqNo ? `领料确认 - ${request.value.reqNo}` : '领料确认',
 );
 
+/**
+ * 不能确认出库的原因，空串表示可以确认。
+ *
+ * 禁用按钮不隐藏，原因放进 tooltip：现场操作员看到灰按钮猜不到是状态没到还是明细没读完。
+ */
+const confirmBlockReason = computed(() => {
+  if (truncated.value) {
+    return `明细超过 ${LINE_MAX_COUNT} 行，现场页不允许只处理部分明细，请转单据页处理`;
+  }
+  if (request.value?.status !== 'SUBMITTED') {
+    return '仅已提交的领料申请可以确认出库';
+  }
+  return '';
+});
+
 const [ReqGrid, reqGridApi] = useVbenVxeGrid({
   formOptions: { schema: useReqGridFormSchema() },
   gridOptions: {
@@ -62,30 +77,11 @@ const [ReqGrid, reqGridApi] = useVbenVxeGrid({
           }),
       },
     },
-    rowConfig: { keyField: 'id', isCurrent: true, isHover: true },
+    // 不再用 isCurrent：vxe 的当前行高亮由点击行触发，入口改成「明细」按钮后
+    // "被高亮的行"和"真正打开抽屉的行"会分叉，反而误导操作员
+    rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   } as VxeTableGridOptions<MesMaterialReqApi.MaterialReq>,
-  gridEvents: {
-    cellClick: ({
-      row,
-      column,
-    }: {
-      column: {
-        slots?: { default?: unknown };
-        type?: null | string;
-      };
-      row: MesMaterialReqApi.MaterialReq;
-    }) => {
-      // 勾选列、序号列与操作列的点击不打开抽屉
-      if (column.type === 'checkbox' || column.type === 'seq') {
-        return;
-      }
-      if (column.slots?.default === 'actions') {
-        return;
-      }
-      void handleSelect(row);
-    },
-  },
 });
 const [LineGrid, lineGridApi] = useVbenVxeGrid({
   gridOptions: {
@@ -111,7 +107,6 @@ const [Drawer, drawerApi] = useVbenDrawer({
     lines.value = [];
     truncated.value = false;
     lineGridApi.setGridOptions({ data: [] });
-    reqGridApi.grid.clearCurrentRow();
     void reqGridApi.query();
   },
 });
@@ -119,7 +114,10 @@ const [Drawer, drawerApi] = useVbenDrawer({
 function applyLines() {
   lineGridApi.setGridOptions({ data: lines.value });
 }
-async function handleSelect(row: MesMaterialReqApi.MaterialReq) {
+/**
+ * 打开领料确认抽屉：入口是操作列「明细」按钮，不再是整行点击（整行热区会误触）。
+ */
+async function handleOpenDetail(row: MesMaterialReqApi.MaterialReq) {
   request.value = await getMaterialReq(row.id!);
   // 主记录到位即开抽屉，明细在抽屉内加载，加载态对用户可见
   drawerApi.open();
@@ -134,7 +132,6 @@ async function handleSelect(row: MesMaterialReqApi.MaterialReq) {
   } finally {
     lineLoading.value = false;
   }
-  drawerApi.open();
 }
 async function handleConfirm() {
   if (!request.value?.id || truncated.value) return;
@@ -212,7 +209,9 @@ async function handleConfirm() {
                   type: 'primary',
                   icon: 'lucide:package-check',
                   auth: ['mes:material-req:confirm'],
-                  disabled: truncated || request.status !== 'SUBMITTED',
+                  disabled: confirmBlockReason !== '',
+                  // 禁用不隐藏，原因写进 tooltip；空串时 TableAction 不渲染提示
+                  tooltip: confirmBlockReason,
                   onClick: handleConfirm,
                 },
               ]"
@@ -221,6 +220,21 @@ async function handleConfirm() {
         </template>
       </div>
     </Drawer>
-    <ReqGrid table-title="待确认领料申请" />
+    <ReqGrid table-title="待确认领料申请">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:material-req:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </ReqGrid>
   </Page>
 </template>

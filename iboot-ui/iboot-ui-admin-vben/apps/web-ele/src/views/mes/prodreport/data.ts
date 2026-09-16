@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   RES_RELATION_PROPS,
   SHIFT_RELATION_PROPS,
@@ -188,7 +188,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MesProdReportApi.ProdReport>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'reportNo', title: '报工单号', minWidth: 160 },
+    // reportNo 由编码规则分配，唯一标识本条报工；上下游单号都是关联对象编码，不挂链接
+    { field: 'reportNo', title: '报工单号', minWidth: 160, ...codeLinkColumn() },
     { field: 'opTaskNo', title: '工序任务号', minWidth: 160 },
     { field: 'opName', title: '工序名称', minWidth: 140 },
     { field: 'workOrderNo', title: '作业工单号', minWidth: 160 },
@@ -235,7 +236,8 @@ export function useGridColumns(): VxeTableGridOptions<MesProdReportApi.ProdRepor
     },
     {
       title: '操作',
-      width: 160,
+      // 只有“取消”1 个行内动作，报工没有修改弹窗（详情走双击报工单号）
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

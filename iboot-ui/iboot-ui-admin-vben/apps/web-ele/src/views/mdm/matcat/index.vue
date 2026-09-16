@@ -13,6 +13,7 @@ import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteMatCat, exportMatCat, getMatCatList } from '#/api/mdm/matcat';
 import { $t } from '#/locales';
 
+import { getMdmRowLabel } from '../constants';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 
@@ -51,11 +52,11 @@ function handleEdit(row: MdmMatCatApi.MatCat) {
 /** 删除物料分类 */
 async function handleDelete(row: MdmMatCatApi.MatCat) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [getMdmRowLabel(row)]),
   });
   try {
     await deleteMatCat(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [getMdmRowLabel(row)]));
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -159,7 +160,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:mat-cat:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [getMdmRowLabel(row)]),
                 confirm: handleDelete.bind(null, row),
               },
             },

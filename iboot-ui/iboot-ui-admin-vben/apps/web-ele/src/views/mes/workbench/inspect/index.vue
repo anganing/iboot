@@ -14,7 +14,7 @@ import {
   ElMessage,
 } from 'element-plus';
 
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { batchSaveQcResult, getQcResultPage } from '#/api/mes/qcresult';
 import {
   assignQcTask,
@@ -23,19 +23,8 @@ import {
   submitQcTaskConclusion,
 } from '#/api/mes/qctask';
 
-import {
-  useInspectFormColumns,
-  useWorkbenchGridFormSchema,
-} from '../../qctask/data';
-
-/** cell-click 事件参数：本页只关心行数据与列元信息 */
-interface TaskCellClickEvent {
-  column: {
-    slots?: null | { default?: string };
-    type?: null | string;
-  };
-  row: MesQcTaskApi.QcTask;
-}
+import { useWorkbenchGridFormSchema } from '../../qctask/data';
+import { useInspectTaskGridColumns } from './data';
 
 const selectedTask = ref<MesQcTaskApi.QcTask>();
 const editingRows = ref<MesQcResultApi.QcResult[]>([]);
@@ -55,7 +44,7 @@ const drawerTitle = computed(() =>
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
   formOptions: { schema: useWorkbenchGridFormSchema() },
   gridOptions: {
-    columns: useInspectFormColumns(),
+    columns: useInspectTaskGridColumns(),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
@@ -100,7 +89,7 @@ const [ResultGrid, resultGridApi] = useVbenVxeGrid({
     keepSource: true,
     editConfig: { mode: 'cell', trigger: 'click' },
     pagerConfig: { enabled: false },
-    // 抽屉打开后由 handleTaskClick 显式 query，禁用挂载时自动加载避免双发请求
+    // 抽屉打开后由 handleOpenDetail 显式 query，禁用挂载时自动加载避免双发请求
     proxyConfig: {
       autoLoad: false,
       ajax: {
@@ -131,15 +120,13 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
 });
 
-function handleTaskClick({ column, row }: TaskCellClickEvent) {
-  // 命中 checkbox 列、序号列或 #actions 操作列时不承载“选中任务”语义，不打开抽屉
-  if (
-    column.type === 'checkbox' ||
-    column.type === 'seq' ||
-    column.slots?.default === 'actions'
-  ) {
-    return;
-  }
+/**
+ * 打开检验录入抽屉。
+ *
+ * 入口是操作列「明细」按钮而不是整行点击：整行热区会让操作员想看某格内容时误开抽屉，
+ * 也让人无法判断这一行到底能不能点。原来为"点行不误触"写的列类型判断随入口一起删掉。
+ */
+function handleOpenDetail(row: MesQcTaskApi.QcTask) {
   selectedTask.value = row;
   editingRows.value = [];
   drawerApi.open();
@@ -223,7 +210,22 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
 
 <template>
   <Page auto-content-height>
-    <TaskGrid table-title="待检任务" @cell-click="handleTaskClick" />
+    <TaskGrid table-title="待检任务">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:qc-task:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </TaskGrid>
     <Drawer
       :title="drawerTitle"
       class="w-full lg:w-4/5"
@@ -262,6 +264,9 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
           </template>
         </ResultGrid>
         <div class="flex shrink-0 justify-end">
+          <!-- 状态不满足的动作按钮一律保留展示、置灰并给 tooltip 说明原因，不做隐藏。
+               tooltip 只在禁用时给（TableAction 对空串不渲染），否则会出现在可点按钮上
+               提示"仅某状态可用"的误导文案。 -->
           <TableAction
             :actions="[
               {
@@ -269,6 +274,10 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
                 type: 'primary',
                 auth: ['mes:qc-task:assign'],
                 disabled: selectedTask?.status !== 'CREATED',
+                tooltip:
+                  selectedTask?.status === 'CREATED'
+                    ? ''
+                    : '仅待检验状态的任务可以指派检验员',
                 onClick: handleAssign,
               },
               {
@@ -276,6 +285,10 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
                 type: 'primary',
                 auth: ['mes:qc-task:start-inspect'],
                 disabled: selectedTask?.status !== 'ASSIGNED',
+                tooltip:
+                  selectedTask?.status === 'ASSIGNED'
+                    ? ''
+                    : '需先指派检验员，已指派的任务才能开始检验',
                 onClick: handleStartInspect,
               },
               {
@@ -283,6 +296,10 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
                 type: 'primary',
                 auth: ['mes:qc-result:batch-save'],
                 disabled: selectedTask?.status !== 'INSPECTING',
+                tooltip:
+                  selectedTask?.status === 'INSPECTING'
+                    ? ''
+                    : '仅检验中的任务可以录入并保存实测值',
                 onClick: handleSaveResult,
               },
               {
@@ -290,6 +307,9 @@ function handleActualValueChange(row: MesQcResultApi.QcResult, value: string) {
                 type: 'primary',
                 auth: ['mes:qc-task:submit-conclusion'],
                 disabled: !canSubmit,
+                tooltip: canSubmit
+                  ? ''
+                  : '仅检验中或结果登记中的任务可以提交结论',
                 onClick: handleSubmit,
               },
             ]"

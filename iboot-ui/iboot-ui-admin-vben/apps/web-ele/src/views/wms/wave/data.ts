@@ -208,7 +208,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsWaveApi.Wave>['columns'
     },
     {
       title: '操作',
-      width: 160,
+      // 固定 3 位：明细（子表入口）、修改、删除，都是高频动作，按 3.4 档位取 220
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

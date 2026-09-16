@@ -18,6 +18,7 @@ import {
 } from '#/api/mdm/plant';
 import { $t } from '#/locales';
 
+import { getMdmRowLabel } from '../constants';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 
@@ -44,11 +45,11 @@ function handleEdit(row: MdmPlantApi.Plant) {
 /** 删除工厂 */
 async function handleDelete(row: MdmPlantApi.Plant) {
   const loadingInstance = ElLoading.service({
-    text: $t('ui.actionMessage.deleting', [row.id]),
+    text: $t('ui.actionMessage.deleting', [getMdmRowLabel(row)]),
   });
   try {
     await deletePlant(row.id!);
-    ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.id]));
+    ElMessage.success($t('ui.actionMessage.deleteSuccess', [getMdmRowLabel(row)]));
     handleRefresh();
   } finally {
     loadingInstance.close();
@@ -171,7 +172,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['mdm:plant:delete'],
               popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
+                title: $t('ui.actionMessage.deleteConfirm', [getMdmRowLabel(row)]),
                 confirm: handleDelete.bind(null, row),
               },
             },

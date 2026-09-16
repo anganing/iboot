@@ -20,9 +20,11 @@ import {
   submitDiffApproval,
 } from '#/api/wms/countorder';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { isOrderDraft, WMS_ORDER_STATUS } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
+import CountOrderDetailDrawer from './modules/count-order-detail.vue';
 import CountOrderLineDrawer from './modules/count-order-line-drawer.vue';
 import CountResultForm from './modules/count-result-form.vue';
 import Form from './modules/form.vue';
@@ -70,6 +72,23 @@ const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: CountOrderLineDrawer,
   destroyOnClose: true,
 });
+
+const [Detail, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: CountOrderDetailDrawer,
+  destroyOnClose: true,
+});
+
+/** 双击盘点单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsCountOrderApi.CountOrder;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -248,8 +267,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <CountResultModal @success="handleRefresh" />
+    <Detail />
     <LineDrawer />
-    <Grid table-title="盘点单列表">
+    <Grid table-title="盘点单列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -296,6 +316,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:snowflake',
               auth: ['wms:count-order:freeze'],
               disabled: !canFreeze(row.status),
+              tooltip: canFreeze(row.status) ? undefined : '仅草稿态的盘点单可冻结账面',
               onClick: handleFreeze.bind(null, row),
             },
             {
@@ -305,6 +326,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:clipboard-pen-line',
               auth: ['wms:count-order:submit-result'],
               disabled: !canSubmitResult(row),
+              tooltip: canSubmitResult(row) ? undefined : '仅已冻结且未录入的盘点单可录实盘',
               onClick: handleSubmitResult.bind(null, row),
             },
             {
@@ -314,24 +336,27 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:check-check',
               auth: ['wms:count-order:submit-diff-approval'],
               disabled: !canSubmitDiffApproval(row),
+              tooltip: canSubmitDiffApproval(row) ? undefined : '仅已录实盘且存在差异的盘点单可提交审批',
               onClick: handleSubmitDiffApproval.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: $t('common.edit'),
               type: 'primary',
-              link: true,
               icon: ACTION_ICON.EDIT,
               auth: ['wms:count-order:update'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的盘点单可修改',
               onClick: handleEdit.bind(null, row),
             },
             {
               label: $t('common.delete'),
               type: 'danger',
-              link: true,
               icon: ACTION_ICON.DELETE,
               auth: ['wms:count-order:delete'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的盘点单可删除',
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.countNo]),
                 confirm: handleDelete.bind(null, row),
@@ -340,7 +365,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
             {
               label: '审批进度',
               type: 'primary',
-              link: true,
               icon: ACTION_ICON.VIEW,
               ifShow: !!row.processInstanceId,
               onClick: handleProcessDetail.bind(null, row.processInstanceId),

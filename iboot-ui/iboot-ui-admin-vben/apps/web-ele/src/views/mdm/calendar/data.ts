@@ -125,7 +125,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calendar>['
     },
     {
       title: '操作',
-      width: 420,
+      width: 280,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -197,7 +197,7 @@ export function useRuleGridColumns(): VxeTableGridOptions<MdmCalendarApi.Calenda
     { field: 'availableMinutes', title: '可用分钟数', minWidth: 120 },
     {
       title: '操作',
-      width: 140,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },
@@ -289,7 +289,7 @@ export function useExceptionGridColumns(): VxeTableGridOptions<MdmCalendarApi.Ca
     { field: 'availableMinutes', title: '可用分钟数', minWidth: 110 },
     {
       title: '操作',
-      width: 140,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

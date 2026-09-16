@@ -4,16 +4,10 @@ import type { MesProdOrderApi } from '#/api/mes/prodorder';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
-import {
-  ElButton,
-  ElDropdown,
-  ElLoading,
-  ElMessage,
-  ElMessageBox,
-} from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -29,6 +23,7 @@ import {
   resumeProdOrder,
 } from '#/api/mes/prodorder';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import {
   canCancelProdOrder,
@@ -41,6 +36,7 @@ import {
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 import ProdOrderImport from './modules/import-form.vue';
+import ProdOrderDetail from './modules/prod-order-detail.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
@@ -48,6 +44,11 @@ const [FormModal, formModalApi] = useVbenModal({
 });
 const [ImportFormModal, importFormModalApi] = useVbenModal({
   connectedComponent: ProdOrderImport,
+  destroyOnClose: true,
+});
+/** 主表只读详情：20 列宽表放不下实际起止时间、版本、幂等留痕等字段 */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: ProdOrderDetail,
   destroyOnClose: true,
 });
 
@@ -77,6 +78,23 @@ function canCancelOrder(row: MesProdOrderApi.ProdOrder) {
 
 function canCheckKit(row: MesProdOrderApi.ProdOrder) {
   return canCheckKitProdOrder(row.status);
+}
+
+/** 打开主表只读详情 */
+function handleDetail(row: MesProdOrderApi.ProdOrder) {
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+
+/** 双击生产工单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesProdOrderApi.ProdOrder;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  handleDetail(row);
 }
 
 /** 导入生产工单 */
@@ -319,7 +337,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="生产工单列表">
+    <DetailDrawer />
+    <Grid
+      table-title="生产工单列表"
+      @cell-dblclick="handleCellDblclick"
+    >
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -355,77 +377,98 @@ const [Grid, gridApi] = useVbenVxeGrid({
         />
       </template>
       <template #actions="{ row }">
-        <div class="flex items-center justify-center gap-1">
-          <ElButton
-            v-access:code="['mes:prod-order:release']"
-            :disabled="!canRelease(row)"
-            link
-            type="primary"
-            @click="handleRelease(row)"
-            >
-下达
-</ElButton>
-          <ElButton
-            v-access:code="['mes:prod-order:check-kit']"
-            :disabled="!canCheckKit(row)"
-            link
-            type="primary"
-            @click="handleCheckKit(row)"
-            >
-齐套检查
-</ElButton>
-          <ElButton
-            v-access:code="['mes:prod-order:hold']"
-            :disabled="!canHold(row)"
-            link
-            type="warning"
-            @click="handleHold(row)"
-            >
-挂起
-</ElButton>
-          <ElDropdown placement="bottom-end" trigger="click">
-            <ElButton link type="primary">更多</ElButton>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                  v-access:code="['mes:prod-order:resume']"
-                  :disabled="!canResume(row)"
-                  @click="handleResume(row)"
-                  >
-恢复
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:prod-order:close']"
-                  :disabled="!canClose(row)"
-                  @click="handleClose(row)"
-                  >
-关闭
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:prod-order:cancel']"
-                  :disabled="!canCancelOrder(row)"
-                  @click="handleCancel(row)"
-                  >
-取消
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:prod-order:update']"
-                  :disabled="!canEdit(row)"
-                  @click="handleEdit(row)"
-                  >
-修改
-</el-dropdown-item>
-                <el-dropdown-item
-                  v-access:code="['mes:prod-order:delete']"
-                  :disabled="!canEdit(row)"
-                  @click="handleDelete(row)"
-                  >
-删除
-</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </ElDropdown>
-        </div>
+        <TableAction
+          :actions="[
+            {
+              label: '下达',
+              type: 'primary',
+              link: true,
+              auth: ['mes:prod-order:release'],
+              disabled: !canRelease(row),
+              tooltip: canRelease(row)
+                ? undefined
+                : '仅草稿状态可下达；下达会锁 BOM 与工艺路线版本并展开下级单据',
+              onClick: handleRelease.bind(null, row),
+            },
+            {
+              label: '齐套检查',
+              type: 'primary',
+              link: true,
+              auth: ['mes:prod-order:check-kit'],
+              disabled: !canCheckKit(row),
+              tooltip: canCheckKit(row)
+                ? undefined
+                : '已下达、齐套就绪、生产中才可做齐套检查',
+              onClick: handleCheckKit.bind(null, row),
+            },
+            {
+              label: '挂起',
+              type: 'warning',
+              link: true,
+              auth: ['mes:prod-order:hold'],
+              disabled: !canHold(row),
+              tooltip: canHold(row)
+                ? undefined
+                : '仅生产中的工单可挂起',
+              onClick: handleHold.bind(null, row),
+            },
+          ]"
+          :drop-down-actions="[
+            {
+              label: '详情',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:prod-order:query'],
+              onClick: handleDetail.bind(null, row),
+            },
+            {
+              label: '恢复',
+              type: 'primary',
+              link: true,
+              auth: ['mes:prod-order:resume'],
+              disabled: !canResume(row),
+              onClick: handleResume.bind(null, row),
+            },
+            {
+              label: '关闭',
+              type: 'warning',
+              link: true,
+              auth: ['mes:prod-order:close'],
+              disabled: !canClose(row),
+              onClick: handleClose.bind(null, row),
+            },
+            {
+              label: '取消',
+              type: 'danger',
+              link: true,
+              auth: ['mes:prod-order:cancel'],
+              disabled: !canCancelOrder(row),
+              onClick: handleCancel.bind(null, row),
+            },
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mes:prod-order:update'],
+              disabled: !canEdit(row),
+              onClick: handleEdit.bind(null, row),
+            },
+            {
+              label: $t('common.delete'),
+              type: 'danger',
+              link: true,
+              icon: ACTION_ICON.DELETE,
+              auth: ['mes:prod-order:delete'],
+              disabled: !canEdit(row),
+              popConfirm: {
+                title: $t('ui.actionMessage.deleteConfirm', [row.orderNo]),
+                confirm: handleDelete.bind(null, row),
+              },
+            },
+          ]"
+        />
       </template>
     </Grid>
   </Page>

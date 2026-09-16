@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 
 import {
   OP_TASK_RELATION_PROPS,
@@ -95,7 +95,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
 export function useGridColumns(): VxeTableGridOptions<MesWipTxnApi.WipTxn>['columns'] {
   return [
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'txnNo', title: '事务编号', minWidth: 160 },
+    // txnNo 由编码规则 MES_WIP_TXN_NO 分配，唯一标识这条流水；工单号/工序任务号都是关联对象编码
+    { field: 'txnNo', title: '事务编号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'txnType',
       title: '事务类型',

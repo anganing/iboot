@@ -173,7 +173,8 @@ export function useGridColumns(): VxeTableGridOptions<MesReworkApi.Rework>['colu
     },
     {
       title: '操作',
-      width: 160,
+      // 2 个固定业务动作（下达、完工）+ 文字“更多”（放低频的取消）= 3 位
+      width: 220,
       fixed: 'right',
       slots: { default: 'actions' },
     },

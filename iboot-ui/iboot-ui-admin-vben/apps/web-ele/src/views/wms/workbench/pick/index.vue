@@ -18,7 +18,7 @@ import {
   ElMessageBox,
 } from 'element-plus';
 
-import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   confirmOutOrder,
   getOutOrder,
@@ -40,7 +40,7 @@ import {
 } from './data';
 
 /**
- * 拣选发货作业页：全宽出库单列表点行打开抽屉，抽屉内一屏走完
+ * 拣选发货作业页：全宽出库单列表点「明细」打开抽屉，抽屉内一屏走完
  * "核对批次与库位 → 逐行确认拣选数量 → 确认发货"。
  *
  * 与任务书措辞的两处差别，都是后端事实决定的，不是把交互降级：
@@ -139,7 +139,7 @@ const shortageKeys = computed(() => {
 const blockReason = computed(() => {
   const current = order.value;
   if (!current) {
-    return '请先在左侧选择一张出库单';
+    return '请先点「明细」打开一张出库单';
   }
   if (!canPostOrder(current.status)) {
     return `当前单据状态是「${getDictLabel(DICT_TYPE.WMS_ORDER_STATUS, current.status) || current.status}」，只有新建与已确认的单据能过账`;
@@ -160,6 +160,19 @@ const blockReason = computed(() => {
     return `有 ${shortageKeys.value.length} 个物料的可用量低于本次要出的量，账实不符，先查清再发货`;
   }
   return '';
+});
+
+/**
+ * 不能保存拣选数量的原因，空串表示可以保存。
+ *
+ * 与 blockReason 分开算：保存只受"单据是否新建态 + 有没有明细"约束，不要求批次库位填全，
+ * 而批次库位恰恰是要靠"改了再保存"之外的途径补的，混在一起会把唯一的修正入口也禁掉。
+ */
+const saveBlockReason = computed(() => {
+  if (!lineEditable.value) {
+    return '只有新建态的出库单能改拣选数量，已提交或已过账的单据不能改';
+  }
+  return lines.value.length === 0 ? '出库明细为空，没有可保存的行' : '';
 });
 
 const lineTableTitle = computed(() => {
@@ -202,7 +215,9 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
         },
       },
     },
-    rowConfig: { keyField: 'id', isCurrent: true, isHover: true },
+    // 不再用 isCurrent：vxe 的当前行高亮由点击行触发，入口改成「明细」按钮后
+    // "被高亮的行"和"真正打开抽屉的行"会分叉，反而误导操作员
+    rowConfig: { keyField: 'id', isHover: true },
     toolbarConfig: {
       custom: true,
       refresh: true,
@@ -210,21 +225,6 @@ const [OrderGrid, orderGridApi] = useVbenVxeGrid({
       zoom: false,
     },
   } as VxeTableGridOptions<WmsOutOrderApi.OutOrder>,
-  gridEvents: {
-    cellClick: ({
-      column,
-      row,
-    }: {
-      column: any;
-      row: WmsOutOrderApi.OutOrder;
-    }) => {
-      // 勾选、序号这类系统列与操作列的点击不打开拣选抽屉
-      if (column.type || column.slots?.default === 'actions') {
-        return;
-      }
-      handleSelectOrder(row);
-    },
-  },
 });
 
 const [LineGrid, lineGridApi] = useVbenVxeGrid({
@@ -273,7 +273,6 @@ function handleDrawerClosed() {
   availableQtyMap.value = new Map();
   lastResult.value = undefined;
   applyLines();
-  orderGridApi.grid.clearCurrentRow();
   orderGridApi.query();
 }
 
@@ -369,8 +368,8 @@ async function loadLines() {
   }
 }
 
-/** 点行选中出库单并打开拣选抽屉：换单据要清掉上一单的发货结果 */
-async function handleSelectOrder(row: WmsOutOrderApi.OutOrder) {
+/** 打开拣选作业抽屉：入口是操作列「明细」按钮而不是整行点击（整行热区会误触）；换单据要清掉上一单的发货结果 */
+async function handleOpenDetail(row: WmsOutOrderApi.OutOrder) {
   lastResult.value = undefined;
   order.value = await getOutOrder(row.id);
   drawerApi.open();
@@ -573,7 +572,9 @@ async function handleConfirmDeliver() {
                 type: 'default',
                 icon: 'lucide:save',
                 auth: ['wms:out-order:update'],
-                disabled: !lineEditable || lines.length === 0,
+                disabled: saveBlockReason !== '',
+                // 禁用按钮不隐藏，原因进 tooltip；空串时 TableAction 不渲染提示
+                tooltip: saveBlockReason,
                 onClick: handleSavePickQty,
               },
               {
@@ -582,6 +583,7 @@ async function handleConfirmDeliver() {
                 icon: 'lucide:truck',
                 auth: ['wms:out-order:confirm'],
                 disabled: blockReason !== '',
+                tooltip: blockReason,
                 onClick: handleConfirmDeliver,
               },
               {
@@ -590,6 +592,7 @@ async function handleConfirmDeliver() {
                 icon: 'lucide:rotate-ccw',
                 auth: ['wms:out-order:query'],
                 disabled: !order,
+                tooltip: order ? '' : '请先选择一张出库单',
                 onClick: reloadOrder,
               },
             ]"
@@ -597,7 +600,22 @@ async function handleConfirmDeliver() {
         </div>
       </div>
     </Drawer>
-    <OrderGrid table-title="出库单列表" />
+    <OrderGrid table-title="出库单列表">
+      <template #actions="{ row }">
+        <TableAction
+          :actions="[
+            {
+              label: '明细',
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.VIEW,
+              auth: ['wms:out-order:query'],
+              onClick: handleOpenDetail.bind(null, row),
+            },
+          ]"
+        />
+      </template>
+    </OrderGrid>
   </Page>
 </template>
 

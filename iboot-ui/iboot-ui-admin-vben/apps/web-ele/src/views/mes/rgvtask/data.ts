@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import { RES_RELATION_PROPS } from '#/views/mdm/relation-config';
 
 import {
@@ -262,7 +262,9 @@ export function useGridColumns(): VxeTableGridOptions<MesRgvTaskApi.RgvTask>['co
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'taskNo', title: '本地任务号', minWidth: 160 },
+    // taskNo 是 RGV 本地任务号（编码规则 MES_RGV_TASK_NO 分配），唯一标识本行；
+    // externalTaskNo 是外部调度系统给的号，与外部系统编码才组成唯一索引，未下发时为空
+    { field: 'taskNo', title: '本地任务号', minWidth: 160, ...codeLinkColumn() },
     { field: 'externalTaskNo', title: '外部任务号', minWidth: 160 },
     {
       field: 'taskType',

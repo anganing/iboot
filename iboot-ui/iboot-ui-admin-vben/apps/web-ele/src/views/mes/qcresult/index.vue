@@ -64,12 +64,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
           ]"
         />
       </template>
-      <template #actions>
-        <TableAction
-          :actions="[
-          ]"
-        />
-      </template>
     </Grid>
   </Page>
 </template>

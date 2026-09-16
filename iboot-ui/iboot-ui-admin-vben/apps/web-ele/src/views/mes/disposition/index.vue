@@ -5,7 +5,7 @@ import type { MesDispositionApi } from '#/api/mes/disposition';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -13,20 +13,27 @@ import { ElLoading, ElMessage } from 'element-plus';
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   cancelDisposition,
-  executeDisposition,
   deleteDisposition,
   deleteDispositionList,
+  executeDisposition,
   exportDisposition,
   getDispositionPage,
   submitDisposition,
 } from '#/api/mes/disposition';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import DispositionDetail from './modules/disposition-detail.vue';
 import Form from './modules/form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+/** 主表只读详情；disposition-process-detail.vue 是给审批流嵌入用的，容器不同 */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: DispositionDetail,
   destroyOnClose: true,
 });
 const router = useRouter();
@@ -39,6 +46,23 @@ function handleProcessDetail(processInstanceId?: string) {
   if (processInstanceId) {
     router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } });
   }
+}
+
+/** 打开主表只读详情 */
+function handleDetail(row: MesDispositionApi.Disposition) {
+  detailDrawerApi.setData({ id: row.id }).open();
+}
+
+/** 双击处置单号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesDispositionApi.Disposition;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  handleDetail(row);
 }
 
 /** 刷新表格 */
@@ -167,7 +191,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <Grid table-title="不合格品处置单列表">
+    <DetailDrawer />
+    <Grid
+      table-title="不合格品处置单列表"
+      @cell-dblclick="handleCellDblclick"
+    >
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -200,20 +228,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <TableAction
           :actions="[
             {
-              label: $t('common.edit'),
-              type: 'primary',
-              link: true,
-              icon: ACTION_ICON.EDIT,
-              auth: ['mes:disposition:update'],
-              disabled: row.status !== 'DRAFT' || isApprovalRunning(row),
-              onClick: handleEdit.bind(null, row),
-            },
-            {
               label: ['CONCESSION', 'SCRAP'].includes(row.dispositionType || '') ? '提交审批' : '提交',
               type: 'primary',
               link: true,
               auth: ['mes:disposition:submit'],
               disabled: row.status !== 'DRAFT',
+              tooltip:
+                row.status === 'DRAFT' ? undefined : '仅草稿状态可提交处置单',
               popConfirm: {
                 title: `确认提交处置单 ${row.dispositionNo}？`,
                 confirm: handleSubmit.bind(null, row),
@@ -225,21 +246,33 @@ const [Grid, gridApi] = useVbenVxeGrid({
               link: true,
               auth: ['mes:disposition:execute'],
               disabled: row.status !== 'APPROVED',
+              tooltip:
+                row.status === 'APPROVED'
+                  ? undefined
+                  : '让步与报废须审批通过、其他类型须已提交后才能执行',
               popConfirm: {
                 title: `确认执行处置单 ${row.dispositionNo}？执行会联动库存或返工。`,
                 confirm: handleExecute.bind(null, row),
               },
             },
+          ]"
+          :drop-down-actions="[
             {
-              label: '取消',
-              type: 'danger',
+              label: '详情',
+              type: 'primary',
               link: true,
-              auth: ['mes:disposition:cancel'],
-              disabled: !['DRAFT', 'SUBMITTED'].includes(row.status || '') || isApprovalRunning(row),
-              popConfirm: {
-                title: `确认取消处置单 ${row.dispositionNo}？`,
-                confirm: handleCancel.bind(null, row),
-              },
+              icon: ACTION_ICON.VIEW,
+              auth: ['mes:disposition:query'],
+              onClick: handleDetail.bind(null, row),
+            },
+            {
+              label: $t('common.edit'),
+              type: 'primary',
+              link: true,
+              icon: ACTION_ICON.EDIT,
+              auth: ['mes:disposition:update'],
+              disabled: row.status !== 'DRAFT' || isApprovalRunning(row),
+              onClick: handleEdit.bind(null, row),
             },
             {
               label: $t('common.delete'),
@@ -251,6 +284,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.dispositionNo]),
                 confirm: handleDelete.bind(null, row),
+              },
+            },
+            {
+              label: '取消',
+              type: 'danger',
+              link: true,
+              auth: ['mes:disposition:cancel'],
+              disabled: !['DRAFT', 'SUBMITTED'].includes(row.status || '') || isApprovalRunning(row),
+              popConfirm: {
+                title: `确认取消处置单 ${row.dispositionNo}？`,
+                confirm: handleCancel.bind(null, row),
               },
             },
             {

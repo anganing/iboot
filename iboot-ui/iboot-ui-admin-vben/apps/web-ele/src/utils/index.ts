@@ -1,5 +1,6 @@
 import type { Recordable } from '@vben/types';
 
+export * from './codeLinkColumn';
 export * from './html';
 export * from './rangePickerProps';
 export * from './routerHelper';

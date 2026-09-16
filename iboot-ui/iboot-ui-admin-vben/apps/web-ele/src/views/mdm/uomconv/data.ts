@@ -169,7 +169,7 @@ export function useGridColumns(): VxeTableGridOptions<MdmUomConvApi.UomConv>['co
     },
     {
       title: '操作',
-      width: 200,
+      width: 160,
       fixed: 'right',
       slots: { default: 'actions' },
     },

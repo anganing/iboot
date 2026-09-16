@@ -204,6 +204,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['mdm:calendar:update'],
               onClick: handleGenerate.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: $t('common.edit'),
               type: 'primary',

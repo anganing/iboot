@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { RelationSelect } from '#/components/relation-select';
-import { getRangePickerDefaultProps } from '#/utils';
+import { codeLinkColumn, getRangePickerDefaultProps } from '#/utils';
 import {
   INV_ORG_RELATION_PROPS,
   MAT_RELATION_PROPS,
@@ -189,7 +189,7 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
   return [
     { type: 'checkbox', width: 40 },
     { type: 'seq', title: '序号', width: 60 },
-    { field: 'countNo', title: '盘点单号', minWidth: 160 },
+    { field: 'countNo', title: '盘点单号', minWidth: 160, ...codeLinkColumn() },
     {
       field: 'countType',
       title: '盘点类型',
@@ -238,8 +238,8 @@ export function useGridColumns(): VxeTableGridOptions<WmsCountOrderApi.CountOrde
     },
     {
       title: '操作',
-      // 六个按钮：明细、冻结、录实盘、提交差异审批、编辑、删除
-      width: 440,
+      // 固定四位：明细、冻结、录实盘、提交差异审批；编辑/删除/审批进度进「更多」
+      width: 340,
       fixed: 'right',
       slots: { default: 'actions' },
     },

@@ -20,16 +20,35 @@ import {
   submitTransferOrder,
 } from '#/api/wms/transferorder';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { canPostOrder, isOrderDraft } from '../order-form';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import TransferOrderDetailDrawer from './modules/transfer-order-detail.vue';
 import TransferOrderLineDrawer from './modules/transfer-order-line-drawer.vue';
 
 const [LineDrawer, lineDrawerApi] = useVbenDrawer({
   connectedComponent: TransferOrderLineDrawer,
   destroyOnClose: true,
 });
+
+const [Detail, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: TransferOrderDetailDrawer,
+  destroyOnClose: true,
+});
+
+/** 双击单据编号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsTransferOrderApi.TransferOrder;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
@@ -227,8 +246,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <Detail />
     <LineDrawer />
-    <Grid table-title="移库调拨单列表">
+    <Grid table-title="移库调拨单列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -275,6 +295,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:send',
               auth: ['wms:transfer-order:submit'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可提交',
               onClick: handleSubmit.bind(null, row),
             },
             {
@@ -284,8 +305,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:check-check',
               auth: ['wms:transfer-order:confirm'],
               disabled: !canPostOrder(row.status),
+              tooltip: canPostOrder(row.status) ? undefined : '仅已提交的单据可过账',
               onClick: handleConfirm.bind(null, row),
             },
+          ]"
+          :drop-down-actions="[
             {
               label: '取消',
               type: 'warning',
@@ -293,6 +317,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: 'lucide:ban',
               auth: ['wms:transfer-order:cancel'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可取消',
               onClick: handleCancel.bind(null, row),
             },
             {
@@ -302,6 +327,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['wms:transfer-order:update'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可修改',
               onClick: handleEdit.bind(null, row),
             },
             {
@@ -311,6 +337,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.DELETE,
               auth: ['wms:transfer-order:delete'],
               disabled: !isOrderDraft(row.status),
+              tooltip: isOrderDraft(row.status) ? undefined : '仅草稿态的单据可删除',
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.transferNo]),
                 confirm: handleDelete.bind(null, row),

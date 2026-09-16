@@ -4,7 +4,7 @@ import type { WmsDeviceTaskApi } from '#/api/wms/devicetask';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -17,8 +17,10 @@ import {
   getDeviceTaskPage,
 } from '#/api/wms/devicetask';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { useGridColumns, useGridFormSchema } from './data';
+import Detail from './modules/device-task-detail.vue';
 import Form from './modules/form.vue';
 import DeviceTaskImport from './modules/import-form.vue';
 
@@ -30,6 +32,22 @@ const [ImportFormModal, importFormModalApi] = useVbenModal({
   connectedComponent: DeviceTaskImport,
   destroyOnClose: true,
 });
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: Detail,
+  destroyOnClose: true,
+});
+
+/** 双击任务号（链接列）打开只读详情；编辑弹窗只有可改字段，快照类字段只能从详情看 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: WmsDeviceTaskApi.DeviceTask;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 
 /** 导入设备任务 */
 function handleImport() {
@@ -136,7 +154,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <ImportFormModal @success="handleRefresh" />
-    <Grid table-title="设备任务列表">
+    <DetailDrawer />
+    <Grid table-title="设备任务列表" @cell-dblclick="handleCellDblclick">
       <template #toolbar-tools>
         <TableAction
           :actions="[

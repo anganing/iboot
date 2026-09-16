@@ -4,7 +4,7 @@ import type { MesRgvTaskApi } from '#/api/mes/rgvtask';
 
 import { ref } from 'vue';
 
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { ElLoading, ElMessage } from 'element-plus';
@@ -17,14 +17,33 @@ import {
   getRgvTaskPage,
 } from '#/api/mes/rgvtask';
 import { $t } from '#/locales';
+import { isCodeLinkColumn } from '#/utils';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import RgvTaskDetail from './modules/rgv-task-detail.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
+/** 只读详情走双击本地任务号，操作列仍只有修改/删除，不再追加详情按钮挤占宽度 */
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: RgvTaskDetail,
+  destroyOnClose: true,
+});
+
+/** 双击本地任务号（链接列）打开只读详情；单击行不开，避免误触 */
+function handleCellDblclick({
+  column,
+  row,
+}: {
+  column: { params?: unknown };
+  row: MesRgvTaskApi.RgvTask;
+}) {
+  if (!isCodeLinkColumn(column)) return;
+  detailDrawerApi.setData({ id: row.id }).open();
+}
 
 /** 刷新表格 */
 function handleRefresh() {
@@ -124,7 +143,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <Grid table-title="RGV 流转任务列表">
+    <DetailDrawer />
+    <Grid
+      table-title="RGV 流转任务列表"
+      @cell-dblclick="handleCellDblclick"
+    >
       <template #toolbar-tools>
         <TableAction
           :actions="[
