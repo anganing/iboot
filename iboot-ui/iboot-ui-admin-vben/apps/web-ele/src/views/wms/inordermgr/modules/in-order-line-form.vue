@@ -5,6 +5,8 @@ import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
+import { ElButton } from 'element-plus';
+
 import { useVbenForm } from '#/adapter/form';
 import { $t } from '#/locales';
 import { getMdmFormLayout } from '#/views/mdm/form-layout';
@@ -21,6 +23,13 @@ const emit = defineEmits(['success']);
 const formData = ref<WmsInOrderApi.InOrderLine>();
 /** 关联选择器带回来的可读字段，明细表格靠它显示物料编码、库位编码而不是裸 ID */
 const snapshot = ref<Record<string, any>>({});
+/** 连续录入时保留的字段：物料相关与库位、容器、供应商这类逐行重复的取值 */
+const STICKY_FIELDS = [
+  'matId',
+  'locId',
+  'containerId',
+  'supplierId',
+] as const;
 
 const getTitle = computed(() =>
   formData.value
@@ -59,6 +68,11 @@ const [Form, formApi] = useVbenForm({
         snapshot.value.matCode = row?.code;
         snapshot.value.matName = row?.name;
         snapshot.value.matSpec = row?.spec;
+        // 物料主数据自带基准计量单位，选完就带出来，省掉每行手选一次
+        if (row?.baseUomId) {
+          snapshot.value.uomCode = row?.baseUomCode;
+          formApi.setFieldValue('uomId', row.baseUomId);
+        }
         break;
       }
       case 'supplierId': {
@@ -78,23 +92,52 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
+/** 取当前表单值并合上选择器快照，得到一行完整明细 */
+async function collectLine() {
+  const values = (await formApi.getValues()) as WmsInOrderApi.InOrderLine;
+  // 选批次时批次号快照跟着批次走，没选批次则保留用户手填的到货批次号
+  const picked = { ...snapshot.value };
+  if (!values.batchId) {
+    delete picked.lotNo;
+  }
+  return {
+    ...formData.value,
+    ...values,
+    ...picked,
+  } as WmsInOrderApi.InOrderLine;
+}
+
+/**
+ * 保存并继续录入下一行。
+ *
+ * 一行一个弹窗，连录时最烦的是把物料、库位、容器、供应商这些逐行重复的取值重填一遍。
+ * 这里保留它们（连同快照一起），只清掉数量、批次、质量状态和备注——数量每行必不同，
+ * 批次跟着物料走不会重复，质量状态默认合格已足够。父弹窗收到 success 后照常入表，
+ * 本弹窗不关，光标留在数量上等下一行。
+ */
+async function handleSaveAndNext() {
+  const { valid } = await formApi.validateField('planQty');
+  if (!valid) {
+    return;
+  }
+  emit('success', await collectLine());
+  const sticky = (await formApi.getValues()) as Record<string, any>;
+  const kept: Record<string, any> = {};
+  for (const field of STICKY_FIELDS) {
+    kept[field] = sticky[field];
+  }
+  await formApi.resetForm();
+  await formApi.setValues(kept);
+  // resetForm 清空表单值但不动 snapshot 之外的部分，物料快照要留着才能继续显示编码
+}
+
 const [Modal, modalApi] = useVbenModal({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) {
       return;
     }
-    const values = (await formApi.getValues()) as WmsInOrderApi.InOrderLine;
-    // 选批次时批次号快照跟着批次走，没选批次则保留用户手填的到货批次号
-    const picked = { ...snapshot.value };
-    if (!values.batchId) {
-      delete picked.lotNo;
-    }
-    emit('success', {
-      ...formData.value,
-      ...values,
-      ...picked,
-    });
+    emit('success', await collectLine());
     await modalApi.close();
   },
   async onOpenChange(isOpen: boolean) {
@@ -117,5 +160,12 @@ const [Modal, modalApi] = useVbenModal({
 <template>
   <Modal :class="formLayout.modalClass" :title="getTitle">
     <Form class="mx-4" />
+    <template #prepend-footer>
+      <!-- 「继续录入」是新增才有的动作：编辑态点它语义说不通，且 formData 带着原行标识，
+           会在父组件走覆盖分支，看着像新增实为改行 -->
+      <div v-if="!formData" class="flex flex-auto items-center">
+        <ElButton @click="handleSaveAndNext"> 保存并继续录入 </ElButton>
+      </div>
+    </template>
   </Modal>
 </template>
