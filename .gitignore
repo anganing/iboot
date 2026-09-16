@@ -56,7 +56,12 @@ application-my.yaml
 **/.DS_Store
 
 .firecrawl/
-/sql/
+# 根目录 sql/ 保留芋道上游原生脚本（mysql/ oracle/ postgresql/ 等），不入库。
+# 但 T5-04 的交付脚本 sql/deploy/ 是本项目自己的产物，必须入库 —— 故用
+# 否定规则放行。注意必须先写 /sql/* 再写 !/sql/deploy/，git 对已排除目录
+# 内的文件不会重新包含，所以要用 /sql/* 而非 /sql/。
+/sql/*
+!/sql/deploy/
 业务建模/
 .zcode/
 

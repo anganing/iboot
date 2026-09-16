@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <process id="wms-count-diff" name="盘点差异调整" isExecutable="true">
+    <startEvent id="StartEvent" name="开始"></startEvent>
+    <userTask id="StartUserNode" name="发起人">
+      <extensionElements>
+        <flowable:approveType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[1]]></flowable:approveType>
+        <flowable:candidateStrategy xmlns:flowable="http://flowable.org/bpmn"><![CDATA[36]]></flowable:candidateStrategy>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="提交" enable="true" id="1"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="拒绝" enable="false" id="2"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="转办" enable="false" id="3"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="委派" enable="false" id="4"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="加签" enable="false" id="5"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="退回" enable="false" id="6"></flowable:buttonsSetting>
+        <flowable:assignStartUserHandlerType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[2]]></flowable:assignStartUserHandlerType>
+      </extensionElements>
+    </userTask>
+    <userTask id="Activity__33935770571789139516013" name="审批人">
+      <extensionElements>
+        <flowable:approveType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[1]]></flowable:approveType>
+        <flowable:candidateStrategy xmlns:flowable="http://flowable.org/bpmn"><![CDATA[10]]></flowable:candidateStrategy>
+        <flowable:candidateParam xmlns:flowable="http://flowable.org/bpmn"><![CDATA[168]]></flowable:candidateParam>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="通过" enable="true" id="1"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="拒绝" enable="true" id="2"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="转办" enable="true" id="3"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="委派" enable="true" id="4"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="加签" enable="true" id="5"></flowable:buttonsSetting>
+        <flowable:buttonsSetting xmlns:flowable="http://flowable.org/bpmn" displayName="退回" enable="true" id="6"></flowable:buttonsSetting>
+        <flowable:approveMethod xmlns:flowable="http://flowable.org/bpmn"><![CDATA[4]]></flowable:approveMethod>
+        <flowable:rejectHandlerType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[1]]></flowable:rejectHandlerType>
+        <flowable:assignStartUserHandlerType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[1]]></flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[1]]></flowable:assignEmptyHandlerType>
+        <flowable:signEnable xmlns:flowable="http://flowable.org/bpmn"><![CDATA[false]]></flowable:signEnable>
+        <flowable:reasonRequire xmlns:flowable="http://flowable.org/bpmn"><![CDATA[false]]></flowable:reasonRequire>
+        <flowable:nodeType xmlns:flowable="http://flowable.org/bpmn"><![CDATA[11]]></flowable:nodeType>
+      </extensionElements>
+      <multiInstanceLoopCharacteristics isSequential="true" flowable:collection="${coll_userList}">
+        <loopCardinality>1</loopCardinality>
+        <completionCondition>${ nrOfCompletedInstances &gt;= nrOfInstances }</completionCondition>
+      </multiInstanceLoopCharacteristics>
+    </userTask>
+    <endEvent id="EndEvent" name="结束"></endEvent>
+    <sequenceFlow id="sequenceFlow-6c2452d3-dd5f-44c4-a072-51de32698d19" sourceRef="StartEvent" targetRef="StartUserNode"></sequenceFlow>
+    <sequenceFlow id="sequenceFlow-b351fbdc-f9ae-4e61-b633-2a7730b725d4" sourceRef="StartUserNode" targetRef="Activity__33935770571789139516013"></sequenceFlow>
+    <sequenceFlow id="sequenceFlow-48d3e879-7a87-496f-9ad4-00f7281282f3" sourceRef="Activity__33935770571789139516013" targetRef="EndEvent"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_wms-count-diff">
+    <bpmndi:BPMNPlane bpmnElement="wms-count-diff" id="BPMNPlane_wms-count-diff">
+      <bpmndi:BPMNShape bpmnElement="StartUserNode" id="BPMNShape_StartUserNode">
+        <omgdc:Bounds height="60.0" width="100.0" x="80.0" y="0.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Activity__33935770571789139516013" id="BPMNShape_Activity__33935770571789139516013">
+        <omgdc:Bounds height="60.0" width="100.0" x="230.0" y="0.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="StartEvent" id="BPMNShape_StartEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="0.0" y="15.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent" id="BPMNShape_EndEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="380.0" y="15.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="sequenceFlow-48d3e879-7a87-496f-9ad4-00f7281282f3" id="BPMNEdge_sequenceFlow-48d3e879-7a87-496f-9ad4-00f7281282f3">
+        <omgdi:waypoint x="330.0" y="30.0"></omgdi:waypoint>
+        <omgdi:waypoint x="380.0" y="30.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sequenceFlow-6c2452d3-dd5f-44c4-a072-51de32698d19" id="BPMNEdge_sequenceFlow-6c2452d3-dd5f-44c4-a072-51de32698d19">
+        <omgdi:waypoint x="30.0" y="30.0"></omgdi:waypoint>
+        <omgdi:waypoint x="80.0" y="30.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sequenceFlow-b351fbdc-f9ae-4e61-b633-2a7730b725d4" id="BPMNEdge_sequenceFlow-b351fbdc-f9ae-4e61-b633-2a7730b725d4">
+        <omgdi:waypoint x="180.0" y="30.0"></omgdi:waypoint>
+        <omgdi:waypoint x="230.0" y="30.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
