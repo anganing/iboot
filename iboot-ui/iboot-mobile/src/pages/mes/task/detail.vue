@@ -11,7 +11,13 @@ definePage({
   },
 })
 
-const opTaskId = ref(0)
+/**
+ * 主键用字符串承接，**不要 `Number()`**。
+ *
+ * 后端主键是雪花 ID（19 位），超出 JS 安全整数范围（16 位），转 number 会丢精度，
+ * 回查查不到且不报错。详见 src/api/wms/invbalance.ts 的说明。
+ */
+const opTaskId = ref('')
 const detail = ref<OpTask>()
 const loading = ref(true)
 
@@ -71,7 +77,7 @@ function onReport() {
 }
 
 onLoad((options) => {
-  opTaskId.value = Number(options?.opTaskId || 0)
+  opTaskId.value = options?.opTaskId ? String(options.opTaskId) : ''
   loadDetail()
 })
 </script>

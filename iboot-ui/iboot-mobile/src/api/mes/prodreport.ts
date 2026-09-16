@@ -38,9 +38,9 @@ import { httpPost } from '@/http/http'
  */
 export interface ProdReportSubmitParams {
   /** 工序任务编号，必填 */
-  opTaskId: number
+  opTaskId: number | string
   /** 报工作业人员编号，必填，取当前登录用户的 userId */
-  workerId: number
+  workerId: number | string
   /** 本次合格数，必填，可为零不可为负 */
   qtyGood: number
   /** 本次报废数，必填，可为零不可为负 */
@@ -54,9 +54,9 @@ export interface ProdReportSubmitParams {
   /** 幂等键，必填，格式 `APP:{工序任务号}:REPORT:{seq}` */
   idempotencyKey: string
   /** 生产资源编号，不传由后端落 0 */
-  resId?: number
+  resId?: number | string
   /** 班次编号，不传由后端落 0 */
-  shiftId?: number
+  shiftId?: number | string
   /** 备注，最长 500 */
   remark?: string
 }

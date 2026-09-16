@@ -20,9 +20,9 @@ export type EsopFileType = 'IMAGE' | 'VIDEO' | 'PDF' | 'DRAWING' | 'OFFICE' | 'O
 
 /** ESOP 作业步骤附件（后端 RouteOpEsopFileRespVO） */
 export interface EsopFile {
-  id: number
+  id: number | string
   /** 所属作业步骤编号 */
-  esopId?: number
+  esopId?: number | string
   /** 附件展示顺序 */
   seq?: number
   /** 文件类型，后端按扩展名判定 */
@@ -37,14 +37,14 @@ export interface EsopFile {
    */
   fileUrl: string
   /** infra 文件编号 */
-  fileId?: number
+  fileId?: number | string
 }
 
 /** ESOP 作业步骤（后端 RouteOpEsopRespVO） */
 export interface EsopStep {
-  id: number
+  id: number | string
   /** 路线工序编号 */
-  routeOpId?: number
+  routeOpId?: number | string
   /** 展示顺序 */
   seq?: number
   /** 标题 */
@@ -64,7 +64,7 @@ export interface EsopStep {
 }
 
 /** 按路线工序查全部作业步骤（含附件），routeOpId 来自工序任务详情的 routeOpId */
-export function getEsopListByRouteOp(routeOpId: number) {
+export function getEsopListByRouteOp(routeOpId: number | string) {
   return http.get<EsopStep[]>('/mdm/route-op-esop/list-by-route-op', { routeOpId })
 }
 

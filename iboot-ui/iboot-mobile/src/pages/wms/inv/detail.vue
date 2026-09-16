@@ -12,7 +12,15 @@ definePage({
   },
 })
 
-const id = ref(0)
+/**
+ * 主键用字符串承接，**不要 `Number()`**。
+ *
+ * 后端主键是雪花 ID（19 位，如 `2098710811613970434`），超出 JS 的
+ * `Number.MAX_SAFE_INTEGER`（9007199254740991，16 位）——转成 number 会丢精度
+ * （实测末三位 `434` → `400`），回查必然查不到，且不报错、只显示"不存在"。
+ * URL query 本身就是字符串，直接透传即可。
+ */
+const id = ref('')
 const detail = ref<InvBalance>()
 const loading = ref(true)
 
@@ -32,7 +40,7 @@ async function loadDetail() {
 }
 
 onLoad((options) => {
-  id.value = Number(options?.id || 0)
+  id.value = options?.id ? String(options.id) : ''
   loadDetail()
 })
 </script>

@@ -15,11 +15,11 @@ import { http } from '@/http/http'
 
 /** 派工任务（后端 DispatchTaskRespVO） */
 export interface DispatchTask {
-  id: number
+  id: number | string
   /** 派工单号 */
   dispatchNo: string
   /** 工序任务编号，点进详情要用它 */
-  opTaskId: number
+  opTaskId: number | string
   /** 工序任务号 */
   opTaskNo?: string
   /** 工序名称 */
@@ -27,19 +27,19 @@ export interface DispatchTask {
   /** 作业工单号 */
   workOrderNo?: string
   /** 作业人员编号 */
-  operatorId?: number
+  operatorId?: number | string
   /** 作业人员 */
   operatorName?: string
   /** 作业班组编号 */
-  teamId?: number
+  teamId?: number | string
   /** 作业班组 */
   teamName?: string
   /** 生产资源编号 */
-  resId?: number
+  resId?: number | string
   /** 生产资源 */
   resName?: string
   /** 班次编号 */
-  shiftId?: number
+  shiftId?: number | string
   /** 班次 */
   shiftName?: string
   /** 计划开始时间 */
@@ -61,7 +61,7 @@ export interface DispatchTaskPageParams {
   pageNo: number
   pageSize: number
   /** 作业人员编号，取当前登录用户的 userId */
-  operatorId?: number
+  operatorId?: number | string
   /** 状态，取值见字典 mes_dispatch_task_status */
   status?: string
   /** 派工单号 */
@@ -70,11 +70,11 @@ export interface DispatchTaskPageParams {
 
 /** 工序任务（后端 OpTaskRespVO，字段按移动作业场景裁剪） */
 export interface OpTask {
-  id: number
+  id: number | string
   /** 工序任务号 */
   taskNo: string
   /** 作业工单编号 */
-  workOrderId?: number
+  workOrderId?: number | string
   /** 作业工单号快照 */
   workOrderNo?: string
   /** 生产工单号 */
@@ -85,9 +85,9 @@ export interface OpTask {
    * **这是 ESOP 作业指导书的唯一入口**——`list-by-route-op` 只认这个 id。
    * 为空说明该工序未挂载作业步骤，详情页的「查看作业指导书」按钮要置灰。
    */
-  routeOpId?: number
+  routeOpId?: number | string
   /** 标准工序编号 */
-  opId?: number
+  opId?: number | string
   /** 工序编码快照 */
   opCode?: string
   /** 工序名称快照 */
@@ -97,9 +97,9 @@ export interface OpTask {
   /** 并行工序组 */
   parallelGroup?: string
   /** 前序工序任务编号 */
-  prevTaskId?: number
+  prevTaskId?: number | string
   /** 后序工序任务编号 */
-  nextTaskId?: number
+  nextTaskId?: number | string
   /** 执行模式，取值见字典 mes_op_exec_mode */
   execMode?: string
   /** 质检模式，取值见字典 mes_qc_mode */
@@ -115,7 +115,7 @@ export interface OpTask {
   /** 报废数量 */
   scrapQty?: number
   /** 当前分配资源编号 */
-  resId?: number
+  resId?: number | string
   /** 资源名称 */
   resName?: string
   /** 计划开始时间 */
@@ -138,6 +138,6 @@ export function getDispatchTaskPage(params: DispatchTaskPageParams) {
 }
 
 /** 查询工序任务详情 */
-export function getOpTask(id: number) {
+export function getOpTask(id: number | string) {
   return http.get<OpTask>('/mes/op-task/get', { id })
 }

@@ -20,11 +20,15 @@ const userStore = useUserStore()
  * 页面参数缺失（从别处直链打开、参数被截断）时只显示错误态，不发任何请求。
  * `opTaskId` 是后端 `@NotNull` 的必填项，缺了必失败，发出去只会在控制台留一条 400。
  */
-const opTaskId = ref(0)
+/**
+ * 工序任务主键用字符串承接，**不要 `Number()`**——后端主键是雪花 ID（19 位），
+ * 超出 JS 安全整数范围，转 number 会丢精度（末位被改写），提交后端查不到该任务。
+ */
+const opTaskId = ref('')
 const taskNo = ref('')
 /** 进页面时补全工序名与计划数量，让工人报工前能核对"报的是哪道工序、还剩多少" */
 const detail = ref<OpTask>()
-const paramInvalid = computed(() => opTaskId.value <= 0)
+const paramInvalid = computed(() => !opTaskId.value)
 
 // ==================== 幂等键 ====================
 
@@ -252,7 +256,7 @@ async function onSubmit() {
 }
 
 onLoad((options) => {
-  opTaskId.value = Number(options?.opTaskId || 0)
+  opTaskId.value = options?.opTaskId ? String(options.opTaskId) : ''
   taskNo.value = decodeURIComponent(options?.taskNo || '')
   // 幂等键在页面加载时就定下来，覆盖"进来 → 失败 → 重试"整条路径
   rollIdempotencyKey()

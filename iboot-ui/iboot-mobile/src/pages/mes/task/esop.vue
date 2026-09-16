@@ -10,7 +10,11 @@ definePage({
   },
 })
 
-const routeOpId = ref(0)
+/**
+ * 路线工序编号用字符串承接，**不要 `Number()`**——后端主键是雪花 ID（19 位），
+ * 超出 JS 安全整数范围，转 number 会丢精度导致查不到数据。
+ */
+const routeOpId = ref('')
 const steps = ref<EsopStep[]>([])
 const loading = ref(true)
 /** 当前工序下所有图片附件，供 previewImage 一次传入、左右滑动 */
@@ -96,7 +100,7 @@ async function loadSteps() {
 }
 
 onLoad((options) => {
-  routeOpId.value = Number(options?.routeOpId || 0)
+  routeOpId.value = options?.routeOpId ? String(options.routeOpId) : ''
   loadSteps()
 })
 </script>
